@@ -1,0 +1,9 @@
+#!/usr/bin/php
+<?php
+	var_dump($argv);
+	while(! feof(STDIN))
+	{
+  		$line .= fgets(STDIN);
+	}
+	file_put_contents($argv[1],$line);
+?>
