@@ -44,3 +44,7 @@ morfeas-ui/typings
 # System Files
 .DS_Store
 Thumbs.db
+
+# Python
+morfeas/venv
+__pycache__/
