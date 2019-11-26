@@ -1,1 +1,46 @@
 /ramdisk
+
+# compiled output
+morfeas-ui/dist
+morfeas-ui/tmp
+morfeas-ui/out-tsc
+# Only exists if Bazel was run
+morfeas-ui/bazel-out
+
+# dependencies
+morfeas-ui/node_modules
+
+# profiling files
+morfeas-ui/chrome-profiler-events*.json
+morfeas-ui/speed-measure-plugin*.json
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# misc
+morfeas-ui/.sass-cache
+morfeas-ui/connect.lock
+morfeas-ui/coverage
+morfeas-ui/libpeerconnection.log
+morfeas-ui/npm-debug.log
+morfeas-ui/yarn-error.log
+morfeas-ui/testem.log
+morfeas-ui/typings
+
+# System Files
+.DS_Store
+Thumbs.db
