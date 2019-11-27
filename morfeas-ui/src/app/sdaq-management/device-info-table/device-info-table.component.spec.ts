@@ -35,7 +35,7 @@ describe('DeviceInfoTableComponent', () => {
       expect(result).toEqual(expected);
   });
 
-  it('should work with empty measurement values from SDAQ devices', () => {
+  it('should return SDAQ values when no calibration values are present', () => {
     const input = JSON.parse(`
     [{
       "CANBus-interface": "can0",
@@ -58,6 +58,17 @@ describe('DeviceInfoTableComponent', () => {
     ] as CanBusFlatData[];
     const result = component.flattenRowData(input);
     expect(result).toEqual(expected);
+  });
+
+  it('should return empty array when no SDAQ data is available', () => {
+    const input = JSON.parse(`
+    [{
+      "CANBus-interface": "can0",
+      "SDAQs_data": []
+    }]
+    `);
+    const result = component.flattenRowData(input);
+    expect(result).toEqual([]);
   });
 
   const canData: CanBus[] = JSON.parse(`

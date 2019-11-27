@@ -22,7 +22,7 @@ export interface CanBusFlatData {
 export class DeviceInfoTableComponent {
 
   columnDefs: ColDef[] = [
-    {colId: '1', headerName: 'CanBUS', field: 'canBus'},
+    {colId: '1', headerName: 'CAN Bus', field: 'canBus'},
     {colId: '2', headerName: 'Address', field: 'sdaqAddress', editable: true},
     {colId: '3', headerName: 'Serial', field: 'sdaqSerial'},
     {colId: '4', headerName: 'Type', field: 'sdaqType'},
