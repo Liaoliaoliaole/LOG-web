@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { AllCommunityModules, ColDef, GridOptions } from '@ag-grid-community/all-modules';
 import { CanbusService } from '../services/canbus/canbus.service';
 import { CanBus, SdaqData } from '../can-model';
+import { TableColumn } from '../device-table-sidebar/device-table-sidebar.component';
 
 export interface CanBusFlatData {
   canBus: string;
@@ -19,18 +20,19 @@ export interface CanBusFlatData {
   templateUrl: './device-info-table.component.html',
   styleUrls: ['./device-info-table.component.scss']
 })
-export class DeviceInfoTableComponent {
+export class DeviceInfoTableComponent implements OnInit {
 
   columnDefs: ColDef[] = [
-    {colId: '1', headerName: 'CAN Bus', field: 'canBus'},
-    {colId: '2', headerName: 'Address', field: 'sdaqAddress', editable: true},
-    {colId: '3', headerName: 'Serial', field: 'sdaqSerial'},
-    {colId: '4', headerName: 'Type', field: 'sdaqType'},
-    {colId: '5', headerName: 'Channel', field: 'channelId' },
-    {colId: '6', headerName: 'Unit', field: 'channelUnit'},
+    {headerName: 'CAN Bus', field: 'canBus'},
+    {headerName: 'Address', field: 'sdaqAddress', editable: true},
+    {headerName: 'Serial', field: 'sdaqSerial'},
+    {headerName: 'Type', field: 'sdaqType'},
+    {headerName: 'Channel', field: 'channelId' },
+    {headerName: 'Unit', field: 'channelUnit'},
   ];
 
   rowData: CanBusFlatData[];
+  tableColumns: TableColumn[] = [];
 
   gridOptions: GridOptions = {
     defaultColDef: {
@@ -53,6 +55,15 @@ export class DeviceInfoTableComponent {
 
   modules = AllCommunityModules;
   constructor(private readonly canbusService: CanbusService) { }
+
+  ngOnInit(): void {
+    this.tableColumns = this.columnDefs.map(x => new TableColumn(x.field, x.headerName));
+  }
+
+  toggleColumnVisibility(id: string) {
+    const column = this.gridOptions.columnApi.getColumn(id);
+    this.gridOptions.columnApi.setColumnVisible(column, !column.isVisible());
+  }
 
   flattenRowData(canBus: CanBus[]): CanBusFlatData[] {
     return canBus.reduce((canBusArray: CanBusFlatData[], can) => {

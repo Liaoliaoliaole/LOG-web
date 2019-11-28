@@ -1,0 +1,11 @@
+<div>
+    <button class="btn btn-secondary" (click)="toggleShowOptions()">Show options</button>
+    <div *ngIf="showOptions" class="list-group">
+        <div class="list-group-item" *ngFor="let column of columns" (click)="onColumnClick(column)">
+            <label class="form-check-label px-3">
+                <input type="checkbox" class="form-check-input" [checked]="column.isVisible"
+                    (change)="onColumnClick(column)">{{column.displayName}}
+            </label>
+        </div>
+    </div>
+</div>
