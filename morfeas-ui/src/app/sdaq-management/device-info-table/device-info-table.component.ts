@@ -20,15 +20,15 @@ export interface CanBusFlatData {
   templateUrl: './device-info-table.component.html',
   styleUrls: ['./device-info-table.component.scss']
 })
-export class DeviceInfoTableComponent implements OnInit {
 
+export class DeviceInfoTableComponent implements OnInit {
   columnDefs: ColDef[] = [
-    {headerName: 'CAN Bus', field: 'canBus'},
-    {headerName: 'Address', field: 'sdaqAddress', editable: true},
-    {headerName: 'Serial', field: 'sdaqSerial'},
-    {headerName: 'Type', field: 'sdaqType'},
-    {headerName: 'Channel', field: 'channelId' },
-    {headerName: 'Unit', field: 'channelUnit'},
+    { headerName: 'CAN Bus', field: 'canBus' },
+    { headerName: 'Address', field: 'sdaqAddress', editable: true },
+    { headerName: 'Serial', field: 'sdaqSerial' },
+    { headerName: 'Type', field: 'sdaqType' },
+    { headerName: 'Channel', field: 'channelId' },
+    { headerName: 'Unit', field: 'channelUnit' },
   ];
 
   rowData: CanBusFlatData[];
@@ -44,12 +44,14 @@ export class DeviceInfoTableComponent implements OnInit {
     columnDefs: this.columnDefs,
     rowData: this.rowData,
     suppressRowTransform: true,
+    suppressScrollOnNewData: true,
 
     debug: true,
     onGridReady: () => {
-      const rowData = this.canbusService.getCanbusData();
-      this.rowData = this.flattenRowData(rowData);
-      this.gridOptions.api.setRowData(this.rowData);
+      setInterval(() => {
+        this.getData();
+      }, 2000);
+
     },
   };
 
@@ -65,7 +67,12 @@ export class DeviceInfoTableComponent implements OnInit {
     this.gridOptions.columnApi.setColumnVisible(column, !column.isVisible());
   }
 
-  flattenRowData(canBus: CanBus[]): CanBusFlatData[] {
+  flattenRowData(canBusArr: CanBus[]): CanBusFlatData[] {
+    //console.log(canBusArr)
+    const canBus = canBusArr.filter(x => x != null);
+    if (canBus == null || canBus.length === 0) {
+      return [];
+    }
     return canBus.reduce((canBusArray: CanBusFlatData[], can) => {
       const canBusDataRow = can.SDAQs_data.reduce((flattenArray: CanBusFlatData[], sdaqData: SdaqData) => {
         const dataPoint = {
@@ -94,4 +101,10 @@ export class DeviceInfoTableComponent implements OnInit {
     }, []);
   }
 
+  getData() {
+    this.canbusService.getCanbusData().subscribe((rowData) => {
+      this.rowData = this.flattenRowData(rowData);
+      this.gridOptions.api.setRowData(this.rowData);
+    });
+  }
 }

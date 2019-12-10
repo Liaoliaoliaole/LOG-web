@@ -1,36 +1,22 @@
-#!/usr/bin/env python
 import json
 from typing import Dict
-from flask import Flask
-from flask_socketio import SocketIO
-from watchdogs.single_file import EmitFileContentsOnChangeDaemon
+from flask import Flask, send_from_directory
+from flask_cors import CORS
+from pathlib import Path
 
+app = Flask(__name__)
+CORS(app)
+config: Dict[str, str]
 
-def init_config() -> Dict[str, str]:
-    with open('morfeas/config.json') as config:
-        return json.load(config)
+@app.route('/ramdisk/<path:path>')
+def send_ramdisk_folder(path):
+    return send_from_directory(config['ramdisk_path'], path)
 
+def init_config():
+    root_path = Path(app.root_path)
+    with open(root_path.parent/'config.json') as config_file:
+        return json.load(config_file)
 
-CONFIG = init_config()
-APP = Flask(__name__)
-APP.config['SECRET_KEY'] = CONFIG['flask_secret']
-SOCKET_IO = SocketIO(APP, cors_allowed_origins="*")
-THREADS = None
-
-def init_file_watchers() -> None:
-    global THREADS
-    if THREADS is None:
-        THREADS = [
-            SOCKET_IO.start_background_task(
-                target=EmitFileContentsOnChangeDaemon, socketio=SOCKET_IO,
-                path='../ramdisk/can0.json', event_name='can_data'),
-        ]
-
-
-def on_init() -> None:
-    init_file_watchers()
-
-
-if __name__ == "__main__":
-    on_init()
-    SOCKET_IO.run(APP, debug=True)
+if __name__ == '__main__':
+    config = init_config()
+    app.run(debug=config['debug'])
