@@ -34,5 +34,4 @@ export class DeviceTableSidebarComponent {
   toggleShowOptions() {
     this.showOptions = !this.showOptions;
   }
-
 }

@@ -49,3 +49,4 @@ Thumbs.db
 morfeas/venv
 __pycache__/
 .vscode/
+morfeas/config.json

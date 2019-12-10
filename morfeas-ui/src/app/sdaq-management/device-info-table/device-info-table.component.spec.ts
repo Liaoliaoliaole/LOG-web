@@ -4,6 +4,7 @@ import { DeviceInfoTableComponent, CanBusFlatData } from './device-info-table.co
 import { CanBus } from '../can-model';
 import { AgGridModule } from '@ag-grid-community/angular';
 import { DeviceTableSidebarComponent } from '../device-table-sidebar/device-table-sidebar.component';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('DeviceInfoTableComponent', () => {
   let component: DeviceInfoTableComponent;
@@ -12,7 +13,9 @@ describe('DeviceInfoTableComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       declarations: [ DeviceInfoTableComponent, DeviceTableSidebarComponent ],
-      imports: [AgGridModule.forRoot()]
+      imports: [
+        HttpClientTestingModule,
+        AgGridModule.forRoot()]
     })
     .compileComponents();
   }));
@@ -70,6 +73,26 @@ describe('DeviceInfoTableComponent', () => {
     `);
     const result = component.flattenRowData(input);
     expect(result).toEqual([]);
+  });
+
+  it('should return empty array when no CanBus data is available', () => {
+    const result = component.flattenRowData([null, null]);
+    expect(result).toEqual([]);
+  });
+
+  it('should show single canbus if other fails to load', () => {
+    const can0 = {
+      'CANBus-interface': 'can0',
+      SDAQs_data: [{
+        Address: 1,
+        Serial_number: 624642519,
+        SDAQ_type: 'SDAQ-TC-16',
+      }]} as CanBus;
+    const result = component.flattenRowData([can0, null]);
+    const expected = [
+      {canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16'},
+    ] as CanBusFlatData[];
+    expect(result).toEqual(expected);
   });
 
   const canData: CanBus[] = JSON.parse(`
