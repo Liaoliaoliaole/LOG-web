@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { CanBus } from '../../can-model';
 import { Observable, of, forkJoin } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { CanBusFlatData } from '../../device-info-table/device-info-table.component';
 
 @Injectable({
   providedIn: 'root'
@@ -20,6 +21,28 @@ export class CanbusService {
       catchError(this.handleCanbusError));
       
     return forkJoin(can0, can1);
+  }
+
+  saveOpcUaConfigs(canbusData:CanBusFlatData[]): Observable<any> {
+    let url = `${environment.API_ROOT}/api/save_opc_ua_configs`;
+    let httpHeaders = new HttpHeaders({
+      'Content-Type' : 'application/json',
+      'Cache-Control': 'no-cache'
+    });
+    let options = {
+      headers: httpHeaders
+    };
+
+    // NOTE: uncomment this after linking sensors with isocodes has been implemented.
+    // canbusData = canbusData.filter(sensor => {
+    //   return (sensor.isoCode);
+    // });
+    
+    this.http.post(url, JSON.stringify(canbusData), options).subscribe((response) => {
+      console.log(response);
+    });
+
+    return null;
   }
 
   private handleCanbusError = (error) => {
