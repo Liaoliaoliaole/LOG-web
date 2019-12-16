@@ -1,4 +1,5 @@
 {
     "ramdisk_path": "",
-    "debug": false
+    "opc_ua_config_file": "opc_ua_config.xml",
+    "debug": true
 }

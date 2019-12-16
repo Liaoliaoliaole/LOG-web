@@ -1,9 +1,15 @@
 import json
+import xml.dom.minidom
 import xmltodict
+from dicttoxml import dicttoxml
 from typing import Dict
-from flask import Flask, send_from_directory, jsonify
+from flask import Flask, send_from_directory, request, jsonify
+from typing import Dict
 from flask_cors import CORS
 from pathlib import Path
+from xml.parsers.expat import ExpatError
+
+from global_enums import OPC_UA_REQUIRED_FIELDS
 
 app = Flask(__name__)
 CORS(app)
@@ -21,6 +27,58 @@ def get_opcua_configs():
         return jsonify(opc_ua_configs)
 
     return jsonify()
+
+# curl -X POST localhost:5000/api/save_config -d '{"unit":"valueaaaa"}' -H 'Content-Type: application/json'
+@app.route('/api/save_opc_ua_configs', methods=['POST'])
+def save_opc_ua_configs():
+    canbus_data = request.get_json()
+
+    if (canbus_data == None or len(canbus_data) == 0):
+        return jsonify(success=False), 400
+
+    formatted_canbus_data = format_canbus_data(canbus_data)
+
+    prettyxml = parse_xml(formatted_canbus_data)
+
+    if (prettyxml):
+        with open(config['ramdisk_path'] + config['opc_ua_config_file'], 'w+') as xml_file:
+            xml_file.write(prettyxml)
+        return jsonify(success=True), 200
+
+    return jsonify(success=False), 500
+
+def parse_xml(data):
+    sensor_item = lambda x: 'sensor'
+    xml_data = dicttoxml(data, custom_root='root', attr_type=False, item_func=sensor_item)
+    try: 
+        dom = xml.dom.minidom.parseString(xml_data)
+    except ExpatError:
+        return
+    return dom.toprettyxml() # format xml convention
+
+def format_canbus_data(canbus_data):
+    result = []
+    sensor = {}
+
+    for row in canbus_data:
+        if (OPC_UA_REQUIRED_FIELDS.ANCHOR and 'sdaqSerial' in row and 'channelId' in row):
+            sensor['anchor'] = str(row['sdaqSerial']) + '.CH' + str(row['channelId'])
+
+        if (OPC_UA_REQUIRED_FIELDS.ISO_CODE and 'isoCode' in row):
+            sensor['ISO_code'] = row['isoCode']
+
+        if (OPC_UA_REQUIRED_FIELDS.MIN_VALUE and 'minValue' in row):
+            sensor['min_value'] = row['minValue']
+
+        if (OPC_UA_REQUIRED_FIELDS.MAX_VALUE and 'maxValue' in row):
+            sensor['max_value'] = row['maxValue']
+
+        if (OPC_UA_REQUIRED_FIELDS.DESCRIPTION and 'description' in row):
+            sensor['description'] = row['description']
+
+        result.append(dict(sensor))
+
+    return result
 
 def read_xml_file(file_name):
     try: 

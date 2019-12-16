@@ -6,6 +6,7 @@ import { TableColumn } from '../device-table-sidebar/device-table-sidebar.compon
 
 export interface CanBusFlatData {
   canBus: string;
+  isoCode: string;
   sdaqAddress: number;
   sdaqSerial: number;
   sdaqType: string;
@@ -13,6 +14,9 @@ export interface CanBusFlatData {
   channelDescription: string; // missing from data
   channelId: number;
   channelUnit: string;
+  minValue: number;
+  maxvalue: number;
+  description: string;
 }
 
 @Component({
@@ -23,12 +27,15 @@ export interface CanBusFlatData {
 
 export class DeviceInfoTableComponent implements OnInit {
   columnDefs: ColDef[] = [
-    { headerName: 'CAN Bus', field: 'canBus' },
-    { headerName: 'Address', field: 'sdaqAddress', editable: true },
-    { headerName: 'Serial', field: 'sdaqSerial' },
+    { headerName: 'SDAQ Address', field: 'sdaqAddress'},
+    { headerName: 'ISO Code', field: 'iso', editable:true }, 
+    { headerName: 'SDAQ Serial Number', field: 'sdaqSerial' },
+    { headerName: 'SDAQ Channel', field: 'channelId' },
     { headerName: 'Type', field: 'sdaqType' },
-    { headerName: 'Channel', field: 'channelId' },
     { headerName: 'Unit', field: 'channelUnit' },
+    { headerName: 'Min Value', field: 'min' },
+    { headerName: 'Max Value', field: 'max' },
+    { headerName: 'Description', field: 'description', editable: true },
   ];
 
   rowData: CanBusFlatData[];
@@ -51,7 +58,6 @@ export class DeviceInfoTableComponent implements OnInit {
       setInterval(() => {
         this.getData();
       }, 2000);
-
     },
   };
 
@@ -80,6 +86,9 @@ export class DeviceInfoTableComponent implements OnInit {
           sdaqAddress: sdaqData.Address,
           sdaqSerial: sdaqData.Serial_number,
           sdaqType: sdaqData.SDAQ_type,
+          minValue: sdaqData.Min_Value,
+          maxvalue: sdaqData.Max_Value,
+          description: sdaqData.Description
         } as CanBusFlatData;
 
         if (!sdaqData.Calibration_date || sdaqData.Calibration_date.length === 0) {
@@ -106,5 +115,9 @@ export class DeviceInfoTableComponent implements OnInit {
       this.rowData = this.flattenRowData(rowData);
       this.gridOptions.api.setRowData(this.rowData);
     });
+  }
+
+  saveOpcUaConfigs(event:any) {
+    this.canbusService.saveOpcUaConfigs(this.rowData);
   }
 }
