@@ -41,19 +41,11 @@ def save_opc_ua_configs():
     prettyxml = parse_xml(canbus_data)
 
     if (prettyxml):
-        with open(config['ramdisk_path'] + 'opc_ua_config.xml', 'w+') as xml_file:
+        with open(config['ramdisk_path'] + config['opc_ua_config_file'], 'w+') as xml_file:
             xml_file.write(prettyxml)
-        return app.response_class(
-            status=200,
-            response=json.dumps({'result':'configs saved'}),
-            mimetype='application/json'
-        )
+        return jsonify(success=True), 200
 
-    return app.response_class(
-        status=500,
-        response=json.dumps({'result':'data malformed'}),
-        mimetype='application/json'
-    )
+    return jsonify(success=False), 500
 
 def parse_xml(data):
     sensor_item = lambda x: 'sensor'
