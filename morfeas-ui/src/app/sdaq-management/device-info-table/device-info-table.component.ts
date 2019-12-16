@@ -55,10 +55,9 @@ export class DeviceInfoTableComponent implements OnInit {
 
     debug: true,
     onGridReady: () => {
-      // setInterval(() => {
-      //   this.getData();
-      // }, 2000);
-      this.getData();
+      setInterval(() => {
+        this.getData();
+      }, 2000);
     },
   };
 
