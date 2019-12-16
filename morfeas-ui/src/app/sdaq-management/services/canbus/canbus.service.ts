@@ -23,7 +23,7 @@ export class CanbusService {
     return forkJoin(can0, can1);
   }
 
-  saveOpcUaConfigs(canbusData:CanBusFlatData[]): Observable<any> {
+  saveOpcUaConfigs(canbusData:CanBusFlatData[]): Observable<void> {
     let url = `${environment.API_ROOT}/api/save_opc_ua_configs`;
     let httpHeaders = new HttpHeaders({
       'Content-Type' : 'application/json',
@@ -38,9 +38,7 @@ export class CanbusService {
     //   return (sensor.isoCode);
     // });
     
-    this.http.post(url, JSON.stringify(canbusData), options).subscribe((response) => {
-      console.log(response);
-    });
+    this.http.post<void>(url, JSON.stringify(canbusData), options);
 
     return null;
   }

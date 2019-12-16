@@ -62,7 +62,7 @@ def format_canbus_data(canbus_data):
 
     for row in canbus_data:
         if (OPC_UA_REQUIRED_FIELDS.ANCHOR and 'sdaqSerial' in row and 'channelId' in row):
-            sensor['anchor'] = str(row['sdaqSerial']) + '.' + str(row['channelId'])
+            sensor['anchor'] = str(row['sdaqSerial']) + '.CH' + str(row['channelId'])
 
         if (OPC_UA_REQUIRED_FIELDS.ISO_CODE and 'isoCode' in row):
             sensor['ISO_code'] = row['isoCode']

@@ -117,7 +117,7 @@ export class DeviceInfoTableComponent implements OnInit {
     });
   }
 
-  fetchData(event:any) {
+  saveOpcUaConfigs(event:any) {
     this.canbusService.saveOpcUaConfigs(this.rowData);
   }
 }

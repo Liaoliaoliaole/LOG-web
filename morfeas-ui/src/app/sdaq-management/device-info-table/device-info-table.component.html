@@ -1,6 +1,6 @@
 <div class="row">
     <app-device-table-sidebar class="col-lg-1 col-md-12"
-    [columns]="tableColumns" (columnToggle)="toggleColumnVisibility($event)" (onSaveConfigs)="fetchData($event)"></app-device-table-sidebar>
+    [columns]="tableColumns" (columnToggle)="toggleColumnVisibility($event)" (onSaveConfigs)="saveOpcUaConfigs($event)"></app-device-table-sidebar>
     <div class="col-lg-11 col-md-12">
         <ag-grid-angular class="ag-theme-balham" [gridOptions]="gridOptions" [modules]="modules">
         </ag-grid-angular>
