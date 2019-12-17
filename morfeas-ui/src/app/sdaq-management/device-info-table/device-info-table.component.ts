@@ -3,6 +3,7 @@ import { AllCommunityModules, ColDef, GridOptions } from '@ag-grid-community/all
 import { CanbusService } from '../services/canbus/canbus.service';
 import { CanBus, SdaqData } from '../can-model';
 import { TableColumn } from '../device-table-sidebar/device-table-sidebar.component';
+import { ModalService } from 'src/app/modals/services/modal.service';
 
 export interface CanBusFlatData {
   canBus: string;
@@ -62,7 +63,8 @@ export class DeviceInfoTableComponent implements OnInit {
   };
 
   modules = AllCommunityModules;
-  constructor(private readonly canbusService: CanbusService) { }
+  constructor(private readonly canbusService: CanbusService,
+              private readonly modalService: ModalService) { }
 
   ngOnInit(): void {
     this.tableColumns = this.columnDefs.map(x => new TableColumn(x.field, x.headerName));
@@ -119,5 +121,17 @@ export class DeviceInfoTableComponent implements OnInit {
 
   saveOpcUaConfigs(event:any) {
     this.canbusService.saveOpcUaConfigs(this.rowData);
+  }
+
+  // TODO: Remove
+  showModal() {
+    this.modalService.confirm({title: 'title', message: 'message'})
+    .then(() => {
+      console.log('confirmed');
+    }).catch(() => console.log('cancelled'));
+  }
+
+  showModal2() {
+    this.modalService.open({title: 'title', message: 'message'});
   }
 }
