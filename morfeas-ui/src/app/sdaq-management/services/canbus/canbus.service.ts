@@ -1,26 +1,35 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { CanBus } from '../../can-model';
+import { CanBusModel } from '../../models/can-model';
 import { Observable, of, forkJoin } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { CanBusFlatData } from '../../device-info-table/device-info-table.component';
+import { OpcUaConfigModel } from '../../models/opcua-config-model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CanbusService {
-
   constructor(private readonly http: HttpClient) { }
 
-  getCanbusData(): Observable<CanBus[]> {
+  getLogStatData(): Observable<CanBusModel[]> {
     const url = `${environment.API_ROOT}/ramdisk/`;
-    const can0 = this.http.get<CanBus>(url + 'logstat_can0.json').pipe(
+    const can0 = this.http.get<CanBusModel>(url + 'logstat_can0.json').pipe(
       catchError(this.handleCanbusError));
-    const can1 = this.http.get<CanBus>(url + 'logstat_can1.json').pipe(
+    const can1 = this.http.get<CanBusModel>(url + 'logstat_can1adsf.json').pipe(
       catchError(this.handleCanbusError));
       
     return forkJoin(can0, can1);
+  }
+
+  getOpcUaConfigs(): Observable<OpcUaConfigModel[]> {
+    let url = `${environment.API_ROOT}/api/get_opc_ua_configs`;
+    let result = this.http.get<any>(url).pipe(
+      catchError(this.handleCanbusError)
+    );
+
+    return result;
   }
 
   saveOpcUaConfigs(canbusData:CanBusFlatData[]): Observable<void> {
@@ -38,9 +47,11 @@ export class CanbusService {
     //   return (sensor.isoCode);
     // });
     
-    this.http.post<void>(url, JSON.stringify(canbusData), options);
+    return this.http.post<void>(url, JSON.stringify(canbusData), options);
+  }
 
-    return null;
+  generateAnchor(sdaqSerial: number, channelNumber: number) {
+    return sdaqSerial + '.CH' + channelNumber;
   }
 
   private handleCanbusError = (error) => {

@@ -1,4 +1,4 @@
-export interface CanBus {
+export interface CanBusModel {
   'logstat_build_date(UTC)': string;
   'logstat_build_date(UNIX)': number;
   'CANBus-interface': string;

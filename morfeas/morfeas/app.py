@@ -19,12 +19,13 @@ config: Dict[str, str]
 def send_ramdisk_folder(path):
     return send_from_directory(config['ramdisk_path'], path)
 
-@app.route('/api/get_opcua_configs', methods=['GET'])
-def get_opcua_configs():
-    opc_ua_configs = read_xml_file('opc_ua.xml')
+@app.route('/api/get_opc_ua_configs', methods=['GET'])
+def get_opc_ua_configs():
+    opc_ua_configs = read_xml_file(config['opc_ua_config_file'])
 
     if (opc_ua_configs):
-        return jsonify(opc_ua_configs)
+        sensors = opc_ua_configs['root']['sensor']
+        return jsonify(sensors)
 
     return jsonify()
 
@@ -32,12 +33,12 @@ def get_opcua_configs():
 @app.route('/api/save_opc_ua_configs', methods=['POST'])
 def save_opc_ua_configs():
     canbus_data = request.get_json()
-
+    
     if (canbus_data == None or len(canbus_data) == 0):
         return jsonify(success=False), 400
 
     formatted_canbus_data = format_canbus_data(canbus_data)
-
+    
     prettyxml = parse_xml(formatted_canbus_data)
 
     if (prettyxml):
@@ -58,9 +59,11 @@ def parse_xml(data):
 
 def format_canbus_data(canbus_data):
     result = []
-    sensor = {}
+    
 
     for row in canbus_data:
+        sensor = {}
+
         if (OPC_UA_REQUIRED_FIELDS.ANCHOR and 'sdaqSerial' in row and 'channelId' in row):
             sensor['anchor'] = str(row['sdaqSerial']) + '.CH' + str(row['channelId'])
 
@@ -73,7 +76,7 @@ def format_canbus_data(canbus_data):
         if (OPC_UA_REQUIRED_FIELDS.MAX_VALUE and 'maxValue' in row):
             sensor['max_value'] = row['maxValue']
 
-        if (OPC_UA_REQUIRED_FIELDS.DESCRIPTION and 'description' in row):
+        if (OPC_UA_REQUIRED_FIELDS.DESCRIPTION and 'description' in row):            
             sensor['description'] = row['description']
 
         result.append(dict(sensor))
