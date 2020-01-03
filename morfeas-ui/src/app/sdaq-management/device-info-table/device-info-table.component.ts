@@ -28,7 +28,7 @@ export interface CanBusFlatData {
 export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   columnDefs: ColDef[] = [
     { headerName: 'SDAQ Address', field: 'sdaqAddress'},
-    { headerName: 'ISO Code', field: 'iso'}, 
+    { headerName: 'ISO Code', field: 'iso', sort:'asc'}, 
     { headerName: 'SDAQ Serial Number', field: 'sdaqSerial' },
     { headerName: 'SDAQ Channel', field: 'channelId' },
     { headerName: 'Type', field: 'sdaqType' },
