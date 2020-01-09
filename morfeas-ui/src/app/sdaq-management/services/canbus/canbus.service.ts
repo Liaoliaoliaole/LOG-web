@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { CanBusModel } from '../../models/can-model';
 import { Observable, of, forkJoin } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { CanBusFlatData } from '../../device-info-table/device-info-table.component';
+import { IsoStandard } from '../../models/iso-standard-model';
 import { OpcUaConfigModel } from '../../models/opcua-config-model';
 
 @Injectable({
@@ -17,10 +18,16 @@ export class CanbusService {
     const url = `${environment.API_ROOT}/ramdisk/`;
     const can0 = this.http.get<CanBusModel>(url + 'logstat_can0.json').pipe(
       catchError(this.handleCanbusError));
-    const can1 = this.http.get<CanBusModel>(url + 'logstat_can1adsf.json').pipe(
+    const can1 = this.http.get<CanBusModel>(url + 'logstat_can1.json').pipe(
       catchError(this.handleCanbusError));
-      
+
     return forkJoin(can0, can1);
+  }
+
+  getIsoCodesByUnit(unit: string): Observable<IsoStandard[]> {    
+    let url = `${environment.API_ROOT}/api/get_iso_codes_by_unit`;
+    let params = new HttpParams().set('unit', unit)
+    return this.http.get<IsoStandard[]>(url, {params});
   }
 
   getOpcUaConfigs(): Observable<OpcUaConfigModel[]> {

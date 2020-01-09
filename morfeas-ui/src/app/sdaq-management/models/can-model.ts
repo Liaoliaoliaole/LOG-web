@@ -10,7 +10,6 @@ export interface CanBusModel {
 
 export interface SdaqData {
   Address: number;
-  ISO_code: string;
   Serial_number: number;
   SDAQ_type: string;
   firm_rev: number;
@@ -22,9 +21,6 @@ export interface SdaqData {
   'Last_seen(UTC)': string;
   'Last_seen(UNIX)': number;
   Timediff: number;
-  Min_Value: number;
-  Max_Value: number;
-  Description: string;
 }
 
 export interface Calibrationdate {
@@ -32,5 +28,6 @@ export interface Calibrationdate {
   Cal_Exp_date: string;
   'Cal_Exp_date(UNIX)': number;
   Amount_of_points: number;
-  channelUnit: string;
+  Unit: string;
+  Unit_code: string;
 }

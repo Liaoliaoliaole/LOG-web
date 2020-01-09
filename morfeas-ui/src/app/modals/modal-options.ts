@@ -5,5 +5,6 @@ export interface ModalOptions {
     message?: string;
     /* Optional: Component to be used when displaying the modal */
     component?: any;
+    data?: any;
     ngbModalOptions?: NgbModalOptions;
 }

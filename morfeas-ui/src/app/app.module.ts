@@ -1,4 +1,5 @@
 import { BrowserModule } from '@angular/platform-browser';
+import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { HttpClientModule } from '@angular/common/http';
 
@@ -11,11 +12,11 @@ import { SdaqManagementModule } from './sdaq-management/sdaq-management.module';
     AppComponent,
   ],
   imports: [
+    CommonModule,
     HttpClientModule,
     BrowserModule,
     SdaqManagementModule,
     AppRoutingModule,
-
   ],
   providers: [],
   bootstrap: [AppComponent]

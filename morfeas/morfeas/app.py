@@ -48,6 +48,23 @@ def save_opc_ua_configs():
 
     return jsonify(success=False), 500
 
+@app.route('/api/get_iso_codes_by_unit', methods=['GET'])
+def get_iso_codes_by_unit():
+    if (request.args.get('unit')):
+        unit = request.args.get('unit')
+        
+        all = read_xml_file(config['iso_standard_file'])
+        result = []
+
+        for iso_code, props in all['root']['points'].items():
+            if  (unit == props['unit']):
+                item = dict()
+                item['iso_code'] = iso_code
+                item['attributes'] = props
+                result.append(item)
+    
+    return jsonify(result)
+
 def parse_xml(data):
     sensor_item = lambda x: 'sensor'
     xml_data = dicttoxml(data, custom_root='root', attr_type=False, item_func=sensor_item)
@@ -59,7 +76,6 @@ def parse_xml(data):
 
 def format_canbus_data(canbus_data):
     result = []
-    
 
     for row in canbus_data:
         sensor = {}
