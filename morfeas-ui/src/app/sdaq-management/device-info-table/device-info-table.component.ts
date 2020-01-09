@@ -5,6 +5,8 @@ import { CanBusModel, SdaqData } from '../models/can-model';
 import { TableColumn } from '../device-table-sidebar/device-table-sidebar.component';
 import { OpcUaConfigModel } from '../models/opcua-config-model';
 import { ModalService } from 'src/app/modals/services/modal.service';
+import { SensorLinkModalComponent } from 'src/app/modals/components/sensor-link-modal/sensor-link-modal.component';
+import { IsoStandard } from '../models/iso-standard-model';
 
 export interface CanBusFlatData {
   canBus: string;
@@ -28,7 +30,7 @@ export interface CanBusFlatData {
 export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   columnDefs: ColDef[] = [
     { headerName: 'SDAQ Address', field: 'sdaqAddress'},
-    { headerName: 'ISO Code', field: 'iso', sort:'asc'}, 
+    { headerName: 'ISO Code', field: 'isoCode', sort:'asc'}, 
     { headerName: 'SDAQ Serial Number', field: 'sdaqSerial' },
     { headerName: 'SDAQ Channel', field: 'channelId' },
     { headerName: 'Type', field: 'sdaqType' },
@@ -44,6 +46,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   opcUaConfigData: OpcUaConfigModel[];
   canBusPoller: any;
   pause = false;
+  clientChanges = new Map<string, CanBusFlatData>();
 
   gridOptions: GridOptions = {
     defaultColDef: {
@@ -52,6 +55,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
       resizable: true,
       filter: true
     },
+    onCellClicked: this.onCellClicked.bind(this),
     onCellEditingStarted: this.onCellEdittingStarted.bind(this),
     onCellEditingStopped: this.onCellEdittingStopped.bind(this),
     columnDefs: this.columnDefs,
@@ -76,15 +80,45 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
   modules = AllCommunityModules;
   constructor(private readonly canbusService: CanbusService,
-              private readonly modalService: ModalService) { }
+    private readonly modalService: ModalService) { }
 
   onCellEdittingStarted(e:any): void {
-    this.togglePause(e); // enalbe pause mode
+    this.togglePause(); // enalbe pause mode
   }
 
   onCellEdittingStopped(e:any): void {
-    this.saveTemporaryClientChanges(e); // save client temporary changes
-    this.togglePause(e); // disable pause mode
+    this.saveClientChanges(e.data); // save client temporary changes
+
+    this.togglePause(); // disable pause mode
+  }
+
+  onCellClicked(e:any): void {
+    if (e.colDef.field === 'isoCode') { // open popup dialog when ISO cell is clicked
+      this.togglePause(); // enable pause mode when dialog is to be open
+
+      if (!e.data.isoCode) { // Confirm
+        this.modalService.confirm({ component: SensorLinkModalComponent, data: e.data.channelUnit })
+          .then((data:IsoStandard) => {
+            let selectedRow = this.rowData.find(x => x.sdaqSerial === e.data.sdaqSerial && x.channelId === e.data.channelId);
+
+            selectedRow.isoCode = data.iso_code;
+            selectedRow.description = data.attributes.description;
+            selectedRow.minValue = +data.attributes.min;
+            selectedRow.maxValue = +data.attributes.max;
+
+            this.saveClientChanges(e.data);
+            this.getLogStatData();
+
+            this.togglePause();
+          }).catch(() => { // Cancel
+            this.togglePause();
+            console.log('cancelled')
+          });
+      } else {
+        // TODO
+        this.modalService.open({title: 'title', message: 'message'});
+      }
+    }
   }
 
   ngOnInit(): void {
@@ -101,20 +135,25 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     this.gridOptions.columnApi.setColumnVisible(column, !column.isVisible());
   }
 
-  togglePause(e) {
+  togglePause() {
     this.pause = !this.pause;
   }
 
-  saveTemporaryClientChanges(e) {
-    let clientChange:CanBusFlatData = e.data;
+  saveClientChanges(data) {
+    data as CanBusFlatData;
+    let modifiedAnchor = this.canbusService.generateAnchor(data.sdaqSerial, data.channelId);
 
-    this.rowData.forEach(row => {
-      if (row.sdaqSerial === clientChange.sdaqSerial && row.channelId === clientChange.channelId) {
-        row = clientChange;
+    this.clientChanges.set(modifiedAnchor, data);
+  }
+
+  applyTemporaryClientChanges() {
+    this.rowData.forEach((row, index, arr) => { // TODO: rework this logic as there's no need to loop through the entire row data
+      let anchor = this.canbusService.generateAnchor(row.sdaqSerial, row.channelId);
+      
+      if (this.clientChanges.get(anchor)) {
+        arr[index] = this.clientChanges.get(anchor);
       }
     });
-    
-    this.gridOptions.api.setRowData(this.rowData);
   }
 
   flattenRowData(canBusArr: CanBusModel[]): CanBusFlatData[] {
@@ -129,7 +168,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
           canBus: can['CANBus-interface'],
           sdaqAddress: sdaqData.Address,
           sdaqSerial: sdaqData.Serial_number,
-          sdaqType: sdaqData.SDAQ_type
+          sdaqType: sdaqData.SDAQ_type,
         } as CanBusFlatData;
 
         if (!sdaqData.Calibration_date || sdaqData.Calibration_date.length === 0) {
@@ -140,16 +179,18 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
         const dataPoints: CanBusFlatData[] = sdaqData.Calibration_date.map(calibrationData => {
           let anchor = this.canbusService.generateAnchor(sdaqData.Serial_number, calibrationData.Channel)
           let opcUaConf:OpcUaConfigModel;
+
           if (this.opcUaMap.has(anchor)) { // get value of OPC UA config based on key as anchor
             opcUaConf = this.opcUaMap.get(anchor);
           }
     
           let result = {
             channelId: calibrationData.Channel,
-            channelUnit: calibrationData.channelUnit,
-            description: opcUaConf.description, // map value of OPC UA config to table data
-            minValue: opcUaConf.minValue, // map value of OPC UA config to table data
-            maxValue: opcUaConf.maxValue, // map value of OPC UA config to table data
+            channelUnit: calibrationData.Unit,
+            isoCode: opcUaConf ? opcUaConf.ISO_code : null, // map value of OPC UA config to table data
+            description: opcUaConf ? opcUaConf.description : null, // map value of OPC UA config to table data
+            minValue: opcUaConf ? opcUaConf.min_value : null, // map value of OPC UA config to table data
+            maxValue: opcUaConf ? opcUaConf.max_value : null, // map value of OPC UA config to table data
           };
           return Object.assign(result, dataPoint); // copy data point values to new object
         });
@@ -163,6 +204,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   getLogStatData() {
     this.canbusService.getLogStatData().subscribe((rowData) => {
       this.rowData = this.flattenRowData(rowData);
+      this.applyTemporaryClientChanges();
       this.gridOptions.api.setRowData(this.rowData);
     });
   }
@@ -180,17 +222,5 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     this.canbusService.saveOpcUaConfigs(this.rowData).subscribe(resp => {
       this.getOpcUaConfigData();
     });
-  }
-
-  // TODO: Remove
-  showModal() {
-    this.modalService.confirm({title: 'title', message: 'message'})
-    .then(() => {
-      console.log('confirmed');
-    }).catch(() => console.log('cancelled'));
-  }
-
-  showModal2() {
-    this.modalService.open({title: 'title', message: 'message'});
   }
 }

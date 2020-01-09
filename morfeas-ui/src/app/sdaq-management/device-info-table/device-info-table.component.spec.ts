@@ -1,7 +1,7 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { DeviceInfoTableComponent, CanBusFlatData } from './device-info-table.component';
-import { CanBus } from '../can-model';
+import { CanBus } from '../models/can-model';
 import { AgGridModule } from '@ag-grid-community/angular';
 import { DeviceTableSidebarComponent } from '../device-table-sidebar/device-table-sidebar.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';

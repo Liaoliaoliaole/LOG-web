@@ -1,5 +1,12 @@
 {
     "ramdisk_path": "",
     "opc_ua_config_file": "opc_ua_config.xml",
+    "iso_standard_file": "iso_standards.xml",
+    "opc_ua_required_fields": [
+        "ISO_CODE",
+        "ANCHOR",
+        "MIN_VALUE",
+        "MAX_VALUE"
+    ],
     "debug": true
 }
