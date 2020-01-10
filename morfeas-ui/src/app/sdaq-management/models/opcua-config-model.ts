@@ -1,7 +1,8 @@
 export interface OpcUaConfigModel {
-    ISO_code: string;
-    anchor: string;
-    description: string;
-    min_value: number;
-    max_value: number;
+    ISO_CHANNEL: string;
+    INTERFACE_TYPE: string;
+    ANCHOR: string;
+    DESCRIPTION: string;
+    MIN: number;
+    MAX: number;
 }

@@ -3,52 +3,62 @@ import { ModalOptions } from '../../modal-options';
 import { Component, OnInit } from '@angular/core';
 import { CanbusService } from 'src/app/sdaq-management/services/canbus/canbus.service';
 import { IsoStandard } from 'src/app/sdaq-management/models/iso-standard-model';
-import { Observable } from 'rxjs';
-import { ConstantPool } from '@angular/compiler';
 
 @Component({
-    selector: 'modal-sensor-link',
-    templateUrl: './sensor-link-modal.component.html'
+  selector: 'modal-sensor-link',
+  templateUrl: './sensor-link-modal.component.html'
 })
 export class SensorLinkModalComponent implements OnInit {
 
-    options: ModalOptions;
-    isoStandards: IsoStandard[];
-    data: string;
-    selectedIsoCode: string = 'Select an ISO code';
-    selectedIsoStandard: IsoStandard;
-    error: string = '';
+  options: ModalOptions;
+  isoStandards: IsoStandard[];
+  data: Object;
+  selectedIsoCode: string = 'Select an ISO code';
+  selectedIsoStandard: IsoStandard;
+  error: string = '';
 
-    constructor(private readonly state: ModalState,
-        private readonly canbusService: CanbusService) {
-        this.options = state.options;
-    }
+  constructor(private readonly state: ModalState,
+    private readonly canbusService: CanbusService) {
+    this.options = state.options;
+  }
 
-    ngOnInit() {
-        this.data = this.state.options.data;
-        this.canbusService.getIsoCodesByUnit(this.data).subscribe(result => {
-            this.isoStandards = result;
-        });
-        
-    }
+  ngOnInit() {
+    this.data = this.state.options.data;
 
-    yes() {
-        if (!isNaN(+this.selectedIsoStandard.attributes.min) && !isNaN(+this.selectedIsoStandard.attributes.max)) {
-            if (+this.selectedIsoStandard.attributes.min < +this.selectedIsoStandard.attributes.max) {
-                this.state.modal.close(this.selectedIsoStandard);
-            } else {
-                this.error = 'Min value cannot be greater than max value!'
-            }
-        } else {
-            this.error = 'Min or max value must be a number.'
+    if (this.data['unit']) {
+      this.canbusService.getIsoCodesByUnit(this.data['unit']).subscribe(result => {
+        if (this.data['configuredIsoCodes'] && this.data['configuredIsoCodes'].length > 0) {
+          // this.data['configuredIsoCodes'] cannot be used directly in line 37 because there's
+          // another 'this' which belongs to the filter scope.
+          let configuredIsoCodes = this.data['configuredIsoCodes']; 
+          
+          result = result.filter(function( obj ) {
+            return configuredIsoCodes.indexOf(obj.iso_code) < 0; // remove configured ISO codes from the dropdown
+          });
         }
+        
+        this.isoStandards = result;
+      });
     }
+  }
 
-    no() {
-        this.state.modal.dismiss('not confirmed');
+  yes() {
+    if (!isNaN(+this.selectedIsoStandard.attributes.min) && !isNaN(+this.selectedIsoStandard.attributes.max)) {
+      if (+this.selectedIsoStandard.attributes.min < +this.selectedIsoStandard.attributes.max) {
+        this.state.modal.close(this.selectedIsoStandard);
+      } else {
+        this.error = 'Min value cannot be greater than max value!'
+      }
+    } else {
+        this.error = 'Min or max value must be a number.'
     }
+  }
 
-    onSelectIsoCode() {
-        this.selectedIsoStandard = this.isoStandards.find(x => x.iso_code === this.selectedIsoCode);
-    }
+  no() {
+    this.state.modal.dismiss('not confirmed');
+  }
+
+  onSelectIsoCode() {
+    this.selectedIsoStandard = this.isoStandards.find(x => x.iso_code === this.selectedIsoCode);
+  }
 }

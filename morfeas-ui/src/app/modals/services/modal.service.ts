@@ -27,6 +27,7 @@ export class ModalService {
     this.state.options = options;
     const component = options.component ? options.component : ConfirmModalComponent;
     this.state.modal = this.modalService.open(component, options.ngbModalOptions);
+    
     return this.state.modal.result;
   }
 
