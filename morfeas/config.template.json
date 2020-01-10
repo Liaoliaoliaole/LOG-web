@@ -6,7 +6,12 @@
         "ISO_CODE",
         "ANCHOR",
         "MIN_VALUE",
-        "MAX_VALUE"
+        "MAX_VALUE",
+        "DESCRIPTION",
+        "INTERFACE_TYPE"
     ],
+    "opc_ua_xml_doctype": "<!DOCTYPE NODESet SYSTEM 'Morfeas.dtd'>",
+    "opc_ua_xml_root_elem": "NODESet",
+    "opc_ua_xml_channel_elem": "CHANNEL",
     "debug": true
 }

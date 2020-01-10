@@ -47,6 +47,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   canBusPoller: any;
   pause = false;
   clientChanges = new Map<string, CanBusFlatData>();
+  configuredIsoCodes: string[] = [];
 
   gridOptions: GridOptions = {
     defaultColDef: {
@@ -95,25 +96,31 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   onCellClicked(e:any): void {
     if (e.colDef.field === 'isoCode') { // open popup dialog when ISO cell is clicked
       this.togglePause(); // enable pause mode when dialog is to be open
-
+      
       if (!e.data.isoCode) { // Confirm
-        this.modalService.confirm({ component: SensorLinkModalComponent, data: e.data.channelUnit })
-          .then((data:IsoStandard) => {
-            let selectedRow = this.rowData.find(x => x.sdaqSerial === e.data.sdaqSerial && x.channelId === e.data.channelId);
+        this.modalService.confirm({ component: SensorLinkModalComponent, data: 
+          {
+            'unit' : e.data.channelUnit,
+           'configuredIsoCodes': this.configuredIsoCodes,
+          } 
+        }).then((data:IsoStandard) => {
+          let selectedRow = this.rowData.find(x => x.sdaqSerial === e.data.sdaqSerial && x.channelId === e.data.channelId);
 
-            selectedRow.isoCode = data.iso_code;
-            selectedRow.description = data.attributes.description;
-            selectedRow.minValue = +data.attributes.min;
-            selectedRow.maxValue = +data.attributes.max;
+          // apply selected ISO code's data to the table
+          selectedRow.isoCode = data.iso_code; 
+          selectedRow.description = data.attributes.description;
+          selectedRow.minValue = +data.attributes.min;
+          selectedRow.maxValue = +data.attributes.max;
 
-            this.saveClientChanges(e.data);
-            this.getLogStatData();
+          this.saveClientChanges(e.data);
+          this.getLogStatData();
 
-            this.togglePause();
-          }).catch(() => { // Cancel
-            this.togglePause();
-            console.log('cancelled')
-          });
+          this.configuredIsoCodes.push(data.iso_code);
+          this.togglePause();
+        }).catch(() => { // Cancel
+          this.togglePause();
+          console.log('cancelled')
+        });
       } else {
         // TODO
         this.modalService.open({title: 'title', message: 'message'});
@@ -179,7 +186,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
         const dataPoints: CanBusFlatData[] = sdaqData.Calibration_date.map(calibrationData => {
           let anchor = this.canbusService.generateAnchor(sdaqData.Serial_number, calibrationData.Channel)
           let opcUaConf:OpcUaConfigModel;
-
+          
           if (this.opcUaMap.has(anchor)) { // get value of OPC UA config based on key as anchor
             opcUaConf = this.opcUaMap.get(anchor);
           }
@@ -187,10 +194,10 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
           let result = {
             channelId: calibrationData.Channel,
             channelUnit: calibrationData.Unit,
-            isoCode: opcUaConf ? opcUaConf.ISO_code : null, // map value of OPC UA config to table data
-            description: opcUaConf ? opcUaConf.description : null, // map value of OPC UA config to table data
-            minValue: opcUaConf ? opcUaConf.min_value : null, // map value of OPC UA config to table data
-            maxValue: opcUaConf ? opcUaConf.max_value : null, // map value of OPC UA config to table data
+            isoCode: opcUaConf ? opcUaConf.ISO_CHANNEL : null, // map value of OPC UA config to table data
+            description: opcUaConf ? opcUaConf.DESCRIPTION : null, // map value of OPC UA config to table data
+            minValue: opcUaConf ? opcUaConf.MIN : null, // map value of OPC UA config to table data
+            maxValue: opcUaConf ? opcUaConf.MAX : null, // map value of OPC UA config to table data
           };
           return Object.assign(result, dataPoint); // copy data point values to new object
         });
@@ -211,11 +218,18 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
   async getOpcUaConfigData() {
     const opcUaConfigs = await this.canbusService.getOpcUaConfigs().toPromise();
+    console.log(opcUaConfigs)
+    if (opcUaConfigs && opcUaConfigs.length > 0) {
       opcUaConfigs.map(sensor => {
         if (sensor) {
-          this.opcUaMap.set(sensor.anchor, sensor);
+          this.opcUaMap.set(sensor.ANCHOR, sensor);
+
+          if (sensor.ISO_CHANNEL) {
+            this.configuredIsoCodes.push(sensor.ISO_CHANNEL);
+          }
         }
       });
+    }
   }
 
   saveOpcUaConfigs(event:any) {

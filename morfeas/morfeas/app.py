@@ -9,7 +9,6 @@ from flask_cors import CORS
 from pathlib import Path
 from xml.parsers.expat import ExpatError
 
-from global_enums import OPC_UA_REQUIRED_FIELDS
 
 app = Flask(__name__)
 CORS(app)
@@ -22,14 +21,21 @@ def send_ramdisk_folder(path):
 @app.route('/api/get_opc_ua_configs', methods=['GET'])
 def get_opc_ua_configs():
     opc_ua_configs = read_xml_file(config['opc_ua_config_file'])
-
+    
     if (opc_ua_configs):
-        sensors = opc_ua_configs['root']['sensor']
-        return jsonify(sensors)
+        if (opc_ua_configs[config['opc_ua_xml_root_elem']] is not None):
+            sensors = opc_ua_configs[config['opc_ua_xml_root_elem']][config['opc_ua_xml_channel_elem']]
+            
+            # Create a list if the config file contains only one configured sensor
+            if (type(sensors) is not list or len(sensors) == 1):
+                sensors = [sensors]
+            
+            return jsonify(sensors)
 
     return jsonify()
 
-# curl -X POST localhost:5000/api/save_config -d '{"unit":"valueaaaa"}' -H 'Content-Type: application/json'
+# curl -X POST localhost:5000/api/save_config -d '{"unit":"valueaaaa"}' 
+# -H 'Content-Type: application/json'
 @app.route('/api/save_opc_ua_configs', methods=['POST'])
 def save_opc_ua_configs():
     canbus_data = request.get_json()
@@ -42,7 +48,10 @@ def save_opc_ua_configs():
     prettyxml = parse_xml(formatted_canbus_data)
 
     if (prettyxml):
-        with open(config['ramdisk_path'] + config['opc_ua_config_file'], 'w+') as xml_file:
+        with open(
+            config['ramdisk_path'] + config['opc_ua_config_file'], 
+            'w+'
+        ) as xml_file:
             xml_file.write(prettyxml)
         return jsonify(success=True), 200
 
@@ -66,8 +75,22 @@ def get_iso_codes_by_unit():
     return jsonify(result)
 
 def parse_xml(data):
-    sensor_item = lambda x: 'sensor'
-    xml_data = dicttoxml(data, custom_root='root', attr_type=False, item_func=sensor_item)
+    sensor_item = lambda x: config['opc_ua_xml_channel_elem']
+    xml_data = dicttoxml(
+        data, 
+        custom_root=config['opc_ua_xml_root_elem'], 
+        attr_type=False, 
+        item_func=sensor_item
+    ).decode('utf-8')
+    
+    position_to_add_doctype = xml_data.find('>')
+
+    if (position_to_add_doctype != -1):
+        xml_data = \
+            xml_data[:position_to_add_doctype+1] + \
+            config['opc_ua_xml_doctype'] + \
+            xml_data[position_to_add_doctype+1:]
+    
     try: 
         dom = xml.dom.minidom.parseString(xml_data)
     except ExpatError:
@@ -80,22 +103,30 @@ def format_canbus_data(canbus_data):
     for row in canbus_data:
         sensor = {}
 
-        if (OPC_UA_REQUIRED_FIELDS.ANCHOR and 'sdaqSerial' in row and 'channelId' in row):
-            sensor['anchor'] = str(row['sdaqSerial']) + '.CH' + str(row['channelId'])
+        if ('isoCode' in row and row['isoCode'] is not None):
+            sensor['ISO_CHANNEL'] = row['isoCode']
 
-        if (OPC_UA_REQUIRED_FIELDS.ISO_CODE and 'isoCode' in row):
-            sensor['ISO_code'] = row['isoCode']
+            # TODO: to be dynamic, hard-coded for now - 10.01.2020
+            sensor['INTERFACE_TYPE'] = 'SDAQ'
+            
+            try:
+                if (row['sdaqSerial'] is not None and
+                    row['channelId'] is not None and
+                    row['description'] is not None and
+                    row['minValue'] is not None and
+                    row['maxValue'] is not None):
+                    sensor['ANCHOR'] = '{}.CH{}'.format(
+                        str(row['sdaqSerial']), 
+                        str(row['channelId'])
+                    )
+                    sensor['DESCRIPTION'] = row['description']
+                    sensor['MIN'] = row['minValue']
+                    sensor['MAX'] = row['maxValue']
 
-        if (OPC_UA_REQUIRED_FIELDS.MIN_VALUE and 'minValue' in row):
-            sensor['min_value'] = row['minValue']
+                    result.append(dict(sensor))
+            except KeyError:
+                print('One or more fields are empty/None')
 
-        if (OPC_UA_REQUIRED_FIELDS.MAX_VALUE and 'maxValue' in row):
-            sensor['max_value'] = row['maxValue']
-
-        if (OPC_UA_REQUIRED_FIELDS.DESCRIPTION and 'description' in row):            
-            sensor['description'] = row['description']
-
-        result.append(dict(sensor))
 
     return result
 
