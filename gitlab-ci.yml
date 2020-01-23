@@ -1,0 +1,47 @@
+image: node:latest
+
+stages:
+  - build
+  - test
+  - lint
+
+cache: &global_cache
+  key: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+  paths:
+    - morfeas-ui/node_modules
+  policy: pull
+
+build:
+  stage: build
+  cache:
+    <<: *global_cache
+    policy: pull-push
+  script:
+    - cd morfeas-ui
+    - npm install --quiet
+    - npm run build-prod
+  artifacts:
+      paths:
+          - morfeas-ui/dist/
+
+test:
+  stage: test
+  only:
+    - merge_requests
+  cache:
+      policy: pull
+  script:
+    - cd morfeas-ui
+    - npm run test
+
+lint:
+  stage: lint
+  only:
+    - merge_requests
+  cache:
+      policy: pull
+  script:
+    - cd morfeas-ui
+    - npm run test
+
+
