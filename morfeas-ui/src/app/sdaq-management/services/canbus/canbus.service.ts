@@ -24,28 +24,28 @@ export class CanbusService {
     return forkJoin(can0, can1);
   }
 
-  getIsoCodesByUnit(unit: string): Observable<IsoStandard[]> {    
-    let url = `${environment.API_ROOT}/api/get_iso_codes_by_unit`;
-    let params = new HttpParams().set('unit', unit)
+  getIsoCodesByUnit(unit: string): Observable<IsoStandard[]> {
+    const url = `${environment.API_ROOT}/api/get_iso_codes_by_unit`;
+    const params = new HttpParams().set('unit', unit);
     return this.http.get<IsoStandard[]>(url, {params});
   }
 
   getOpcUaConfigs(): Observable<OpcUaConfigModel[]> {
-    let url = `${environment.API_ROOT}/api/get_opc_ua_configs`;
-    let result = this.http.get<any>(url).pipe(
+    const url = `${environment.API_ROOT}/api/get_opc_ua_configs`;
+    const result = this.http.get<any>(url).pipe(
       catchError(this.handleCanbusError)
     );
 
     return result;
   }
 
-  saveOpcUaConfigs(canbusData:CanBusFlatData[]): Observable<void> {
-    let url = `${environment.API_ROOT}/api/save_opc_ua_configs`;
-    let httpHeaders = new HttpHeaders({
+  saveOpcUaConfigs(canbusData: CanBusFlatData[]): Observable<void> {
+    const url = `${environment.API_ROOT}/api/save_opc_ua_configs`;
+    const httpHeaders = new HttpHeaders({
       'Content-Type' : 'application/json',
       'Cache-Control': 'no-cache'
     });
-    let options = {
+    const options = {
       headers: httpHeaders
     };
 
@@ -53,7 +53,7 @@ export class CanbusService {
     // canbusData = canbusData.filter(sensor => {
     //   return (sensor.isoCode);
     // });
-    
+
     return this.http.post<void>(url, JSON.stringify(canbusData), options);
   }
 
