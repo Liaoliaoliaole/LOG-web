@@ -34,6 +34,7 @@ build prod:
   artifacts:
     paths:
         - morfeas-ui/dist/morfeas-web/
+        - morfeas/
 
 unit test:
   image: zenika/alpine-chrome:with-node
