@@ -3,7 +3,7 @@ import { ModalOptions } from '../modal-options';
 import { Component } from '@angular/core';
 
 @Component({
-    selector: 'modal-information',
+    selector: 'app-modal-information',
     template: `
     <div class="modal-header">
     <h6 class="modal-title">{{ options.title }}</h6>

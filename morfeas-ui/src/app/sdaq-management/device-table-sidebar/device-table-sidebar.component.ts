@@ -21,7 +21,7 @@ export class DeviceTableSidebarComponent {
 
   @Input() columns: TableColumn[];
   @Output() columnToggle = new EventEmitter<string>();
-  @Output() onSaveConfigs = new EventEmitter();
+  @Output() saveConfigs = new EventEmitter();
 
   showOptions = true;
 
@@ -36,7 +36,7 @@ export class DeviceTableSidebarComponent {
     this.showOptions = !this.showOptions;
   }
 
-  saveConfigs() {
-    this.onSaveConfigs.emit();
+  onSaveConfigs() {
+    this.saveConfigs.emit();
   }
 }

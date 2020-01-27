@@ -30,7 +30,7 @@ export interface CanBusFlatData {
 export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   columnDefs: ColDef[] = [
     { headerName: 'SDAQ Address', field: 'sdaqAddress'},
-    { headerName: 'ISO Code', field: 'isoCode', sort:'asc'}, 
+    { headerName: 'ISO Code', field: 'isoCode', sort: 'asc'},
     { headerName: 'SDAQ Serial Number', field: 'sdaqSerial' },
     { headerName: 'SDAQ Channel', field: 'channelId' },
     { headerName: 'Type', field: 'sdaqType' },
@@ -81,33 +81,33 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
   modules = AllCommunityModules;
   constructor(private readonly canbusService: CanbusService,
-    private readonly modalService: ModalService) { }
+              private readonly modalService: ModalService) { }
 
-  onCellEdittingStarted(e:any): void {
+  onCellEdittingStarted(e: any): void {
     this.togglePause(); // enalbe pause mode
   }
 
-  onCellEdittingStopped(e:any): void {
+  onCellEdittingStopped(e: any): void {
     this.saveClientChanges(e.data); // save client temporary changes
 
     this.togglePause(); // disable pause mode
   }
 
-  onCellClicked(e:any): void {
+  onCellClicked(e: any): void {
     if (e.colDef.field === 'isoCode') { // open popup dialog when ISO cell is clicked
       this.togglePause(); // enable pause mode when dialog is to be open
-      
+
       if (!e.data.isoCode) { // Confirm
-        this.modalService.confirm({ component: SensorLinkModalComponent, data: 
+        this.modalService.confirm({ component: SensorLinkModalComponent, data:
           {
-            'unit' : e.data.channelUnit,
-           'configuredIsoCodes': this.configuredIsoCodes,
-          } 
-        }).then((data:IsoStandard) => {
-          let selectedRow = this.rowData.find(x => x.sdaqSerial === e.data.sdaqSerial && x.channelId === e.data.channelId);
+            unit : e.data.channelUnit,
+           configuredIsoCodes: this.configuredIsoCodes,
+          }
+        }).then((data: IsoStandard) => {
+          const selectedRow = this.rowData.find(x => x.sdaqSerial === e.data.sdaqSerial && x.channelId === e.data.channelId);
 
           // apply selected ISO code's data to the table
-          selectedRow.isoCode = data.iso_code; 
+          selectedRow.isoCode = data.iso_code;
           selectedRow.description = data.attributes.description;
           selectedRow.minValue = +data.attributes.min;
           selectedRow.maxValue = +data.attributes.max;
@@ -119,7 +119,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
           this.togglePause();
         }).catch(() => { // Cancel
           this.togglePause();
-          console.log('cancelled')
+          console.log('cancelled');
         });
       } else {
         // TODO
@@ -147,16 +147,15 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   }
 
   saveClientChanges(data) {
-    data as CanBusFlatData;
-    let modifiedAnchor = this.canbusService.generateAnchor(data.sdaqSerial, data.channelId);
+    const modifiedAnchor = this.canbusService.generateAnchor(data.sdaqSerial, data.channelId);
 
     this.clientChanges.set(modifiedAnchor, data);
   }
 
   applyTemporaryClientChanges() {
     this.rowData.forEach((row, index, arr) => { // TODO: rework this logic as there's no need to loop through the entire row data
-      let anchor = this.canbusService.generateAnchor(row.sdaqSerial, row.channelId);
-      
+      const anchor = this.canbusService.generateAnchor(row.sdaqSerial, row.channelId);
+
       if (this.clientChanges.get(anchor)) {
         arr[index] = this.clientChanges.get(anchor);
       }
@@ -184,14 +183,14 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
         }
 
         const dataPoints: CanBusFlatData[] = sdaqData.Calibration_date.map(calibrationData => {
-          let anchor = this.canbusService.generateAnchor(sdaqData.Serial_number, calibrationData.Channel)
-          let opcUaConf:OpcUaConfigModel;
-          
+          const anchor = this.canbusService.generateAnchor(sdaqData.Serial_number, calibrationData.Channel);
+          let opcUaConf: OpcUaConfigModel;
+
           if (this.opcUaMap.has(anchor)) { // get value of OPC UA config based on key as anchor
             opcUaConf = this.opcUaMap.get(anchor);
           }
-    
-          let result = {
+
+          const result = {
             channelId: calibrationData.Channel,
             channelUnit: calibrationData.Unit,
             isoCode: opcUaConf ? opcUaConf.ISO_CHANNEL : null, // map value of OPC UA config to table data
@@ -218,7 +217,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
   async getOpcUaConfigData() {
     const opcUaConfigs = await this.canbusService.getOpcUaConfigs().toPromise();
-    console.log(opcUaConfigs)
+    console.log(opcUaConfigs);
     if (opcUaConfigs && opcUaConfigs.length > 0) {
       opcUaConfigs.map(sensor => {
         if (sensor) {
@@ -232,7 +231,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     }
   }
 
-  saveOpcUaConfigs(event:any) {
+  saveOpcUaConfigs(event: any) {
     this.canbusService.saveOpcUaConfigs(this.rowData).subscribe(resp => {
       this.getOpcUaConfigData();
     });

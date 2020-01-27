@@ -6,30 +6,40 @@ stages:
   - lint
 
 cache: &global_cache
-  key: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+  untracked: true
+  key: ${CI_PIPELINE_ID}
   paths:
-    - morfeas-ui/node_modules
+    - morfeas-ui/node_modules/
   policy: pull
 
-build:
-  stage: build
+setup:
+  stage: .pre
+  only:
+    - master
+    - merge_requests
   cache:
     <<: *global_cache
     policy: pull-push
   script:
     - cd morfeas-ui
     - npm install --quiet
+
+build prod:
+  stage: build
+  only:
+  - master
+  script:
+    - cd morfeas-ui
     - npm run build-prod
   artifacts:
-      paths:
-          - morfeas-ui/dist/
+    paths:
+        - morfeas-ui/dist/morfeas-web/
 
-test:
+unit test:
+  image: zenika/alpine-chrome:with-node
   stage: test
   only:
     - merge_requests
-  cache:
-      policy: pull
   script:
     - cd morfeas-ui
     - npm run test
@@ -38,10 +48,7 @@ lint:
   stage: lint
   only:
     - merge_requests
-  cache:
-      policy: pull
   script:
     - cd morfeas-ui
-    - npm run test
-
+    - npm run lint
 

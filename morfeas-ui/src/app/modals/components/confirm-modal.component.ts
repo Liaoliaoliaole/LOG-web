@@ -3,7 +3,7 @@ import { ModalState } from '../services/modal-state.service';
 import { Component } from '@angular/core';
 
 @Component({
-    selector: 'confirm-modal-component',
+    selector: 'app-confirm-modal-component',
     template: `<div class="modal-header">
       <h4 class="modal-title">{{ options.title }}</h4>
       <button type="button" class="close" (click)="no()">

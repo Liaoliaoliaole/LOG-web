@@ -20,14 +20,14 @@ export class ModalService {
   /**
    * Opens a confirmation modal
    * @param options the options for the modal
-   * @returns {Promise<any>} a promise that is fulfilled when the user chooses to confirm, and rejected when
+   * @returns a promise that is fulfilled when the user chooses to confirm, and rejected when
    * the user chooses not to confirm, or closes the modal
    */
   confirm(options: ModalOptions): Promise<any> {
     this.state.options = options;
     const component = options.component ? options.component : ConfirmModalComponent;
     this.state.modal = this.modalService.open(component, options.ngbModalOptions);
-    
+
     return this.state.modal.result;
   }
 
