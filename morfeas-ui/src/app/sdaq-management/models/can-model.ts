@@ -1,6 +1,9 @@
 export interface CanBusModel {
-  'logstat_build_date(UTC)': string;
-  'logstat_build_date(UNIX)': number;
+  logstat_build_date_UTC: string;
+  logstat_build_date_UNIX: number;
+  BUS_voltage: number;
+  BUS_amperage: number;
+  BUS_Shunt_Res_temp: number;
   'CANBus-interface': string;
   BUS_Utilization: number;
   Detected_SDAQs: number;

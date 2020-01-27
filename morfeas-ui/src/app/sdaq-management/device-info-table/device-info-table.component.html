@@ -1,8 +1,23 @@
 <div class="row">
-    <app-device-table-sidebar class="col-lg-1 col-md-12"
-    [columns]="tableColumns" (columnToggle)="toggleColumnVisibility($event)" (saveConfigs)="saveOpcUaConfigs($event)"></app-device-table-sidebar>
-    <div class="col-lg-11 col-md-12">
-        <ag-grid-angular class="ag-theme-balham" [gridOptions]="gridOptions" [modules]="modules">
-        </ag-grid-angular>
-    </div>
+  <app-canbus-details-bar
+    [canBusDetails]="canBusDetails"
+  ></app-canbus-details-bar>
+</div>
+<div class="row">
+  <app-device-table-sidebar
+    class="col-lg-1 col-md-12"
+    [columns]="tableColumns"
+    (columnToggle)="toggleColumnVisibility($event)"
+    (onSaveConfigs)="saveOpcUaConfigs($event)"
+  ></app-device-table-sidebar>
+  <div class="col-lg-11 col-md-12">
+    <ag-grid-angular
+      class="ag-theme-balham"
+      [gridOptions]="gridOptions"
+      [modules]="modules"
+      [rowData]="rowData"
+      [getRowNodeId]="getRowNodeId"
+    >
+    </ag-grid-angular>
+  </div>
 </div>
