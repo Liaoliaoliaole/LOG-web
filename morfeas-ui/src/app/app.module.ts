@@ -8,17 +8,15 @@ import { AppComponent } from './app.component';
 import { SdaqManagementModule } from './sdaq-management/sdaq-management.module';
 
 @NgModule({
-  declarations: [
-    AppComponent,
-  ],
+  declarations: [AppComponent],
   imports: [
     CommonModule,
     HttpClientModule,
     BrowserModule,
     SdaqManagementModule,
-    AppRoutingModule,
+    AppRoutingModule
   ],
   providers: [],
   bootstrap: [AppComponent]
 })
-export class AppModule { }
+export class AppModule {}

@@ -6,6 +6,7 @@ import { DeviceTableSidebarComponent } from '../device-table-sidebar/device-tabl
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { CanBusModel, Calibrationdate, SdaqData } from '../models/can-model';
 import { ModalsModule } from 'src/app/modals/modals.module';
+import { CanbusDetailsBarComponent } from 'src/app/canbus-details-bar/canbus-details-bar.component';
 
 describe('DeviceInfoTableComponent', () => {
   let component: DeviceInfoTableComponent;
@@ -13,13 +14,14 @@ describe('DeviceInfoTableComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ DeviceInfoTableComponent, DeviceTableSidebarComponent ],
+      declarations: [DeviceInfoTableComponent, DeviceTableSidebarComponent, CanbusDetailsBarComponent
+      ],
       imports: [
         HttpClientTestingModule,
         ModalsModule,
         AgGridModule.forRoot()],
     })
-    .compileComponents();
+      .compileComponents();
   }));
 
   beforeEach(() => {
@@ -33,25 +35,32 @@ describe('DeviceInfoTableComponent', () => {
   });
 
   it('should flatten row data array from canbus data', () => {
-      const expected: CanBusFlatData[] = [
-        {canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16', channelId: 1, channelUnit: 'Q',
-        isoCode: null, minValue: null, maxValue: null, description: null},
-        {canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16', channelId: 2, channelUnit: 'V',
-        isoCode: null, minValue: null, maxValue: null, description: null}
-      ];
-      const result = component.flattenRowData(canData);
-      expect(result).toEqual(expected);
+    const expected: CanBusFlatData[] = [
+      {
+        canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16', channelId: 1, channelUnit: 'Q',
+        isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_624642519'
+      },
+      {
+        canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16', channelId: 2, channelUnit: 'V',
+        isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_624642519'
+      }
+    ];
+    const result = component.flattenRowData(canData);
+    expect(result).toEqual(expected);
   });
 
   it('should return SDAQ values when no calibration values are present', () => {
     const input: CanBusModel[] =
       [{
-        'logstat_build_date(UNIX)': 1251883,
-        'logstat_build_date(UTC)': '11/25/19 12:01:13',
+        logstat_build_date_UNIX: 1251883,
+        logstat_build_date_UTC: '11/25/19 12:01:13',
         'CANBus-interface': 'can0',
         BUS_Utilization: 0,
         Detected_SDAQs: 1,
         Address_Conflicts: 0,
+        BUS_Shunt_Res_temp: 0,
+        BUS_amperage: 0,
+        BUS_voltage: 0,
         SDAQs_data: [
           {
             Address: 1,
@@ -69,7 +78,7 @@ describe('DeviceInfoTableComponent', () => {
           }]
       }];
     const expected = [
-      {canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16'},
+      { canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16', id: 'can0_1_624642519' },
     ] as CanBusFlatData[];
     const result = component.flattenRowData(input);
     expect(result).toEqual(expected);
@@ -98,22 +107,26 @@ describe('DeviceInfoTableComponent', () => {
         Address: 1,
         Serial_number: 624642519,
         SDAQ_type: 'SDAQ-TC-16',
-      }]} as CanBusModel;
+      }]
+    } as CanBusModel;
     const result = component.flattenRowData([can0, null]);
     const expected = [
-      {canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16'},
+      { canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16', id: 'can0_1_624642519' },
     ] as CanBusFlatData[];
     expect(result).toEqual(expected);
   });
 
   const canData: CanBusModel[] =
     [{
-      'logstat_build_date(UNIX)': 1251883,
-      'logstat_build_date(UTC)': '11/25/19 12:01:13',
+      logstat_build_date_UNIX: 1251883,
+      logstat_build_date_UTC: '11/25/19 12:01:13',
       'CANBus-interface': 'can0',
       BUS_Utilization: 0,
       Detected_SDAQs: 1,
       Address_Conflicts: 0,
+      BUS_Shunt_Res_temp: 0,
+      BUS_amperage: 0,
+      BUS_voltage: 0,
       SDAQs_data: [
         {
           Address: 1,
