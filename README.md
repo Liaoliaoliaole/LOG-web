@@ -45,7 +45,7 @@ Update system (`apt update && apt upgrade -y`)
 _Install required dependencies_
 
 ```
-apt install apache2 -y && apt install apache2-dev -y && apt install python3-dev -y && apt install python3-venv -y
+apt install apache2 apache2-dev python3-dev python3-venv -y
 ```
 
 
