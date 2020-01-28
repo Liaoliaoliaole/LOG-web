@@ -5,26 +5,19 @@ from dicttoxml import dicttoxml
 from typing import Dict
 from flask import Flask, send_from_directory, request, jsonify
 from typing import Dict
-from flask_cors import CORS
 from pathlib import Path
 from xml.parsers.expat import ExpatError
 
-
 app = Flask(__name__)
-CORS(app)
 config: Dict[str, str]
 
-@app.route('/ramdisk/<path:path>')
-def send_ramdisk_folder(path):
-    return send_from_directory(config['ramdisk_path'], path)
-
-@app.route('/api/get_opc_ua_configs', methods=['GET'])
+@app.route('/get_opc_ua_configs', methods=['GET'])
 def get_opc_ua_configs():
-    opc_ua_configs = read_xml_file(config['opc_ua_config_file'])
+    opc_ua_configs = read_xml_file(app.config['opc_ua_config_file'])
     
     if (opc_ua_configs):
-        if (opc_ua_configs[config['opc_ua_xml_root_elem']] is not None):
-            sensors = opc_ua_configs[config['opc_ua_xml_root_elem']][config['opc_ua_xml_channel_elem']]
+        if (opc_ua_configs[app.config['opc_ua_xml_root_elem']] is not None):
+            sensors = opc_ua_configs[app.config['opc_ua_xml_root_elem']][app.config['opc_ua_xml_channel_elem']]
             
             # Create a list if the config file contains only one configured sensor
             if (type(sensors) is not list or len(sensors) == 1):
@@ -36,7 +29,7 @@ def get_opc_ua_configs():
 
 # curl -X POST localhost:5000/api/save_config -d '{"unit":"valueaaaa"}' 
 # -H 'Content-Type: application/json'
-@app.route('/api/save_opc_ua_configs', methods=['POST'])
+@app.route('/save_opc_ua_configs', methods=['POST'])
 def save_opc_ua_configs():
     canbus_data = request.get_json()
     
@@ -49,7 +42,7 @@ def save_opc_ua_configs():
 
     if (prettyxml):
         with open(
-            config['ramdisk_path'] + config['opc_ua_config_file'], 
+            app.config['ramdisk_path'] + app.config['opc_ua_config_file'], 
             'w+'
         ) as xml_file:
             xml_file.write(prettyxml)
@@ -57,12 +50,12 @@ def save_opc_ua_configs():
 
     return jsonify(success=False), 500
 
-@app.route('/api/get_iso_codes_by_unit', methods=['GET'])
+@app.route('/get_iso_codes_by_unit', methods=['GET'])
 def get_iso_codes_by_unit():
     if (request.args.get('unit')):
         unit = request.args.get('unit')
         
-        all = read_xml_file(config['iso_standard_file'])
+        all = read_xml_file(app.config['iso_standard_file'])
         result = []
 
         for iso_code, props in all['root']['points'].items():
@@ -75,10 +68,10 @@ def get_iso_codes_by_unit():
     return jsonify(result)
 
 def parse_xml(data):
-    sensor_item = lambda x: config['opc_ua_xml_channel_elem']
+    sensor_item = lambda x: app.config['opc_ua_xml_channel_elem']
     xml_data = dicttoxml(
         data, 
-        custom_root=config['opc_ua_xml_root_elem'], 
+        custom_root=app.config['opc_ua_xml_root_elem'], 
         attr_type=False, 
         item_func=sensor_item
     ).decode('utf-8')
@@ -88,7 +81,7 @@ def parse_xml(data):
     if (position_to_add_doctype != -1):
         xml_data = \
             xml_data[:position_to_add_doctype+1] + \
-            config['opc_ua_xml_doctype'] + \
+            app.config['opc_ua_xml_doctype'] + \
             xml_data[position_to_add_doctype+1:]
     
     try: 
@@ -132,7 +125,7 @@ def format_canbus_data(canbus_data):
 
 def read_xml_file(file_name):
     try: 
-        f = open(config['ramdisk_path'] + file_name)
+        f = open(app.config['ramdisk_path'] + file_name)
         with f as xml_file:
             try:
                 data = xmltodict.parse(xml_file.read())
@@ -147,6 +140,9 @@ def init_config():
     root_path = Path(app.root_path)
     with open(root_path.parent/'config.json') as config_file:
         return json.load(config_file)
+
+def create():
+    app.config.update(init_config())
 
 if __name__ == '__main__':
     config = init_config()
