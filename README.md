@@ -79,7 +79,7 @@ nano /etc/apache2/sites-available/morfeas_web.conf
     CustomLog ${APACHE_LOG_DIR}/access.log combined
 
     WSGIDaemonProcess morfeas_web user=morfeas group=morfeas 
-    WSGIScriptAlias /wsgi-scripts /var/www/morfeas_web/morfeas/morfeas.wsgi
+    WSGIScriptAlias /api /var/www/morfeas_web/morfeas/morfeas.wsgi
 
     Alias /ramdisk /mnt/ramdisk/
 
