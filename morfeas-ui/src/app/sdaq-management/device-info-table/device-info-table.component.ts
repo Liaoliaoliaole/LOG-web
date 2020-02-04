@@ -262,7 +262,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
         const canInterface = row['CANBus-interface'];
         details.push({
           logstat_build_date_UTC: row.logstat_build_date_UTC,
-          'CANBus-interface': canInterface,
+          'CANBus-interface': canInterface.replace(/\d+$/, (n) => { const num = parseInt(n, 10) + 1; return num.toString(); }),
           BUS_voltage: row.BUS_voltage,
           BUS_amperage: row.BUS_amperage,
           BUS_Shunt_Res_temp: row.BUS_Shunt_Res_temp,
@@ -283,7 +283,6 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
             this.gridOptions.api.batchUpdateRowData(
               { update: [row] },
               (result: RowNodeTransaction) => {
-                // console.log("batchupdated");
               }
             );
           }, 0);

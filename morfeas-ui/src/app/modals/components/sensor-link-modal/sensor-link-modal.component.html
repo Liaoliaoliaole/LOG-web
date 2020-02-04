@@ -1,46 +1,52 @@
 <div class="modal-header">
     <h4 class="modal-title">Link Sensor</h4>
-    <button type="button" class="close" (click)="no()">
+    <button type="button" class="close modal-close" (click)="no()">
         <span aria-hidden="true">&times;</span>
     </button>
 </div>
 
 <div class="modal-body">
     <div class="form-group row">
-        <label for="iso" class="col-sm-3 col-form-label col-form-label-sm">ISO code</label>
+        <label for="iso" class="col-sm-3 col-form-label col-form-label-sm form-label">ISO code</label>
         <div class="col-sm-8">
-            <select id="iso" class="form-control form-control-sm" [(ngModel)]="selectedIsoCode" (change)="onSelectIsoCode()">
-                <option *ngFor="let isoStandard of isoStandards" value={{isoStandard.iso_code}}>{{isoStandard.iso_code}}</option>
+            <select id="iso" class="form-control form-control-sm form-modal" [(ngModel)]="selectedIsoCode"
+                (change)="onSelectIsoCode()">
+                <option *ngFor="let isoStandard of isoStandards" value={{isoStandard.iso_code}}>{{isoStandard.iso_code}}
+                </option>
             </select>
         </div>
     </div>
     <div class="form-group row">
-        <label for="unit" class="col-sm-3 col-form-label col-form-label-sm">Unit</label>
+        <label for="unit" class="col-sm-3 col-form-label col-form-label-sm form-label">Unit</label>
         <div class="col-sm-8">
-            <input type="text" class="form-control form-control-sm" id="unit" type="text" disabled value="{{data['unit']}}">
+            <input type="text" class="form-control form-control-sm input-modal" id="unit" type="text" disabled
+                value="{{data['unit']}}">
         </div>
     </div>
     <div class="form-group row">
-        <label for="description" class="col-sm-3 col-form-label col-form-label-sm">Description</label>
+        <label for="description" class="col-sm-3 col-form-label col-form-label-sm form-label">Description</label>
         <div class="col-sm-8">
-            <input type="text" class="form-control form-control-sm" id="description" [(ngModel)]="selectedIsoStandard?.attributes.description">
+            <input type="text" class="form-control form-control-sm input-modal" id="description"
+                [(ngModel)]="selectedIsoStandard?.attributes.description">
         </div>
     </div>
     <div class="form-group row">
-        <label for="min" class="col-sm-3 col-form-label col-form-label-sm">Min value</label>
+        <label for="min" class="col-sm-3 col-form-label col-form-label-sm form-label">Min value</label>
         <div class="col-sm-8">
-            <input type="text" class="form-control form-control-sm" id="min" [(ngModel)]="selectedIsoStandard?.attributes.min"> 
+            <input type="text" class="form-control form-control-sm input-modal" id="min"
+                [(ngModel)]="selectedIsoStandard?.attributes.min">
         </div>
     </div>
     <div class="form-group row">
-        <label for="max" class="col-sm-3 col-form-label col-form-label-sm">Max value</label>
+        <label for="max" class="col-sm-3 col-form-label col-form-label-sm form-label">Max value</label>
         <div class="col-sm-8">
-            <input type="text" class="form-control form-control-sm" id="max" [(ngModel)]="selectedIsoStandard?.attributes.max">
+            <input type="text" class="form-control form-control-sm input-modal" id="max"
+                [(ngModel)]="selectedIsoStandard?.attributes.max">
         </div>
     </div>
     <div style="color: red;" ngDefaultControl [(ngModel)]="error">{{error}}</div>
 </div>
 <div class="modal-footer">
-    <button type="button" class="btn btn-danger" (click)="yes()">Yes</button>
-    <button type="button" class="btn btn-secondary" (click)="no()">No</button>
+    <button type="button" class="btn btn-modal yes" (click)="yes()">Submit</button>
+    <button type="button" class="btn btn-secondary btn-modal" (click)="no()">Cancel</button>
 </div>

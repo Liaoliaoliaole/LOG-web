@@ -1,7 +1,15 @@
-.detailsRow {
-  margin: 10px;
+.col-sm-0 {
+  -webkit-box-flex: 0;
+  flex: 0 0 4.1666666665%;
+  max-width: 4.1666666665%;
 }
 
-.detail {
-  margin: 0px 10px 0px 10px;
+.col-sm-1half {
+  -webkit-box-flex: 0;
+  flex: 0 0 12.4999999995%;
+  max-width: 12.4999999995%;
+}
+
+.extraPad {
+  padding: 5px 15px 5px 5px;
 }

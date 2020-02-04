@@ -1,13 +1,13 @@
 <div>
   <div *ngFor="let details of canBusDetails">
-    <div class="detailsRow">
-      <span class="detail">CANBus: {{ details["CANBus-interface"] }}</span>
-      <span class="detail">Voltage: {{ details.BUS_voltage }}</span>
-      <span class="detail">Amperage: {{ details.BUS_amperage }}</span>
-      <span class="detail">Shunt Res Temp: {{ details.BUS_Shunt_Res_temp }}</span>
-      <span class="detail">Utilization: {{ details.BUS_Utilization }}</span>
-      <span class="detail">Detected SDAQs: {{ details.Detected_SDAQs }}</span>
-      <span class="detail">Build date: {{ details.logstat_build_date_UTC }}</span>
+    <div class="row extraPad">
+      <div class="m-1 font-weight-bold text-uppercase"><span>{{ details["CANBus-interface"] }}</span></div>
+      <div class="m-1"><span>Voltage: {{ details.BUS_voltage }}</span></div>
+      <div class="m-1"><span>Amperage: {{ details.BUS_amperage }}</span></div>
+      <div class="m-1"><span>Shunt Res Temp: {{ details.BUS_Shunt_Res_temp }}</span></div>
+      <div class="m-1"><span>Utilization: {{ details.BUS_Utilization }}</span></div>
+      <div class="m-1"><span>Detected SDAQs: {{ details.Detected_SDAQs }}</span></div>
+      <div class="m-1"><span>Build date: {{ details.logstat_build_date_UTC }}</span></div>
     </div>
   </div>
 </div>

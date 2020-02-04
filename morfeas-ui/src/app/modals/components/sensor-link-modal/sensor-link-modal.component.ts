@@ -6,7 +6,8 @@ import { IsoStandard } from 'src/app/sdaq-management/models/iso-standard-model';
 
 @Component({
   selector: 'app-modal-sensor-link',
-  templateUrl: './sensor-link-modal.component.html'
+  templateUrl: './sensor-link-modal.component.html',
+  styleUrls: ['./sensor-link-modal.component.scss']
 })
 export class SensorLinkModalComponent implements OnInit {
   options: ModalOptions;
