@@ -1,36 +1,64 @@
 export interface CanBusModel {
   logstat_build_date_UTC: string;
   logstat_build_date_UNIX: number;
+  'CANBus-interface': string;
   BUS_voltage: number;
   BUS_amperage: number;
   BUS_Shunt_Res_temp: number;
-  'CANBus-interface': string;
   BUS_Utilization: number;
   Detected_SDAQs: number;
-  Address_Conflicts: number;
-  SDAQs_data: SdaqData[];
+  SDAQs_data: SDAQData[];
 }
 
-export interface SdaqData {
+export interface SDAQData {
+  Last_seen_UTC: string;
+  Last_seen_UNIX: number;
   Address: number;
   Serial_number: number;
   SDAQ_type: string;
+  Timediff: number;
+  SDAQ_Status: SDAQStatus;
+  SDAQ_info: SDAQInfo;
+  Calibration_Data: CalibrationData[];
+  Meas: Measurements[];
+}
+
+export interface Measurements {
+  Channel: number;
+  Channel_Status: ChannelStatus;
+  Unit: string;
+  Meas_avg: number;
+}
+
+export interface ChannelStatus {
+  Channel_status_val: number;
+  Out_of_Range: boolean;
+  No_Sensor: boolean;
+}
+
+export interface CalibrationData {
+  Channel: number;
+  Calibration_date: string;
+  Calibration_date_UNIX: number;
+  Calibration_period: number;
+  Amount_of_points: number;
+  Unit: string;
+  Is_calibrated: boolean;
+  Unit_code: number;
+}
+
+export interface SDAQInfo {
   firm_rev: number;
   hw_rev: number;
   Number_of_channels: number;
   Sample_rate: number;
   Max_cal_point: number;
-  Calibration_date: Calibrationdate[];
-  'Last_seen(UTC)': string;
-  'Last_seen(UNIX)': number;
-  Timediff: number;
 }
 
-export interface Calibrationdate {
-  Channel: number;
-  Cal_Exp_date: string;
-  'Cal_Exp_date(UNIX)': number;
-  Amount_of_points: number;
-  Unit: string;
-  Unit_code: string;
+export interface SDAQStatus {
+  SDAQ_status_val: number;
+  In_sync: boolean;
+  Error: boolean;
+  State: string;
+  Mode: string;
 }

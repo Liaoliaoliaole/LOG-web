@@ -9,7 +9,6 @@
     background-color: white;
     -webkit-appearance: none;
     width: 15%;
-    font-family: 'Roboto';
     font-style: normal;
     font-weight: 300;
     font-size: 14px;
@@ -36,12 +35,23 @@
     border-bottom: 1px solid#ced4da;
 }
 
-.yes {
+.link {
     color: white;
     background-color: forestgreen;
 }
 
-.yes:active {
+.link:active {
+    color:#000 !important;
+    background-color: white !important;
+    border-color:white !important;
+}
+
+.unlink {
+    color: white;
+    background-color: firebrick;
+}
+
+.unlink:active {
     color:#000 !important;
     background-color: white !important;
     border-color:white !important;

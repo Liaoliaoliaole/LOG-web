@@ -5,14 +5,10 @@ import { HttpInterceptor, HttpRequest, HttpHandler, HttpHeaders } from '@angular
 export class CacheInterceptor implements HttpInterceptor {
 
     intercept(req: HttpRequest<any>, next: HttpHandler) {
-        const httpRequest = req.clone({
-            headers: new HttpHeaders({
-                'Cache-Control': 'no-store',
-                Pragma: 'no-cache',
-                Expires: '0'
-            })
-        });
+        req = req.clone({ headers: req.headers.set('Cache-Control', 'no-store') });
+        req = req.clone({ headers: req.headers.set('Pragma', 'no-cache') });
+        req = req.clone({ headers: req.headers.set('Expires', '0') });
 
-        return next.handle(httpRequest);
+        return next.handle(req);
     }
 }
