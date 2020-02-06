@@ -7,12 +7,14 @@ import {
   RowNodeTransaction
 } from '@ag-grid-community/all-modules';
 import { CanbusService } from '../services/canbus/canbus.service';
-import { CanBusModel, SdaqData } from '../models/can-model';
+import { CanBusModel, SDAQData } from '../models/can-model';
 import { TableColumn } from '../device-table-sidebar/device-table-sidebar.component';
 import { OpcUaConfigModel } from '../models/opcua-config-model';
 import { ModalService } from 'src/app/modals/services/modal.service';
 import { SensorLinkModalComponent } from 'src/app/modals/components/sensor-link-modal/sensor-link-modal.component';
 import { IsoStandard } from '../models/iso-standard-model';
+import { formatDate } from '@angular/common';
+import { SensorLinkModalInitiateModel, SensorLinkModalSubmitModel, SensorLinkModalSubmitAction } from '../models/sensor-link-modal-model';
 
 export interface CanBusFlatData {
   id: string;
@@ -26,6 +28,7 @@ export interface CanBusFlatData {
   minValue: number;
   maxValue: number;
   description: string;
+  unavailable?: boolean;
 }
 
 @Component({
@@ -68,21 +71,20 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     onCellEditingStarted: this.onCellEdittingStarted.bind(this),
     onCellEditingStopped: this.onCellEdittingStopped.bind(this),
     columnDefs: this.columnDefs,
-    rowData: this.rowData,
     suppressRowTransform: true,
     suppressScrollOnNewData: true,
     batchUpdateWaitMillis: 50,
 
     onGridReady: async () => {
       // Visualize data on the table
-      await this.getOpcUaConfigData();
 
-      this.getLogStatData();
+      this.getLogStatData(true);
+
       this.canBusPoller = setInterval(() => {
         if (!this.pause) {
-          this.getLogStatData();
+          this.getLogStatData(false);
         }
-      }, 5000);
+      }, 800);
     }
   };
 
@@ -107,44 +109,134 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
       // open popup dialog when ISO cell is clicked
       this.togglePause(); // enable pause mode when dialog is to be open
 
-      if (!e.data.isoCode) {
-        // Confirm
-        this.modalService
-          .confirm({
-            component: SensorLinkModalComponent,
-            data: {
-              unit: e.data.channelUnit,
-              configuredIsoCodes: this.configuredIsoCodes
-            }
-          })
-          .then((data: IsoStandard) => {
-            const selectedRow = this.rowData.find(
-              x =>
-                x.sdaqSerial === e.data.sdaqSerial &&
-                x.channelId === e.data.channelId
-            );
+      const initiate: SensorLinkModalInitiateModel = {
+        unit: e.data.channelUnit,
+        configuredIsoCodes: this.configuredIsoCodes,
+        unlinked: !e.data.isoCode,
+        existingIsoStandard: e.data.isoCode ? {
+          iso_code: e.data.isoCode,
+          attributes: {
+            min: e.data.minValue,
+            max: e.data.maxValue,
+            description: e.data.description,
+            unit: e.data.unit
+          }
+        } : null
+      };
 
-            // apply selected ISO code's data to the table
-            selectedRow.isoCode = data.iso_code;
-            selectedRow.description = data.attributes.description;
-            selectedRow.minValue = +data.attributes.min;
-            selectedRow.maxValue = +data.attributes.max;
+      this.modalService
+        .confirm({
+          component: SensorLinkModalComponent,
+          data: initiate
+        })
+        .then((data: SensorLinkModalSubmitModel) => {
 
-            this.saveClientChanges(e.data);
-            this.getLogStatData();
+          const selectedRow = this.rowData.find(
+            x =>
+              x.id === e.data.id
+          );
 
-            this.configuredIsoCodes.push(data.iso_code);
-            this.togglePause();
-          })
-          .catch(() => {
-            // Cancel
-            this.togglePause();
-            console.log('cancelled');
-          });
-      } else {
-        // TODO
-        this.modalService.open({ title: 'title', message: 'message' });
-      }
+          switch (data.action) {
+
+            case SensorLinkModalSubmitAction.Add:
+
+              const newRow: CanBusFlatData = {
+                id: selectedRow.id + '_' + formatDate(new Date(), 'yyyy-MM-ddThh:mm:ssTZD', 'en'),
+                canBus: selectedRow.canBus,
+                isoCode: data.isoStandard.iso_code,
+                sdaqAddress: selectedRow.sdaqAddress,
+                sdaqSerial: selectedRow.sdaqSerial,
+                sdaqType: selectedRow.sdaqType,
+                channelId: selectedRow.channelId,
+                channelUnit: selectedRow.channelUnit,
+                minValue: +data.isoStandard.attributes.min,
+                maxValue: +data.isoStandard.attributes.max,
+                description: data.isoStandard.attributes.description
+              };
+
+              this.rowData.push(newRow);
+              setTimeout(() => {
+                this.gridOptions.api.batchUpdateRowData(
+                  { add: [newRow], },
+                  (result: RowNodeTransaction) => {
+                  }
+                );
+              }, 0);
+
+              this.saveClientChanges(e.data);
+
+              this.configuredIsoCodes.push(data.isoStandard.iso_code);
+              this.togglePause();
+
+              break;
+
+            case SensorLinkModalSubmitAction.Update:
+
+              this.configuredIsoCodes.splice(
+                this.configuredIsoCodes.indexOf(e.data.isoCode),
+                1,
+              );
+
+              const updateRow: CanBusFlatData = {
+                id: selectedRow.id,
+                canBus: selectedRow.canBus,
+                isoCode: data.isoStandard.iso_code,
+                sdaqAddress: selectedRow.sdaqAddress,
+                sdaqSerial: selectedRow.sdaqSerial,
+                sdaqType: selectedRow.sdaqType,
+                channelId: selectedRow.channelId,
+                channelUnit: selectedRow.channelUnit,
+                minValue: +data.isoStandard.attributes.min,
+                maxValue: +data.isoStandard.attributes.max,
+                description: data.isoStandard.attributes.description
+              };
+
+              this.rowData[this.rowData.findIndex(element => element.id === selectedRow.id)] = updateRow;
+              setTimeout(() => {
+                this.gridOptions.api.batchUpdateRowData(
+                  { update: [updateRow], },
+                  (result: RowNodeTransaction) => {
+                  }
+                );
+              }, 0);
+
+              this.saveClientChanges(e.data);
+              this.configuredIsoCodes.push(data.isoStandard.iso_code);
+
+              this.togglePause();
+
+              break;
+
+            case SensorLinkModalSubmitAction.Remove:
+
+              this.rowData.splice(
+                this.rowData.indexOf(selectedRow),
+                1,
+              );
+              setTimeout(() => {
+                this.gridOptions.api.batchUpdateRowData(
+                  { remove: [selectedRow], },
+                  (result: RowNodeTransaction) => {
+                  }
+                );
+              }, 0);
+
+              this.saveClientChanges(e.data);
+
+              this.configuredIsoCodes.splice(
+                this.configuredIsoCodes.indexOf(e.data.isoCode),
+                1,
+              );
+              this.togglePause();
+
+              break;
+          }
+
+        })
+        .catch((err: any) => {
+          this.togglePause();
+          console.log(err);
+        });
     }
   }
 
@@ -177,8 +269,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     this.clientChanges.set(modifiedAnchor, data);
   }
 
-  applyTemporaryClientChanges() {
-    this.rowData.forEach((row, index, arr) => {
+  applyTemporaryClientChanges(newData: CanBusFlatData[]): CanBusFlatData[] {
+    newData.forEach((row, index, arr) => {
       // TODO: rework this logic as there's no need to loop through the entire row data
       const anchor = this.canbusService.generateAnchor(
         row.sdaqSerial,
@@ -189,6 +281,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
         arr[index] = this.clientChanges.get(anchor);
       }
     });
+
+    return newData;
   }
 
   flattenRowData(canBusArr: CanBusModel[]): CanBusFlatData[] {
@@ -199,14 +293,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
     return canBus.reduce((canBusArray: CanBusFlatData[], can) => {
       const canBusDataRow = can.SDAQs_data.reduce(
-        (flattenArray: CanBusFlatData[], sdaqData: SdaqData) => {
+        (flattenArray: CanBusFlatData[], sdaqData: SDAQData) => {
           const dataPoint = {
-            id:
-              can['CANBus-interface'] +
-              '_' +
-              sdaqData.Address +
-              '_' +
-              sdaqData.Serial_number,
             canBus: can['CANBus-interface'],
             sdaqAddress: sdaqData.Address,
             sdaqSerial: sdaqData.Serial_number,
@@ -214,14 +302,14 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
           } as CanBusFlatData;
 
           if (
-            !sdaqData.Calibration_date ||
-            sdaqData.Calibration_date.length === 0
+            !sdaqData.Calibration_Data ||
+            sdaqData.Calibration_Data.length === 0
           ) {
             flattenArray.push(dataPoint);
             return flattenArray;
           }
 
-          const dataPoints: CanBusFlatData[] = sdaqData.Calibration_date.map(
+          const dataPoints: CanBusFlatData[] = sdaqData.Calibration_Data.map(
             calibrationData => {
               const anchor = this.canbusService.generateAnchor(
                 sdaqData.Serial_number,
@@ -235,6 +323,12 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
               }
 
               const result = {
+                id:
+                  can['CANBus-interface'] +
+                  '_' +
+                  sdaqData.Address +
+                  '_' +
+                  sdaqData.Serial_number + '_' + calibrationData.Channel,
                 channelId: calibrationData.Channel,
                 channelUnit: calibrationData.Unit,
                 isoCode: opcUaConf ? opcUaConf.ISO_CHANNEL : null, // map value of OPC UA config to table data
@@ -254,54 +348,96 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     }, []);
   }
 
-  getLogStatData() {
+  getLogStatData(initial: boolean) {
     this.canbusService.getLogStatData().subscribe(rowData => {
-      const details = [];
+      this.applyRowData(rowData);
 
-      rowData.forEach(row => {
-        const canInterface = row['CANBus-interface'];
-        details.push({
-          logstat_build_date_UTC: row.logstat_build_date_UTC,
-          'CANBus-interface': canInterface.replace(/\d+$/, (n) => { const num = parseInt(n, 10) + 1; return num.toString(); }),
-          BUS_voltage: row.BUS_voltage,
-          BUS_amperage: row.BUS_amperage,
-          BUS_Shunt_Res_temp: row.BUS_Shunt_Res_temp,
-          BUS_Utilization: row.BUS_Utilization,
-          Detected_SDAQs: row.Detected_SDAQs,
-        });
-      });
-
-      this.canBusDetails = details;
-      const newData = this.flattenRowData(rowData);
-      this.applyTemporaryClientChanges();
-
-      // this.gridOptions.api.setRowData(this.rowData);
-
-      if (this.rowData && this.rowData.length > 0) {
-        newData.forEach(row => {
-          setTimeout(() => {
-            this.gridOptions.api.batchUpdateRowData(
-              { update: [row] },
-              (result: RowNodeTransaction) => {
-              }
-            );
-          }, 0);
-        });
-      } else {
-        this.rowData = newData;
+      if (initial) {
+        this.getOpcUaConfigData();
       }
     });
+  }
+
+  applyRowData(rowData: CanBusModel[]) {
+    const details = [];
+
+    rowData.forEach(row => {
+      const canInterface = row['CANBus-interface'];
+      details.push({
+        logstat_build_date_UTC: row.logstat_build_date_UTC,
+        'CANBus-interface': canInterface.replace(/\d+$/, (n) => { const num = parseInt(n, 10) + 1; return num.toString(); }),
+        BUS_voltage: row.BUS_voltage,
+        BUS_amperage: row.BUS_amperage,
+        BUS_Shunt_Res_temp: row.BUS_Shunt_Res_temp,
+        BUS_Utilization: row.BUS_Utilization,
+        Detected_SDAQs: row.Detected_SDAQs,
+      });
+    });
+
+    this.canBusDetails = details;
+    const newData = this.flattenRowData(rowData);
+    // newData = this.applyTemporaryClientChanges(newData);
+
+    // this.gridOptions.api.setRowData(this.rowData);
+
+    if (this.rowData && this.rowData.length > 0) {
+
+      newData.forEach(row => {
+        this.rowData[this.rowData.findIndex(element => element.id === row.id)] = row;
+        setTimeout(() => {
+          this.gridOptions.api.batchUpdateRowData(
+            { update: [row], },
+            (result: RowNodeTransaction) => {
+            }
+          );
+        }, 0);
+      });
+    } else {
+      this.rowData = newData;
+      this.gridOptions.api.setRowData(this.rowData);
+    }
   }
 
   getRowNodeId = (data: any) => data.id;
 
   async getOpcUaConfigData() {
     const opcUaConfigs = await this.canbusService.getOpcUaConfigs().toPromise();
-    console.log(opcUaConfigs);
     if (opcUaConfigs && opcUaConfigs.length > 0) {
-      opcUaConfigs.map(sensor => {
+      opcUaConfigs.forEach(sensor => {
         if (sensor) {
           this.opcUaMap.set(sensor.ANCHOR, sensor);
+
+          const serial = +sensor.ANCHOR.split('.')[0];
+          const channel = +sensor.ANCHOR.split('.')[1].replace('CH', '');
+
+          const selectedRow = this.rowData.find(row => row.channelId === channel && row.sdaqSerial === serial);
+          let newRow: CanBusFlatData;
+
+          if (!selectedRow) {
+            newRow = {
+              id: 'unavailable_' + serial + '_' + channel,
+              canBus: undefined,
+              isoCode: sensor.ISO_CHANNEL,
+              sdaqAddress: undefined,
+              sdaqSerial: serial,
+              sdaqType: sensor.INTERFACE_TYPE,
+              channelId: channel,
+              channelUnit: undefined,
+              minValue: +sensor.MIN,
+              maxValue: +sensor.MAX,
+              description: sensor.DESCRIPTION,
+              unavailable: true
+            };
+
+            this.rowData.push(newRow);
+            setTimeout(() => {
+              this.gridOptions.api.batchUpdateRowData(
+                { add: [newRow], },
+                (result: RowNodeTransaction) => {
+                }
+              );
+            }, 0);
+          }
 
           if (sensor.ISO_CHANNEL) {
             this.configuredIsoCodes.push(sensor.ISO_CHANNEL);
@@ -313,7 +449,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
   saveOpcUaConfigs(event: any) {
     this.canbusService.saveOpcUaConfigs(this.rowData).subscribe(resp => {
-      this.getOpcUaConfigData();
+      console.log(resp);
     });
   }
 }

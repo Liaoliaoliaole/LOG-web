@@ -4,7 +4,7 @@ import { DeviceInfoTableComponent, CanBusFlatData } from './device-info-table.co
 import { AgGridModule } from '@ag-grid-community/angular';
 import { DeviceTableSidebarComponent } from '../device-table-sidebar/device-table-sidebar.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { CanBusModel, Calibrationdate, SdaqData } from '../models/can-model';
+import { CanBusModel } from '../models/can-model';
 import { ModalsModule } from 'src/app/modals/modals.module';
 import { CanbusDetailsBarComponent } from 'src/app/canbus-details-bar/canbus-details-bar.component';
 
@@ -37,12 +37,12 @@ describe('DeviceInfoTableComponent', () => {
   it('should flatten row data array from canbus data', () => {
     const expected: CanBusFlatData[] = [
       {
-        canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16', channelId: 1, channelUnit: 'Q',
-        isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_624642519'
+        canBus: 'can0', sdaqAddress: 1, sdaqSerial: 8, sdaqType: 'Pseudo_SDAQ', channelId: 1, channelUnit: 'Q',
+        isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_8_1'
       },
       {
-        canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16', channelId: 2, channelUnit: 'V',
-        isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_624642519'
+        canBus: 'can0', sdaqAddress: 1, sdaqSerial: 9, sdaqType: 'Pseudo_SDAQ', channelId: 1, channelUnit: 'V',
+        isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_9_1'
       }
     ];
     const result = component.flattenRowData(canData);
@@ -57,28 +57,62 @@ describe('DeviceInfoTableComponent', () => {
         'CANBus-interface': 'can0',
         BUS_Utilization: 0,
         Detected_SDAQs: 1,
-        Address_Conflicts: 0,
         BUS_Shunt_Res_temp: 0,
         BUS_amperage: 0,
         BUS_voltage: 0,
         SDAQs_data: [
           {
+            Last_seen_UTC: '02/05/20 13:50:12',
+            Last_seen_UNIX: 1580910612,
             Address: 1,
-            Serial_number: 624642519,
-            SDAQ_type: 'SDAQ-TC-16',
-            firm_rev: 2,
-            hw_rev: 1,
-            Number_of_channels: 16,
-            Sample_rate: 10,
-            Max_cal_point: 0,
-            'Last_seen(UTC)': '11/25/19 12:01:13',
-            'Last_seen(UNIX)': 1251883,
-            Timediff: 10,
-            Calibration_date: []
+            Serial_number: 8,
+            SDAQ_type: 'Pseudo_SDAQ',
+            Timediff: 28,
+            SDAQ_Status: {
+              SDAQ_status_val: 1,
+              In_sync: false,
+              Error: false,
+              State: 'Measuring',
+              Mode: 'Normal'
+            },
+            SDAQ_info: {
+              firm_rev: 0,
+              hw_rev: 0,
+              Number_of_channels: 1,
+              Sample_rate: 10,
+              Max_cal_point: 16
+            },
+            Calibration_Data: [
+              {
+                Channel: 1,
+                Calibration_date: '2000/00/00',
+                Calibration_date_UNIX: 943912800,
+                Calibration_period: 0,
+                Amount_of_points: 0,
+                Unit: '-',
+                Is_calibrated: false,
+                Unit_code: 0
+              },
+            ],
+            Meas: [
+              {
+                Channel: 1,
+                Channel_Status: {
+                  Channel_status_val: 0,
+                  Out_of_Range: false,
+                  No_Sensor: false
+                },
+                Unit: '-',
+                Meas_avg: 0
+              }
+            ]
           }]
       }];
     const expected = [
-      { canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16', id: 'can0_1_624642519' },
+      {
+        id: 'can0_1_8_1', channelId: 1, channelUnit: '-', isoCode: null, description: null,
+        minValue: null, maxValue: null, canBus: 'can0', sdaqAddress: 1, sdaqSerial: 8, sdaqType: 'Pseudo_SDAQ'
+      },
     ] as CanBusFlatData[];
     const result = component.flattenRowData(input);
     expect(result).toEqual(expected);
@@ -111,7 +145,7 @@ describe('DeviceInfoTableComponent', () => {
     } as CanBusModel;
     const result = component.flattenRowData([can0, null]);
     const expected = [
-      { canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16', id: 'can0_1_624642519' },
+      { canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16' },
     ] as CanBusFlatData[];
     expect(result).toEqual(expected);
   });
@@ -123,40 +157,101 @@ describe('DeviceInfoTableComponent', () => {
       'CANBus-interface': 'can0',
       BUS_Utilization: 0,
       Detected_SDAQs: 1,
-      Address_Conflicts: 0,
       BUS_Shunt_Res_temp: 0,
       BUS_amperage: 0,
       BUS_voltage: 0,
       SDAQs_data: [
         {
+          Last_seen_UTC: '02/05/20 13:50:12',
+          Last_seen_UNIX: 1580910612,
           Address: 1,
-          Serial_number: 624642519,
-          SDAQ_type: 'SDAQ-TC-16',
-          firm_rev: 2,
-          hw_rev: 1,
-          Number_of_channels: 16,
-          Sample_rate: 10,
-          Max_cal_point: 0,
-          'Last_seen(UTC)': '11/25/19 12:01:13',
-          'Last_seen(UNIX)': 1251883,
-          Timediff: 10,
-          Calibration_date: [
+          Serial_number: 8,
+          SDAQ_type: 'Pseudo_SDAQ',
+          Timediff: 28,
+          SDAQ_Status: {
+            SDAQ_status_val: 1,
+            In_sync: false,
+            Error: false,
+            State: 'Measuring',
+            Mode: 'Normal'
+          },
+          SDAQ_info: {
+            firm_rev: 0,
+            hw_rev: 0,
+            Number_of_channels: 1,
+            Sample_rate: 10,
+            Max_cal_point: 16
+          },
+          Calibration_Data: [
             {
               Channel: 1,
-              Cal_Exp_date: '1970/01',
-              'Cal_Exp_date(UNIX)': 0,
+              Calibration_date: '2000/00/00',
+              Calibration_date_UNIX: 943912800,
+              Calibration_period: 0,
               Amount_of_points: 0,
               Unit: 'Q',
-            } as Calibrationdate,
+              Is_calibrated: false,
+              Unit_code: 0
+            }
+          ],
+          Meas: [
             {
-              Channel: 2,
-              Cal_Exp_date: '1970/01',
-              'Cal_Exp_date(UNIX)': 0,
-              Amount_of_points: 0,
-              Unit: 'V'
-            } as Calibrationdate
+              Channel: 1,
+              Channel_Status: {
+                Channel_status_val: 0,
+                Out_of_Range: false,
+                No_Sensor: false
+              },
+              Unit: 'Q',
+              Meas_avg: 0
+            }
           ]
-        }
-      ]
+        },
+        {
+          Last_seen_UTC: '02/05/20 13:50:12',
+          Last_seen_UNIX: 1580910612,
+          Address: 1,
+          Serial_number: 9,
+          SDAQ_type: 'Pseudo_SDAQ',
+          Timediff: 28,
+          SDAQ_Status: {
+            SDAQ_status_val: 1,
+            In_sync: false,
+            Error: false,
+            State: 'Measuring',
+            Mode: 'Normal'
+          },
+          SDAQ_info: {
+            firm_rev: 0,
+            hw_rev: 0,
+            Number_of_channels: 1,
+            Sample_rate: 10,
+            Max_cal_point: 16
+          },
+          Calibration_Data: [
+            {
+              Channel: 1,
+              Calibration_date: '2000/00/00',
+              Calibration_date_UNIX: 943912800,
+              Calibration_period: 0,
+              Amount_of_points: 0,
+              Unit: 'V',
+              Is_calibrated: false,
+              Unit_code: 0
+            }
+          ],
+          Meas: [
+            {
+              Channel: 1,
+              Channel_Status: {
+                Channel_status_val: 0,
+                Out_of_Range: false,
+                No_Sensor: false
+              },
+              Unit: 'V',
+              Meas_avg: 0
+            }
+          ]
+        }]
     }];
 });

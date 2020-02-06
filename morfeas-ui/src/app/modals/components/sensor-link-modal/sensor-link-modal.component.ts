@@ -3,6 +3,7 @@ import { ModalOptions } from '../../modal-options';
 import { Component, OnInit } from '@angular/core';
 import { CanbusService } from 'src/app/sdaq-management/services/canbus/canbus.service';
 import { IsoStandard } from 'src/app/sdaq-management/models/iso-standard-model';
+import { SensorLinkModalInitiateModel, SensorLinkModalSubmitAction } from 'src/app/sdaq-management/models/sensor-link-modal-model';
 
 @Component({
   selector: 'app-modal-sensor-link',
@@ -12,7 +13,7 @@ import { IsoStandard } from 'src/app/sdaq-management/models/iso-standard-model';
 export class SensorLinkModalComponent implements OnInit {
   options: ModalOptions;
   isoStandards: IsoStandard[];
-  data: any; // TODO: Add type for this
+  data: SensorLinkModalInitiateModel;
   selectedIsoCode = 'Select an ISO code';
   selectedIsoStandard: IsoStandard;
   error = '';
@@ -27,27 +28,37 @@ export class SensorLinkModalComponent implements OnInit {
   ngOnInit() {
     this.data = this.state.options.data;
 
-    if (this.data.unit) {
-      this.canbusService.getIsoCodesByUnit(this.data.unit).subscribe(result => {
-        if (
-          this.data.configuredIsoCodes &&
-          this.data.configuredIsoCodes.length > 0
-        ) {
-          // this.data['configuredIsoCodes'] cannot be used directly in line 37 because there's
-          // another 'this' which belongs to the filter scope.
-          const configuredIsoCodes = this.data.configuredIsoCodes;
+    this.canbusService.getIsoCodesByUnit(this.data.unit).subscribe(result => {
+      if (
+        this.data.configuredIsoCodes &&
+        this.data.configuredIsoCodes.length > 0
+      ) {
+        // this.data['configuredIsoCodes'] cannot be used directly in line 37 because there's
+        // another 'this' which belongs to the filter scope.
+        const configuredIsoCodes = this.data.configuredIsoCodes;
 
-          result = result.filter(
-            obj => configuredIsoCodes.indexOf(obj.iso_code) < 0
-          ); // remove configured ISO codes from the dropdown
+        if (this.data.existingIsoStandard) {
+
+          this.selectedIsoStandard = this.data.existingIsoStandard;
+          this.selectedIsoCode = this.data.existingIsoStandard.iso_code;
         }
 
-        this.isoStandards = result;
-      });
-    }
+        // remove configured ISO codes from the dropdown
+        result = result.filter(
+          obj => configuredIsoCodes.indexOf(obj.iso_code) < 0
+        );
+
+        // add the existing ISO code back the the dropdown if it exists
+        if (this.data.existingIsoStandard) {
+          result.push(this.selectedIsoStandard);
+        }
+      }
+
+      this.isoStandards = result;
+    });
   }
 
-  yes() {
+  link() {
     if (
       !isNaN(+this.selectedIsoStandard.attributes.min) &&
       !isNaN(+this.selectedIsoStandard.attributes.max)
@@ -56,7 +67,20 @@ export class SensorLinkModalComponent implements OnInit {
         +this.selectedIsoStandard.attributes.min <
         +this.selectedIsoStandard.attributes.max
       ) {
-        this.state.modal.close(this.selectedIsoStandard);
+
+
+        if (this.data.unlinked) {
+          this.state.modal.close({
+            isoStandard: this.selectedIsoStandard,
+            action: SensorLinkModalSubmitAction.Add
+          });
+        } else {
+          this.state.modal.close({
+            isoStandard: this.selectedIsoStandard,
+            action: SensorLinkModalSubmitAction.Update
+          });
+        }
+
       } else {
         this.error = 'Min value cannot be greater than max value!';
       }
@@ -65,7 +89,14 @@ export class SensorLinkModalComponent implements OnInit {
     }
   }
 
-  no() {
+  unlink() {
+    this.state.modal.close({
+      isoStandard: this.selectedIsoStandard,
+      action: SensorLinkModalSubmitAction.Remove
+    });
+  }
+
+  dismiss() {
     this.state.modal.dismiss('not confirmed');
   }
 
@@ -73,5 +104,7 @@ export class SensorLinkModalComponent implements OnInit {
     this.selectedIsoStandard = this.isoStandards.find(
       x => x.iso_code === this.selectedIsoCode
     );
+
+    this.data.existingIsoStandard = null;
   }
 }

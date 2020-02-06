@@ -27,7 +27,7 @@ export class CanbusService {
   getIsoCodesByUnit(unit: string): Observable<IsoStandard[]> {
     const url = `${environment.API_ROOT}/api/get_iso_codes_by_unit`;
     const params = new HttpParams().set('unit', unit);
-    return this.http.get<IsoStandard[]>(url, {params});
+    return this.http.get<IsoStandard[]>(url, { params });
   }
 
   getOpcUaConfigs(): Observable<OpcUaConfigModel[]> {
@@ -42,8 +42,7 @@ export class CanbusService {
   saveOpcUaConfigs(canbusData: CanBusFlatData[]): Observable<void> {
     const url = `${environment.API_ROOT}/api/save_opc_ua_configs`;
     const httpHeaders = new HttpHeaders({
-      'Content-Type' : 'application/json',
-      'Cache-Control': 'no-cache'
+      'Content-Type': 'application/json',
     });
     const options = {
       headers: httpHeaders

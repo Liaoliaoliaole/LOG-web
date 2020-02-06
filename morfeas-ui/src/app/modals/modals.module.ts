@@ -12,7 +12,7 @@ import { FormsModule } from '@angular/forms';
 const modals = [
   ConfirmModalComponent,
   InformationModalComponent,
-  SensorLinkModalComponent
+  SensorLinkModalComponent,
 ];
 
 @NgModule({

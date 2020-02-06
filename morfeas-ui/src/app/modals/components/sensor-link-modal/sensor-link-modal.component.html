@@ -1,6 +1,6 @@
 <div class="modal-header">
     <h4 class="modal-title">Link Sensor</h4>
-    <button type="button" class="close modal-close" (click)="no()">
+    <button type="button" class="close modal-close" (click)="dismiss()">
         <span aria-hidden="true">&times;</span>
     </button>
 </div>
@@ -47,6 +47,7 @@
     <div style="color: red;" ngDefaultControl [(ngModel)]="error">{{error}}</div>
 </div>
 <div class="modal-footer">
-    <button type="button" class="btn btn-modal yes" (click)="yes()">Submit</button>
-    <button type="button" class="btn btn-secondary btn-modal" (click)="no()">Cancel</button>
+    <button type="button" class="btn btn-modal link" (click)="link()">Submit</button>
+    <button type="button" class="btn btn-modal unlink" (click)="unlink()" [hidden]="data.unlinked">Unlink</button>
+    <button type="button" class="btn btn-secondary btn-modal" (click)="dismiss()">Cancel</button>
 </div>
