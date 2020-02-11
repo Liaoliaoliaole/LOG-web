@@ -56,7 +56,6 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   canBusPoller: any;
   canBusDetails: CanBusModel[];
   pause = false;
-  clientChanges = new Map<string, CanBusFlatData>();
   configuredIsoCodes: string[] = [];
 
   gridOptions: GridOptions = {
@@ -99,8 +98,6 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   }
 
   onCellEdittingStopped(e: any): void {
-    this.saveClientChanges(e.data); // save client temporary changes
-
     this.togglePause(); // disable pause mode
   }
 
@@ -141,7 +138,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
             case SensorLinkModalSubmitAction.Add:
 
               const newRow: CanBusFlatData = {
-                id: selectedRow.id + '_' + formatDate(new Date(), 'yyyy-MM-ddThh:mm:ssTZD', 'en'),
+                id: selectedRow.id,
                 canBus: selectedRow.canBus,
                 isoCode: data.isoStandard.iso_code,
                 sdaqAddress: selectedRow.sdaqAddress,
@@ -153,17 +150,16 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                 maxValue: +data.isoStandard.attributes.max,
                 description: data.isoStandard.attributes.description
               };
+              const anchor = this.canbusService.generateAnchor(selectedRow.sdaqSerial, selectedRow.channelId);
 
-              this.rowData.push(newRow);
-              setTimeout(() => {
-                this.gridOptions.api.batchUpdateRowData(
-                  { add: [newRow], },
-                  (result: RowNodeTransaction) => {
-                  }
-                );
-              }, 0);
-
-              this.saveClientChanges(e.data);
+              this.opcUaMap.set(anchor, {
+                ISO_CHANNEL: data.isoStandard.iso_code,
+                INTERFACE_TYPE: selectedRow.sdaqType,
+                ANCHOR: anchor,
+                DESCRIPTION: data.isoStandard.attributes.description,
+                MIN: +data.isoStandard.attributes.min,
+                MAX: +data.isoStandard.attributes.max,
+              });
 
               this.configuredIsoCodes.push(data.isoStandard.iso_code);
               this.togglePause();
@@ -191,37 +187,18 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                 description: data.isoStandard.attributes.description
               };
 
-              this.rowData[this.rowData.findIndex(element => element.id === selectedRow.id)] = updateRow;
-              setTimeout(() => {
-                this.gridOptions.api.batchUpdateRowData(
-                  { update: [updateRow], },
-                  (result: RowNodeTransaction) => {
-                  }
-                );
-              }, 0);
+              this.updateRow(updateRow);
 
-              this.saveClientChanges(e.data);
               this.configuredIsoCodes.push(data.isoStandard.iso_code);
-
               this.togglePause();
 
               break;
 
             case SensorLinkModalSubmitAction.Remove:
 
-              this.rowData.splice(
-                this.rowData.indexOf(selectedRow),
-                1,
-              );
-              setTimeout(() => {
-                this.gridOptions.api.batchUpdateRowData(
-                  { remove: [selectedRow], },
-                  (result: RowNodeTransaction) => {
-                  }
-                );
-              }, 0);
+              const removeAnchor = this.canbusService.generateAnchor(selectedRow.sdaqSerial, selectedRow.channelId);
 
-              this.saveClientChanges(e.data);
+              this.opcUaMap.delete(removeAnchor);
 
               this.configuredIsoCodes.splice(
                 this.configuredIsoCodes.indexOf(e.data.isoCode),
@@ -238,6 +215,42 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
           console.log(err);
         });
     }
+  }
+
+  addRow(row: CanBusFlatData) {
+    this.rowData.push(row);
+    setTimeout(() => {
+      this.gridOptions.api.batchUpdateRowData(
+        { add: [row], },
+        (result: RowNodeTransaction) => {
+        }
+      );
+    }, 0);
+  }
+
+  updateRow(row: CanBusFlatData) {
+    this.rowData[this.rowData.findIndex(element => element.id === row.id)] = row;
+    setTimeout(() => {
+      this.gridOptions.api.batchUpdateRowData(
+        { update: [row], },
+        (result: RowNodeTransaction) => {
+        }
+      );
+    }, 0);
+  }
+
+  removeRow(row: CanBusFlatData) {
+    this.rowData.splice(
+      this.rowData.indexOf(row),
+      1,
+    );
+    setTimeout(() => {
+      this.gridOptions.api.batchUpdateRowData(
+        { remove: [row], },
+        (result: RowNodeTransaction) => {
+        }
+      );
+    }, 0);
   }
 
   ngOnInit(): void {
@@ -258,31 +271,6 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
   togglePause() {
     this.pause = !this.pause;
-  }
-
-  saveClientChanges(data) {
-    const modifiedAnchor = this.canbusService.generateAnchor(
-      data.sdaqSerial,
-      data.channelId
-    );
-
-    this.clientChanges.set(modifiedAnchor, data);
-  }
-
-  applyTemporaryClientChanges(newData: CanBusFlatData[]): CanBusFlatData[] {
-    newData.forEach((row, index, arr) => {
-      // TODO: rework this logic as there's no need to loop through the entire row data
-      const anchor = this.canbusService.generateAnchor(
-        row.sdaqSerial,
-        row.channelId
-      );
-
-      if (this.clientChanges.get(anchor)) {
-        arr[index] = this.clientChanges.get(anchor);
-      }
-    });
-
-    return newData;
   }
 
   flattenRowData(canBusArr: CanBusModel[]): CanBusFlatData[] {
@@ -355,7 +343,10 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
       if (initial) {
         this.getOpcUaConfigData();
       }
-    });
+    },
+      error => {
+        console.log(error);
+      });
   }
 
   applyRowData(rowData: CanBusModel[]) {
@@ -376,21 +367,33 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
     this.canBusDetails = details;
     const newData = this.flattenRowData(rowData);
-    // newData = this.applyTemporaryClientChanges(newData);
-
-    // this.gridOptions.api.setRowData(this.rowData);
 
     if (this.rowData && this.rowData.length > 0) {
 
+      this.rowData.forEach(row => {
+
+        const anchor = this.canbusService.generateAnchor(row.sdaqSerial, row.channelId);
+
+        if (!newData.find(newRow => newRow.id === row.id) && !this.opcUaMap.has(anchor)) {
+          this.removeRow(row);
+        }
+      });
+
       newData.forEach(row => {
-        this.rowData[this.rowData.findIndex(element => element.id === row.id)] = row;
-        setTimeout(() => {
-          this.gridOptions.api.batchUpdateRowData(
-            { update: [row], },
-            (result: RowNodeTransaction) => {
-            }
-          );
-        }, 0);
+
+        const anchor = this.canbusService.generateAnchor(row.sdaqSerial, row.channelId);
+
+        if (this.rowData.find(newRow => newRow.id === row.id)) {
+          this.updateRow(row);
+        } else if (!this.opcUaMap.has(anchor)) {
+          this.addRow(row);
+        } else {
+
+          const unavailableRow = this.rowData.find(uRow => uRow.channelId === row.channelId && uRow.sdaqSerial === row.sdaqSerial);
+
+          this.removeRow(unavailableRow);
+          this.addRow(row);
+        }
       });
     } else {
       this.rowData = newData;
