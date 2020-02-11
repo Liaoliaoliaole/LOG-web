@@ -3,7 +3,6 @@ import {
   AllCommunityModules,
   ColDef,
   GridOptions,
-  ValueCache,
   RowNodeTransaction
 } from '@ag-grid-community/all-modules';
 import { CanbusService } from '../services/canbus/canbus.service';
@@ -12,8 +11,6 @@ import { TableColumn } from '../device-table-sidebar/device-table-sidebar.compon
 import { OpcUaConfigModel } from '../models/opcua-config-model';
 import { ModalService } from 'src/app/modals/services/modal.service';
 import { SensorLinkModalComponent } from 'src/app/modals/components/sensor-link-modal/sensor-link-modal.component';
-import { IsoStandard } from '../models/iso-standard-model';
-import { formatDate } from '@angular/common';
 import { SensorLinkModalInitiateModel, SensorLinkModalSubmitModel, SensorLinkModalSubmitAction } from '../models/sensor-link-modal-model';
 
 export interface CanBusFlatData {
@@ -28,6 +25,7 @@ export interface CanBusFlatData {
   minValue: number;
   maxValue: number;
   description: string;
+  isVisible: boolean;
   unavailable?: boolean;
 }
 
@@ -58,6 +56,9 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   pause = false;
   configuredIsoCodes: string[] = [];
 
+  showLinked = true;
+  showUnlinked = true;
+
   gridOptions: GridOptions = {
     defaultColDef: {
       editable: false,
@@ -73,6 +74,9 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     suppressRowTransform: true,
     suppressScrollOnNewData: true,
     batchUpdateWaitMillis: 50,
+
+    isExternalFilterPresent: () => true,
+    doesExternalFilterPass: (node) => node.data.isVisible,
 
     onGridReady: async () => {
       // Visualize data on the table
@@ -148,7 +152,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                 channelUnit: selectedRow.channelUnit,
                 minValue: +data.isoStandard.attributes.min,
                 maxValue: +data.isoStandard.attributes.max,
-                description: data.isoStandard.attributes.description
+                description: data.isoStandard.attributes.description,
+                isVisible: true
               };
               const anchor = this.canbusService.generateAnchor(selectedRow.sdaqSerial, selectedRow.channelId);
 
@@ -184,7 +189,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                 channelUnit: selectedRow.channelUnit,
                 minValue: +data.isoStandard.attributes.min,
                 maxValue: +data.isoStandard.attributes.max,
-                description: data.isoStandard.attributes.description
+                description: data.isoStandard.attributes.description,
+                isVisible: selectedRow.isVisible
               };
 
               this.updateRow(updateRow);
@@ -310,6 +316,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                 opcUaConf = this.opcUaMap.get(anchor);
               }
 
+              const isoCode = opcUaConf ? opcUaConf.ISO_CHANNEL : null;
+
               const result = {
                 id:
                   can['CANBus-interface'] +
@@ -319,12 +327,13 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                   sdaqData.Serial_number + '_' + calibrationData.Channel,
                 channelId: calibrationData.Channel,
                 channelUnit: calibrationData.Unit,
-                isoCode: opcUaConf ? opcUaConf.ISO_CHANNEL : null, // map value of OPC UA config to table data
-                description: opcUaConf ? opcUaConf.DESCRIPTION : null, // map value of OPC UA config to table data
-                minValue: opcUaConf ? opcUaConf.MIN : null, // map value of OPC UA config to table data
-                maxValue: opcUaConf ? opcUaConf.MAX : null // map value of OPC UA config to table data
+                isoCode,
+                description: opcUaConf ? opcUaConf.DESCRIPTION : null,
+                minValue: opcUaConf ? opcUaConf.MIN : null,
+                maxValue: opcUaConf ? opcUaConf.MAX : null,
+                isVisible: isoCode ? this.showLinked : this.showUnlinked
               };
-              return Object.assign(result, dataPoint); // copy data point values to new object
+              return Object.assign(result, dataPoint);
             }
           );
 
@@ -429,7 +438,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
               minValue: +sensor.MIN,
               maxValue: +sensor.MAX,
               description: sensor.DESCRIPTION,
-              unavailable: true
+              unavailable: true,
+              isVisible: selectedRow.isVisible
             };
 
             this.rowData.push(newRow);
@@ -454,5 +464,13 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     this.canbusService.saveOpcUaConfigs(this.rowData).subscribe(resp => {
       console.log(resp);
     });
+  }
+
+  toggleLinkedFilter(value: boolean) {
+    this.showLinked = value;
+  }
+
+  toggleUnlinkedFilter(value: boolean) {
+    this.showUnlinked = value;
   }
 }

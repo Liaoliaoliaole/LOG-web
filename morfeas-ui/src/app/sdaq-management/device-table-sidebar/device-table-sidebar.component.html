@@ -8,6 +8,19 @@
                 <div class="list-item-text">{{column.displayName}}</div>
             </label>
         </div>
+        <div class="list-group-item list-flat-item" style="margin-top: 20px;" (click)="onLinkedClick(column)">
+            <label class="form-check-label pl-4" style="width: 100%; height: 100%;">
+                <input type="checkbox" [checked]="showLinked" (change)="onLinkedClick(column)"><span class="box"></span>
+                <div class="list-item-text">Show Linked</div>
+            </label>
+        </div>
+        <div class="list-group-item list-flat-item" (click)="onUnlinkedClick(column)">
+            <label class="form-check-label pl-4" style="width: 100%; height: 100%;">
+                <input type="checkbox" [checked]="showUnlinked" (change)="onUnlinkedClick(column)"><span
+                    class="box"></span>
+                <div class="list-item-text">Show Unlinked</div>
+            </label>
+        </div>
     </div>
     <button class="btn btn-secondary btn-flat p-3 m-3 flex-end save" (click)="onSaveConfigs()">Save
         configurations</button>
