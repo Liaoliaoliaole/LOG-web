@@ -20,6 +20,7 @@ export class TableColumn {
 export class DeviceTableSidebarComponent {
 
   @Input() columns: TableColumn[];
+  @Input() showUnsaved: boolean;
   @Output() columnToggle = new EventEmitter<string>();
   @Output() saveConfigs = new EventEmitter();
 

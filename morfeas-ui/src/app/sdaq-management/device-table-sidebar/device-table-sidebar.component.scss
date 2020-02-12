@@ -36,9 +36,18 @@
     margin-bottom: -2px;
 }
 
+.unsaved {
+    margin-bottom: 20px;
+    width: 100%;
+    color: firebrick;
+    text-align: center;
+}
+
 .save {
     background-color: forestgreen !important;
     color: white !important;
+    align-self: center;
+    width: 100%;
 }
 
 .save:active {
