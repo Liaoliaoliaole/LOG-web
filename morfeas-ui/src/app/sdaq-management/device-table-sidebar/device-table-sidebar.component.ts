@@ -27,9 +27,15 @@ export class DeviceTableSidebarComponent {
   @Output() linkedToggle = new EventEmitter<boolean>();
   @Output() unlinkedToggle = new EventEmitter<boolean>();
 
+  @Output() can1Toggle = new EventEmitter<boolean>();
+  @Output() can2Toggle = new EventEmitter<boolean>();
+
   showOptions = true;
   showLinked = true;
   showUnlinked = true;
+
+  showCan1 = true;
+  showCan2 = true;
 
   constructor() { }
 
@@ -46,6 +52,16 @@ export class DeviceTableSidebarComponent {
   onUnlinkedClick(): void {
     this.showUnlinked = !this.showUnlinked;
     this.unlinkedToggle.next(this.showUnlinked);
+  }
+
+  onCan1Click(): void {
+    this.showCan1 = !this.showCan1;
+    this.can1Toggle.next(this.showCan1);
+  }
+
+  onCan2Click(): void {
+    this.showCan2 = !this.showCan2;
+    this.can2Toggle.next(this.showCan2);
   }
 
   toggleShowOptions() {
