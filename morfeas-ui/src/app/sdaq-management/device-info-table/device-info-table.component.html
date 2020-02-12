@@ -7,7 +7,7 @@
 </div>
 <div class="row" style="flex-grow: 1;">
   <div class="col-lg-1 col-lg-1half col-md-12 bottom-left">
-    <app-device-table-sidebar [columns]="tableColumns" style="width:100%"
+    <app-device-table-sidebar [columns]="tableColumns" [showUnsaved]="showUnsaved" style="width:100%"
       (columnToggle)="toggleColumnVisibility($event)" (saveConfigs)="saveOpcUaConfigs($event)"
       (linkedToggle)="toggleLinkedFilter($event)" (unlinkedToggle)="toggleUnlinkedFilter($event)">
     </app-device-table-sidebar>

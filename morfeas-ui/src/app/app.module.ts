@@ -8,7 +8,8 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { SdaqManagementModule } from './sdaq-management/sdaq-management.module';
 
-
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { ToastrModule } from 'ngx-toastr';
 
 @NgModule({
   declarations: [AppComponent],
@@ -17,7 +18,12 @@ import { SdaqManagementModule } from './sdaq-management/sdaq-management.module';
     HttpClientModule,
     BrowserModule,
     SdaqManagementModule,
-    AppRoutingModule
+    AppRoutingModule,
+    BrowserAnimationsModule,
+    ToastrModule.forRoot({
+      timeOut: 2000,
+      positionClass: 'toast-bottom-center',
+    })
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: CacheInterceptor, multi: true }

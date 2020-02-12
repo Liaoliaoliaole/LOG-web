@@ -21,6 +21,9 @@
             </label>
         </div>
     </div>
-    <button class="btn btn-secondary btn-flat p-3 m-3 flex-end save" (click)="onSaveConfigs()">Save
-        configurations</button>
+    <div class="m-3 flex-end">
+        <div *ngIf="showUnsaved" class="unsaved h5">You have unsaved configurations</div>
+        <button class="btn btn-secondary p-3 btn-flat save" (click)="onSaveConfigs()">Save
+            configurations</button>
+    </div>
 </div>

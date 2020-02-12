@@ -8,6 +8,9 @@ import { CanBusModel } from '../models/can-model';
 import { ModalsModule } from 'src/app/modals/modals.module';
 import { CanbusDetailsBarComponent } from 'src/app/canbus-details-bar/canbus-details-bar.component';
 
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { ToastrModule } from 'ngx-toastr';
+
 describe('DeviceInfoTableComponent', () => {
   let component: DeviceInfoTableComponent;
   let fixture: ComponentFixture<DeviceInfoTableComponent>;
@@ -19,7 +22,12 @@ describe('DeviceInfoTableComponent', () => {
       imports: [
         HttpClientTestingModule,
         ModalsModule,
-        AgGridModule.forRoot()],
+        AgGridModule.forRoot(),
+        BrowserAnimationsModule,
+        ToastrModule.forRoot({
+          timeOut: 2000,
+          positionClass: 'toast-bottom-center',
+        })]
     })
       .compileComponents();
   }));

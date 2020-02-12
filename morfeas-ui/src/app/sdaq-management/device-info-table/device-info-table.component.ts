@@ -12,6 +12,7 @@ import { OpcUaConfigModel } from '../models/opcua-config-model';
 import { ModalService } from 'src/app/modals/services/modal.service';
 import { SensorLinkModalComponent } from 'src/app/modals/components/sensor-link-modal/sensor-link-modal.component';
 import { SensorLinkModalInitiateModel, SensorLinkModalSubmitModel, SensorLinkModalSubmitAction } from '../models/sensor-link-modal-model';
+import { ToastrService } from 'ngx-toastr';
 
 export interface CanBusFlatData {
   id: string;
@@ -59,6 +60,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   showLinked = true;
   showUnlinked = true;
 
+  showUnsaved = false;
+
   gridOptions: GridOptions = {
     defaultColDef: {
       editable: false,
@@ -94,7 +97,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   modules = AllCommunityModules;
   constructor(
     private readonly canbusService: CanbusService,
-    private readonly modalService: ModalService
+    private readonly modalService: ModalService,
+    private readonly toastr: ToastrService
   ) { }
 
   onCellEdittingStarted(e: any): void {
@@ -214,6 +218,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
               break;
           }
+
+          this.showUnsaved = true;
 
         })
         .catch((err: any) => {
@@ -439,7 +445,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
               maxValue: +sensor.MAX,
               description: sensor.DESCRIPTION,
               unavailable: true,
-              isVisible: selectedRow.isVisible
+              isVisible: true
             };
 
             this.rowData.push(newRow);
@@ -462,7 +468,10 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
   saveOpcUaConfigs(event: any) {
     this.canbusService.saveOpcUaConfigs(this.rowData).subscribe(resp => {
-      console.log(resp);
+      this.toastr.success('OPC UA Configuration saving successful');
+      this.showUnsaved = false;
+    }, error => {
+      this.toastr.error(error, 'OPC UA Configuration saving failure');
     });
   }
 
