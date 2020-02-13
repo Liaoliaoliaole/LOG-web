@@ -26,6 +26,8 @@ export interface CanBusFlatData {
   minValue: number;
   maxValue: number;
   description: string;
+  measurement: number;
+  avgMeasurement: number;
   isVisible: boolean;
   unavailable?: boolean;
 }
@@ -45,7 +47,9 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     { headerName: 'Unit', field: 'channelUnit' },
     { headerName: 'Min Value', field: 'minValue', editable: true },
     { headerName: 'Max Value', field: 'maxValue', editable: true },
-    { headerName: 'Description', field: 'description', editable: true }
+    { headerName: 'Description', field: 'description', editable: true },
+    { headerName: 'Measurement', field: 'measurement' },
+    { headerName: 'Avg Measurement', field: 'avgMeasurement' },
   ];
 
   rowData: CanBusFlatData[] = [];
@@ -183,6 +187,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                 minValue: +data.isoStandard.attributes.min,
                 maxValue: +data.isoStandard.attributes.max,
                 description: data.isoStandard.attributes.description,
+                measurement: selectedRow.measurement,
+                avgMeasurement: selectedRow.avgMeasurement,
                 isVisible: selectedRow.isVisible
               };
 
@@ -298,6 +304,16 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
             return flattenArray;
           }
 
+          const measPoints: any = sdaqData.Meas.map(
+            measurementData => {
+              return {
+                channel: measurementData.Channel,
+                measurement: measurementData.Channel_Status.Channel_status_val,
+                avgMeasurement: measurementData.Meas_avg
+              };
+            }
+          );
+
           const dataPoints: CanBusFlatData[] = sdaqData.Calibration_Data.map(
             calibrationData => {
               const anchor = this.canbusService.generateAnchor(
@@ -312,6 +328,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
               }
 
               const isoCode = opcUaConf ? opcUaConf.ISO_CHANNEL : null;
+              const channelId = calibrationData.Channel;
+              const measPoint = measPoints.find(meas => meas.channel === channelId);
               let isVisible = isoCode ? this.showLinked : this.showUnlinked;
 
               // TODO: once more filters are wanted maybe figure something better here and refactor the whole thing
@@ -330,12 +348,14 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                   sdaqData.Address +
                   '_' +
                   sdaqData.Serial_number + '_' + calibrationData.Channel,
-                channelId: calibrationData.Channel,
+                channelId,
                 channelUnit: calibrationData.Unit,
                 isoCode,
                 description: opcUaConf ? opcUaConf.DESCRIPTION : null,
                 minValue: opcUaConf ? opcUaConf.MIN : null,
                 maxValue: opcUaConf ? opcUaConf.MAX : null,
+                measurement: measPoint.measurement,
+                avgMeasurement: measPoint.avgMeasurement,
                 isVisible
               };
               return Object.assign(result, dataPoint);
@@ -433,16 +453,18 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
           if (!selectedRow) {
             newRow = {
               id: 'unavailable_' + serial + '_' + channel,
-              canBus: undefined,
+              canBus: null,
               isoCode: sensor.ISO_CHANNEL,
-              sdaqAddress: undefined,
+              sdaqAddress: null,
               sdaqSerial: serial,
               sdaqType: sensor.INTERFACE_TYPE,
               channelId: channel,
-              channelUnit: undefined,
+              channelUnit: null,
               minValue: +sensor.MIN,
               maxValue: +sensor.MAX,
               description: sensor.DESCRIPTION,
+              measurement: null,
+              avgMeasurement: null,
               unavailable: true,
               isVisible: true
             };
