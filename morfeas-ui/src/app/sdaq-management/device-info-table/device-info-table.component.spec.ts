@@ -46,11 +46,13 @@ describe('DeviceInfoTableComponent', () => {
     const expected: CanBusFlatData[] = [
       {
         canBus: 'can0', sdaqAddress: 1, sdaqSerial: 8, sdaqType: 'Pseudo_SDAQ', channelId: 1, channelUnit: 'Q',
-        isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_8_1', isVisible: true
+        isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_8_1', isVisible: true,
+        measurement: 0, avgMeasurement: 0
       },
       {
         canBus: 'can0', sdaqAddress: 1, sdaqSerial: 9, sdaqType: 'Pseudo_SDAQ', channelId: 1, channelUnit: 'V',
-        isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_9_1', isVisible: true
+        isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_9_1', isVisible: true,
+        measurement: 0, avgMeasurement: 0
       }
     ];
     const result = component.flattenRowData(canData);
@@ -119,7 +121,8 @@ describe('DeviceInfoTableComponent', () => {
     const expected = [
       {
         id: 'can0_1_8_1', channelId: 1, channelUnit: '-', isoCode: null, description: null,
-        minValue: null, maxValue: null, canBus: 'can0', sdaqAddress: 1, sdaqSerial: 8, sdaqType: 'Pseudo_SDAQ', isVisible: true
+        minValue: null, maxValue: null, canBus: 'can0', sdaqAddress: 1, sdaqSerial: 8, sdaqType: 'Pseudo_SDAQ', isVisible: true,
+        measurement: 0, avgMeasurement: 0
       },
     ] as CanBusFlatData[];
     const result = component.flattenRowData(input);
