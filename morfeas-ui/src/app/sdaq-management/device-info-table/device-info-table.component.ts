@@ -60,6 +60,9 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   showLinked = true;
   showUnlinked = true;
 
+  showCan1 = true;
+  showCan2 = true;
+
   showUnsaved = false;
 
   gridOptions: GridOptions = {
@@ -145,20 +148,6 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
             case SensorLinkModalSubmitAction.Add:
 
-              const newRow: CanBusFlatData = {
-                id: selectedRow.id,
-                canBus: selectedRow.canBus,
-                isoCode: data.isoStandard.iso_code,
-                sdaqAddress: selectedRow.sdaqAddress,
-                sdaqSerial: selectedRow.sdaqSerial,
-                sdaqType: selectedRow.sdaqType,
-                channelId: selectedRow.channelId,
-                channelUnit: selectedRow.channelUnit,
-                minValue: +data.isoStandard.attributes.min,
-                maxValue: +data.isoStandard.attributes.max,
-                description: data.isoStandard.attributes.description,
-                isVisible: true
-              };
               const anchor = this.canbusService.generateAnchor(selectedRow.sdaqSerial, selectedRow.channelId);
 
               this.opcUaMap.set(anchor, {
@@ -323,6 +312,16 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
               }
 
               const isoCode = opcUaConf ? opcUaConf.ISO_CHANNEL : null;
+              let isVisible = isoCode ? this.showLinked : this.showUnlinked;
+
+              // TODO: once more filters are wanted maybe figure something better here and refactor the whole thing
+              if (isVisible) {
+                if (can['CANBus-interface'] === 'can0') {
+                  isVisible = this.showCan1;
+                } else if (can['CANBus-interface'] === 'can1') {
+                  isVisible = this.showCan2;
+                }
+              }
 
               const result = {
                 id:
@@ -337,7 +336,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                 description: opcUaConf ? opcUaConf.DESCRIPTION : null,
                 minValue: opcUaConf ? opcUaConf.MIN : null,
                 maxValue: opcUaConf ? opcUaConf.MAX : null,
-                isVisible: isoCode ? this.showLinked : this.showUnlinked
+                isVisible
               };
               return Object.assign(result, dataPoint);
             }
@@ -481,5 +480,13 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
   toggleUnlinkedFilter(value: boolean) {
     this.showUnlinked = value;
+  }
+
+  toggleCan1Filter(value: boolean) {
+    this.showCan1 = value;
+  }
+
+  toggleCan2Filter(value: boolean) {
+    this.showCan2 = value;
   }
 }
