@@ -4,6 +4,8 @@
 
 @import '~ngx-toastr/toastr';
 
+@import "~@ng-select/ng-select/themes/material.theme.css";
+
 html {
     height: 100%;
 }
@@ -35,4 +37,8 @@ body {
 .ag-theme-material .ag-row .ag-cell-data-changed {
     background-color: rgba(161, 194, 255, 0.05) !important;
     transition: background-color 0.01s linear 0s !important;
+}
+
+.ng-value-label {
+    display: none;
 }

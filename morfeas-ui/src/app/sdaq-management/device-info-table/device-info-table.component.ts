@@ -175,24 +175,16 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                 1,
               );
 
-              const updateRow: CanBusFlatData = {
-                id: selectedRow.id,
-                canBus: selectedRow.canBus,
-                isoCode: data.isoStandard.iso_code,
-                sdaqAddress: selectedRow.sdaqAddress,
-                sdaqSerial: selectedRow.sdaqSerial,
-                sdaqType: selectedRow.sdaqType,
-                channelId: selectedRow.channelId,
-                channelUnit: selectedRow.channelUnit,
-                minValue: +data.isoStandard.attributes.min,
-                maxValue: +data.isoStandard.attributes.max,
-                description: data.isoStandard.attributes.description,
-                measurement: selectedRow.measurement,
-                avgMeasurement: selectedRow.avgMeasurement,
-                isVisible: selectedRow.isVisible
-              };
+              const updateAnchor = this.canbusService.generateAnchor(selectedRow.sdaqSerial, selectedRow.channelId);
 
-              this.updateRow(updateRow);
+              this.opcUaMap.set(updateAnchor, {
+                ISO_CHANNEL: data.isoStandard.iso_code,
+                INTERFACE_TYPE: selectedRow.sdaqType,
+                ANCHOR: updateAnchor,
+                DESCRIPTION: data.isoStandard.attributes.description,
+                MIN: +data.isoStandard.attributes.min,
+                MAX: +data.isoStandard.attributes.max,
+              });
 
               this.configuredIsoCodes.push(data.isoStandard.iso_code);
               this.togglePause();
@@ -354,8 +346,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                 description: opcUaConf ? opcUaConf.DESCRIPTION : null,
                 minValue: opcUaConf ? opcUaConf.MIN : null,
                 maxValue: opcUaConf ? opcUaConf.MAX : null,
-                measurement: measPoint.measurement,
-                avgMeasurement: measPoint.avgMeasurement,
+                measurement: measPoint ? measPoint.measurement : null,
+                avgMeasurement: measPoint ? measPoint.avgMeasurement : null,
                 isVisible
               };
               return Object.assign(result, dataPoint);

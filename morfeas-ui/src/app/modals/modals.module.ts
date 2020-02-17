@@ -7,6 +7,7 @@ import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { InformationModalComponent } from './components/information-modal.component';
 import { SensorLinkModalComponent } from './components/sensor-link-modal/sensor-link-modal.component';
 import { FormsModule } from '@angular/forms';
+import { NgSelectModule } from '@ng-select/ng-select';
 
 // Add new modal components to this array for correct configuration
 const modals = [
@@ -20,6 +21,7 @@ const modals = [
     CommonModule,
     NgbModule,
     FormsModule,
+    NgSelectModule
   ],
   declarations: modals,
   providers: [ModalState, ModalService],
