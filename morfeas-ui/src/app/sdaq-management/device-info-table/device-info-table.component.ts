@@ -26,7 +26,6 @@ export interface CanBusFlatData {
   minValue: number;
   maxValue: number;
   description: string;
-  measurement: number;
   avgMeasurement: number;
   isVisible: boolean;
   unavailable?: boolean;
@@ -48,7 +47,6 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     { headerName: 'Min Value', field: 'minValue', editable: true },
     { headerName: 'Max Value', field: 'maxValue', editable: true },
     { headerName: 'Description', field: 'description', editable: true },
-    { headerName: 'Measurement', field: 'measurement' },
     { headerName: 'Avg Measurement', field: 'avgMeasurement' },
   ];
 
@@ -300,7 +298,6 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
             measurementData => {
               return {
                 channel: measurementData.Channel,
-                measurement: measurementData.Channel_Status.Channel_status_val,
                 avgMeasurement: measurementData.Meas_avg
               };
             }
@@ -346,7 +343,6 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                 description: opcUaConf ? opcUaConf.DESCRIPTION : null,
                 minValue: opcUaConf ? opcUaConf.MIN : null,
                 maxValue: opcUaConf ? opcUaConf.MAX : null,
-                measurement: measPoint ? measPoint.measurement : null,
                 avgMeasurement: measPoint ? measPoint.avgMeasurement : null,
                 isVisible
               };
@@ -381,7 +377,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     rowData.forEach(row => {
       const canInterface = row['CANBus-interface'];
       details.push({
-        logstat_build_date_UTC: row.logstat_build_date_UTC,
+        logstat_build_date_UNIX: row.logstat_build_date_UNIX,
         'CANBus-interface': canInterface.replace(/\d+$/, (n) => { const num = parseInt(n, 10) + 1; return num.toString(); }),
         BUS_voltage: row.BUS_voltage,
         BUS_amperage: row.BUS_amperage,
@@ -455,7 +451,6 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
               minValue: +sensor.MIN,
               maxValue: +sensor.MAX,
               description: sensor.DESCRIPTION,
-              measurement: null,
               avgMeasurement: null,
               unavailable: true,
               isVisible: true
