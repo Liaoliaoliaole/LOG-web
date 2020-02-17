@@ -1,6 +1,6 @@
 import { ModalState } from '../../services/modal-state.service';
 import { ModalOptions } from '../../modal-options';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, TemplateRef } from '@angular/core';
 import { CanbusService } from 'src/app/sdaq-management/services/canbus/canbus.service';
 import { IsoStandard } from 'src/app/sdaq-management/models/iso-standard-model';
 import { SensorLinkModalInitiateModel, SensorLinkModalSubmitAction } from 'src/app/sdaq-management/models/sensor-link-modal-model';
@@ -11,12 +11,16 @@ import { SensorLinkModalInitiateModel, SensorLinkModalSubmitAction } from 'src/a
   styleUrls: ['./sensor-link-modal.component.scss']
 })
 export class SensorLinkModalComponent implements OnInit {
+
+  @ViewChild('isoSelect', { static: false }) isoSelect: any;
+
   options: ModalOptions;
   isoStandards: IsoStandard[];
   data: SensorLinkModalInitiateModel;
-  selectedIsoCode = 'Select an ISO code';
   selectedIsoStandard: IsoStandard;
+  dropdownIsoStandard: IsoStandard;
   error = '';
+  searchTerm: string;
 
   constructor(
     private readonly state: ModalState,
@@ -28,11 +32,13 @@ export class SensorLinkModalComponent implements OnInit {
   ngOnInit() {
     this.data = this.state.options.data;
 
+
     this.canbusService.getIsoCodesByUnit(this.data.unit).subscribe(result => {
       if (
         this.data.configuredIsoCodes &&
         this.data.configuredIsoCodes.length > 0
       ) {
+
         // this.data['configuredIsoCodes'] cannot be used directly in line 37 because there's
         // another 'this' which belongs to the filter scope.
         const configuredIsoCodes = this.data.configuredIsoCodes;
@@ -40,7 +46,7 @@ export class SensorLinkModalComponent implements OnInit {
         if (this.data.existingIsoStandard) {
 
           this.selectedIsoStandard = this.data.existingIsoStandard;
-          this.selectedIsoCode = this.data.existingIsoStandard.iso_code;
+          this.isoSelect.searchInput.nativeElement.value = (' ' + this.selectedIsoStandard.iso_code).slice(1);
         }
 
         // remove configured ISO codes from the dropdown
@@ -58,34 +64,44 @@ export class SensorLinkModalComponent implements OnInit {
     });
   }
 
-  link() {
+  validateAttributes() {
+
+    this.error = '';
+
     if (
-      !isNaN(+this.selectedIsoStandard.attributes.min) &&
-      !isNaN(+this.selectedIsoStandard.attributes.max)
+      isNaN(+this.selectedIsoStandard.attributes.min) ||
+      isNaN(+this.selectedIsoStandard.attributes.max)
     ) {
-      if (
-        +this.selectedIsoStandard.attributes.min <
-        +this.selectedIsoStandard.attributes.max
-      ) {
+      this.error += 'Min or max value must be a number.';
+    }
 
+    if (
+      +this.selectedIsoStandard.attributes.min >
+      +this.selectedIsoStandard.attributes.max
+    ) {
+      this.error += 'Min value cannot be greater than max value!';
+    }
+  }
 
-        if (this.data.unlinked) {
-          this.state.modal.close({
-            isoStandard: this.selectedIsoStandard,
-            action: SensorLinkModalSubmitAction.Add
-          });
-        } else {
-          this.state.modal.close({
-            isoStandard: this.selectedIsoStandard,
-            action: SensorLinkModalSubmitAction.Update
-          });
-        }
+  link() {
+    if (!this.selectedIsoStandard) {
+      this.error += 'You have to select an ISO code first ';
+    }
 
-      } else {
-        this.error = 'Min value cannot be greater than max value!';
-      }
+    if (this.error.length > 0) {
+      return;
+    }
+
+    if (this.data.unlinked) {
+      this.state.modal.close({
+        isoStandard: this.selectedIsoStandard,
+        action: SensorLinkModalSubmitAction.Add
+      });
     } else {
-      this.error = 'Min or max value must be a number.';
+      this.state.modal.close({
+        isoStandard: this.selectedIsoStandard,
+        action: SensorLinkModalSubmitAction.Update
+      });
     }
   }
 
@@ -101,10 +117,50 @@ export class SensorLinkModalComponent implements OnInit {
   }
 
   onSelectIsoCode() {
-    this.selectedIsoStandard = this.isoStandards.find(
-      x => x.iso_code === this.selectedIsoCode
-    );
+    if (this.dropdownIsoStandard) {
+      this.selectedIsoStandard = this.dropdownIsoStandard;
+    }
 
     this.data.existingIsoStandard = null;
+    this.error = '';
+
+    if (this.selectedIsoStandard) {
+      this.searchTerm = this.selectedIsoStandard.iso_code;
+    }
+  }
+
+  onSearch(event: any) {
+    this.searchTerm = event.term.trim();
+
+    this.error = '';
+    if (this.searchTerm.length <= 0) {
+      this.error += 'ISO Code must not be null \n';
+    }
+    if (this.searchTerm.includes(' ')) {
+      this.error += 'ISO Code must not contain whitespaces \n';
+    }
+    if (this.searchTerm.includes('.')) {
+      this.error += 'ISO Code must not contain dots \n';
+    }
+    if (this.searchTerm.length > 20) {
+      this.error += 'ISO Code must be less or equal to 20 characters \n';
+    }
+    if (this.data.configuredIsoCodes.some(code => code === this.searchTerm)) {
+      this.error += 'ISO Code must not be a duplicate ';
+    }
+
+    if (this.error === '' && this.selectedIsoStandard) {
+      this.selectedIsoStandard.iso_code = this.searchTerm;
+    }
+  }
+
+  onClose() {
+    // TODO: maybe one day replace the library so we dont have to do this to keep the search in the search box
+    setTimeout(() => {
+      if ((this.searchTerm && this.searchTerm.length > 0) || this.selectedIsoStandard) {
+        this.isoSelect.searchInput.nativeElement.value = (this.searchTerm && this.searchTerm.length > 0)
+          ? this.searchTerm : this.selectedIsoStandard.iso_code;
+      }
+    }, 0);
   }
 }
