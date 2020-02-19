@@ -16,17 +16,17 @@ import { ToastrService } from 'ngx-toastr';
 
 export interface CanBusFlatData {
   id: string;
-  canBus: string;
-  isoCode: string;
   sdaqAddress: number;
+  isoCode: string;
+  description: string;
+  canBus: string;
   sdaqSerial: number;
   sdaqType: string;
   channelId: number;
   channelUnit: string;
   minValue: number;
   maxValue: number;
-  description: string;
-  avgMeasurement: number;
+  avgMeasurement: string;
   isVisible: boolean;
   unavailable?: boolean;
 }
@@ -40,13 +40,13 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   columnDefs: ColDef[] = [
     { headerName: 'SDAQ Address', field: 'sdaqAddress' },
     { headerName: 'ISO Code', field: 'isoCode', sort: 'asc' },
+    { headerName: 'Description', field: 'description', editable: true },
     { headerName: 'SDAQ Serial Number', field: 'sdaqSerial' },
     { headerName: 'SDAQ Channel', field: 'channelId' },
     { headerName: 'Type', field: 'sdaqType' },
     { headerName: 'Unit', field: 'channelUnit' },
     { headerName: 'Min Value', field: 'minValue', editable: true },
     { headerName: 'Max Value', field: 'maxValue', editable: true },
-    { headerName: 'Description', field: 'description', editable: true },
     { headerName: 'Avg Measurement', field: 'avgMeasurement' },
   ];
 
@@ -84,7 +84,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     batchUpdateWaitMillis: 50,
 
     isExternalFilterPresent: () => true,
-    doesExternalFilterPass: (node) => node.data.isVisible,
+    doesExternalFilterPass: (node) => node.data.sdaqAddress ? node.data.isVisible : this.showLinked,
 
     onGridReady: async () => {
       // Visualize data on the table
@@ -337,6 +337,12 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                 }
               }
 
+              let avgMeasurement = '-';
+
+              if (measPoint && measPoint.avgMeasurement !== null) {
+                avgMeasurement = measPoint.avgMeasurement.toString();
+              }
+
               const result = {
                 id:
                   can['CANBus-interface'] +
@@ -350,7 +356,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                 description: opcUaConf ? opcUaConf.DESCRIPTION : null,
                 minValue: opcUaConf ? opcUaConf.MIN : null,
                 maxValue: opcUaConf ? opcUaConf.MAX : null,
-                avgMeasurement: measPoint ? measPoint.avgMeasurement : null,
+                avgMeasurement,
                 isVisible
               };
               return Object.assign(result, dataPoint);
@@ -385,7 +391,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
       const canInterface = row['CANBus-interface'];
       details.push({
         logstat_build_date_UNIX: row.logstat_build_date_UNIX,
-        'CANBus-interface': canInterface.replace(/\d+$/, (n) => { const num = parseInt(n, 10) + 1; return num.toString(); }),
+        'CANBus-interface': canInterface,
         BUS_voltage: row.BUS_voltage,
         BUS_amperage: row.BUS_amperage,
         BUS_Shunt_Res_temp: row.BUS_Shunt_Res_temp,

@@ -39,6 +39,10 @@ body {
     transition: background-color 0.01s linear 0s !important;
 }
 
+.ag-icon-asc, .ag-icon-filter, .ag-icon-desc {
+    color: red !important;
+}
+
 .ng-value-label {
     display: none;
 }
