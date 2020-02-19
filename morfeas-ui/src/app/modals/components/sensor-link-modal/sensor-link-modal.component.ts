@@ -13,6 +13,9 @@ import { SensorLinkModalInitiateModel, SensorLinkModalSubmitAction } from 'src/a
 export class SensorLinkModalComponent implements OnInit {
 
   @ViewChild('isoSelect', { static: false }) isoSelect: any;
+  @ViewChild('description', { static: false }) description: HTMLInputElement;
+  @ViewChild('min', { static: false }) min: HTMLInputElement;
+  @ViewChild('max', { static: false }) max: HTMLInputElement;
 
   options: ModalOptions;
   isoStandards: IsoStandard[];
@@ -85,7 +88,20 @@ export class SensorLinkModalComponent implements OnInit {
 
   link() {
     if (!this.selectedIsoStandard) {
-      this.error += 'You have to select an ISO code first ';
+
+      if (!this.searchTerm) {
+        return;
+      }
+
+      this.selectedIsoStandard = {
+        iso_code: this.searchTerm.trim(),
+        attributes: {
+          description: this.description.value ? this.description.value : '',
+          min: this.min.value ? this.description.value : '0',
+          max: this.max.value ? this.description.value : '0',
+          unit: '-'
+        }
+      };
     }
 
     if (this.error.length > 0) {
