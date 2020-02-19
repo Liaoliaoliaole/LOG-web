@@ -11,6 +11,8 @@ import { SdaqManagementModule } from './sdaq-management/sdaq-management.module';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ToastrModule } from 'ngx-toastr';
 
+import { DatePipe } from '@angular/common';
+
 @NgModule({
   declarations: [AppComponent],
   imports: [
@@ -26,7 +28,8 @@ import { ToastrModule } from 'ngx-toastr';
     })
   ],
   providers: [
-    { provide: HTTP_INTERCEPTORS, useClass: CacheInterceptor, multi: true }
+    { provide: HTTP_INTERCEPTORS, useClass: CacheInterceptor, multi: true },
+    DatePipe
   ],
   bootstrap: [AppComponent]
 })

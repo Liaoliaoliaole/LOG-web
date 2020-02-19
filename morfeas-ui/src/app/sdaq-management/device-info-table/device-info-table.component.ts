@@ -3,7 +3,8 @@ import {
   AllCommunityModules,
   ColDef,
   GridOptions,
-  RowNodeTransaction
+  RowNodeTransaction,
+  CellEvent
 } from '@ag-grid-community/all-modules';
 import { CanbusService } from '../services/canbus/canbus.service';
 import { CanBusModel, SDAQData } from '../models/can-model';
@@ -13,6 +14,7 @@ import { ModalService } from 'src/app/modals/services/modal.service';
 import { SensorLinkModalComponent } from 'src/app/modals/components/sensor-link-modal/sensor-link-modal.component';
 import { SensorLinkModalInitiateModel, SensorLinkModalSubmitModel, SensorLinkModalSubmitAction } from '../models/sensor-link-modal-model';
 import { ToastrService } from 'ngx-toastr';
+import { DatePipe } from '@angular/common';
 
 export interface CanBusFlatData {
   id: string;
@@ -27,6 +29,7 @@ export interface CanBusFlatData {
   minValue: number;
   maxValue: number;
   avgMeasurement: string;
+  calibrationDate: number;
   isVisible: boolean;
   unavailable?: boolean;
 }
@@ -48,6 +51,22 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     { headerName: 'Min Value', field: 'minValue', editable: true },
     { headerName: 'Max Value', field: 'maxValue', editable: true },
     { headerName: 'Avg Measurement', field: 'avgMeasurement' },
+    {
+      headerName: 'Calibration Date', field: 'calibrationDate', cellRenderer: (params: CellEvent) => {
+
+        let value = '-';
+
+        if (params.value) {
+          value = this.datePipe.transform(params.value * 1000, 'dd-MM-yyyy HH:mm:ss');
+        }
+
+        if (Date.now() / 1000 - params.value < 31536000 || value === '-') {
+          return `<span>${value}</span>`;
+        } else {
+          return `<span style="color:red">${value}</span>`;
+        }
+      }
+    }
   ];
 
   rowData: CanBusFlatData[] = [];
@@ -103,7 +122,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   constructor(
     private readonly canbusService: CanbusService,
     private readonly modalService: ModalService,
-    private readonly toastr: ToastrService
+    private readonly toastr: ToastrService,
+    private readonly datePipe: DatePipe
   ) { }
 
   @HostListener('window:beforeunload', ['$event'])
@@ -357,6 +377,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                 minValue: opcUaConf ? opcUaConf.MIN : null,
                 maxValue: opcUaConf ? opcUaConf.MAX : null,
                 avgMeasurement,
+                calibrationDate: calibrationData.Calibration_date_UNIX,
                 isVisible
               };
               return Object.assign(result, dataPoint);
@@ -464,7 +485,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
               minValue: +sensor.MIN,
               maxValue: +sensor.MAX,
               description: sensor.DESCRIPTION,
-              avgMeasurement: null,
+              avgMeasurement: '-',
+              calibrationDate: null,
               unavailable: true,
               isVisible: true
             };

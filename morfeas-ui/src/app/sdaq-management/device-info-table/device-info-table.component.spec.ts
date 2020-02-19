@@ -10,6 +10,7 @@ import { CanbusDetailsBarComponent } from 'src/app/canbus-details-bar/canbus-det
 
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ToastrModule } from 'ngx-toastr';
+import { DatePipe } from '@angular/common';
 
 describe('DeviceInfoTableComponent', () => {
   let component: DeviceInfoTableComponent;
@@ -27,7 +28,8 @@ describe('DeviceInfoTableComponent', () => {
         ToastrModule.forRoot({
           timeOut: 2000,
           positionClass: 'toast-bottom-center',
-        })]
+        })],
+      providers: [DatePipe]
     })
       .compileComponents();
   }));
@@ -46,12 +48,12 @@ describe('DeviceInfoTableComponent', () => {
     const expected: CanBusFlatData[] = [
       {
         canBus: 'can0', sdaqAddress: 1, sdaqSerial: 8, sdaqType: 'Pseudo_SDAQ', channelId: 1, channelUnit: 'Q',
-        isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_8_1', isVisible: true,
+        isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_8_1', isVisible: true, calibrationDate: 943912800,
         avgMeasurement: '0'
       },
       {
         canBus: 'can0', sdaqAddress: 1, sdaqSerial: 9, sdaqType: 'Pseudo_SDAQ', channelId: 1, channelUnit: 'V',
-        isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_9_1', isVisible: true,
+        isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_9_1', isVisible: true, calibrationDate: 943912800,
         avgMeasurement: '0'
       }
     ];
@@ -122,6 +124,7 @@ describe('DeviceInfoTableComponent', () => {
       {
         id: 'can0_1_8_1', channelId: 1, channelUnit: '-', isoCode: null, description: null,
         minValue: null, maxValue: null, canBus: 'can0', sdaqAddress: 1, sdaqSerial: 8, sdaqType: 'Pseudo_SDAQ', isVisible: true,
+        calibrationDate: 943912800,
         avgMeasurement: '0'
       },
     ] as CanBusFlatData[];
