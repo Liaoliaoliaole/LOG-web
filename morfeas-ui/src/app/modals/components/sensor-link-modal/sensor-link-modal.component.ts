@@ -19,6 +19,7 @@ export class SensorLinkModalComponent implements OnInit {
 
   options: ModalOptions;
   isoStandards: IsoStandard[];
+  filteredIsoStandards: IsoStandard[];
   data: SensorLinkModalInitiateModel;
   selectedIsoStandard: IsoStandard;
   dropdownIsoStandard: IsoStandard;
@@ -50,20 +51,17 @@ export class SensorLinkModalComponent implements OnInit {
 
           this.selectedIsoStandard = this.data.existingIsoStandard;
           this.isoSelect.searchInput.nativeElement.value = (' ' + this.selectedIsoStandard.iso_code).slice(1);
+
         }
 
         // remove configured ISO codes from the dropdown
         result = result.filter(
           obj => configuredIsoCodes.indexOf(obj.iso_code) < 0
         );
-
-        // add the existing ISO code back the the dropdown if it exists
-        if (this.data.existingIsoStandard) {
-          result.push(this.selectedIsoStandard);
-        }
       }
 
       this.isoStandards = result;
+      this.filteredIsoStandards = result;
     });
   }
 
@@ -142,6 +140,14 @@ export class SensorLinkModalComponent implements OnInit {
 
     if (this.selectedIsoStandard) {
       this.searchTerm = this.selectedIsoStandard.iso_code;
+
+      const temp = Object.assign([], this.filteredIsoStandards);
+      temp.splice(
+        temp.indexOf(this.selectedIsoStandard),
+        1,
+      );
+      this.isoStandards = temp;
+
     }
   }
 
