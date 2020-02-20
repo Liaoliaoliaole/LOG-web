@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import {
   AllCommunityModules,
   ColDef,
@@ -105,6 +105,13 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     private readonly modalService: ModalService,
     private readonly toastr: ToastrService
   ) { }
+
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload($event) {
+    if (this.showUnsaved) {
+      $event.returnValue = true;
+    }
+  }
 
   onCellEdittingStarted(e: any): void {
     this.togglePause(); // enalbe pause mode
