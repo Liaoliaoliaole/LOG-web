@@ -59,9 +59,11 @@ export class SensorLinkModalComponent implements OnInit {
           obj => configuredIsoCodes.indexOf(obj.iso_code) < 0
         );
       }
+      this.filteredIsoStandards = Object.assign([], result);
+
+      result.forEach(code => { code.iso_code = code.iso_code + ' | ' + code.attributes.description; });
 
       this.isoStandards = result;
-      this.filteredIsoStandards = result;
     });
   }
 
@@ -133,6 +135,8 @@ export class SensorLinkModalComponent implements OnInit {
   onSelectIsoCode() {
     if (this.dropdownIsoStandard) {
       this.selectedIsoStandard = this.dropdownIsoStandard;
+      this.selectedIsoStandard.iso_code = this.selectedIsoStandard.iso_code
+        .substring(0, this.selectedIsoStandard.iso_code.indexOf('|')).trim();
     }
 
     this.data.existingIsoStandard = null;
@@ -142,12 +146,18 @@ export class SensorLinkModalComponent implements OnInit {
       this.searchTerm = this.selectedIsoStandard.iso_code;
 
       const temp = Object.assign([], this.filteredIsoStandards);
+
       temp.splice(
         temp.indexOf(this.selectedIsoStandard),
         1,
       );
-      this.isoStandards = temp;
+      temp.forEach((code: IsoStandard) => {
+        if (!code.iso_code.includes('|')) {
+          code.iso_code = code.iso_code + ' | ' + code.attributes.description;
+        }
+      });
 
+      this.isoStandards = temp;
     }
   }
 
