@@ -30,7 +30,7 @@ export class DeviceTableSidebarComponent {
   @Output() can1Toggle = new EventEmitter<boolean>();
   @Output() can2Toggle = new EventEmitter<boolean>();
 
-  showOptions = true;
+  showOptions = false;
   showLinked = true;
   showUnlinked = true;
 
