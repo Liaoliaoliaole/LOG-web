@@ -40,6 +40,9 @@ export interface CanBusFlatData {
   styleUrls: ['./device-info-table.component.scss']
 })
 export class DeviceInfoTableComponent implements OnInit, OnDestroy {
+
+  secondsBeforeCalibrationDateExpires = 31536000; // this equals to one year
+
   columnDefs: ColDef[] = [
     { headerName: 'SDAQ Address', field: 'sdaqAddress' },
     { headerName: 'ISO Code', field: 'isoCode', sort: 'asc' },
@@ -60,7 +63,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
           value = this.datePipe.transform(params.value * 1000, 'dd-MM-yyyy HH:mm:ss');
         }
 
-        if (Date.now() / 1000 - params.value < 31536000 || value === '-') {
+        if (Date.now() / 1000 - params.value < this.secondsBeforeCalibrationDateExpires || value === '-') {
           return `<span>${value}</span>`;
         } else {
           return `<span style="color:red">${value}</span>`;
