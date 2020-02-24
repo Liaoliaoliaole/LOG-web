@@ -1,12 +1,16 @@
 <div class="row app-header">
-  <div class="align-self-center p-3 m-auto">
-    <div class="col-lg col-md-12 top-right">
-      <app-canbus-details-bar [canBusDetails]="canBusDetails"></app-canbus-details-bar>
+  <div class="align-self-center p-3 m-auto" style="width:100%">
+    <div class="col-lg col-md-12 top-right" style="width:100%">
+      <div class="sidebar-icon" style="margin-right: auto;" (click)=" toggleSidebar($event)">
+        <img class="sidebar-icon" src="../../../assets/menu.svg">
+      </div>
+      <app-canbus-details-bar class="sidebar-details" style="margin-right: auto;" [canBusDetails]="canBusDetails">
+      </app-canbus-details-bar>
     </div>
   </div>
 </div>
 <div class="row" style="flex-grow: 1;">
-  <div class="col-lg-1 col-lg-1half col-md-12 bottom-left">
+  <div class="col-lg-1 col-lg-1half col-md-12 bottom-left" *ngIf="showSidebar">
     <app-device-table-sidebar [columns]="tableColumns" [showUnsaved]="showUnsaved" style="width:100%"
       (columnToggle)="toggleColumnVisibility($event)" (saveConfigs)="saveOpcUaConfigs($event)"
       (linkedToggle)="toggleLinkedFilter($event)" (unlinkedToggle)="toggleUnlinkedFilter($event)"

@@ -88,6 +88,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   showCan2 = true;
 
   showUnsaved = false;
+  showSidebar = false;
 
   gridOptions: GridOptions = {
     defaultColDef: {
@@ -535,5 +536,9 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
   toggleCan2Filter(value: boolean) {
     this.showCan2 = value;
+  }
+
+  toggleSidebar() {
+    this.showSidebar = !this.showSidebar;
   }
 }
