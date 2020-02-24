@@ -105,6 +105,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     suppressRowTransform: true,
     suppressScrollOnNewData: true,
     batchUpdateWaitMillis: 50,
+    onSortChanged: this.onSortChanged.bind(this),
 
     isExternalFilterPresent: () => true,
     doesExternalFilterPass: (node) => node.data.sdaqAddress ? node.data.isVisible : this.showLinked,
@@ -134,6 +135,20 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   onBeforeUnload($event) {
     if (this.showUnsaved) {
       $event.returnValue = true;
+    }
+  }
+
+  onSortChanged(e: any): void {
+    const model = this.gridOptions.api.getSortModel();
+
+    if (model && model.length === 1 && model[0].colId === 'sdaqAddress') {
+      this.gridOptions.api.setSortModel([{
+        colId: 'sdaqAddress',
+        sort: model[0].sort
+      }, {
+        colId: 'channelId',
+        sort: model[0].sort
+      }]);
     }
   }
 
