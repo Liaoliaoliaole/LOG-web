@@ -528,7 +528,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     }
   }
 
-  saveOpcUaConfigs(event: any) {
+  saveOpcUaConfigs() {
     this.canbusService.saveOpcUaConfigs(this.rowData).subscribe(resp => {
       this.toastr.success('OPC UA Configuration saving successful');
       this.showUnsaved = false;
