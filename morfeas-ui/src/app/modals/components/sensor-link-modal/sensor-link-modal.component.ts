@@ -36,7 +36,6 @@ export class SensorLinkModalComponent implements OnInit {
   ngOnInit() {
     this.data = this.state.options.data;
 
-
     this.canbusService.getIsoCodesByUnit(this.data.unit).subscribe(result => {
       if (
         this.data.configuredIsoCodes &&

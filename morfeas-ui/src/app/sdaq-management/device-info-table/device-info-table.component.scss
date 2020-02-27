@@ -20,6 +20,7 @@ ag-grid-angular {
     font-size: 18px;
     color: white;
     line-height: 12px;
+    display: flex;
 }
 
 .bottom-left {
@@ -40,3 +41,13 @@ ag-grid-angular {
     flex: 0 0 12.4999999995%;
     max-width: 12.4999999995%;
   }
+
+.sidebar-icon {
+    width: 60px;
+    height: 60px;
+}
+
+.sidebar-details {
+    display: flex;
+    align-items: center;
+}
