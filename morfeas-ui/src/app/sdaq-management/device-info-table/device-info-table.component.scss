@@ -51,3 +51,45 @@ ag-grid-angular {
     display: flex;
     align-items: center;
 }
+
+.btn-flat {
+    border-radius: 0px;
+    border: 0px;
+    color: black;
+    background-color: white;
+    -webkit-appearance: none;
+    width: 80%;
+    font-style: normal;
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 12px;
+    box-shadow: 0 2px 5px 0 rgba(0,0,0,.16),0 2px 10px 0 rgba(0,0,0,.12);
+    align-self: center;
+    height: 60px;
+}
+
+.save {
+    background-color: forestgreen !important;
+    color: white !important;
+    align-self: center;
+    width: 100%;
+}
+
+.save:active {
+    color:#000 !important;
+    background-color: white !important;
+    border-color:white !important;
+}
+
+.clear {
+    background-color: cornflowerblue !important;
+    color: white !important;
+    align-self: center;
+    width: 100%;
+}
+
+.clear:active {
+    color:#000 !important;
+    background-color: white !important;
+    border-color:white !important;
+}

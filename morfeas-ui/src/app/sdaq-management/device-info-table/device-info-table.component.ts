@@ -533,7 +533,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
       this.toastr.success('OPC UA Configuration saving successful');
       this.showUnsaved = false;
     }, error => {
-      this.toastr.error(error, 'OPC UA Configuration saving failure');
+      this.toastr.error(error.message, 'OPC UA Configuration saving failure', { disableTimeOut: true });
     });
   }
 
@@ -555,5 +555,9 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
   toggleSidebar() {
     this.showSidebar = !this.showSidebar;
+  }
+
+  clearFilters() {
+    this.gridOptions.api.setFilterModel(null);
   }
 }
