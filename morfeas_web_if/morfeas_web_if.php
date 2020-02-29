@@ -20,6 +20,10 @@ This program is free software: you can redistribute it and/or modify
 $ramdisk_path="/mnt/ramdisk/";
 
 ob_start("ob_gzhandler");//Enable gzip buffering
+//Disable caching
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 $requestType = $_SERVER['REQUEST_METHOD'];
 if($requestType == "GET")
@@ -34,11 +38,11 @@ if($requestType == "GET")
 					$logstats = array_values($logstats);// restore array order
 					$logstats_combined = (object)['logstat_name' => $logstats];
 					$i = 0;
-					foreach($logstats as $logstat) 
+					foreach($logstats as $logstat)
 						$logstats_combined->logstat_contents[$i++] = json_decode(file_get_contents($ramdisk_path . '/' . $logstat));
 					header('Content-Type: application/json');
 					echo json_encode($logstats_combined);
-					
+
 				}
 				else
 					echo "No Logstat files found";
@@ -58,4 +62,4 @@ if($requestType == "GET")
 	}
 	echo "Argument Error";
 }
-?> 
+?>

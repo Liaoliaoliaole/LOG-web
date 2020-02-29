@@ -2,6 +2,9 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
 <link rel="shortcut icon" type="image/x-icon" href="Morfeas_logo_yellow.png" />
 <title>Morfeas_Web_if_test</title>
 </head>
@@ -13,7 +16,7 @@
 </table>
 <table id ="loggers" style="margin:auto;">
   <tr>
-	<td colspan="4"><textarea id="Logger_terminal" style="resize:none;" rows="30" cols="150" readonly></textarea></td>
+	<td colspan="4"><textarea id="Logger_terminal" style="resize:none;" rows="30" cols="150" readonly> </textarea></td>
   </tr>
   <tr>
 	<td style="text-align:right;">Logger:
@@ -26,8 +29,8 @@
 </body>
 <script src='morfeas_web_if.js'></script>
 <script>
-/*    
-@licstart  The following is the entire license notice for the 
+/*
+@licstart  The following is the entire license notice for the
 JavaScript code in this page.
 
 Copyright (C) 12019-12020  Sam Harry Tzavaras
@@ -44,7 +47,7 @@ As additional permission under GNU GPL version 3 section 7, you
 may distribute non-source (e.g., minimized or compacted) forms of
 that code without the copy of the GNU GPL normally required by
 section 4, provided you include this license notice and a URL
-through which recipients can access the Corresponding Source.   
+through which recipients can access the Corresponding Source.
 
 
 @licend  The above is the entire license notice
@@ -54,22 +57,23 @@ var request_mode = 0;
 //AJAX responce handler
 var xhttp = new XMLHttpRequest();
 xhttp.onreadystatechange = function(){
-	if (this.readyState == 4 && this.status == 200) 
+	if (this.readyState == 4 && this.status == 200)
 	{
 		switch(request_mode)
 		{
-			case 0:	
+			case 0:
 				var Logger_names = JSON.parse(this.responseText);
 				var log_select = document.getElementById("logger_select");
 				for (i = 0; i < Logger_names.Logger_names.length; i++)
 				{
 					var opt = document.createElement("option");
 					opt.text = Logger_names.Logger_names[i];
-					log_select.add(opt); 
+					log_select.add(opt);
 				}
 				break;
 			case 1:
 				var Logger_terminal = document.getElementById("Logger_terminal");
+
 				if(Logger_terminal.scrollTop == Logger_terminal.scrollHeight)
 				{
 					Logger_terminal.innerHTML=this.responseText;
@@ -95,7 +99,7 @@ function Morfeas_request()
 	var Logger_terminal = document.getElementById("Logger_terminal");
 	if(selected_logger.selectedIndex)
 	{
-		xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + selected_logger.value, true);
+		xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + selected_logger.value +'?'+Math.random(), true);
 		xhttp.send();
 	}
 	else
