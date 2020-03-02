@@ -22,21 +22,22 @@
     <th colspan="6" style="font-size: 120%;">Main Menu</th>
   </tr>
   <tr>
-	<td><input type="button" value="Loggers Mapping" onclick='Show_hide(screen_enum.USB)'></td>
-	<td><input type="button" value="RS-232 Settings" onclick='Show_hide(screen_enum.RS232)'></td>
-	<td><input type="button" value="System log" onclick='Show_hide(screen_enum.Loggers)'></td> 
+	<td><input type="button" value="Logstats" onclick='Show_hide(screen_enum.Logstats)'></td>
+	<td><input type="button" value="System logs" onclick='Show_hide(screen_enum.Loggers)'></td> 
 	<td><input id="config" type="button" value="Ethernet Setup" onclick='PopupCenter("config.html"+"?q="+makeid(),"","380","250")'></td>
 	<td><input type="button" value="Rpi reboot" onclick="RPI_command('REBOOT')"></td>
 	<td><input type="button" value="Rpi Shutdown" onclick="RPI_command('POWEROFF')"></td>
   </tr>
 </table>
+
+<!-- Loggers -->
 <table id ="loggers" style="margin:auto;">
   <tr>
 	<td colspan="4"><textarea id="Logger_terminal" style="resize:none;" rows="30" cols="150" readonly> </textarea></td>
   </tr>
   <tr>
-	<td style="text-align:left;"><input id="download" type="button" value="Relaod Logger names" 
-		onclick="download(document.getElementById('Logger_terminal').innerHTML, document.getElementById('logger_select').options[document.getElementById('logger_select').selectedIndex].text+' '+Date()+'.txt', 'text/plain')">
+	<td style="text-align:left;"><input id="download" type="button" value="Reload Logger names" 
+		onclick="request_mode = mode_enum.Loggers_name;">
 	</td>
 	<td style="text-align:right;">Logger:
 		<select id="logger_select" onchange="request_mode = 1;">
@@ -45,6 +46,10 @@
 	</td>
   </tr>
 </table>
+
+<!-- Logstats -->
+<div  id ="Logstats" style="margin:auto; display: none;">
+</div>
 </body>
 <script src='morfeas_web_if.js'></script>
 <script>
@@ -74,8 +79,18 @@ for the JavaScript code in this page.
 */
 if (document.documentMode) 
 	alert("IE is obsolete, and does not supported \n Use firefox or chromium");
-var request_mode = 0;
+var screen_enum = {
+			  Loggers: 0,
+			  Logstats: 1,
+			};
+var mode_enum = {
+				Loggers_name: 0,
+				Logger_content: 1,
+				Logstats: 2
+			};
+var request_mode = mode_enum.Loggers_name;
 var Logger_terminal = document.getElementById("Logger_terminal");
+var logstat;
 Logger_terminal.innerHTML="";
 //AJAX responce handler
 var xhttp = new XMLHttpRequest();
@@ -84,32 +99,35 @@ xhttp.onreadystatechange = function(){
 	{
 		switch(request_mode)
 		{
-			case 0:
+			case mode_enum.Loggers_name:
 				var Logger_names = JSON.parse(this.responseText);
 				var log_select = document.getElementById("logger_select");
-				for (i = 0; i < Logger_names.Logger_names.length; i++)
+				for (var i=1; i<log_select.length; i++)
+					log_select.remove(i);
+				for (var i=0; i < Logger_names.Logger_names.length; i++)
 				{
 					var opt = document.createElement("option");
 					opt.text = Logger_names.Logger_names[i];
 					log_select.add(opt);
+					request_mode = mode_enum.Logger_content;
 				}
 				break;
-			case 1:
+			case mode_enum.Logger_content:
 				if(Logger_terminal.scrollTop == Logger_terminal.scrollHeight)
 				{
 					Logger_terminal.innerHTML=this.responseText;
 					Logger_terminal.scrollTop = Logger_terminal.scrollHeight;
-					console.log("bottom!!!");
 				}
 				else
 					Logger_terminal.innerHTML=this.responseText;
 				break;
+			case mode_enum.Logstats:
+				logstat = logstat_combiner(this.responseText);
+				console.log(logstat);
+				break;
 		}
 	}
 };
-//request names of Loggers
-xhttp.open("GET", "morfeas_web_if.php?COMMAND=loggers", true);
-xhttp.send();
 
 //main timer
 window.setInterval(Morfeas_request, 1000);
@@ -117,20 +135,32 @@ window.setInterval(Morfeas_request, 1000);
 function Morfeas_request()
 {
 	var selected_logger = document.getElementById("logger_select");
-	if(selected_logger.selectedIndex)
+	if(request_mode == mode_enum.Loggers_name)
 	{
-		xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + selected_logger.value + "?q="+makeid(), true);
+		//request names of Loggers
+		xhttp.open("GET", "morfeas_web_if.php?COMMAND=loggers", true);
 		xhttp.send();
+		return;
 	}
-	else
+	else if(request_mode == mode_enum.Logger_content)
 	{
-		Logger_terminal.innerHTML="";
-		request_mode = 0;
+		if(selected_logger.selectedIndex)
+		{
+			xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + selected_logger.value + "?q="+makeid(), true);
+			xhttp.send();
+		}
+		else
+			Logger_terminal.innerHTML="";
+	}
+	else if(request_mode == mode_enum.Logstats)
+	{
+		xhttp.open("GET", "morfeas_web_if.php?COMMAND=logstats", true);
+		xhttp.send();
 	}
 }
 function PopupCenter(url, title, w, h) 
 {
-	// Fixes dual-screen position                         Most browsers      Firefox
+	// Fixes dual-screen position
 	var dualScreenLeft = window.screenLeft != undefined ? window.screenLeft : screen.left;
 	var dualScreenTop = window.screenTop != undefined ? window.screenTop : screen.top;
 
@@ -155,6 +185,23 @@ function makeid()
 		text += possible.charAt(Math.floor(Math.random() * possible.length));
 
 	return text;
+}
+function Show_hide(log_set) 
+{
+	if(log_set==screen_enum.Loggers)
+	{
+		document.getElementById("loggers").style.display="table";
+		document.getElementById("Logstats").style.display="none";
+		document.getElementById("logger_select").selectedIndex = 0; 
+		Logger_terminal.innerHTML="";
+		
+	}
+	else if(log_set==screen_enum.Logstats)
+	{
+		document.getElementById("loggers").style.display="none";
+		document.getElementById("Logstats").style.display="inline";
+		request_mode = mode_enum.Logstats;
+	}
 }
 </script>
 </html>

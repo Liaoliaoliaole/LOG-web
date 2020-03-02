@@ -22,3 +22,9 @@ through which recipients can access the Corresponding Source.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
+function logstat_combiner(logstats)
+{
+	if(logstats === undefined)
+		return null;
+	return JSON.parse(logstats);
+}
