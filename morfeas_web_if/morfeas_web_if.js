@@ -22,9 +22,14 @@ through which recipients can access the Corresponding Source.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-function logstat_combiner(logstats)
+function morfeas_logstat_commonizer(logstats)
 {
+	var ret_val;
 	if(logstats === undefined)
 		return null;
-	return JSON.parse(logstats);
+	logstats = JSON.parse(logstats);
+	if(logstats.logstat_name === undefined && logstats.logstat_contents === undefined)
+		return null;
+	
+	return ret_val=logstats;
 }
