@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<link rel="shortcut icon" type="image/x-icon" href="Morfeas_logo_yellow.png" />
+<link rel="shortcut icon" type="image/x-icon" href="Morfeas_logo_yellow.ico" />
 <title>Morfeas_Web_if_test</title>
 </head>
 <body>
@@ -13,12 +13,31 @@
   <tr>
     <th colspan="7" style="font-size: 200%;">Morfeas_Web_if_test</th>
   </tr>
+  <tr>  
+  </tr>
+  <tr>
+	<td colspan="6"><input id="status" style="text-align:center;" type="textbox" size="20" value="Errors-Info" readonly></td>
+  </tr>
+  <tr>
+    <th colspan="6" style="font-size: 120%;">Main Menu</th>
+  </tr>
+  <tr>
+	<td><input type="button" value="Loggers Mapping" onclick='Show_hide(screen_enum.USB)'></td>
+	<td><input type="button" value="RS-232 Settings" onclick='Show_hide(screen_enum.RS232)'></td>
+	<td><input type="button" value="System log" onclick='Show_hide(screen_enum.Loggers)'></td> 
+	<td><input id="config" type="button" value="Ethernet Setup" onclick='PopupCenter("config.html"+"?q="+makeid(),"","380","250")'></td>
+	<td><input type="button" value="Rpi reboot" onclick="RPI_command('REBOOT')"></td>
+	<td><input type="button" value="Rpi Shutdown" onclick="RPI_command('POWEROFF')"></td>
+  </tr>
 </table>
 <table id ="loggers" style="margin:auto;">
   <tr>
 	<td colspan="4"><textarea id="Logger_terminal" style="resize:none;" rows="30" cols="150" readonly> </textarea></td>
   </tr>
   <tr>
+	<td style="text-align:left;"><input id="download" type="button" value="Relaod Logger names" 
+		onclick="download(document.getElementById('Logger_terminal').innerHTML, document.getElementById('logger_select').options[document.getElementById('logger_select').selectedIndex].text+' '+Date()+'.txt', 'text/plain')">
+	</td>
 	<td style="text-align:right;">Logger:
 		<select id="logger_select" onchange="request_mode = 1;">
 			<option value='0'>None</option>
@@ -53,7 +72,11 @@ through which recipients can access the Corresponding Source.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
+if (document.documentMode) 
+	alert("IE is obsolete, and does not supported \n Use firefox or chromium");
 var request_mode = 0;
+var Logger_terminal = document.getElementById("Logger_terminal");
+Logger_terminal.innerHTML="";
 //AJAX responce handler
 var xhttp = new XMLHttpRequest();
 xhttp.onreadystatechange = function(){
@@ -72,8 +95,6 @@ xhttp.onreadystatechange = function(){
 				}
 				break;
 			case 1:
-				var Logger_terminal = document.getElementById("Logger_terminal");
-
 				if(Logger_terminal.scrollTop == Logger_terminal.scrollHeight)
 				{
 					Logger_terminal.innerHTML=this.responseText;
@@ -96,10 +117,9 @@ window.setInterval(Morfeas_request, 1000);
 function Morfeas_request()
 {
 	var selected_logger = document.getElementById("logger_select");
-	var Logger_terminal = document.getElementById("Logger_terminal");
 	if(selected_logger.selectedIndex)
 	{
-		xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + selected_logger.value +'?'+Math.random(), true);
+		xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + selected_logger.value + "?q="+makeid(), true);
 		xhttp.send();
 	}
 	else
@@ -108,6 +128,33 @@ function Morfeas_request()
 		request_mode = 0;
 	}
 }
+function PopupCenter(url, title, w, h) 
+{
+	// Fixes dual-screen position                         Most browsers      Firefox
+	var dualScreenLeft = window.screenLeft != undefined ? window.screenLeft : screen.left;
+	var dualScreenTop = window.screenTop != undefined ? window.screenTop : screen.top;
 
+	var width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+	var height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+
+	var left = ((width / 2) - (w / 2)) + dualScreenLeft;
+	var top = ((height / 2) - (h / 2)) + dualScreenTop;
+	var newWindow = window.open(url, title, 'scrollbars=yes, width=' + w + ', height=' + h + ', top=' + top + ', left=' + left);
+
+	// Puts focus on the newWindow
+	if (window.focus) {
+		newWindow.focus();
+	}
+}
+function makeid()
+{
+	var text = "";
+	var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+	for( var i=0; i < 10; i++ )
+		text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+	return text;
+}
 </script>
 </html>

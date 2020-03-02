@@ -42,11 +42,8 @@ if($requestType == "GET")
 						$logstats_combined->logstat_contents[$i++] = json_decode(file_get_contents($ramdisk_path . '/' . $logstat));
 					header('Content-Type: application/json');
 					echo json_encode($logstats_combined);
-
 				}
-				else
-					echo "No Logstat files found";
-				exit();
+				break;
 			case "loggers":
 				if($loggers = array_diff(scandir($ramdisk_path . "Morfeas_Loggers"), array('..', '.')))
 				{
@@ -55,11 +52,8 @@ if($requestType == "GET")
 					header('Content-Type: application/json');
 					echo json_encode($loggers_names);
 				}
-				else
-					echo "No Loggers files found";
-				exit();
+				break;
 		}
 	}
-	echo "Argument Error";
 }
 ?>
