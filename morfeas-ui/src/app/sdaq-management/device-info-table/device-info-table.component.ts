@@ -15,6 +15,7 @@ import { SensorLinkModalComponent } from 'src/app/modals/components/sensor-link-
 import { SensorLinkModalInitiateModel, SensorLinkModalSubmitModel, SensorLinkModalSubmitAction } from '../models/sensor-link-modal-model';
 import { ToastrService } from 'ngx-toastr';
 import { DatePipe } from '@angular/common';
+import { ConfigModalComponent } from 'src/app/modals/components/config-modal/config-modal.component';
 
 export interface CanBusFlatData {
   id: string;
@@ -427,6 +428,12 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   applyRowData(rowData: CanBusModel[]) {
     const details = [];
 
+    if (!rowData || rowData.length <= 0 || rowData[0] === null) {
+      this.rowData = [];
+      this.gridOptions.api.setRowData([]);
+      return;
+    }
+
     rowData.forEach(row => {
       const canInterface = row['CANBus-interface'];
       details.push({
@@ -533,7 +540,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
       this.toastr.success('OPC UA Configuration saving successful');
       this.showUnsaved = false;
     }, error => {
-      this.toastr.error(error.message, 'OPC UA Configuration saving failure', { disableTimeOut: true });
+      this.toastr.error(error.message + '\n' + error.error, 'OPC UA Configuration saving failure', { disableTimeOut: true });
     });
   }
 
@@ -555,6 +562,22 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
   toggleSidebar() {
     this.showSidebar = !this.showSidebar;
+  }
+
+  toggleConfigModal() {
+    this.togglePause();
+
+    this.modalService
+      .confirm({
+        component: ConfigModalComponent
+      })
+      .then(() => {
+
+      })
+      .catch((err: any) => {
+        this.togglePause();
+        console.log(err);
+      });
   }
 
   clearFilters() {

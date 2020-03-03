@@ -7,12 +7,13 @@ import { environment } from 'src/environments/environment';
 import { CanBusFlatData } from '../../device-info-table/device-info-table.component';
 import { IsoStandard } from '../../models/iso-standard-model';
 import { OpcUaConfigModel } from '../../models/opcua-config-model';
+import { ToastrService } from 'ngx-toastr';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CanbusService {
-  constructor(private readonly http: HttpClient) { }
+  constructor(private readonly http: HttpClient, private readonly toastr: ToastrService) { }
 
   getLogStatData(): Observable<CanBusModel[]> {
     const url = `${environment.API_ROOT}/ramdisk/`;
@@ -62,6 +63,7 @@ export class CanbusService {
 
   private handleCanbusError = (error) => {
     console.error(error);
+    this.toastr.error(error.message, 'Error fetching logstat data, check ip address', { disableTimeOut: true });
     return of(null);
   }
 }

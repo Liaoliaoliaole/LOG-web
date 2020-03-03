@@ -8,10 +8,12 @@ from typing import Dict
 from pathlib import Path
 from xml.parsers.expat import ExpatError
 from devices.devices import devices
+from network_settings.network_settings import network_settings
 
 app = Flask(__name__)
 app.config.from_json("../config.json", silent=False)
 app.register_blueprint(devices)
+app.register_blueprint(network_settings)
 
 @app.route('/get_opc_ua_configs', methods=['GET'])
 def get_opc_ua_configs():
@@ -44,7 +46,7 @@ def save_opc_ua_configs():
 
     if (prettyxml):
         with open(
-            app.config['RAMDISK_PATH'] + app.config['OPC_UA_CONFIG_FILE'], 
+            app.config['CONFIG_PATH'] + app.config['OPC_UA_CONFIG_FILE'], 
             'w+'
         ) as xml_file:
             xml_file.write(prettyxml)
@@ -127,7 +129,7 @@ def format_canbus_data(canbus_data):
 
 def read_xml_file(file_name):
     try: 
-        f = open(app.config['RAMDISK_PATH'] + file_name)
+        f = open(app.config['CONFIG_PATH'] + file_name)
         with f as xml_file:
             try:
                 data = xmltodict.parse(xml_file.read())

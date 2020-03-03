@@ -94,6 +94,17 @@ $ sudo a2dissite 000-default.conf && a2ensite morfeas_web.conf
 $ #Restart apache 
 $ sudo systemctl restart apache2
 ```
+
+## Add www-data (apache user) to sudoers in order to be able to restart the networking 
+```
+$ sudo nano /etc/sudoers/
+$ #Add the following under user privilege specification
+$ # www-data  ALL=(ALL:ALL) NOPASSWD: ALL
+$ #This can be later changed to something more suitable so apache user doesnt have full rights to the system
+```
+
+## Give www-data (apache user) rights to read and write to /etc/network/interfaces
+
 # Usefull:
 ## Running the backend
 _Pre-requisites:_
