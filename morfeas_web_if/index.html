@@ -102,8 +102,7 @@ xhttp.onreadystatechange = function(){
 			case mode_enum.Loggers_name:
 				var Logger_names = JSON.parse(this.responseText);
 				var log_select = document.getElementById("logger_select");
-				for (var i=1; i<log_select.length; i++)
-					log_select.remove(i);
+				log_select.options.length = 1;
 				for (var i=0; i < Logger_names.Logger_names.length; i++)
 				{
 					var opt = document.createElement("option");
@@ -194,7 +193,7 @@ function Show_hide(log_set)
 		document.getElementById("Logstats").style.display="none";
 		document.getElementById("logger_select").selectedIndex = 0; 
 		Logger_terminal.innerHTML="";
-		
+		request_mode = mode_enum.Loggers_name;
 	}
 	else if(log_set==screen_enum.Logstats)
 	{

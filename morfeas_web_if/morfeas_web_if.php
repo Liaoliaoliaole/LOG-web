@@ -36,15 +36,19 @@ if($requestType == "GET")
 				if($logstats = array_diff(scandir($ramdisk_path), array('..', '.', 'Morfeas_Loggers')))
 				{
 					$logstats = array_values($logstats);// restore array order
-					$logstats_combined = (object)['logstat_name' => $logstats];
 					$i = 0;
 					foreach($logstats as $logstat)
-						$logstats_combined->logstat_contents[$i++] = json_decode(file_get_contents($ramdisk_path . '/' . $logstat));
+						if(preg_match("/^logstat_.+\.json$/i", $logstat))//Read only Morfeas JSON logstat files
+						{
+							$logstats_combined->logstats_names[$i] = $logstats[$i];
+							$logstats_combined->logstat_contents[$i] = json_decode(file_get_contents($ramdisk_path . '/' . $logstat));
+							$i++;
+						}
 					header('Content-Type: application/json');
 					echo json_encode($logstats_combined);
 				}
 				break;
-			case "loggers":
+			case "loggers": 
 				if($loggers = array_diff(scandir($ramdisk_path . "Morfeas_Loggers"), array('..', '.')))
 				{
 					$loggers = array_values($loggers);// restore array order
