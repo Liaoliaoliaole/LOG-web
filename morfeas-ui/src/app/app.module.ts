@@ -25,6 +25,7 @@ import { DatePipe } from '@angular/common';
     ToastrModule.forRoot({
       timeOut: 2000,
       positionClass: 'toast-bottom-center',
+      maxOpened: 3
     })
   ],
   providers: [
