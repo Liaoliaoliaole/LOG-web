@@ -12,7 +12,7 @@ devices = Blueprint('devices', __name__)
 
 @devices.route('/devices', methods=['GET'])
 def get_logstat_content():
-    path = current_app.config["RAMDISK_PATH"]
+    path = current_app.config["CONFIG_PATH"]
     content = ConnectedDevicesDTO()
     logstatFiles = [f for f in listdir(path) if isfile(join(path, f))]
     for logstatFile in logstatFiles:

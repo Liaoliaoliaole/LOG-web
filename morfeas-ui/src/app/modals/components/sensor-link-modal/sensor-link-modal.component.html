@@ -9,7 +9,7 @@
     <div class="form-group row">
         <label for="iso" class="col-sm-3 col-form-label col-form-label-sm form-label"></label>
         <div class="col-sm-8">
-            <ng-select #isoSelect
+            <ng-select #isoSelect id="isoSelect"
                 placeholder="{{selectedIsoStandard ? 'Select an ISO code or write a new one' : 'Select an ISO code'}}"
                 [items]="isoStandards" [(ngModel)]="dropdownIsoStandard" bindLabel="iso_code" [multiple]="false"
                 (change)="onSelectIsoCode()" (search)="onSearch($event)" (keydown.enter)="link()" (close)="onClose()">

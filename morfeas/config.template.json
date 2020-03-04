@@ -1,5 +1,5 @@
 {
-    "RAMDISK_PATH": "/mnt/ramdisk/",
+    "CONFIG_PATH": "/mnt/ramdisk/",
     "OPC_UA_CONFIG_FILE": "OPC_UA_Config.xml",
     "ISO_STANDARD_FILE": "iso_standards.xml",
     "OPC_UA_REQUIRED_FIELDS": [

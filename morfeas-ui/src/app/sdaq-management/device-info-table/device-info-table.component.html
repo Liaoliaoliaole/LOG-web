@@ -1,15 +1,18 @@
 <div class="row app-header">
   <div class="align-self-center p-3 m-auto" style="width:100%">
     <div class="col-lg col-md-12 top-right" style="width:100%">
-      <div class="sidebar-icon" style="margin-right: auto;" (click)="toggleSidebar()">
+      <div class="sidebar-icon" style="margin-right: 10px;" (click)="toggleSidebar()">
         <img class="sidebar-icon" src="../../../assets/menu.svg">
+      </div>
+      <div class="sidebar-icon" style="margin-right: auto;" (click)="toggleConfigModal()">
+        <img class="sidebar-icon" src="../../../assets/settings.svg">
       </div>
       <app-canbus-details-bar class="sidebar-details" [canBusDetails]="canBusDetails">
       </app-canbus-details-bar>
       <div style="margin-left: auto;">
         <button class="btn btn-secondary p-3 btn-flat clear" (click)="clearFilters()">Clear filters</button>
       </div>
-      <div style="margin-left: 25px;" *ngIf="showUnsaved">
+      <div style="margin-left: 10px;" *ngIf="showUnsaved">
         <button class="btn btn-secondary p-3 btn-flat save" (click)="saveOpcUaConfigs()">Save
           configurations</button>
       </div>
