@@ -22,7 +22,7 @@ through which recipients can access the Corresponding Source.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-
+/*
 Morfeas_logstats = 
 {
     sensors: 
@@ -42,7 +42,7 @@ Morfeas_logstats =
 		}
     ]
 };
-/*
+
     "connections":
 	[
         {
