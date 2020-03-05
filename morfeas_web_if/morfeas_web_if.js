@@ -94,7 +94,7 @@ function morfeas_logstat_commonizer(logstats)
 	if(logstats === undefined)
 		return null;
 	logstats = JSON.parse(logstats);
-	if(logstats.logstat_name === undefined && logstats.logstat_contents === undefined)
+	if(logstats.logstat_name === undefined || logstats.logstat_contents === undefined)
 		return null;
 	
 	return ret_val=logstats;
