@@ -7,7 +7,7 @@ import {
   CellEvent
 } from '@ag-grid-community/all-modules';
 import { CanbusService } from '../services/canbus/canbus.service';
-import { CanBusModel, SDAQData } from '../models/can-model';
+import { CanBusModel, SDAQData, SDAQStatus, Measurements } from '../models/can-model';
 import { TableColumn } from '../device-table-sidebar/device-table-sidebar.component';
 import { OpcUaConfigModel } from '../models/opcua-config-model';
 import { ModalService } from 'src/app/modals/services/modal.service';
@@ -31,8 +31,19 @@ export interface CanBusFlatData {
   maxValue: number;
   avgMeasurement: string;
   calibrationDate: number;
+  calibrationPeriod: number;
   isVisible: boolean;
+  status: RowStatus;
   unavailable?: boolean;
+}
+
+export enum RowStatus {
+  UnlinkedISOCode = 'grey',
+  UnlinkedSensor = 'blue',
+  UnlinkedSensorError = 'orange',
+  LinkedSensorNotPresent = 'yellow',
+  LinkedSensorError = 'red',
+  LinkedSensor = 'green'
 }
 
 @Component({
@@ -42,9 +53,15 @@ export interface CanBusFlatData {
 })
 export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
-  secondsBeforeCalibrationDateExpires = 31536000; // this equals to one year
+  secondsInMonth = 2592000;
 
   columnDefs: ColDef[] = [
+    {
+      headerName: 'Status', field: 'status', maxWidth: 40, width: 40, minWidth: 40, cellRenderer: (params: any) => {
+        params.eGridCell.style.backgroundColor = params.value;
+        return ``;
+      }, suppressCellFlash: true
+    },
     { headerName: 'SDAQ Address', field: 'sdaqAddress' },
     { headerName: 'ISO Code', field: 'isoCode', sort: 'asc' },
     { headerName: 'Description', field: 'description', editable: true },
@@ -64,12 +81,15 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
           value = this.datePipe.transform(params.value * 1000, 'dd-MM-yyyy HH:mm:ss');
         }
 
-        if (Date.now() / 1000 - params.value < this.secondsBeforeCalibrationDateExpires || value === '-') {
+        const secondsBeforeCalibrationDateExpires = params.data.calibrationPeriod * this.secondsInMonth;
+        const calibrationdateSeconds = Date.now() / 1000 - params.value;
+
+        if (calibrationdateSeconds < secondsBeforeCalibrationDateExpires || value === '-') {
           return `<span>${value}</span>`;
         } else {
           return `<span style="color:red">${value}</span>`;
         }
-      }
+      }, suppressCellFlash: true
     }
   ];
 
@@ -330,7 +350,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
             canBus: can['CANBus-interface'],
             sdaqAddress: sdaqData.Address,
             sdaqSerial: sdaqData.Serial_number,
-            sdaqType: sdaqData.SDAQ_type
+            sdaqType: sdaqData.SDAQ_type,
+            status: RowStatus.UnlinkedSensor
           } as CanBusFlatData;
 
           if (
@@ -345,7 +366,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
             measurementData => {
               return {
                 channel: measurementData.Channel,
-                avgMeasurement: measurementData.Meas_avg
+                avgMeasurement: measurementData.Meas_avg,
+                status: measurementData.Channel_Status
               };
             }
           );
@@ -398,9 +420,15 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                 maxValue: opcUaConf ? opcUaConf.MAX : null,
                 avgMeasurement,
                 calibrationDate: calibrationData.Calibration_date_UNIX,
+                calibrationPeriod: calibrationData.Calibration_period,
                 isVisible
               };
-              return Object.assign(result, dataPoint);
+
+              const data = Object.assign(result, dataPoint);
+
+              data.status = this.resolveRowStatus(data, sdaqData.SDAQ_Status, measPoint);
+
+              return data;
             }
           );
 
@@ -410,6 +438,31 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
       );
       return canBusArray.concat(canBusDataRow);
     }, []);
+  }
+
+  resolveRowStatus(row: CanBusFlatData, status: SDAQStatus, meas: any) {
+
+    if (!row.isoCode && status.Error) {
+      return RowStatus.UnlinkedSensorError;
+    }
+
+    if (!row.isoCode && (!meas || meas.status.No_Sensor)) {
+      return RowStatus.UnlinkedISOCode;
+    }
+
+    if (!row.isoCode) {
+      return RowStatus.UnlinkedSensor;
+    }
+
+    if (row.isoCode && status.Error) {
+      return RowStatus.LinkedSensorError;
+    }
+
+    if (row.isoCode && (!meas || meas.status.No_Sensor)) {
+      return RowStatus.LinkedSensorNotPresent;
+    }
+
+    return RowStatus.LinkedSensor;
   }
 
   getLogStatData(initial: boolean) {
@@ -477,6 +530,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
           this.addRow(row);
         }
       });
+
+      this.gridOptions.api.refreshCells({ columns: ['calibrationDate'], force: true });
     } else {
       this.rowData = newData;
       this.gridOptions.api.setRowData(this.rowData);
@@ -513,6 +568,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
               description: sensor.DESCRIPTION,
               avgMeasurement: '-',
               calibrationDate: null,
+              calibrationPeriod: null,
+              status: RowStatus.LinkedSensorNotPresent,
               unavailable: true,
               isVisible: true
             };

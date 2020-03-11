@@ -1,6 +1,6 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { DeviceInfoTableComponent, CanBusFlatData } from './device-info-table.component';
+import { DeviceInfoTableComponent, CanBusFlatData, RowStatus } from './device-info-table.component';
 import { AgGridModule } from '@ag-grid-community/angular';
 import { DeviceTableSidebarComponent } from '../device-table-sidebar/device-table-sidebar.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
@@ -49,12 +49,12 @@ describe('DeviceInfoTableComponent', () => {
       {
         canBus: 'can0', sdaqAddress: 1, sdaqSerial: 8, sdaqType: 'Pseudo_SDAQ', channelId: 1, channelUnit: 'Q',
         isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_8_1', isVisible: true, calibrationDate: 943912800,
-        avgMeasurement: '0'
+        calibrationPeriod: 0, avgMeasurement: '0', status: RowStatus.UnlinkedSensor
       },
       {
         canBus: 'can0', sdaqAddress: 1, sdaqSerial: 9, sdaqType: 'Pseudo_SDAQ', channelId: 1, channelUnit: 'V',
         isoCode: null, minValue: null, maxValue: null, description: null, id: 'can0_1_9_1', isVisible: true, calibrationDate: 943912800,
-        avgMeasurement: '0'
+        calibrationPeriod: 0, avgMeasurement: '0', status: RowStatus.UnlinkedSensor
       }
     ];
     const result = component.flattenRowData(canData);
@@ -124,7 +124,7 @@ describe('DeviceInfoTableComponent', () => {
       {
         id: 'can0_1_8_1', channelId: 1, channelUnit: '-', isoCode: null, description: null,
         minValue: null, maxValue: null, canBus: 'can0', sdaqAddress: 1, sdaqSerial: 8, sdaqType: 'Pseudo_SDAQ', isVisible: true,
-        calibrationDate: 943912800,
+        calibrationDate: 943912800, calibrationPeriod: 0, status: RowStatus.UnlinkedSensor,
         avgMeasurement: '0'
       },
     ] as CanBusFlatData[];
@@ -159,7 +159,7 @@ describe('DeviceInfoTableComponent', () => {
     } as CanBusModel;
     const result = component.flattenRowData([can0, null]);
     const expected = [
-      { canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16' },
+      { canBus: 'can0', sdaqAddress: 1, sdaqSerial: 624642519, sdaqType: 'SDAQ-TC-16', status: RowStatus.UnlinkedSensor },
     ] as CanBusFlatData[];
     expect(result).toEqual(expected);
   });

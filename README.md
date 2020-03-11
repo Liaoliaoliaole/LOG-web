@@ -13,7 +13,7 @@ $ git clone https://gitlab.com/fantomsam/morfeas_web.git Morfeas_web && cd Morfe
 $ #Update/Upgrade GNU distro
 $ sudo apt update && sudo apt upgrade
 $ #Install apache 2 and dependencies
-$ sudo apt install apache2 apache2-dev python3-dev python3-venv npm
+$ sudo apt install apache2 apache2-dev python3-dev python3-venv php libapache2-mod-php npm
 $ npm install -g npm
 $ npm install nodejs
 $ #Install Dependences for Python 3
@@ -86,11 +86,11 @@ $ sudo nano /etc/apache2/sites-available/morfeas_web.conf
 ## Enable Apache modules and site
 ```
 $ #Config apache's module wsgi
-$ sudo mod_wsgi-express module-config > /etc/apache2/mods-available/wsgi.load
+$ sudo sh -c "mod_wsgi-express module-config > /etc/apache2/mods-available/wsgi.load"
 $ #Enable module wsgi
-$ a2enmod wsgi
+$ sudo a2enmod wsgi
 $ #Disable default and enable morfeas_web site
-$ sudo a2dissite 000-default.conf && a2ensite morfeas_web.conf
+$ sudo a2dissite 000-default.conf && sudo a2ensite morfeas_web.conf
 $ #Restart apache 
 $ sudo systemctl restart apache2
 ```
