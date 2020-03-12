@@ -2,10 +2,11 @@
 
 ## Deploying the project
 **Expects ramdisk to be found in /mnt/ramdisk/ and access rights to the folder to be correct**
+<!--
 ## Pre-requisites:
 - [NodeJS](https://nodejs.org/en/)
 - [npm](https://www.npmjs.com/)
-
+-->
 ## Clone project and Install Dependencies
 ```
 $ #Clone Project's repository and change directory 
@@ -13,12 +14,14 @@ $ git clone https://gitlab.com/fantomsam/morfeas_web.git Morfeas_web && cd Morfe
 $ #Update/Upgrade GNU distro
 $ sudo apt update && sudo apt upgrade
 $ #Install apache 2 and dependencies
-$ sudo apt install apache2 apache2-dev python3-dev python3-venv npm
+$ sudo apt install apache2 apache2-dev python3-dev python3-venv php libapache2-mod-php npm
 $ npm install -g npm
 $ npm install nodejs
 $ #Install Dependences for Python 3
 $ sudo pip3 install wheel mod-wsgi
 $ sudo pip3 install -r ./morfeas/requirements.txt
+$ #Add "www-data" user to your group
+$ sudo usermod -aG $USER www-data
 ```
 
 # Building the UI project
@@ -86,15 +89,15 @@ $ sudo nano /etc/apache2/sites-available/morfeas_web.conf
 ## Enable Apache modules and site
 ```
 $ #Config apache's module wsgi
-$ sudo mod_wsgi-express module-config > /etc/apache2/mods-available/wsgi.load
+$ sudo sh -c "mod_wsgi-express module-config > /etc/apache2/mods-available/wsgi.load"
 $ #Enable module wsgi
-$ a2enmod wsgi
+$ sudo a2enmod wsgi
 $ #Disable default and enable morfeas_web site
-$ sudo a2dissite 000-default.conf && a2ensite morfeas_web.conf
+$ sudo a2dissite 000-default.conf && sudo a2ensite morfeas_web.conf
 $ #Restart apache 
 $ sudo systemctl restart apache2
 ```
-
+<!-- #Commented By Sam
 ## Add www-data (apache user) to sudoers in order to be able to restart the networking 
 ```
 $ sudo nano /etc/sudoers/
@@ -104,6 +107,25 @@ $ #This can be later changed to something more suitable so apache user doesnt ha
 ```
 
 ## Give www-data (apache user) rights to read and write to /etc/network/interfaces
+-->
+
+## Give access privileges to "others" and allow specific Passwordless calls for "www-data" user  
+```
+$ #Give write privileges to "other" for Interface, timesyncd.conf, hostname and hosts 
+$ sudo chmod o+rw /etc/network/interfaces /etc/systemd/timesyncd.conf /etc/hostname /etc/hosts 
+$ #Create specific passwordless access file 
+$ sudo visudo -f /etc/sudoers.d/Morfeas_web_allow
+```
+### Copy the following to "/etc/sudoers.d/Morfeas_web_allow" file
+```
+Cmnd_Alias ALLOW_PASSWORDLESS = /bin/systemctl restart networking.service,\
+                                /bin/systemctl restart systemd-timesyncd.service,\
+                                /bin/systemctl restart Morfeas_system.service,\
+                                /bin/hostname,\
+                                /sbin/reboot
+
+www-data ALL = (ALL) NOPASSWD: ALLOW_PASSWORDLESS
+```
 
 # Usefull:
 ## Running the backend
