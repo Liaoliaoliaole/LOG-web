@@ -19,6 +19,8 @@ $ npm install nodejs
 $ #Install Dependences for Python 3
 $ sudo pip3 install wheel mod-wsgi
 $ sudo pip3 install -r ./morfeas/requirements.txt
+$ #Add "www-data" user to your group
+$ sudo usermod -aG $USER www-data
 ```
 
 # Building the UI project
@@ -94,7 +96,7 @@ $ sudo a2dissite 000-default.conf && sudo a2ensite morfeas_web.conf
 $ #Restart apache 
 $ sudo systemctl restart apache2
 ```
-
+<!-- #Commented By Sam
 ## Add www-data (apache user) to sudoers in order to be able to restart the networking 
 ```
 $ sudo nano /etc/sudoers/
@@ -104,6 +106,25 @@ $ #This can be later changed to something more suitable so apache user doesnt ha
 ```
 
 ## Give www-data (apache user) rights to read and write to /etc/network/interfaces
+-->
+
+## Give access privileges to "others" and allow specific Passwordless calls for "www-data" user  
+```
+$ #Give write privileges to "other" for Interface, timesyncd.conf, hostname and hosts 
+$ sudo chmod o+rw /etc/network/interfaces /etc/systemd/timesyncd.conf /etc/hostname /etc/hosts 
+$ #Create specific passwordless access file 
+$ sudo visudo -f /etc/sudoers.d/Morfeas_web_allow
+```
+### Copy the following to "/etc/sudoers.d/Morfeas_web_allow" file
+```
+Cmnd_Alias ALLOW_PASSWORDLESS = /bin/systemctl restart networking.service,\
+                                /bin/systemctl restart systemd-timesyncd.service,\
+                                /bin/systemctl restart Morfeas_system.service,\
+                                /bin/hostname,\
+                                /sbin/reboot
+
+www-data ALL = (ALL) NOPASSWD: ALLOW_PASSWORDLESS
+```
 
 # Usefull:
 ## Running the backend
