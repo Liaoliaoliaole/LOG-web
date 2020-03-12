@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { NetworkInterface, NetworkInterfaceResponse } from '../models/network-interface-model';
+import { LogListModel } from '../models/log-list-model';
 
 
 @Injectable({
@@ -12,12 +13,12 @@ export class ConfigService {
     constructor(private readonly http: HttpClient) { }
 
     getNetworkInterfaces(): Observable<NetworkInterfaceResponse> {
-        const url = `${environment.API_ROOT}/api/settings/network/interfaces`;
+        const url = `${environment.API_ROOT}/settings/network/interfaces`;
         return this.http.get<NetworkInterfaceResponse>(url);
     }
 
     saveNetworkInterfaces(networkInterfaces: NetworkInterface[]): Observable<void> {
-        const url = `${environment.API_ROOT}/api/settings/network/interfaces`;
+        const url = `${environment.API_ROOT}/settings/network/interfaces`;
         const httpHeaders = new HttpHeaders({
             'Content-Type': 'application/json',
         });
@@ -26,5 +27,10 @@ export class ConfigService {
         };
 
         return this.http.post<void>(url, JSON.stringify(networkInterfaces), options);
+    }
+
+    getLogList(): Observable<LogListModel> {
+        const url = `${environment.API_ROOT}/logs`;
+        return this.http.get<LogListModel>(url);
     }
 }

@@ -9,13 +9,15 @@ import { SensorLinkModalComponent } from './components/sensor-link-modal/sensor-
 import { FormsModule } from '@angular/forms';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { ConfigModalComponent } from './components/config-modal/config-modal.component';
+import { LogModalComponent } from './components/log-modal/log-modal.component';
 
 // Add new modal components to this array for correct configuration
 const modals = [
   ConfirmModalComponent,
   InformationModalComponent,
   SensorLinkModalComponent,
-  ConfigModalComponent
+  ConfigModalComponent,
+  LogModalComponent
 ];
 
 @NgModule({

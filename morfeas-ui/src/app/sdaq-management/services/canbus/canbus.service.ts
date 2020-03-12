@@ -16,8 +16,14 @@ export class CanbusService {
   constructor(private readonly http: HttpClient, private readonly toastr: ToastrService) { }
 
   getLogStatData(): Observable<CanBusModel[]> {
+<<<<<<< HEAD
     const url = `${environment.API_ROOT}/ramdisk/`;
     const can0 = this.http.get<CanBusModel>(url + 'logstat_vcan0.json').pipe(
+=======
+    // TODO: temporary solution to a temporary problem, in the future the logstat will be from api i guess
+    const url = environment.ROOT + '/ramdisk/';
+    const can0 = this.http.get<CanBusModel>(url + 'logstat_can0.json').pipe(
+>>>>>>> bbcd43a582929d3282da76f4fadc8f6138d064a5
       catchError(this.handleCanbusError));
     const can1 = this.http.get<CanBusModel>(url + 'logstat_vcan1.json').pipe(
       catchError(this.handleCanbusError));
@@ -26,13 +32,13 @@ export class CanbusService {
   }
 
   getIsoCodesByUnit(unit: string): Observable<IsoStandard[]> {
-    const url = `${environment.API_ROOT}/api/get_iso_codes_by_unit`;
+    const url = `${environment.API_ROOT}/get_iso_codes_by_unit`;
     const params = new HttpParams().set('unit', unit);
     return this.http.get<IsoStandard[]>(url, { params });
   }
 
   getOpcUaConfigs(): Observable<OpcUaConfigModel[]> {
-    const url = `${environment.API_ROOT}/api/get_opc_ua_configs`;
+    const url = `${environment.API_ROOT}/get_opc_ua_configs`;
     const result = this.http.get<any>(url).pipe(
       catchError(this.handleCanbusError)
     );
@@ -41,7 +47,7 @@ export class CanbusService {
   }
 
   saveOpcUaConfigs(canbusData: CanBusFlatData[]): Observable<void> {
-    const url = `${environment.API_ROOT}/api/save_opc_ua_configs`;
+    const url = `${environment.API_ROOT}/save_opc_ua_configs`;
     const httpHeaders = new HttpHeaders({
       'Content-Type': 'application/json',
     });
