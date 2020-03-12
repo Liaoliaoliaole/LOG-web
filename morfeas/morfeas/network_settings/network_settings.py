@@ -65,7 +65,7 @@ def save_network_settings():
         return jsonify(str(e)), 500
 
     try:
-        restart_command = 'sudo systemctl restart networking'
+        restart_command = 'sudo systemctl restart networking.service' #moded by sam, was 'sudo systemctl restart networking'
         pipe = subprocess.Popen(restart_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output = pipe.communicate()
         returncode = pipe.returncode
