@@ -2,10 +2,11 @@
 
 ## Deploying the project
 **Expects ramdisk to be found in /mnt/ramdisk/ and access rights to the folder to be correct**
+<!--
 ## Pre-requisites:
 - [NodeJS](https://nodejs.org/en/)
 - [npm](https://www.npmjs.com/)
-
+-->
 ## Clone project and Install Dependencies
 ```
 $ #Clone Project's repository and change directory 
