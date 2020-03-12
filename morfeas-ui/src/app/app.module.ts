@@ -12,6 +12,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ToastrModule } from 'ngx-toastr';
 
 import { DatePipe } from '@angular/common';
+import { LogWindowModule } from './log-window/log-window.module';
 
 @NgModule({
   declarations: [AppComponent],
@@ -22,6 +23,7 @@ import { DatePipe } from '@angular/common';
     SdaqManagementModule,
     AppRoutingModule,
     BrowserAnimationsModule,
+    LogWindowModule,
     ToastrModule.forRoot({
       timeOut: 2000,
       positionClass: 'toast-bottom-center',

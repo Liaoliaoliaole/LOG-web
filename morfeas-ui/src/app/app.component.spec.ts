@@ -12,6 +12,7 @@ import { SdaqManagementModule } from './sdaq-management/sdaq-management.module';
 
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ToastrModule } from 'ngx-toastr';
+import { LogWindowModule } from './log-window/log-window.module';
 
 describe('AppComponent', () => {
   beforeEach(async(() => {
@@ -23,6 +24,7 @@ describe('AppComponent', () => {
         SdaqManagementModule,
         AppRoutingModule,
         BrowserAnimationsModule,
+        LogWindowModule,
         ToastrModule.forRoot({
           timeOut: 2000,
           positionClass: 'toast-bottom-center',

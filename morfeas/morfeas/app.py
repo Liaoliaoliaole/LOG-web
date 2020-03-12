@@ -1,4 +1,5 @@
 import json
+import os
 import xml.dom.minidom
 import xmltodict
 from dicttoxml import dicttoxml
@@ -9,11 +10,13 @@ from pathlib import Path
 from xml.parsers.expat import ExpatError
 from devices.devices import devices
 from network_settings.network_settings import network_settings
+from logs.logs import logs
 
 app = Flask(__name__)
 app.config.from_json("../config.json", silent=False)
 app.register_blueprint(devices)
 app.register_blueprint(network_settings)
+app.register_blueprint(logs)
 
 @app.route('/get_opc_ua_configs', methods=['GET'])
 def get_opc_ua_configs():
