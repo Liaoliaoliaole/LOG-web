@@ -5,6 +5,7 @@ import { environment } from 'src/environments/environment';
 import { NetworkInterface, NetworkInterfaceResponse } from '../models/network-interface-model';
 import { NTPSettingsModel } from '../models/NTP-settings-model';
 import { LogListModel } from '../models/log-list-model';
+import { HostnameModel } from '../models/hostname-model';
 
 
 @Injectable({
@@ -12,6 +13,23 @@ import { LogListModel } from '../models/log-list-model';
 })
 export class ConfigService {
     constructor(private readonly http: HttpClient) { }
+
+    getHostname(): Observable<HostnameModel> {
+        const url = `${environment.API_ROOT}/settings/network/hostname`;
+        return this.http.get<HostnameModel>(url);
+    }
+
+    saveHostname(hostname: HostnameModel): Observable<void> {
+        const url = `${environment.API_ROOT}/settings/network/hostname`;
+        const httpHeaders = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+        const options = {
+            headers: httpHeaders
+        };
+
+        return this.http.post<void>(url, JSON.stringify(hostname), options);
+    }
 
     getNTPSettings(): Observable<NTPSettingsModel> {
         const url = `${environment.API_ROOT}/settings/network/ntp`;

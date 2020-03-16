@@ -30,6 +30,9 @@ export class ConfigModalComponent implements OnInit {
     ntp = '';
     ntpSettingsChanged = false;
 
+    hostName = '';
+    hostnameChanged = false;
+
     // NOTE: im not a networking guru so dunno whats actually valid and not, the user should know...
     // https://www.regextester.com/104851
     ipRegexp = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/;
@@ -74,6 +77,14 @@ export class ConfigModalComponent implements OnInit {
         }, error => {
             this.toastr.error(error.message + '\n' + error.error, 'Error fetching NTP settings ', { disableTimeOut: true });
         });
+
+        this.configService.getHostname().subscribe(result => {
+
+            this.hostName = result.Hostname;
+
+        }, error => {
+            this.toastr.error(error.message + '\n' + error.error, 'Error fetching hostname ', { disableTimeOut: true });
+        });
     }
 
     onNetworkSettingsChange() {
@@ -84,6 +95,10 @@ export class ConfigModalComponent implements OnInit {
     onNTPSettingsChange() {
         this.ntpSettingsChanged = true;
         this.validateAttributes();
+    }
+
+    onHostnameChange() {
+        this.hostnameChanged = true;
     }
 
     validateAttributes() {
@@ -117,6 +132,18 @@ export class ConfigModalComponent implements OnInit {
 
         if (!(this.interfaces && this.interfaces.length > 0)) {
             return;
+        }
+
+        if (this.hostnameChanged) {
+
+            const hostname = { Hostname: this.hostName };
+
+            this.configService.saveHostname(hostname).subscribe(result => {
+                this.hostnameChanged = false;
+                this.toastr.success('Hostname changed successfully');
+            }, error => {
+                this.toastr.error(error.message + '\n' + error.error, 'Error changing hostname', { disableTimeOut: true });
+            });
         }
 
         if (this.ntpSettingsChanged) {
