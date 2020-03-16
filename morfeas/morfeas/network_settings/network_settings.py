@@ -9,6 +9,70 @@ from flask import Flask, request, jsonify
 
 network_settings = Blueprint('network', __name__)
 
+@network_settings.route('/settings/network/hostname', methods=['GET'])
+
+def get_hostname():
+    result = dict()
+    
+    try:
+        with open('/etc/hostname', 'r') as h_file:
+            lines = h_file.readlines()
+            # dont think its possible that there isnt anything here or that there would be more than one line
+            result['Hostname'] = lines[0].strip()
+            h_file.close()
+    except Exception as e:
+        return jsonify(str(e)), 500
+        
+    resultJSON = json.dumps(result)
+    return resultJSON, 200
+
+@network_settings.route('/settings/network/hostname', methods=['POST'])
+
+def save_hostname():
+    h_data = request.get_json()
+    current = ''
+    
+    try:
+        with open('/etc/hostname', 'r') as h_file:
+            lines = h_file.readlines()
+            current = lines[0].strip()
+            h_file.close()
+    except Exception as e:
+        return jsonify(str(e)), 500
+
+    try:
+        with open('/etc/hosts', 'r+') as f:
+            s = f.read()
+            f.seek(0)
+            f.truncate()
+            s = s.replace(current, h_data['Hostname'])
+            f.write(s)
+            f.close()
+    except Exception as e:
+        return jsonify(str(e)), 500
+        
+    try:
+        with open('/etc/hostname', 'w') as f:
+            f.write(h_data['Hostname'])
+            f.close()
+    except Exception as e:
+        return jsonify(str(e)), 500
+
+    try:
+        restart_command = 'sudo hostname ' + h_data['Hostname']
+        pipe = subprocess.Popen(restart_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output = pipe.communicate()
+        returncode = pipe.returncode
+        stdout = output[0].decode("utf-8", errors="ignore").strip()
+        stderr = output[1].decode("utf-8", errors="ignore").strip()
+        if(stderr != ""):
+            return jsonify(stderr), 500
+
+    except Exception as e:
+        return jsonify(str(e)), 500
+
+    return jsonify(success=True), 200
+
 @network_settings.route('/settings/network/ntp', methods=['GET'])
 def get_ntp_settings():
 

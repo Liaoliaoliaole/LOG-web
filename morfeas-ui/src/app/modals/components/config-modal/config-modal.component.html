@@ -38,12 +38,21 @@
     </div>
     <div ngDefaultControl [(ngModel)]="error" style="white-space: pre-line; color: red;">{{error}}</div>
 </div>
-<div class="modal-body">
+<div class="modal-body modal-line">
     <div class="form-group row">
         <label for="NTP" class="col-sm-3 col-form-label col-form-label-sm form-label">NTP</label>
         <div class="col-sm-8">
             <input #NTP type="text" class="form-control form-control-sm input-modal" id="NTP" [(ngModel)]="ntp"
                 (input)="onNTPSettingsChange()">
+        </div>
+    </div>
+</div>
+<div class="modal-body modal-line">
+    <div class="form-group row">
+        <label for="hostname" class="col-sm-3 col-form-label col-form-label-sm form-label">Hostname</label>
+        <div class="col-sm-8">
+            <input #hostname type="text" class="form-control form-control-sm input-modal" id="hostname"
+                [(ngModel)]="hostName" (input)="onHostnameChange()">
         </div>
     </div>
 </div>
