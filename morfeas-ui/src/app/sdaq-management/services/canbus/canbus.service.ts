@@ -69,7 +69,7 @@ export class CanbusService {
 
   private handleCanbusError = (error) => {
     console.error(error);
-    this.toastr.error(error.message, 'Error fetching logstat data, check ip address', { disableTimeOut: true });
+    this.toastr.error(error.message, 'Error fetching logstat data', { disableTimeOut: true });
     return of(null);
   }
 }

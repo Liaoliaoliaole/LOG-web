@@ -9,6 +9,133 @@ from flask import Flask, request, jsonify
 
 network_settings = Blueprint('network', __name__)
 
+@network_settings.route('/settings/network/hostname', methods=['GET'])
+
+def get_hostname():
+    result = dict()
+    
+    try:
+        with open('/etc/hostname', 'r') as h_file:
+            lines = h_file.readlines()
+            # dont think its possible that there isnt anything here or that there would be more than one line
+            result['Hostname'] = lines[0].strip()
+            h_file.close()
+    except Exception as e:
+        return jsonify(str(e)), 500
+        
+    resultJSON = json.dumps(result)
+    return resultJSON, 200
+
+@network_settings.route('/settings/network/hostname', methods=['POST'])
+
+def save_hostname():
+    h_data = request.get_json()
+    current = ''
+    
+    try:
+        with open('/etc/hostname', 'r') as h_file:
+            lines = h_file.readlines()
+            current = lines[0].strip()
+            h_file.close()
+    except Exception as e:
+        return jsonify(str(e)), 500
+
+    try:
+        with open('/etc/hosts', 'r+') as f:
+            s = f.read()
+            f.seek(0)
+            f.truncate()
+            s = s.replace(current, h_data['Hostname'])
+            f.write(s)
+            f.close()
+    except Exception as e:
+        return jsonify(str(e)), 500
+        
+    try:
+        with open('/etc/hostname', 'w') as f:
+            f.write(h_data['Hostname'])
+            f.close()
+    except Exception as e:
+        return jsonify(str(e)), 500
+
+    try:
+        restart_command = 'sudo hostname ' + h_data['Hostname']
+        pipe = subprocess.Popen(restart_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output = pipe.communicate()
+        returncode = pipe.returncode
+        stdout = output[0].decode("utf-8", errors="ignore").strip()
+        stderr = output[1].decode("utf-8", errors="ignore").strip()
+        if(stderr != ""):
+            return jsonify(stderr), 500
+
+    except Exception as e:
+        return jsonify(str(e)), 500
+
+    return jsonify(success=True), 200
+
+@network_settings.route('/settings/network/ntp', methods=['GET'])
+def get_ntp_settings():
+
+    result = dict()
+
+    try:
+        with open('/etc/systemd/timesyncd.conf', 'r') as time_file:
+            lines = time_file.readlines()
+            for line in lines:
+                if(line.startswith('NTP=')):
+                    result['NTP'] = line.replace('NTP=','')
+            time_file.close()
+    except Exception as e:
+        return jsonify(str(e)), 500
+
+    resultJSON = json.dumps(result)
+    
+    return resultJSON, 200
+
+@network_settings.route('/settings/network/ntp', methods=['POST'])
+def save_ntp_settings():
+
+    time_data = request.get_json()
+
+    ipAddressRegexp = r"^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"
+
+    if not re.match(ipAddressRegexp, time_data['NTP']) and time_data['NTP'] != "":
+        return jsonify("Invalid IP Address format"), 500
+
+    try:
+        with open('/etc/systemd/timesyncd.conf', 'r+') as f:
+            lines = f.readlines()
+            f.seek(0)
+            f.truncate()
+            index = next((i for i in enumerate(lines) if "NTP=" in i[1]),[-1,-1])[0]
+            # replace the existing NTP line with nothing if it exists and users sets NTP to nothing
+            if(time_data['NTP'] != ""):
+                ntp_line = 'NTP=' + time_data['NTP']
+            else:
+                ntp_line = ''
+            if(index != -1):
+                lines[index] = ntp_line
+            else:
+                lines.append(ntp_line)
+            f.writelines(lines)
+            f.close()
+    except Exception as e:
+        return jsonify(str(e)), 500
+
+    try:
+        restart_command = 'sudo systemctl restart systemd-timesyncd.service '
+        pipe = subprocess.Popen(restart_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output = pipe.communicate()
+        returncode = pipe.returncode
+        stdout = output[0].decode("utf-8", errors="ignore").strip()
+        stderr = output[1].decode("utf-8", errors="ignore").strip()
+        if(stderr != ""):
+            return jsonify(stderr), 500
+    except Exception as e:
+        return jsonify(str(e)), 500
+
+    return jsonify(success=True), 200
+
 @network_settings.route('/settings/network/interfaces', methods=['POST'])
 def save_network_settings():
     
@@ -16,6 +143,8 @@ def save_network_settings():
 
     ipAddressRegexp = r"^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"
     subnetMaskRegexp = r"^(((255\.){3}(255|254|252|248|240|224|192|128|0+))|((255\.){2}(255|254|252|248|240|224|192|128|0+)\.0)|((255\.)(255|254|252|248|240|224|192|128|0+)(\.0+){2})|((255|254|252|248|240|224|192|128|0+)(\.0+){3}))$"
+
+    interface_data.reverse()
 
     for interface in interface_data:
         if not re.match(ipAddressRegexp, interface['ipAddress']):
@@ -25,42 +154,36 @@ def save_network_settings():
         if not re.match(ipAddressRegexp, interface['defaultGateway'])  and interface['defaultGateway'] != "":
             return jsonify("Invalid Default Gateway format"), 500
 
-    newlines = []
+    indexE = None
 
     try:
-        with open('/etc/network/interfaces', 'r') as interface_file:
-            lines = interface_file.readlines()
-            config_writing = False
-            config_started = False
-            lines.append("EOF")
-            for line in lines:
-                if(line.strip() == "#Configure from web start" or (line == "EOF" and config_started == False)):
-                    newlines.append("#Configure from web start\n")
-                    config_writing = True
-                    for interface in interface_data:
-                        newlines.append("auto " + interface['interface'])
-                        newlines.append("\niface " + interface['interface'] + " inet static")
-                        newlines.append("\n	address " + interface['ipAddress'])
-                        if(interface['subnetMask'] != ""):
-                            newlines.append("\n	netmask " + interface['subnetMask'])
-                        if(interface['defaultGateway'] != ""):
-                            newlines.append("\n	gateway " + interface['defaultGateway'])
-                        newlines.append("\n")
-                    if(line == "EOF" and config_started == False):
-                        newlines.append("#Configure from web end\n")
-                    config_started = True
-                if(line.strip() == "#Configure from web end"):
-                    config_writing = False
-                if(config_writing == False and line != "EOF"):
-                    newlines.append(line)
-            interface_file.close()
-    except Exception as e:
-        return jsonify(str(e)), 500
-
-    try:
-        with open('/etc/network/interfaces', 'w') as interface_file:
-            interface_file.writelines(newlines)
-            interface_file.close()
+        with open('/etc/network/interfaces', 'r+') as f:
+            lines = f.readlines()
+            f.seek(0)
+            f.truncate()
+            indexes = [lines.index(l) for l in lines if l.strip() == "#Configure from web start"]
+            if(len(indexes) > 0):
+                indexS = indexes[0] + 1
+                indexes = [lines.index(l) for l in lines if l.strip() == "#Configure from web end"]
+                if(len(indexes) > 0):
+                    indexE = indexes[0]
+                    del lines[indexS:indexE]
+            else:
+                indexS = len(lines)
+            for interface in interface_data:
+                lines.insert(indexS, "\n")
+                if(interface['defaultGateway'] != ""):
+                    lines.insert(indexS, "\n	gateway " + interface['defaultGateway'])
+                if(interface['subnetMask'] != ""):
+                    lines.insert(indexS, "\n	netmask " + interface['subnetMask'])
+                lines.insert(indexS, "\n	address " + interface['ipAddress'])
+                lines.insert(indexS, "\niface " + interface['interface'] + " inet static")
+                lines.insert(indexS, "auto " + interface['interface'])                
+            if(indexE is None):
+                lines.insert(indexS, "#Configure from web start\n")
+                lines.append("#Configure from web end")
+            f.writelines(lines)
+            f.close()
     except Exception as e:
         return jsonify(str(e)), 500
 
