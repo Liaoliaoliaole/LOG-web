@@ -90,12 +90,30 @@ Morfeas_logstats =
 
 function morfeas_logstat_commonizer(logstats)
 {
-	var ret_val;
+	var comp = new Object();
+	//Check for incompatible input
 	if(logstats === undefined)
-		return null;
+		return "no logstats type data";
 	logstats = JSON.parse(logstats);
-	if(logstats.logstat_name === undefined || logstats.logstat_contents === undefined)
-		return null;
+	if(logstats.logstats_names === undefined)
+		return "missing logstats_names";
+	if(logstats.logstat_contents === undefined)
+		return "missing logstat_contents";
 	
-	return ret_val=logstats;
+	comp.points = new Array();
+	comp.stats = new Array();
+	for(let i=0; i<logstats.logstats_names.length; i++)
+	{
+		if(logstats.logstats_names[i].includes("Logstat"))
+		{
+			/*
+			if(logstats.logstats_names[i] === "logstat_sys.json")//RPI_health_stats
+			else if(logstats.logstats_names[i].includes("logstat_MDAQ"))//Morfeas_MDAQ_if handlers
+			else if(logstats.logstats_names[i].includes("logstat_IOBOX"))//Morfeas_IOBOX_if handlers
+			else if(logstats.logstats_names[i].includes("can"))//Morfeas_SDAQ_if handlers
+			*/
+			
+		}
+	}
+	return comp;
 }

@@ -16,14 +16,9 @@ export class CanbusService {
   constructor(private readonly http: HttpClient, private readonly toastr: ToastrService) { }
 
   getLogStatData(): Observable<CanBusModel[]> {
-<<<<<<< HEAD
-    const url = `${environment.API_ROOT}/ramdisk/`;
-    const can0 = this.http.get<CanBusModel>(url + 'logstat_vcan0.json').pipe(
-=======
     // TODO: temporary solution to a temporary problem, in the future the logstat will be from api i guess
     const url = environment.ROOT + '/ramdisk/';
-    const can0 = this.http.get<CanBusModel>(url + 'logstat_can0.json').pipe(
->>>>>>> bbcd43a582929d3282da76f4fadc8f6138d064a5
+    const can0 = this.http.get<CanBusModel>(url + 'logstat_vcan0.json').pipe(
       catchError(this.handleCanbusError));
     const can1 = this.http.get<CanBusModel>(url + 'logstat_vcan1.json').pipe(
       catchError(this.handleCanbusError));
