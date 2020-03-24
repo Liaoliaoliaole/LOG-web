@@ -17,6 +17,8 @@ import { ToastrService } from 'ngx-toastr';
 import { DatePipe } from '@angular/common';
 import { ConfigModalComponent } from 'src/app/modals/components/config-modal/config-modal.component';
 import { LogModalComponent } from 'src/app/modals/components/log-modal/log-modal.component';
+import { ModalOptions } from 'src/app/modals/modal-options';
+import { MorfeasConfigModalComponent } from 'src/app/modals/components/morfeas-config-modal/morfeas-config-modal.component';
 
 export interface CanBusFlatData {
   id: string;
@@ -620,6 +622,22 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
   toggleSidebar() {
     this.showSidebar = !this.showSidebar;
+  }
+
+  toggleMorfeasConfigModal() {
+    this.togglePause();
+
+    this.modalService
+      .confirm({
+        component: MorfeasConfigModalComponent
+      })
+      .then(() => {
+
+      })
+      .catch((err: any) => {
+        this.togglePause();
+        console.log(err);
+      });
   }
 
   toggleConfigModal() {

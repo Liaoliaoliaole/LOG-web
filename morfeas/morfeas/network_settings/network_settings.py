@@ -6,6 +6,7 @@ import re
 from flask import Blueprint, jsonify, make_response
 from flask import current_app
 from flask import Flask, request, jsonify
+from common.common import execute_command
 
 network_settings = Blueprint('network', __name__)
 
@@ -58,18 +59,10 @@ def save_hostname():
     except Exception as e:
         return jsonify(str(e)), 500
 
-    try:
-        restart_command = 'sudo hostname ' + h_data['Hostname']
-        pipe = subprocess.Popen(restart_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output = pipe.communicate()
-        returncode = pipe.returncode
-        stdout = output[0].decode("utf-8", errors="ignore").strip()
-        stderr = output[1].decode("utf-8", errors="ignore").strip()
-        if(stderr != ""):
-            return jsonify(stderr), 500
+    std = execute_command('sudo hostname ' + h_data['Hostname'])
 
-    except Exception as e:
-        return jsonify(str(e)), 500
+    if(std['stderr'] != ""):
+        return jsonify(std['stderr']), 500
 
     return jsonify(success=True), 200
 
@@ -122,17 +115,10 @@ def save_ntp_settings():
     except Exception as e:
         return jsonify(str(e)), 500
 
-    try:
-        restart_command = 'sudo systemctl restart systemd-timesyncd.service '
-        pipe = subprocess.Popen(restart_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output = pipe.communicate()
-        returncode = pipe.returncode
-        stdout = output[0].decode("utf-8", errors="ignore").strip()
-        stderr = output[1].decode("utf-8", errors="ignore").strip()
-        if(stderr != ""):
-            return jsonify(stderr), 500
-    except Exception as e:
-        return jsonify(str(e)), 500
+    std = execute_command('sudo systemctl restart systemd-timesyncd.service')
+
+    if(std['stderr'] != ""):
+        return jsonify(std['stderr']), 500
 
     return jsonify(success=True), 200
 
@@ -187,17 +173,10 @@ def save_network_settings():
     except Exception as e:
         return jsonify(str(e)), 500
 
-    try:
-        restart_command = 'sudo systemctl restart networking.service' #moded by sam, was 'sudo systemctl restart networking'
-        pipe = subprocess.Popen(restart_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output = pipe.communicate()
-        returncode = pipe.returncode
-        stdout = output[0].decode("utf-8", errors="ignore").strip()
-        stderr = output[1].decode("utf-8", errors="ignore").strip()
-        if(stderr != ""):
-            return jsonify(stderr), 500
-    except Exception as e:
-        return jsonify(str(e)), 500
+    std = execute_command('sudo systemctl restart networking.service')
+
+    if(std['stderr'] != ""):
+        return jsonify(std['stderr']), 500
 
     # the program will not be able to send this json success payload if its actually successful in restarting the networking system as the internet connection cuts off
     # this means that the web ui should just pray it actually worked if there are no immediate errors being thrown by the previous returns

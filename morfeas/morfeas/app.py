@@ -11,12 +11,16 @@ from xml.parsers.expat import ExpatError
 from devices.devices import devices
 from network_settings.network_settings import network_settings
 from logs.logs import logs
+from config.config import config
+from common.common import common
 
 app = Flask(__name__)
 app.config.from_json("../config.json", silent=False)
 app.register_blueprint(devices)
 app.register_blueprint(network_settings)
 app.register_blueprint(logs)
+app.register_blueprint(config)
+app.register_blueprint(common)
 
 @app.route('/get_opc_ua_configs', methods=['GET'])
 def get_opc_ua_configs():
@@ -135,7 +139,7 @@ def read_xml_file(file_name):
         f = open(app.config['CONFIG_PATH'] + file_name)
         with f as xml_file:
             try:
-                data = xmltodict.parse(xml_file.read())
+                data = xmltodict.parse(xml_file.read(), xml_attribs=False)
             except xmltodict.expat.ExpatError:
                 return
 
