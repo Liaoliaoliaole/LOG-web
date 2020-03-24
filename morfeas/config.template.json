@@ -3,6 +3,7 @@
     "RAMDISK_PATH": "/mnt/ramdisk/",
     "OPC_UA_CONFIG_FILE": "OPC_UA_Config.xml",
     "ISO_STANDARD_FILE": "iso_standards.xml",
+    "MORFEAS_CONFIG_FILE": "Morfeas_config.xml",
     "OPC_UA_REQUIRED_FIELDS": [
         "ISO_CODE",
         "ANCHOR",

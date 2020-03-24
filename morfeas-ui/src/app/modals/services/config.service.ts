@@ -6,6 +6,7 @@ import { NetworkInterface, NetworkInterfaceResponse } from '../models/network-in
 import { NTPSettingsModel } from '../models/NTP-settings-model';
 import { LogListModel } from '../models/log-list-model';
 import { HostnameModel } from '../models/hostname-model';
+import { MorfeasConfigModel } from '../models/morfeas-config-model';
 
 
 @Injectable({
@@ -13,6 +14,23 @@ import { HostnameModel } from '../models/hostname-model';
 })
 export class ConfigService {
     constructor(private readonly http: HttpClient) { }
+
+    getMorfeasConfig(): Observable<MorfeasConfigModel> {
+        const url = `${environment.API_ROOT}/morfeas/config`;
+        return this.http.get<MorfeasConfigModel>(url);
+    }
+
+    saveMorfeasConfig(model: MorfeasConfigModel): Observable<void> {
+        const url = `${environment.API_ROOT}/morfeas/config`;
+        const httpHeaders = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+        const options = {
+            headers: httpHeaders
+        };
+
+        return this.http.post<void>(url, JSON.stringify(model), options);
+    }
 
     getHostname(): Observable<HostnameModel> {
         const url = `${environment.API_ROOT}/settings/network/hostname`;
