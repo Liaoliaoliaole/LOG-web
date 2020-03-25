@@ -87,4 +87,14 @@ export class ConfigService {
         const url = `${environment.API_ROOT}/logs`;
         return this.http.get<LogListModel>(url);
     }
+
+    rebootMorfeas(): Observable<any> {
+        const url = `${environment.API_ROOT}/server/reboot`;
+        return this.http.post<any>(url, '');
+    }
+
+    shutdownMorfeas(): Observable<any> {
+        const url = `${environment.API_ROOT}/server/shutdown`;
+        return this.http.post<any>(url, '');
+    }
 }

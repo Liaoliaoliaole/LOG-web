@@ -233,3 +233,21 @@ def get_network_settings():
         return resultJSON, 200
     else:
         return resultJSON, 500
+
+@config.route('/server/reboot', methods=['POST'])
+def morfeas_reboot():
+    std = execute_command('sudo reboot')
+
+    if(std['stderr'] != ""):
+        return jsonify(std['stderr']), 500
+
+    return jsonify(Success=True), 200
+
+@config.route('/server/shutdown', methods=['POST'])
+def morfeas_shutdown():
+    std = execute_command('sudo shutdown')
+
+    if(std['stderr'] != ""):
+        return jsonify(std['stderr']), 500
+
+    return jsonify(Success=True), 200

@@ -28,6 +28,22 @@ export class MorfeasConfigModalComponent implements OnInit {
     handlerOptions = [];
     maxHandlers = 18;
 
+    reboot() {
+        this.configService.rebootMorfeas().subscribe(result => {
+            this.toastr.success('Morfeas will reboot shortly');
+        }, error => {
+            this.toastr.error(error.message + '\n' + error.error, 'Error rebooting morfeas', { disableTimeOut: true });
+        });
+    }
+
+    shutdown() {
+        this.configService.shutdownMorfeas().subscribe(result => {
+            this.toastr.success('Morfeas will be shutdown shortly');
+        }, error => {
+            this.toastr.error(error.message + '\n' + error.error, 'Error shutting down morfeas', { disableTimeOut: true });
+        });
+    }
+
     concatComponent(result: MorfeasConfigModel, name: string) {
         if (result.components[name]) {
             return [].concat(result.components[name]);
