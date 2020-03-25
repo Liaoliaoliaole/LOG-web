@@ -118,10 +118,11 @@
         </div>
     </div>
     <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-modal unlink" (click)="reboot()">Reboot</button>
+        <button type="button" class="btn btn-secondary btn-modal unlink" (click)="shutdown()">Shutdown</button>
         <div>
             {{getCurrentHandlerAmount()}}/{{maxHandlers}}
             handlers</div>
         <button type="submit" class="btn btn-modal link" [disabled]="!morfeasForm.form.valid">Apply</button>
-        <button type="button" class="btn btn-secondary btn-modal" (click)="dismiss()">Cancel</button>
     </div>
 </form>
