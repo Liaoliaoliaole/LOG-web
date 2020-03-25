@@ -39,6 +39,7 @@ export class ConfigModalComponent implements OnInit {
     // https://stackoverflow.com/a/5362024
     // tslint:disable-next-line: max-line-length
     subRegexp = /^(((255\.){3}(255|254|252|248|240|224|192|128|0+))|((255\.){2}(255|254|252|248|240|224|192|128|0+)\.0)|((255\.)(255|254|252|248|240|224|192|128|0+)(\.0+){2})|((255|254|252|248|240|224|192|128|0+)(\.0+){3}))$/;
+    hostnameRegexp = /^[a-zA-Z0-9-]{1,15}$/;
 
     constructor(
         private readonly state: ModalState,
@@ -99,8 +100,10 @@ export class ConfigModalComponent implements OnInit {
 
     onHostnameChange() {
         this.hostnameChanged = true;
+        this.validateAttributes();
     }
 
+    // TODO: just remove this and the others like these and replace with methods similar in morfeas-config modal
     validateAttributes() {
 
         this.error = '';
@@ -120,6 +123,9 @@ export class ConfigModalComponent implements OnInit {
         }
         if (!this.ipRegexp.test(this.ntp) && this.ntp !== undefined && this.ntp !== '') {
             this.error += 'NTP must be valid\n';
+        }
+        if (!this.hostnameRegexp.test(this.hostName)) {
+            this.error += 'Hostname can be max 15 characters and contain only latin letters, numbers and hyphens\n';
         }
     }
 
