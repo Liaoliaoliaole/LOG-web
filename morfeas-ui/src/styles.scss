@@ -47,6 +47,14 @@ body {
     display: none;
 }
 
+.input-inner-box .ng-value-label {
+    display: unset !important;
+}
+
+.input-inner-box .ng-value {
+    margin-top: 14px !important;
+}
+
 #isoSelect .ng-dropdown-panel {
     width: 300% !important;
     left: calc(-200% / 2) !important;
@@ -132,4 +140,26 @@ body {
     margin-top: 2px;
     margin-bottom: -2px;
     line-height: 18px !important;
+}
+
+.link {
+    color: white;
+    background-color: forestgreen;
+}
+
+.link:active {
+    color:#000 !important;
+    background-color: white !important;
+    border-color:white !important;
+}
+
+.unlink {
+    color: white;
+    background-color: firebrick;
+}
+
+.unlink:active {
+    color:#000 !important;
+    background-color: white !important;
+    border-color:white !important;
 }
