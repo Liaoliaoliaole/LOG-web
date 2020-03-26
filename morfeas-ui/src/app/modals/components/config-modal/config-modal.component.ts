@@ -25,6 +25,13 @@ export class ConfigModalComponent implements OnInit {
 
     error = '';
     showInfo = false;
+    networkSettingsChanged = false;
+
+    ntp = '';
+    ntpSettingsChanged = false;
+
+    hostName = '';
+    hostnameChanged = false;
 
     // NOTE: im not a networking guru so dunno whats actually valid and not, the user should know...
     // https://www.regextester.com/104851
@@ -62,6 +69,36 @@ export class ConfigModalComponent implements OnInit {
         }, error => {
             this.toastr.error(error.message + '\n' + error.error, 'Error fetching network interfaces', { disableTimeOut: true });
         });
+
+        this.configService.getNTPSettings().subscribe(result => {
+
+            this.ntp = result.NTP;
+
+        }, error => {
+            this.toastr.error(error.message + '\n' + error.error, 'Error fetching NTP settings ', { disableTimeOut: true });
+        });
+
+        this.configService.getHostname().subscribe(result => {
+
+            this.hostName = result.Hostname;
+
+        }, error => {
+            this.toastr.error(error.message + '\n' + error.error, 'Error fetching hostname ', { disableTimeOut: true });
+        });
+    }
+
+    onNetworkSettingsChange() {
+        this.networkSettingsChanged = true;
+        this.validateAttributes();
+    }
+
+    onNTPSettingsChange() {
+        this.ntpSettingsChanged = true;
+        this.validateAttributes();
+    }
+
+    onHostnameChange() {
+        this.hostnameChanged = true;
     }
 
     validateAttributes() {
@@ -81,6 +118,9 @@ export class ConfigModalComponent implements OnInit {
         if (!this.ipRegexp.test(gateway) && gateway !== '') {
             this.error += 'Default gateway must be valid\n';
         }
+        if (!this.ipRegexp.test(this.ntp) && this.ntp !== undefined && this.ntp !== '') {
+            this.error += 'NTP must be valid\n';
+        }
     }
 
     apply() {
@@ -94,29 +134,58 @@ export class ConfigModalComponent implements OnInit {
             return;
         }
 
-        this.showInfo = true;
+        if (this.hostnameChanged) {
 
-        this.configService.saveNetworkInterfaces(this.modifiedInterfaces).subscribe(result => {
+            const hostname = { Hostname: this.hostName };
 
-            this.showInfo = false;
+            this.configService.saveHostname(hostname).subscribe(result => {
+                this.hostnameChanged = false;
+                this.toastr.success('Hostname changed successfully');
+            }, error => {
+                this.toastr.error(error.message + '\n' + error.error, 'Error changing hostname', { disableTimeOut: true });
+            });
+        }
 
-            this.redirect();
+        if (this.ntpSettingsChanged) {
 
-        }, error => {
-            // NOTE: janky. the idea here is that this 0 status "unknown error" means that the
-            // backend network restarted successfully so we can redirect safely, altough mmmm probably not the best way to do this
-            if (error.status === 0) {
+            const ntp = { NTP: this.ntp };
+
+            this.configService.saveNTPSettings(ntp).subscribe(result => {
+                this.ntpSettingsChanged = false;
+                this.toastr.success('NTP settings saving successful');
+            }, error => {
+                this.toastr.error(error.message + '\n' + error.error, 'Error saving NTP settings', { disableTimeOut: true });
+            });
+        }
+
+        if (this.networkSettingsChanged) {
+
+            this.showInfo = true;
+
+            this.configService.saveNetworkInterfaces(this.modifiedInterfaces).subscribe(result => {
+
+                this.showInfo = false;
 
                 this.redirect();
 
-            } else {
-                this.showInfo = false;
-                this.toastr.error(error.message + '\n' + error.error, 'Error saving network interfaces', { disableTimeOut: true });
-            }
-        });
+            }, error => {
+                // NOTE: janky. the idea here is that this 0 status "unknown error" means that the
+                // backend network restarted successfully so we can redirect safely, altough mmmm probably not the best way to do this
+                if (error.status === 0) {
+
+                    this.redirect();
+
+                } else {
+                    this.showInfo = false;
+                    this.toastr.error(error.message + '\n' + error.error, 'Error saving network interfaces', { disableTimeOut: true });
+                }
+            });
+        }
     }
 
     redirect() {
+
+        this.networkSettingsChanged = false;
 
         // NOTE: im not sure where exactly we should redirect if there are multiple interfaces so just take the first one
         window.location.href = 'http://' + this.modifiedInterfaces[0].ipAddress;

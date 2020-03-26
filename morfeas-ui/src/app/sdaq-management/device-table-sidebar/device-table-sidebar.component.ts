@@ -30,6 +30,8 @@ export class DeviceTableSidebarComponent {
   @Output() can1Toggle = new EventEmitter<boolean>();
   @Output() can2Toggle = new EventEmitter<boolean>();
 
+  @Output() logToggle = new EventEmitter();
+
   showOptions = true;
   showLinked = true;
   showUnlinked = true;
@@ -70,5 +72,9 @@ export class DeviceTableSidebarComponent {
 
   onSaveConfigs() {
     this.saveConfigs.emit();
+  }
+
+  toggleLogModal() {
+    this.logToggle.emit();
   }
 }

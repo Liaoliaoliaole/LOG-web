@@ -16,6 +16,7 @@ import { SensorLinkModalInitiateModel, SensorLinkModalSubmitModel, SensorLinkMod
 import { ToastrService } from 'ngx-toastr';
 import { DatePipe } from '@angular/common';
 import { ConfigModalComponent } from 'src/app/modals/components/config-modal/config-modal.component';
+import { LogModalComponent } from 'src/app/modals/components/log-modal/log-modal.component';
 
 export interface CanBusFlatData {
   id: string;
@@ -627,6 +628,22 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     this.modalService
       .confirm({
         component: ConfigModalComponent
+      })
+      .then(() => {
+
+      })
+      .catch((err: any) => {
+        this.togglePause();
+        console.log(err);
+      });
+  }
+
+  toggleLogModal() {
+    this.togglePause();
+
+    this.modalService
+      .confirm({
+        component: LogModalComponent
       })
       .then(() => {
 

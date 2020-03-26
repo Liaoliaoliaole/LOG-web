@@ -16,7 +16,7 @@
   <tr>  
   </tr>
   <tr>
-	<td colspan="6"><input id="status" style="text-align:center;" type="textbox" size="20" value="Errors-Info" readonly></td>
+	<td colspan="6"><input id="status" style="text-align:center;" type="textbox" size="20" value="Okay" readonly></td>
   </tr>
   <tr>
     <th colspan="6" style="font-size: 120%;">Main Menu</th>
@@ -114,7 +114,7 @@ xhttp.onreadystatechange = function(){
 			case mode_enum.Logger_content:
 				if(Logger_terminal.scrollTop == Logger_terminal.scrollHeight)
 				{
-					Logger_terminal.innerHTML=this.responseText;
+					Logger_terminal.innerHTML = this.responseText;
 					Logger_terminal.scrollTop = Logger_terminal.scrollHeight;
 				}
 				else
@@ -122,7 +122,13 @@ xhttp.onreadystatechange = function(){
 				break;
 			case mode_enum.Logstats:
 				logstat = morfeas_logstat_commonizer(this.responseText);
-				console.log(logstat);
+				if(typeof logstat !== 'string')
+				{
+					document.getElementById("status").value = "Okay";
+					console.log(logstat);
+				}
+				else
+					document.getElementById("status").value = logstat;
 				break;
 		}
 	}
