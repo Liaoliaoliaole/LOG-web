@@ -48,7 +48,7 @@
 </table>
 
 <!-- Logstats -->
-<div  id ="Logstats" style="margin:auto; display: none;">
+<div id ="Logstats" style="margin:auto; display: none;">
 </div>
 </body>
 <script src='morfeas_web_if.js'></script>
@@ -73,139 +73,142 @@ that code without the copy of the GNU GPL normally required by
 section 4, provided you include this license notice and a URL
 through which recipients can access the Corresponding Source.
 
-
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
+
 if (document.documentMode) 
 	alert("IE is obsolete, and does not supported \n Use firefox or chromium");
-var screen_enum = {
-			  Loggers: 0,
-			  Logstats: 1,
-			};
-var mode_enum = {
-				Loggers_name: 0,
-				Logger_content: 1,
-				Logstats: 2
-			};
-var request_mode = mode_enum.Loggers_name;
-var Logger_terminal = document.getElementById("Logger_terminal");
-var logstat;
-Logger_terminal.innerHTML="";
-//AJAX responce handler
-var xhttp = new XMLHttpRequest();
-xhttp.onreadystatechange = function(){
-	if (this.readyState == 4 && this.status == 200)
-	{
-		switch(request_mode)
+else
+{	
+	var screen_enum = {
+				  Loggers: 0,
+				  Logstats: 1,
+				};
+	var mode_enum = {
+					Loggers_name: 0,
+					Logger_content: 1,
+					Logstats: 2
+				};
+	var request_mode = mode_enum.Loggers_name;
+	var Logger_terminal = document.getElementById("Logger_terminal");
+	var logstat;
+	Logger_terminal.innerHTML="";
+	//AJAX responce handler
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function(){
+		if (this.readyState == 4 && this.status == 200)
 		{
-			case mode_enum.Loggers_name:
-				var Logger_names = JSON.parse(this.responseText);
-				var log_select = document.getElementById("logger_select");
-				log_select.options.length = 1;
-				for (var i=0; i < Logger_names.Logger_names.length; i++)
-				{
-					var opt = document.createElement("option");
-					opt.text = Logger_names.Logger_names[i];
-					log_select.add(opt);
-					request_mode = mode_enum.Logger_content;
-				}
-				break;
-			case mode_enum.Logger_content:
-				if(Logger_terminal.scrollTop == Logger_terminal.scrollHeight)
-				{
-					Logger_terminal.innerHTML = this.responseText;
-					Logger_terminal.scrollTop = Logger_terminal.scrollHeight;
-				}
-				else
-					Logger_terminal.innerHTML=this.responseText;
-				break;
-			case mode_enum.Logstats:
-				logstat = morfeas_logstat_commonizer(this.responseText);
-				if(typeof logstat !== 'string')
-				{
-					document.getElementById("status").value = "Okay";
-					console.log(logstat);
-				}
-				else
-					document.getElementById("status").value = logstat;
-				break;
+			switch(request_mode)
+			{
+				case mode_enum.Loggers_name:
+					var Logger_names = JSON.parse(this.responseText);
+					var log_select = document.getElementById("logger_select");
+					log_select.options.length = 1;
+					for (var i=0; i < Logger_names.Logger_names.length; i++)
+					{
+						var opt = document.createElement("option");
+						opt.text = Logger_names.Logger_names[i];
+						log_select.add(opt);
+						request_mode = mode_enum.Logger_content;
+					}
+					break;
+				case mode_enum.Logger_content:
+					if(Logger_terminal.scrollTop == Logger_terminal.scrollHeight)
+					{
+						Logger_terminal.innerHTML = this.responseText;
+						Logger_terminal.scrollTop = Logger_terminal.scrollHeight;
+					}
+					else
+						Logger_terminal.innerHTML=this.responseText;
+					break;
+				case mode_enum.Logstats:
+					logstat = morfeas_logstat_commonizer(this.responseText);
+					if(typeof logstat !== 'string')
+					{
+						document.getElementById("status").value = "Okay";
+						console.log(logstat);
+					}
+					else
+						document.getElementById("status").value = logstat;
+					break;
+			}
 		}
-	}
-};
+	};
 
-//main timer
-window.setInterval(Morfeas_request, 1000);
+	//main timer
+	window.setInterval(Morfeas_request, 1000);
 
-function Morfeas_request()
-{
-	var selected_logger = document.getElementById("logger_select");
-	if(request_mode == mode_enum.Loggers_name)
+	function Morfeas_request()
 	{
-		//request names of Loggers
-		xhttp.open("GET", "morfeas_web_if.php?COMMAND=loggers", true);
-		xhttp.send();
-		return;
-	}
-	else if(request_mode == mode_enum.Logger_content)
-	{
-		if(selected_logger.selectedIndex)
+		var selected_logger = document.getElementById("logger_select");
+		if(request_mode == mode_enum.Loggers_name)
 		{
-			xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + selected_logger.value + "?q="+makeid(), true);
+			//request names of Loggers
+			xhttp.open("GET", "morfeas_web_if.php?COMMAND=loggers", true);
+			xhttp.send();
+			return;
+		}
+		else if(request_mode == mode_enum.Logger_content)
+		{
+			if(selected_logger.selectedIndex)
+			{
+				xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + selected_logger.value + "?q="+makeid(), true);
+				xhttp.send();
+			}
+			else
+				Logger_terminal.innerHTML="";
+		}
+		else if(request_mode == mode_enum.Logstats)
+		{
+			xhttp.open("GET", "morfeas_web_if.php?COMMAND=logstats", true);
 			xhttp.send();
 		}
-		else
+	}
+	function PopupCenter(url, title, w, h) 
+	{
+		// Fixes dual-screen position
+		var dualScreenLeft = window.screenLeft != undefined ? window.screenLeft : screen.left;
+		var dualScreenTop = window.screenTop != undefined ? window.screenTop : screen.top;
+
+		var width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+		var height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+
+		var left = ((width / 2) - (w / 2)) + dualScreenLeft;
+		var top = ((height / 2) - (h / 2)) + dualScreenTop;
+		var newWindow = window.open(url, title, 'scrollbars=yes, width=' + w + ', height=' + h + ', top=' + top + ', left=' + left);
+
+		// Puts focus on the newWindow
+		if (window.focus) {
+			newWindow.focus();
+		}
+	}
+	function makeid()
+	{
+		var text = "";
+		var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+		for( var i=0; i < 10; i++ )
+			text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+		return text;
+	}
+	function Show_hide(log_set) 
+	{
+		if(log_set==screen_enum.Loggers)
+		{
+			document.getElementById("loggers").style.display="table";
+			document.getElementById("Logstats").style.display="none";
+			document.getElementById("logger_select").selectedIndex = 0; 
 			Logger_terminal.innerHTML="";
-	}
-	else if(request_mode == mode_enum.Logstats)
-	{
-		xhttp.open("GET", "morfeas_web_if.php?COMMAND=logstats", true);
-		xhttp.send();
-	}
-}
-function PopupCenter(url, title, w, h) 
-{
-	// Fixes dual-screen position
-	var dualScreenLeft = window.screenLeft != undefined ? window.screenLeft : screen.left;
-	var dualScreenTop = window.screenTop != undefined ? window.screenTop : screen.top;
-
-	var width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
-	var height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
-
-	var left = ((width / 2) - (w / 2)) + dualScreenLeft;
-	var top = ((height / 2) - (h / 2)) + dualScreenTop;
-	var newWindow = window.open(url, title, 'scrollbars=yes, width=' + w + ', height=' + h + ', top=' + top + ', left=' + left);
-
-	// Puts focus on the newWindow
-	if (window.focus) {
-		newWindow.focus();
-	}
-}
-function makeid()
-{
-	var text = "";
-	var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-	for( var i=0; i < 10; i++ )
-		text += possible.charAt(Math.floor(Math.random() * possible.length));
-
-	return text;
-}
-function Show_hide(log_set) 
-{
-	if(log_set==screen_enum.Loggers)
-	{
-		document.getElementById("loggers").style.display="table";
-		document.getElementById("Logstats").style.display="none";
-		document.getElementById("logger_select").selectedIndex = 0; 
-		Logger_terminal.innerHTML="";
-		request_mode = mode_enum.Loggers_name;
-	}
-	else if(log_set==screen_enum.Logstats)
-	{
-		document.getElementById("loggers").style.display="none";
-		document.getElementById("Logstats").style.display="inline";
-		request_mode = mode_enum.Logstats;
+			request_mode = mode_enum.Loggers_name;
+		}
+		else if(log_set==screen_enum.Logstats)
+		{
+			document.getElementById("loggers").style.display="none";
+			document.getElementById("Logstats").style.display="inline";
+			request_mode = mode_enum.Logstats;
+		}
 	}
 }
 </script>

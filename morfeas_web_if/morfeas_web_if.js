@@ -22,6 +22,7 @@ through which recipients can access the Corresponding Source.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
+
 /*
 Morfeas_logstats = 
 {
@@ -88,6 +89,15 @@ Morfeas_logstats =
 }
 */
 
+function connection() 
+{
+  this.name = new Object();
+  this.lastName = new Object();
+  this.age = new Object();
+  this.eyeColor = new Object();
+}
+
+
 function morfeas_logstat_commonizer(logstats)
 {
 	var comp = new Object();
@@ -101,13 +111,16 @@ function morfeas_logstat_commonizer(logstats)
 		return "missing logstat_contents";
 	
 	comp.points = new Array();
-	comp.stats = new Array();
+	comp.connections = new Object();
 	for(let i=0; i<logstats.logstats_names.length; i++)
 	{
-		if(logstats.logstats_names[i].includes("Logstat"))
+		if(logstats.logstats_names[i].includes("logstat"))
 		{
-			/*
 			if(logstats.logstats_names[i] === "logstat_sys.json")//RPI_health_stats
+			{
+				comp.connections = new Object(logstats.logstat_contents[i]);
+			}
+			/*
 			else if(logstats.logstats_names[i].includes("logstat_MDAQ"))//Morfeas_MDAQ_if handlers
 			else if(logstats.logstats_names[i].includes("logstat_IOBOX"))//Morfeas_IOBOX_if handlers
 			else if(logstats.logstats_names[i].includes("can"))//Morfeas_SDAQ_if handlers
