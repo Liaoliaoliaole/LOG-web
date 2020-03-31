@@ -1,5 +1,5 @@
-/*    
-@licstart  The following is the entire license notice for the 
+/*
+@licstart  The following is the entire license notice for the
 JavaScript code in this page.
 
 Copyright (C) 12019-12020  Sam Harry Tzavaras
@@ -7,7 +7,7 @@ Copyright (C) 12019-12020  Sam Harry Tzavaras
 The JavaScript code in this page is free software: you can
 redistribute it and/or modify it under the terms of the GNU
 General Public License (GNU AGPL) as published by the Free Software
-Foundation, either version 3 of the License, or any later version.  
+Foundation, either version 3 of the License, or any later version.
 The code is distributed WITHOUT ANY WARRANTY;
 without even the implied warranty of MERCHANTABILITY or FITNESS
 FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
@@ -17,14 +17,14 @@ for the JavaScript code in this page.
 */
 
 function sensor(type,
-				deviceUserIdentifier, 
-				sensorUserId, 
+				deviceUserIdentifier,
+				sensorUserId,
 				anchor,
 				unit,
 				calibrationDate,
 				calibrationPeriod,
 				avgMeasurement,
-				Is_meas_valid)
+				isMeasValid)
 {
 	this.deviceUserIdentifier = deviceUserIdentifier === undefined ? null : deviceUserIdentifier;
 	this.sensorUserId = sensorUserId === undefined ? null : sensorUserId;
@@ -34,10 +34,10 @@ function sensor(type,
 	this.calibrationPeriod = calibrationPeriod === undefined ? null : calibrationPeriod;
 	this.type = type === undefined ? null : type;
 	this.avgMeasurement = avgMeasurement === undefined ? null : avgMeasurement;
-	this.Is_meas_valid = Is_meas_valid === undefined ? null : Is_meas_valid;
+	this.isMeasValid = isMeasValid === undefined ? null : isMeasValid;
 }
 
-function connection(name, value, unit) 
+function connection(name, value, unit)
 {
 	this.name = name === undefined ? null : name;
 	this.value = value === undefined ? null : value;
@@ -56,17 +56,17 @@ function morfeas_logstat_commonizer(logstats)
 {
 	var data_table_index, dev_index, sensor_index;
 	var data_table = new Array();
-	
+
 	//Check for incompatible input
 	if(logstats === undefined)
 		return "no logstats type data";
 	if((logstats = JSON.parse(logstats)) === undefined)
-		return "Parsing error"; 
+		return "Parsing error";
 	if(logstats.logstats_names === undefined)
 		return "missing logstats_names";
 	if(logstats.logstat_contents === undefined)
 		return "missing logstat_contents";
-	
+
 	for(let i=0; i<logstats.logstats_names.length; i++)
 	{
 		if(logstats.logstats_names[i].includes("logstat"))
@@ -103,8 +103,8 @@ function morfeas_logstat_commonizer(logstats)
 				if(logstats.logstat_contents[i].MDAQ_Channels !== undefined)
 				{
 					for(let j=0; j<logstats.logstat_contents[i].MDAQ_Channels.length; j++)
-					{	
-						for(let k=1; k<=3; k++)//limit to 3] 
+					{
+						for(let k=1; k<=3; k++)//limit to 3]
 						{
 							data_table[data_table_index].sensors.push(new sensor
 							(
@@ -136,7 +136,7 @@ function morfeas_logstat_commonizer(logstats)
 				//Load Device's sensors
 				if(logstats.logstat_contents[i].Connection_status === "Okay")
 				{
-					for(let j=1; j<=4; j++)//limit to 4], amount of receivers on a IOBOX = 4. 
+					for(let j=1; j<=4; j++)//limit to 4], amount of receivers on a IOBOX = 4.
 					{
 						if(eval("logstats.logstat_contents[i].RX"+j) !== "Disconnected")
 						{
@@ -173,13 +173,13 @@ function morfeas_logstat_commonizer(logstats)
 				data_table[data_table_index].connections.push(new connection("Detected_SDAQs", logstats.logstat_contents[i].Detected_SDAQs));
 				if(logstats.logstat_contents[i].Electrics)
 				{
-					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_last_calibration_UNIX", 
+					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_last_calibration_UNIX",
 																				  logstats.logstat_contents[i].Electrics.Last_calibration_UNIX));
-					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_outVoltage", 
+					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_outVoltage",
 																				  logstats.logstat_contents[i].Electrics.BUS_voltage), "V");
-					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_outAmperage", 
+					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_outAmperage",
 																				  logstats.logstat_contents[i].Electrics.BUS_amperage), "A");
-					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_ShuntTemp", 
+					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_ShuntTemp",
 																				  logstats.logstat_contents[i].Electrics.BUS_Shunt_Res_temp), "°C");
 				}
 				//Load Device's sensors
@@ -214,8 +214,8 @@ function morfeas_logstat_commonizer(logstats)
 
 /*
 			   (type,
-				deviceUserIdentifier, 
-				sensorUserId, 
+				deviceUserIdentifier,
+				sensorUserId,
 				anchor,
 				unit,
 				calibrationDate,
