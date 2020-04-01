@@ -1,0 +1,128 @@
+<div class="modal-header">
+    <h4 class="modal-title">Morfeas Configuration</h4>
+    <button type="button" class="close modal-close" (click)="dismiss()">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<form (ngSubmit)="apply()" #morfeasForm="ngForm">
+    <div class="modal-body" style="overflow-y:auto">
+        <div class="form-group handler-box handler-flat-item">
+            <div class="handler-item-text">AppName</div>
+            <div class="input-box">
+                <div class="input-inner-box">
+                    <input name="appname" type="text" required class="form-control form-control-sm input-modal"
+                        id="AppName" [(ngModel)]="appName">
+                </div>
+            </div>
+        </div>
+        <div *ngFor="let sdaq of sdaqComponents;let index = index;">
+            <div class="form-group handler-box handler-flat-item">
+                <div class="handler-item-text">SDAQ Handler {{index + 1}}</div>
+                <div class="input-box">
+                    <div class="input-inner-box">
+                        <ng-select required name="SDAQselect{{index}}" id="SDAQselect{{index}}" [items]="options"
+                            bindLabel="CANBUS_IF" [(ngModel)]="sdaqComponents[index]" [multiple]="false">
+                        </ng-select>
+                    </div>
+                    <div class="button-inner-box">
+                        <button type="button" class="btn btn-modal unlink inner-button"
+                            (click)="sdaqComponents.splice(index, 1);">Delete</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div *ngFor="let mdaq of mdaqComponents;let index = index;">
+            <div class="form-group handler-box handler-flat-item">
+                <div class="handler-item-text">MDAQ Handler {{index + 1}}</div>
+                <div class="input-box">
+                    <div class="input-inner-box">
+                        <input placeholder="DEV_NAME" required type="text" name="MDAQname{{index}}"
+                            class="form-control form-control-sm input-modal handler-modal"
+                            [(ngModel)]="mdaqComponents[index].DEV_NAME" #mdaqName="ngModel">
+                        <div class="error" *ngIf="!mdaqName.valid">Name must be valid</div>
+                        <input placeholder="IPv4_ADDR" required
+                            pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"
+                            type="text" name="MDAQaddr{{index}}"
+                            class="form-control form-control-sm input-modal handler-modal"
+                            [(ngModel)]="mdaqComponents[index].IPv4_ADDR" #mdaqIp="ngModel">
+                        <div class="error" *ngIf="!mdaqIp.valid">IP Address must be valid</div>
+                    </div>
+                    <div class="button-inner-box">
+                        <button type="button" class="btn btn-modal unlink inner-button"
+                            (click)="mdaqComponents.splice(index, 1);">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div *ngFor="let iobox of ioboxComponents;let index = index;">
+            <div class="form-group handler-box handler-flat-item">
+                <div class="handler-item-text">IOBOX Handler {{index + 1}}</div>
+                <div class="input-box">
+                    <div class="input-inner-box">
+                        <input placeholder="DEV_NAME" required type="text" name="IOBOXname{{index}}"
+                            class="form-control form-control-sm input-modal handler-modal"
+                            [(ngModel)]="ioboxComponents[index].DEV_NAME" #ioboxName="ngModel">
+                        <div class="error" *ngIf="!ioboxName.valid">Name must be valid</div>
+
+                        <input placeholder="IPv4_ADDR" required
+                            pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"
+                            type="text" name="IOBOXaddr{{index}}"
+                            class="form-control form-control-sm input-modal handler-modal"
+                            [(ngModel)]="ioboxComponents[index].IPv4_ADDR" #ioboxIp="ngModel">
+                        <div class="error" *ngIf="!ioboxIp.valid">IP Address must be valid</div>
+
+                    </div>
+                    <div class="button-inner-box">
+                        <button type="button" class="btn btn-modal unlink inner-button"
+                            (click)="ioboxComponents.splice(index, 1);">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div *ngFor="let mti of mtiComponents;let index = index;">
+            <div class="form-group handler-box handler-flat-item">
+                <div class="handler-item-text">MTI Handler {{index + 1}}</div>
+                <div class="input-box">
+                    <div class="input-inner-box">
+                        <input placeholder="DEV_NAME" required type="text" name="MTIname{{index}}"
+                            class="form-control form-control-sm input-modal handler-modal"
+                            [(ngModel)]="mtiComponents[index].DEV_NAME" #mtiName="ngModel">
+                        <div class="error" *ngIf="!mtiName.valid">Name must be valid</div>
+                        <input placeholder="IPv4_ADDR" required
+                            pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"
+                            type="text" name="MTIaddr{{index}}"
+                            class="form-control form-control-sm input-modal handler-modal"
+                            [(ngModel)]="mtiComponents[index].IPv4_ADDR" #mtiIp="ngModel">
+                        <div class="error" *ngIf="!mtiIp.valid">IP Address must be valid</div>
+                    </div>
+                    <div class="button-inner-box">
+                        <button type="button" class="btn btn-modal unlink inner-button"
+                            (click)="mtiComponents.splice(index, 1);">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="form-group handler-box handler-flat-item">
+            <div class="handler-item-text">Add new handler</div>
+            <div class="input-box">
+                <div class="input-inner-box">
+                    <ng-select name="addHandler" [items]="handlerOptions" bindLabel="name" [(ngModel)]="selectedHandler"
+                        [multiple]="false">
+                    </ng-select>
+                </div>
+                <div class="button-inner-box">
+                    <button type="button" class="btn btn-modal link inner-button" (click)="addHandler()">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-modal unlink" (click)="reboot()">Reboot</button>
+        <button type="button" class="btn btn-secondary btn-modal unlink" (click)="shutdown()">Shutdown</button>
+        <div>
+            {{getCurrentHandlerAmount()}}/{{maxHandlers}}
+            handlers</div>
+        <button type="submit" class="btn btn-modal link" [disabled]="!morfeasForm.form.valid">Apply</button>
+    </div>
+</form>

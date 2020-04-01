@@ -5,8 +5,11 @@
         <div class="sidebar-icon" style="margin-right: 10px;" (click)="toggleSidebar()">
           <img class="sidebar-icon" src="../../../assets/menu.svg">
         </div>
-        <div class="sidebar-icon" style="margin-right: auto;" (click)="toggleConfigModal()">
+        <div class="sidebar-icon" style="margin-right: 10px;" (click)="toggleConfigModal()">
           <img class="sidebar-icon" src="../../../assets/settings.svg">
+        </div>
+        <div class="sidebar-icon" style="margin-right: auto;" (click)="toggleMorfeasConfigModal()">
+          <img class="sidebar-icon" src="../../../assets/wrench.svg">
         </div>
         <app-canbus-details-bar class="sidebar-details" [canBusDetails]="canBusDetails">
         </app-canbus-details-bar>
