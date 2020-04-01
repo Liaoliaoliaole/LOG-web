@@ -42,7 +42,8 @@ if($requestType == "GET")
 						{
 							$logstats_combined->logstats_names[$i] = $logstats[$i];
 							$logstats_combined->logstat_contents[$i] = json_decode(file_get_contents($ramdisk_path . '/' . $logstat));
-							$i++;
+							if($logstats_combined->logstat_contents[$i])
+								$i++;
 						}
 					header('Content-Type: application/json');
 					echo json_encode($logstats_combined);
