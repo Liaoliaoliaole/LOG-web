@@ -176,11 +176,11 @@ function morfeas_logstat_commonizer(logstats)
 					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_last_calibration_UNIX", 
 																				  logstats.logstat_contents[i].Electrics.Last_calibration_UNIX));
 					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_outVoltage", 
-																				  logstats.logstat_contents[i].Electrics.BUS_voltage, "V");
+																				  logstats.logstat_contents[i].Electrics.BUS_voltage, "V"));
 					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_outAmperage", 
-																				  logstats.logstat_contents[i].Electrics.BUS_amperage, "A");
+																				  logstats.logstat_contents[i].Electrics.BUS_amperage, "A"));
 					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_ShuntTemp", 
-																				  logstats.logstat_contents[i].Electrics.BUS_Shunt_Res_temp, "°C");
+																				  logstats.logstat_contents[i].Electrics.BUS_Shunt_Res_temp, "°C"));
 				}
 				//Load Device's sensors
 				if(logstats.logstat_contents[i].SDAQs_data.length)
