@@ -3,7 +3,7 @@
 File: Morfeas_Web_if.php PHP Script for the Morfeas_Web. Part of Morfeas_project.
 Copyright (C) 12019-12020  Sam harry Tzavaras
 
-This program is free software: you can redistribute it and/or modify
+	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as
     published by the Free Software Foundation, either version 3 of the
     License, or any later version.

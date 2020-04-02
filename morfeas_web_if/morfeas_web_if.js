@@ -16,41 +16,35 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 for the JavaScript code in this page.
 */
 
-function sensor(type,
-				deviceUserIdentifier, 
-				sensorUserId, 
-				anchor,
-				unit,
-				calibrationDate,
-				calibrationPeriod,
-				avgMeasurement,
-				Is_meas_valid)
-{
-	this.deviceUserIdentifier = deviceUserIdentifier === undefined ? null : deviceUserIdentifier;
-	this.sensorUserId = sensorUserId === undefined ? null : sensorUserId;
-	this.anchor = anchor === undefined ? null : anchor;
-	this.unit = unit === undefined ? null : unit;
-	this.calibrationDate = calibrationDate === undefined ? null : calibrationDate;
-	this.calibrationPeriod = calibrationPeriod === undefined ? null : calibrationPeriod;
-	this.type = type === undefined ? null : type;
-	this.avgMeasurement = avgMeasurement === undefined ? null : avgMeasurement;
-	this.Is_meas_valid = Is_meas_valid === undefined ? null : Is_meas_valid;
-}
+/*
+ *ANSI escape sequences for color output taken from here:
+ * https://stackoverflow.com/questions/3219393/stdlib-and-colored-output-in-c
 
-function connection(name, value, unit) 
-{
-	this.name = name === undefined ? null : name;
-	this.value = value === undefined ? null : value;
-	this.unit = unit === undefined ? null : unit;
-}
-function table_data_entry()
-{
-	this.if_name = new Object();
-	this.logstat_build_date_UNIX = new Object();
-	this.sensors = new Array();
-	this.connections = new Array();
-}
+# define ANSI_COLOR_RED     "\x1b[31m"
+# define ANSI_COLOR_GREEN   "\x1b[32m"
+# define ANSI_COLOR_YELLOW  "\x1b[33m"
+# define ANSI_COLOR_BLUE    "\x1b[34m"
+# define ANSI_COLOR_MAGENTA "\x1b[35m"
+# define ANSI_COLOR_CYAN    "\x1b[36m"
+# define ANSI_COLOR_RESET   "\x1b[0m"
+*/
 
+function morfeas_opcua_logger_colorizer(inp)
+{
+	var ret;
+	if(inp === undefined)
+		return;
+	ret = inp;
+	ret = ret.replace(/\n/g, "<br>");//tag /n as <br>
+	ret = ret.replace(/\x1b\[0m/g, "</a>");
+	ret = ret.replace(/\x1b\[31m/g, "<a style=\"color:red\">");
+	ret = ret.replace(/\x1b\[32m/g, "<a style=\"color:green\">");
+	ret = ret.replace(/\x1b\[33m/g, "<a style=\"color:gold\">");
+	ret = ret.replace(/\x1b\[34m/g, "<a style=\"color:blue\">");
+	ret = ret.replace(/\x1b\[35m/g, "<a style=\"color:magenta\">");
+	ret = ret.replace(/\x1b\[36m/g, "<a style=\"color:cyan\">");
+	return ret;
+}
 
 function morfeas_logstat_commonizer(logstats)
 {
@@ -66,6 +60,42 @@ function morfeas_logstat_commonizer(logstats)
 		return "missing logstats_names";
 	if(logstats.logstat_contents === undefined)
 		return "missing logstat_contents";
+	
+	function sensor(type,
+				deviceUserIdentifier, 
+				sensorUserId, 
+				anchor,
+				unit,
+				calibrationDate,
+				calibrationPeriod,
+				avgMeasurement,
+				Is_meas_valid)
+	{
+		this.deviceUserIdentifier = deviceUserIdentifier === undefined ? null : deviceUserIdentifier;
+		this.sensorUserId = sensorUserId === undefined ? null : sensorUserId;
+		this.anchor = anchor === undefined ? null : anchor;
+		this.unit = unit === undefined ? null : unit;
+		this.calibrationDate = calibrationDate === undefined ? null : calibrationDate;
+		this.calibrationPeriod = calibrationPeriod === undefined ? null : calibrationPeriod;
+		this.type = type === undefined ? null : type;
+		this.avgMeasurement = avgMeasurement === undefined ? null : avgMeasurement;
+		this.Is_meas_valid = Is_meas_valid === undefined ? null : Is_meas_valid;
+	}
+
+	function connection(name, value, unit) 
+	{
+		this.name = name === undefined ? null : name;
+		this.value = value === undefined ? null : value;
+		this.unit = unit === undefined ? null : unit;
+	}
+	function table_data_entry()
+	{
+		this.if_name = new Object();
+		this.logstat_build_date_UNIX = new Object();
+		this.sensors = new Array();
+		this.connections = new Array();
+	}
+	
 	
 	for(let i=0; i<logstats.logstats_names.length; i++)
 	{
@@ -211,15 +241,3 @@ function morfeas_logstat_commonizer(logstats)
 	}
 	return data_table;
 }
-
-/*
-			   (type,
-				deviceUserIdentifier, 
-				sensorUserId, 
-				anchor,
-				unit,
-				calibrationDate,
-				calibrationPeriod,
-				avgMeasurement,
-				Is_meas_valid)
-*/
