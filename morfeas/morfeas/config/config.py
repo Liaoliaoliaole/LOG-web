@@ -1,11 +1,15 @@
 import os
 import subprocess
 import xml.dom.minidom
+import zipfile
+import base64
+from io import BytesIO
 from dicttoxml import dicttoxml
-from flask import Blueprint, jsonify, make_response
+from flask import Blueprint, jsonify, Response
 from flask import current_app
 from flask import Flask, request, jsonify
 from common.common import execute_command
+from lxml import etree
 
 config = Blueprint('config', __name__)
 
@@ -14,6 +18,92 @@ def component_to_xml(data, name):
 
 def append_xml_to_position(position, xml, append):
     return xml[:position+1] + append + xml[position+1:]
+
+@config.route('/morfeas/config/download', methods=['GET'])
+def download_morfeas_config():
+    o = BytesIO()
+    zf = zipfile.ZipFile(o, mode='w')
+    zf.write(os.path.join(current_app.config['CONFIG_PATH'], current_app.config['MORFEAS_CONFIG_FILE']), current_app.config['MORFEAS_CONFIG_FILE'])
+    zf.write(os.path.join(current_app.config['CONFIG_PATH'], current_app.config['OPC_UA_CONFIG_FILE']), current_app.config['OPC_UA_CONFIG_FILE'])
+    zf.write(os.path.join(current_app.config['CONFIG_PATH'], current_app.config['ISO_STANDARD_FILE']), current_app.config['ISO_STANDARD_FILE'])
+    zf.close()
+    o.seek(0)
+    response = Response(o.getvalue())
+    o.close()
+    response.headers['Content-Type'] = 'application/octet-stream'
+    response.headers['Content-Disposition'] = "attachment; filename=\"config.zip\""
+    return response
+
+@config.route('/morfeas/config/filenames', methods=['GET'])
+def get_filenames():
+    response = dict()
+    response['morfeas_file'] = current_app.config['MORFEAS_CONFIG_FILE']
+    response['opc_file'] = current_app.config['OPC_UA_CONFIG_FILE']
+    response['iso_file'] = current_app.config['ISO_STANDARD_FILE']
+    return jsonify(response)
+
+def overwrite_xml(dest, xml):
+    et = etree.ElementTree(xml)
+    with open(dest, 'wb+') as f:
+        et.write(f, encoding="utf-8", xml_declaration=True, pretty_print=True)
+
+def decode_to_etree(xml):
+    xml_string = base64.b64decode(xml)
+    return etree.XML(xml_string)
+
+def process_upload(xml_data, name):
+    dtd = etree.DTD(os.path.join(current_app.config['CONFIG_PATH'], 'Morfeas.dtd'))
+
+    xml_file = decode_to_etree(xml_data)
+
+    if(dtd.validate(xml_file) == False):
+        return False
+
+    overwrite_xml(os.path.join(current_app.config['CONFIG_PATH'], name), xml_file)
+
+    return True
+
+def process_upload_no_validation(xml_data, name):
+
+    xml_file = decode_to_etree(xml_data)
+
+    overwrite_xml(os.path.join(current_app.config['CONFIG_PATH'], name), xml_file)
+
+    return True
+
+@config.route('/morfeas/config/upload', methods=['POST'])
+def upload_morfeas_config():
+    data = request.get_json()
+
+    try:
+        # keyerror means it wasnt uploaded so dont even try to overwrite anything
+        try:
+            if(data[current_app.config['MORFEAS_CONFIG_FILE']] is not None):
+                if(process_upload(data[current_app.config['MORFEAS_CONFIG_FILE']], current_app.config['MORFEAS_CONFIG_FILE']) == False):
+                    return jsonify(current_app.config['MORFEAS_CONFIG_FILE'] + ' file validation against Morfeas.dtd failed'), 500
+        except KeyError:
+            pass
+        try:
+            if(data[current_app.config['OPC_UA_CONFIG_FILE']] is not None):
+                if(process_upload(data[current_app.config['OPC_UA_CONFIG_FILE']], current_app.config['OPC_UA_CONFIG_FILE']) == False):
+                    return jsonify(current_app.config['OPC_UA_CONFIG_FILE'] + ' file validation against Morfeas.dtd failed'), 500
+        except KeyError:
+            pass
+        try:
+            if(data[current_app.config['ISO_STANDARD_FILE']] is not None):
+                if(process_upload_no_validation(data[current_app.config['ISO_STANDARD_FILE']], current_app.config['ISO_STANDARD_FILE']) == False):
+                    return jsonify(current_app.config['ISO_STANDARD_FILE'] + ' file validation against Morfeas.dtd failed'), 500
+        except KeyError:
+            pass
+    except Exception as e:
+        return jsonify(str(e)), 500
+
+    std = execute_command('sudo systemctl restart Morfeas_system.service')
+
+    if(std['stderr'] != ""):
+        return jsonify(std['stderr']), 500
+
+    return jsonify(success=True), 200
 
 @config.route('/morfeas/config', methods=['POST'])
 def save_morfeas_config():

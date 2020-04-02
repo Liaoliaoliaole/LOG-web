@@ -8,8 +8,11 @@
         <div class="sidebar-icon" style="margin-right: 10px;" (click)="toggleConfigModal()">
           <img class="sidebar-icon" src="../../../assets/settings.svg">
         </div>
-        <div class="sidebar-icon" style="margin-right: auto;" (click)="toggleMorfeasConfigModal()">
+        <div class="sidebar-icon" style="margin-right: 10px;" (click)="toggleMorfeasConfigModal()">
           <img class="sidebar-icon" src="../../../assets/wrench.svg">
+        </div>
+        <div class="sidebar-icon" style="margin-right: auto;" (click)="toggleFileModal()">
+          <img class="sidebar-icon" src="../../../assets/download.svg">
         </div>
         <app-canbus-details-bar class="sidebar-details" [canBusDetails]="canBusDetails">
         </app-canbus-details-bar>
