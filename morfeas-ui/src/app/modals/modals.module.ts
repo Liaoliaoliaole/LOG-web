@@ -11,6 +11,7 @@ import { NgSelectModule } from '@ng-select/ng-select';
 import { ConfigModalComponent } from './components/config-modal/config-modal.component';
 import { LogModalComponent } from './components/log-modal/log-modal.component';
 import { MorfeasConfigModalComponent } from './components/morfeas-config-modal/morfeas-config-modal.component';
+import { FileModalComponent } from './components/file-modal/file-modal.component';
 
 // Add new modal components to this array for correct configuration
 const modals = [
@@ -19,7 +20,8 @@ const modals = [
   SensorLinkModalComponent,
   ConfigModalComponent,
   LogModalComponent,
-  MorfeasConfigModalComponent
+  MorfeasConfigModalComponent,
+  FileModalComponent
 ];
 
 @NgModule({

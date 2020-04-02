@@ -97,4 +97,21 @@ export class ConfigService {
         const url = `${environment.API_ROOT}/server/shutdown`;
         return this.http.post<any>(url, '');
     }
+
+    getFilenames(): Observable<any> {
+        const url = `${environment.API_ROOT}/morfeas/config/filenames`;
+        return this.http.get<any>(url);
+    }
+
+    uploadConfigs(data: any): Observable<void> {
+        const url = `${environment.API_ROOT}/morfeas/config/upload`;
+        const httpHeaders = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+        const options = {
+            headers: httpHeaders
+        };
+
+        return this.http.post<void>(url, JSON.stringify(data), options);
+    }
 }
