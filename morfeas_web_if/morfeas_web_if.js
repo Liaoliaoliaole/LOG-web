@@ -39,7 +39,7 @@ function morfeas_opcua_logger_colorizer(inp)
 	ret = ret.replace(/\x1b\[0m/g, "</a>");
 	ret = ret.replace(/\x1b\[31m/g, "<a style=\"color:red\">");
 	ret = ret.replace(/\x1b\[32m/g, "<a style=\"color:green\">");
-	ret = ret.replace(/\x1b\[33m/g, "<a style=\"color:yellow\">");
+	ret = ret.replace(/\x1b\[33m/g, "<a style=\"color:gold\">");
 	ret = ret.replace(/\x1b\[34m/g, "<a style=\"color:blue\">");
 	ret = ret.replace(/\x1b\[35m/g, "<a style=\"color:magenta\">");
 	ret = ret.replace(/\x1b\[36m/g, "<a style=\"color:cyan\">");

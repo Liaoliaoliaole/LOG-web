@@ -2,10 +2,10 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<meta http-equiv="Pragma" content="no-cache" />
-<meta http-equiv="Expires" content="0" />
-<link rel="shortcut icon" type="image/x-icon" href="Morfeas_logo_yellow.ico" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<link rel="shortcut icon" type="image/x-icon" href="Morfeas_logo_yellow.ico"/>
 <title>Morfeas_Web_if_test</title>
 </head>
 <body>
@@ -22,7 +22,8 @@
     <th colspan="6" style="font-size: 120%;">Main Menu</th>
   </tr>
   <tr>
-	<td><input type="button" value="Logstats" onclick='Show_hide(screen_enum.Logstats)'></td>
+	<td><input type="button" value="Sensors" onclick='Show_hide(screen_enum.Logstats)'></td>
+	<td><input type="button" value="Details" onclick='Show_hide(screen_enum.Logstats)'></td>
 	<td><input type="button" value="System logs" onclick='Show_hide(screen_enum.Loggers)'></td> 
 	<td><input id="config" type="button" value="Ethernet Setup" onclick='PopupCenter("config.html"+"?q="+makeid(),"","380","250")'></td>
 	<td><input type="button" value="Rpi reboot" onclick="RPI_command('REBOOT')"></td>
@@ -33,7 +34,7 @@
 <!-- Loggers -->
 <table id ="loggers" style="margin:auto;">
   <tr>
-	<td colspan="4"><code id="Logger_terminal" style="resize:none;" rows="30" cols="150" readonly> </code></td>
+	<td colspan="4"><code id="Logger_terminal"></code></td>
   </tr>
   <tr>
 	<td style="text-align:left;"><input id="download" type="button" value="Reload Logger names" 
@@ -90,6 +91,10 @@ else
 					Logger_content: 1,
 					Logstats: 2
 				};
+	var mode_enum_L2 = {
+					Sensors: 0,
+					Details: 1
+				};
 	var request_mode = mode_enum.Loggers_name;
 	var Logger_terminal = document.getElementById("Logger_terminal");
 	var logstat;
@@ -127,6 +132,7 @@ else
 					if(typeof logstat !== 'string')
 					{
 						document.getElementById("status").value = "Okay";
+						
 						console.log(logstat);
 					}
 					else
