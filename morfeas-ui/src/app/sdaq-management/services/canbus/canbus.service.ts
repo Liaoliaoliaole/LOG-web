@@ -18,9 +18,9 @@ export class CanbusService {
   getLogStatData(): Observable<CanBusModel[]> {
     // TODO: temporary solution to a temporary problem, in the future the logstat will be from api i guess
     const url = environment.ROOT + '/ramdisk/';
-    const can0 = this.http.get<CanBusModel>(url + 'logstat_can0.json').pipe(
+    const can0 = this.http.get<CanBusModel>(url + 'logstat_vcan0.json').pipe(
       catchError(this.handleCanbusError));
-    const can1 = this.http.get<CanBusModel>(url + 'logstat_can1.json').pipe(
+    const can1 = this.http.get<CanBusModel>(url + 'logstat_vcan1.json').pipe(
       catchError(this.handleCanbusError));
 
     return forkJoin(can0, can1);
