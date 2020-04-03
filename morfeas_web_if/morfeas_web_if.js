@@ -223,7 +223,7 @@ function morfeas_logstat_commonizer(logstats)
 							(
 								"SDAQ",
 								logstats.logstat_contents[i].SDAQs_data[j].SDAQ_type,
-								logstats.logstat_contents[i].SDAQs_data[j].Address+".CH"+logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,
+								"ADDR:"+logstats.logstat_contents[i].SDAQs_data[j].Address+".CH"+logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,
 								logstats.logstat_contents[i].SDAQs_data[j].Serial_number+".CH"+logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,
 								logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Unit,
 								logstats.logstat_contents[i].SDAQs_data[j].Calibration_Data[k].Calibration_date_UNIX,
