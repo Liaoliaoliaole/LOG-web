@@ -171,12 +171,13 @@ else
 										{		
 											var last_row = details_table.insertRow();
 											last_row.insertCell().innerHTML = logstat[i].connections[j].name;
-											if(last_row.insertCell().innerHTML = logstat[i].connections[j].name.includes("UNIX"))
+											if(logstat[i].connections[j].name.includes("UNIX"))
 											{
-												var date_conv = new date().setTime(logstat[i].connections[j].value*1000)
-												last_row.insertCell().innerHTML = date_conv.getFullYear+"/"+
-																				  (date_conv.getMonth+1)+"/"+ 
-																				  date_conv.getDate;
+												var date_conv = new Date();
+												date_conv.setTime(logstat[i].connections[j].value*1000)
+												last_row.insertCell().innerHTML = date_conv.getFullYear()+"/"+
+																				  (date_conv.getMonth()+1)+"/"+ 
+																				  date_conv.getDate();
 											}
 											else
 												last_row.insertCell().innerHTML = logstat[i].connections[j].value + (logstat[i].connections[j].unit?logstat[i].connections[j].unit:"");
