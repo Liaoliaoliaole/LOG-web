@@ -106,7 +106,7 @@ function morfeas_logstat_commonizer(logstats)
 			{
 				data_table[data_table_index] = new table_data_entry();
 				//Load if_name and build_date
-				data_table[data_table_index].if_name = "RPi_Health_Stats";
+				data_table[data_table_index].if_name = "RPi_Health_Status";
 				data_table[data_table_index].logstat_build_date_UNIX = logstats.logstat_contents[i].logstat_build_date_UNIX;
 				//Load system's status
 				data_table[data_table_index].sensors = null;
