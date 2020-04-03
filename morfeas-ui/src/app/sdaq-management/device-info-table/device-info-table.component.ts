@@ -19,6 +19,7 @@ import { ConfigModalComponent } from 'src/app/modals/components/config-modal/con
 import { LogModalComponent } from 'src/app/modals/components/log-modal/log-modal.component';
 import { ModalOptions } from 'src/app/modals/modal-options';
 import { MorfeasConfigModalComponent } from 'src/app/modals/components/morfeas-config-modal/morfeas-config-modal.component';
+import { FileModalComponent } from 'src/app/modals/components/file-modal/file-modal.component';
 
 export interface CanBusFlatData {
   id: string;
@@ -662,6 +663,23 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     this.modalService
       .confirm({
         component: LogModalComponent
+      })
+      .then(() => {
+
+      })
+      .catch((err: any) => {
+        this.togglePause();
+        console.log(err);
+      });
+  }
+
+  // TODO: maybe clean up these a bit at some point
+  toggleFileModal() {
+    this.togglePause();
+
+    this.modalService
+      .confirm({
+        component: FileModalComponent
       })
       .then(() => {
 
