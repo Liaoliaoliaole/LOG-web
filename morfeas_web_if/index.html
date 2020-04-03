@@ -139,6 +139,7 @@ else
 							case mode_enum_L2.Sensors:
 								document.getElementById("status").value = "Sensors";
 								var sensors_table = document.createElement("TABLE");
+								sensors_table.style="margin:auto;margin-bottom:.075in;width:6in;";
 								for(let i=0; i<logstat.length; i++)
 								{
 									if(logstat[i].sensors)
@@ -149,22 +150,34 @@ else
 											last_row.insertCell().innerHTML = logstat[i].sensors[j].type;
 											last_row.insertCell().innerHTML = logstat[i].sensors[j].deviceUserIdentifier;
 											last_row.insertCell().innerHTML = logstat[i].sensors[j].sensorUserId;
-											last_row.insertCell().innerHTML = logstat[i].sensors[j].avgMeasurement + " " +logstat[i].sensors[j].unit;
+											last_row.insertCell().innerHTML = logstat[i].sensors[j].avgMeasurement+" "+(logstat[i].sensors[j].unit?logstat[i].sensors[j].unit:"");
 										}
 									}
 								}
-								logstats_disp.removeChild(logstats_disp.lastChild);
+								logstats_disp.textContent = '';//remove all children
 								logstats_disp.appendChild(sensors_table);
 								break;
 							case mode_enum_L2.Details:
 								document.getElementById("status").value = "Details";
-								var details_table = document.createElement("TABLE");
-								
-								logstats_disp.removeChild(logstats_disp.lastChild);
-								logstats_disp.appendChild(details_table);
+								logstats_disp.textContent = '';//remove all children
+								for(let i=0; i<logstat.length; i++)
+								{
+									if(logstat[i].connections)
+									{
+										var details_table = document.createElement("TABLE");
+										details_table.style="margin:auto;margin-bottom:.075in;width:4in;";
+										details_table.createTHead().innerHTML = logstat[i].if_name;
+										for(let j=0; j<logstat[i].connections.length; j++)
+										{		
+											var last_row = details_table.insertRow();
+											last_row.insertCell().innerHTML = logstat[i].connections[j].name;
+											last_row.insertCell().innerHTML = logstat[i].connections[j].value + (logstat[i].connections[j].unit?logstat[i].connections[j].unit:"");
+										}
+										logstats_disp.appendChild(details_table);
+									}
+								}
 								break;
 						}
-						//console.log(logstat);
 					}
 					else
 						document.getElementById("status").value = logstat;
