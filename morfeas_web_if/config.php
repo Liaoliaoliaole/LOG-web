@@ -1,0 +1,55 @@
+<?php
+	$mask_val=[0,128,192,224,240,248,252,254,255];
+	$requestType = $_SERVER['REQUEST_METHOD'];
+	if($requestType == 'POST')
+	{
+		if(array_key_exists("IP_ADD", $_POST)&&array_key_exists("MASK", $_POST)&&array_key_exists("GATE", $_POST)
+		   &&array_key_exists("PORT", $_POST)&&array_key_exists("MAX_CONN", $_POST)&&array_key_exists("ADD", $_POST))
+		{
+			$config_file_json=json_decode(file_get_contents("config.json"));
+			$config_file_json->eth_ip=explode(".",$_POST['IP_ADD']);
+			$config_file_json->mask=explode(".",$_POST['MASK']);
+			$config_file_json->gateway=explode(".",$_POST['GATE']);
+			$config_file_json->modbus_tcp_port=intval($_POST['PORT']);
+			$config_file_json->max_con=intval($_POST['MAX_CONN']);
+			$config_file_json->slave_add=intval($_POST['ADD']);
+			file_put_contents("config.json",json_encode($config_file_json));// save the config file (json format) 
+			//change static ip, mask of rpi's eth0:0 interface
+			//$mask=16+array_search($config_file_json->mask[2], $mask_val)+array_search($config_file_json->mask[3], $mask_val);
+			$interface_config=file_get_contents("/etc/network/interfaces");
+		    $interface_config = substr($interface_config, 0, strrpos($interface_config, 'iface eth0:0 inet static'));
+			$interface_config = sprintf("%siface eth0:0 inet static\n\taddress %d.%d.%d.%d\n\tnetmask %d.%d.%d.%d\n",
+									  $interface_config,
+									  $config_file_json->eth_ip[0],$config_file_json->eth_ip[1],$config_file_json->eth_ip[2],$config_file_json->eth_ip[3],
+									  $config_file_json->mask[0],$config_file_json->mask[1],$config_file_json->mask[2],$config_file_json->mask[3]);
+									  //echo $interface_config;
+			file_put_contents("/etc/network/interfaces",$interface_config);
+			//add gateway on rc.local
+			$interface_config=file_get_contents("/etc/rc.local");
+		    $interface_config = substr($interface_config, 0, strrpos($interface_config, 'sudo route add default gw'));
+			
+			$interface_config = sprintf("%ssudo route add default gw %d.%d.%d.%d eth0:0\nexit 0\n",
+									  $interface_config,
+									  $config_file_json->gateway[0],
+									  $config_file_json->gateway[1],
+									  $config_file_json->gateway[2],
+									  $config_file_json->gateway[3]);
+									  echo $interface_config;
+									  
+			file_put_contents("/etc/rc.local",$interface_config);
+			//exec('sudo reboot');
+			/*
+			$dhcpcd_config=file_get_contents("/etc/dhcpcd.conf");
+		    $dhcpcd_config = substr($dhcpcd_config, 0, strrpos($dhcpcd_config, 'interface eth0.0'));
+			$dhcpcd_config = sprintf("%sinterface eth0.0\nstatic ip_address=%d.%d.%d.%d/%d\nstatic routers=%d.%d.%d.%d\nstatic domain_name_servers=%d.%d.%d.%d\n"
+									  ,$dhcpcd_config,$config_file_json->eth_ip[0],$config_file_json->eth_ip[1],$config_file_json->eth_ip[2],$config_file_json->eth_ip[3]
+									  ,$mask,$config_file_json->gateway[0],$config_file_json->gateway[1],$config_file_json->gateway[2],$config_file_json->gateway[3]
+									  ,$config_file_json->gateway[0],$config_file_json->gateway[1],$config_file_json->gateway[2],$config_file_json->gateway[3]);
+			file_put_contents("/etc/dhcpcd.conf",$dhcpcd_config);
+			exec('sudo reboot');
+			*/
+		}
+		else
+			echo 'Argument Error';
+	}
+?>
