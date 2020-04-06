@@ -7,8 +7,8 @@ import {
   CellEvent
 } from '@ag-grid-community/all-modules';
 import { CanbusService } from '../services/canbus/canbus.service';
-import { CanBusModel, SDAQData, SDAQStatus, Measurements } from '../models/can-model';
-import { TableColumn } from '../device-table-sidebar/device-table-sidebar.component';
+import { Logstat } from '../models/can-model';
+import { TableColumn, FilterEvent } from '../device-table-sidebar/device-table-sidebar.component';
 import { OpcUaConfigModel } from '../models/opcua-config-model';
 import { ModalService } from 'src/app/modals/services/modal.service';
 import { SensorLinkModalComponent } from 'src/app/modals/components/sensor-link-modal/sensor-link-modal.component';
@@ -20,25 +20,28 @@ import { LogModalComponent } from 'src/app/modals/components/log-modal/log-modal
 import { ModalOptions } from 'src/app/modals/modal-options';
 import { MorfeasConfigModalComponent } from 'src/app/modals/components/morfeas-config-modal/morfeas-config-modal.component';
 import { FileModalComponent } from 'src/app/modals/components/file-modal/file-modal.component';
+declare const morfeas_logstat_commonizer: any;
 
 export interface CanBusFlatData {
   id: string;
-  sdaqAddress: number;
+  deviceId: string;
+  deviceUserId: string;
+  sensorUserId: string;
+  anchor: string;
+  type: string;
+  avgMeasurement: string;
   isoCode: string;
   description: string;
-  canBus: string;
-  sdaqSerial: number;
-  sdaqType: string;
-  channelId: number;
   channelUnit: string;
   minValue: number;
   maxValue: number;
-  avgMeasurement: string;
-  calibrationDate: number;
+  calibrationDate: Date;
   calibrationPeriod: number;
   isVisible: boolean;
   status: RowStatus;
+  isMeasValid: boolean;
   unavailable?: boolean;
+  sensorUnit: string; // "Hardcoded" unit for sensor, cannot be changed
 }
 
 export enum RowStatus {
@@ -66,12 +69,12 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
         return ``;
       }, suppressCellFlash: true
     },
-    { headerName: 'SDAQ Address', field: 'sdaqAddress' },
+    { headerName: 'Device', field: 'deviceUserId' },
     { headerName: 'ISO Code', field: 'isoCode', sort: 'asc' },
     { headerName: 'Description', field: 'description', editable: true },
-    { headerName: 'SDAQ Serial Number', field: 'sdaqSerial' },
-    { headerName: 'SDAQ Channel', field: 'channelId' },
-    { headerName: 'Type', field: 'sdaqType' },
+    { headerName: 'Connection', field: 'deviceId' },
+    { headerName: 'Sensor', field: 'sensorUserId' },
+    { headerName: 'Type', field: 'type' },
     { headerName: 'Unit', field: 'channelUnit' },
     { headerName: 'Min Value', field: 'minValue', editable: true },
     { headerName: 'Max Value', field: 'maxValue', editable: true },
@@ -81,8 +84,14 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
         let value = '-';
 
-        if (params.value) {
+        if (params.value instanceof Date && params.value.toString() === 'Invalid Date') {
+          return `<span>${value}</span>`;
+        }
+
+        if (params.value && !(params.value instanceof Date)) {
           value = this.datePipe.transform(params.value * 1000, 'dd-MM-yyyy HH:mm:ss');
+        } else if (params.value instanceof Date) {
+          value = this.datePipe.transform(params.value, 'dd-MM-yyyy HH:mm:ss');
         }
 
         const secondsBeforeCalibrationDateExpires = params.data.calibrationPeriod * this.secondsInMonth;
@@ -102,16 +111,15 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   opcUaMap = new Map<string, OpcUaConfigModel>();
   opcUaConfigData: OpcUaConfigModel[];
   canBusPoller: any;
-  canBusDetails: CanBusModel[];
+  logstats: Logstat[];
   pause = false;
   configuredIsoCodes: string[] = [];
+  connectionNames: string[] = [];
 
   showLinked = true;
   showUnlinked = true;
 
-  showCan1 = true;
-  showCan2 = true;
-
+  filters: FilterEvent[] = [];
   showUnsaved = false;
   showSidebar = false;
 
@@ -131,9 +139,13 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     suppressScrollOnNewData: true,
     batchUpdateWaitMillis: 50,
     onSortChanged: this.onSortChanged.bind(this),
+    rowBuffer: 50,
 
     isExternalFilterPresent: () => true,
-    doesExternalFilterPass: (node) => node.data.sdaqAddress ? node.data.isVisible : this.showLinked,
+    doesExternalFilterPass: (node) => {
+      const row: CanBusFlatData = node.data;
+      return this.filters.every(filterFunc => filterFunc(row));
+    },
 
     onGridReady: async () => {
       // Visualize data on the table
@@ -166,12 +178,12 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   onSortChanged(e: any): void {
     const model = this.gridOptions.api.getSortModel();
 
-    if (model && model.length === 1 && model[0].colId === 'sdaqAddress') {
+    if (model && model.length === 1 && model[0].colId === 'sensorUserId') {
       this.gridOptions.api.setSortModel([{
-        colId: 'sdaqAddress',
+        colId: 'deviceUserId',
         sort: model[0].sort
       }, {
-        colId: 'channelId',
+        colId: 'sensorUserId',
         sort: model[0].sort
       }]);
     }
@@ -189,18 +201,20 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     if (e.colDef.field === 'isoCode') {
       // open popup dialog when ISO cell is clicked
       this.togglePause(); // enable pause mode when dialog is to be open
+      const row: CanBusFlatData = e.data;
 
       const initiate: SensorLinkModalInitiateModel = {
-        unit: e.data.channelUnit,
+        anchor: row.anchor,
+        unit: row.sensorUnit, // only add if the sensor is "hardcoded" to specific unit
         configuredIsoCodes: this.configuredIsoCodes,
-        unlinked: !e.data.isoCode,
-        existingIsoStandard: e.data.isoCode ? {
-          iso_code: e.data.isoCode,
+        unlinked: !row.isoCode,
+        existingIsoStandard: row.isoCode ? {
+          iso_code: row.isoCode,
           attributes: {
-            min: e.data.minValue,
-            max: e.data.maxValue,
-            description: e.data.description,
-            unit: e.data.unit
+            min: row.minValue.toString(),
+            max: row.maxValue.toString(),
+            description: row.description,
+            unit: e.data.channelUnit
           }
         } : null
       };
@@ -212,26 +226,23 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
         })
         .then((data: SensorLinkModalSubmitModel) => {
 
-          const selectedRow = this.rowData.find(
-            x =>
-              x.id === e.data.id
-          );
+          const selectedRow = this.rowData.find(x => x.id === e.data.id);
+
+          this.opcUaMap.set(selectedRow.anchor, {
+            ISO_CHANNEL: data.isoStandard.iso_code,
+            INTERFACE_TYPE: selectedRow.type,
+            ANCHOR: selectedRow.anchor,
+            DESCRIPTION: data.isoStandard.attributes.description,
+            MIN: +data.isoStandard.attributes.min,
+            MAX: +data.isoStandard.attributes.max,
+            UNIT: data.isoStandard.attributes.unit,
+            CAL_DATE: selectedRow.calibrationDate,
+            CAL_PERIOD: selectedRow.calibrationPeriod
+          });
 
           switch (data.action) {
 
             case SensorLinkModalSubmitAction.Add:
-
-              const anchor = this.canbusService.generateAnchor(selectedRow.sdaqSerial, selectedRow.channelId);
-
-              this.opcUaMap.set(anchor, {
-                ISO_CHANNEL: data.isoStandard.iso_code,
-                INTERFACE_TYPE: selectedRow.sdaqType,
-                ANCHOR: anchor,
-                DESCRIPTION: data.isoStandard.attributes.description,
-                MIN: +data.isoStandard.attributes.min,
-                MAX: +data.isoStandard.attributes.max,
-              });
-
               this.configuredIsoCodes.push(data.isoStandard.iso_code);
               this.togglePause();
 
@@ -243,18 +254,6 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
                 this.configuredIsoCodes.indexOf(e.data.isoCode),
                 1,
               );
-
-              const updateAnchor = this.canbusService.generateAnchor(selectedRow.sdaqSerial, selectedRow.channelId);
-
-              this.opcUaMap.set(updateAnchor, {
-                ISO_CHANNEL: data.isoStandard.iso_code,
-                INTERFACE_TYPE: selectedRow.sdaqType,
-                ANCHOR: updateAnchor,
-                DESCRIPTION: data.isoStandard.attributes.description,
-                MIN: +data.isoStandard.attributes.min,
-                MAX: +data.isoStandard.attributes.max,
-              });
-
               this.configuredIsoCodes.push(data.isoStandard.iso_code);
               this.togglePause();
 
@@ -262,10 +261,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
             case SensorLinkModalSubmitAction.Remove:
 
-              const removeAnchor = this.canbusService.generateAnchor(selectedRow.sdaqSerial, selectedRow.channelId);
-
-              this.opcUaMap.delete(removeAnchor);
-
+              this.opcUaMap.delete(selectedRow.anchor);
               this.configuredIsoCodes.splice(
                 this.configuredIsoCodes.indexOf(e.data.isoCode),
                 1,
@@ -341,116 +337,13 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     this.pause = !this.pause;
   }
 
-  flattenRowData(canBusArr: CanBusModel[]): CanBusFlatData[] {
-    const canBus = canBusArr.filter(x => x != null);
-    if (canBus == null || canBus.length === 0) {
-      return [];
-    }
+  resolveRowStatus(row: CanBusFlatData) {
 
-    return canBus.reduce((canBusArray: CanBusFlatData[], can) => {
-      const canBusDataRow = can.SDAQs_data.reduce(
-        (flattenArray: CanBusFlatData[], sdaqData: SDAQData) => {
-          const dataPoint = {
-            canBus: can['CANBus-interface'],
-            sdaqAddress: sdaqData.Address,
-            sdaqSerial: sdaqData.Serial_number,
-            sdaqType: sdaqData.SDAQ_type,
-            status: RowStatus.UnlinkedSensor
-          } as CanBusFlatData;
-
-          if (
-            !sdaqData.Calibration_Data ||
-            sdaqData.Calibration_Data.length === 0
-          ) {
-            flattenArray.push(dataPoint);
-            return flattenArray;
-          }
-
-          const measPoints: any = sdaqData.Meas.map(
-            measurementData => {
-              return {
-                channel: measurementData.Channel,
-                avgMeasurement: measurementData.Meas_avg,
-                status: measurementData.Channel_Status
-              };
-            }
-          );
-
-          const dataPoints: CanBusFlatData[] = sdaqData.Calibration_Data.map(
-            calibrationData => {
-              const anchor = this.canbusService.generateAnchor(
-                sdaqData.Serial_number,
-                calibrationData.Channel
-              );
-              let opcUaConf: OpcUaConfigModel;
-
-              if (this.opcUaMap.has(anchor)) {
-                // get value of OPC UA config based on key as anchor
-                opcUaConf = this.opcUaMap.get(anchor);
-              }
-
-              const isoCode = opcUaConf ? opcUaConf.ISO_CHANNEL : null;
-              const channelId = calibrationData.Channel;
-              const measPoint = measPoints.find(meas => meas.channel === channelId);
-              let isVisible = isoCode ? this.showLinked : this.showUnlinked;
-
-              // TODO: once more filters are wanted maybe figure something better here and refactor the whole thing
-              if (isVisible) {
-                if (can['CANBus-interface'] === 'can0') {
-                  isVisible = this.showCan1;
-                } else if (can['CANBus-interface'] === 'can1') {
-                  isVisible = this.showCan2;
-                }
-              }
-
-              let avgMeasurement = '-';
-
-              if (measPoint && measPoint.avgMeasurement !== null) {
-                avgMeasurement = measPoint.avgMeasurement.toString();
-              }
-
-              const result = {
-                id:
-                  can['CANBus-interface'] +
-                  '_' +
-                  sdaqData.Address +
-                  '_' +
-                  sdaqData.Serial_number + '_' + calibrationData.Channel,
-                channelId,
-                channelUnit: calibrationData.Unit,
-                isoCode,
-                description: opcUaConf ? opcUaConf.DESCRIPTION : null,
-                minValue: opcUaConf ? opcUaConf.MIN : null,
-                maxValue: opcUaConf ? opcUaConf.MAX : null,
-                avgMeasurement,
-                calibrationDate: calibrationData.Calibration_date_UNIX,
-                calibrationPeriod: calibrationData.Calibration_period,
-                isVisible
-              };
-
-              const data = Object.assign(result, dataPoint);
-
-              data.status = this.resolveRowStatus(data, sdaqData.SDAQ_Status, measPoint);
-
-              return data;
-            }
-          );
-
-          return flattenArray.concat(dataPoints);
-        },
-        []
-      );
-      return canBusArray.concat(canBusDataRow);
-    }, []);
-  }
-
-  resolveRowStatus(row: CanBusFlatData, status: SDAQStatus, meas: any) {
-
-    if (!row.isoCode && status.Error) {
+    if (!row.isoCode && !row.isMeasValid) {
       return RowStatus.UnlinkedSensorError;
     }
 
-    if (!row.isoCode && (!meas || meas.status.No_Sensor)) {
+    if (!row.isoCode && row.avgMeasurement === '-') {
       return RowStatus.UnlinkedISOCode;
     }
 
@@ -458,11 +351,11 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
       return RowStatus.UnlinkedSensor;
     }
 
-    if (row.isoCode && status.Error) {
+    if (row.isoCode && !row.isMeasValid) {
       return RowStatus.LinkedSensorError;
     }
 
-    if (row.isoCode && (!meas || meas.status.No_Sensor)) {
+    if (row.isoCode && row.avgMeasurement === '-') {
       return RowStatus.LinkedSensorNotPresent;
     }
 
@@ -470,7 +363,10 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   }
 
   getLogStatData(initial: boolean) {
-    this.canbusService.getLogStatData().subscribe(rowData => {
+    this.canbusService.getLogStatData().subscribe(rawData => {
+
+      const rowData = morfeas_logstat_commonizer(JSON.stringify(rawData));
+
       this.applyRowData(rowData);
 
       if (initial) {
@@ -482,64 +378,89 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
       });
   }
 
-  applyRowData(rowData: CanBusModel[]) {
-    const details = [];
-
-    if (!rowData || rowData.length <= 0 || rowData[0] === null) {
+  applyRowData(logstats: Logstat[]) {
+    if (!logstats) {
       this.rowData = [];
+      this.logstats = [];
       this.gridOptions.api.setRowData([]);
       return;
     }
+    this.logstats = logstats;
+    this.connectionNames = logstats.map(x => x.if_name);
 
-    rowData.forEach(row => {
-      const canInterface = row['CANBus-interface'];
-      details.push({
-        logstat_build_date_UNIX: row.logstat_build_date_UNIX,
-        'CANBus-interface': canInterface,
-        BUS_voltage: row.BUS_voltage,
-        BUS_amperage: row.BUS_amperage,
-        BUS_Shunt_Res_temp: row.BUS_Shunt_Res_temp,
-        BUS_Utilization: row.BUS_Utilization,
-        Detected_SDAQs: row.Detected_SDAQs,
-      });
+    let newData = [];
+    logstats.forEach(logstat => {
+
+      if (logstat.sensors !== null) {
+
+        const canBusFlatData = logstat.sensors.map(sensor => {
+
+          let opcUaValue = this.opcUaMap.get(sensor.anchor);
+          if (!opcUaValue) {
+            opcUaValue = new OpcUaConfigModel();
+          }
+
+          const row = {
+            id: sensor.anchor,
+            anchor: sensor.anchor,
+            deviceId: logstat.if_name,
+            deviceUserId: sensor.deviceUserIdentifier,
+            type: sensor.type,
+            status: RowStatus.UnlinkedSensor,
+            channelUnit: sensor.unit || opcUaValue.UNIT,
+            avgMeasurement: sensor.avgMeasurement === null ? '-' : sensor.avgMeasurement,
+            isMeasValid: sensor.Is_meas_valid,
+            calibrationDate: sensor.calibrationDate,
+            calibrationPeriod: sensor.calibrationPeriod,
+            isVisible: true,
+            sensorUserId: sensor.sensorUserId,
+            minValue: opcUaValue.MIN,
+            maxValue: opcUaValue.MAX,
+            description: opcUaValue.DESCRIPTION,
+            isoCode: opcUaValue.ISO_CHANNEL,
+            sensorUnit: sensor.unit
+          } as CanBusFlatData;
+
+          row.status = this.resolveRowStatus(row);
+          return row;
+
+        });
+
+        newData = newData.concat(canBusFlatData);
+      }
     });
 
-    this.canBusDetails = details;
-    const newData = this.flattenRowData(rowData);
-
-    if (this.rowData && this.rowData.length > 0) {
-
-      this.rowData.forEach(row => {
-
-        const anchor = this.canbusService.generateAnchor(row.sdaqSerial, row.channelId);
-
-        if (!newData.find(newRow => newRow.id === row.id) && !this.opcUaMap.has(anchor)) {
-          this.removeRow(row);
-        }
-      });
-
-      newData.forEach(row => {
-
-        const anchor = this.canbusService.generateAnchor(row.sdaqSerial, row.channelId);
-
-        if (this.rowData.find(newRow => newRow.id === row.id)) {
-          this.updateRow(row);
-        } else if (!this.opcUaMap.has(anchor)) {
-          this.addRow(row);
-        } else {
-
-          const unavailableRow = this.rowData.find(uRow => uRow.channelId === row.channelId && uRow.sdaqSerial === row.sdaqSerial);
-
-          this.removeRow(unavailableRow);
-          this.addRow(row);
-        }
-      });
-
-      this.gridOptions.api.refreshCells({ columns: ['calibrationDate'], force: true });
-    } else {
+    if (!this.rowData && this.rowData.length === 0) {
       this.rowData = newData;
       this.gridOptions.api.setRowData(this.rowData);
     }
+
+    this.rowData.forEach(oldRow => {
+      if (!newData.find(newRow => newRow.id === oldRow.id)) {
+        // unconfigured sensor lost connection
+        if (!this.opcUaMap.has(oldRow.anchor)) {
+          this.removeRow(oldRow);
+        } else {
+          // configured sensor needs to be updated to "default" as the connection is lost
+          this.updateRow(this.createUnlinkedConfiguredSensor(this.opcUaMap.get(oldRow.anchor)));
+        }
+      }
+    });
+
+    newData.forEach(row => {
+      if (this.rowData.find(newRow => newRow.id === row.id)) {
+        this.updateRow(row);
+      } else if (!this.opcUaMap.has(row.anchor)) {
+        this.addRow(row);
+      } else {
+        const unavailableRow = this.rowData.find(uRow => uRow.deviceUserId === row.deviceUserId && uRow.sensorUserId === row.sensorUserId);
+
+        this.removeRow(unavailableRow);
+        this.addRow(row);
+      }
+    });
+
+    this.gridOptions.api.refreshCells({ columns: ['calibrationDate'], force: true });
   }
 
   getRowNodeId = (data: any) => data.id;
@@ -547,36 +468,15 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   async getOpcUaConfigData() {
     const opcUaConfigs = await this.canbusService.getOpcUaConfigs().toPromise();
     if (opcUaConfigs && opcUaConfigs.length > 0) {
-      opcUaConfigs.forEach(sensor => {
-        if (sensor) {
-          this.opcUaMap.set(sensor.ANCHOR, sensor);
+      opcUaConfigs.forEach(opcUaEntry => {
+        if (opcUaEntry) {
+          this.opcUaMap.set(opcUaEntry.ANCHOR, opcUaEntry);
 
-          const serial = +sensor.ANCHOR.split('.')[0];
-          const channel = +sensor.ANCHOR.split('.')[1].replace('CH', '');
-
-          const selectedRow = this.rowData.find(row => row.channelId === channel && row.sdaqSerial === serial);
+          const relatedSensor = this.rowData.find(row => row.anchor === opcUaEntry.ANCHOR);
           let newRow: CanBusFlatData;
 
-          if (!selectedRow) {
-            newRow = {
-              id: 'unavailable_' + serial + '_' + channel,
-              canBus: null,
-              isoCode: sensor.ISO_CHANNEL,
-              sdaqAddress: null,
-              sdaqSerial: serial,
-              sdaqType: sensor.INTERFACE_TYPE,
-              channelId: channel,
-              channelUnit: null,
-              minValue: +sensor.MIN,
-              maxValue: +sensor.MAX,
-              description: sensor.DESCRIPTION,
-              avgMeasurement: '-',
-              calibrationDate: null,
-              calibrationPeriod: null,
-              status: RowStatus.LinkedSensorNotPresent,
-              unavailable: true,
-              isVisible: true
-            };
+          if (!relatedSensor) {
+            newRow = this.createUnlinkedConfiguredSensor(opcUaEntry);
 
             this.rowData.push(newRow);
             setTimeout(() => {
@@ -588,12 +488,38 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
             }, 0);
           }
 
-          if (sensor.ISO_CHANNEL) {
-            this.configuredIsoCodes.push(sensor.ISO_CHANNEL);
+          if (opcUaEntry.ISO_CHANNEL) {
+            this.configuredIsoCodes.push(opcUaEntry.ISO_CHANNEL);
           }
         }
       });
     }
+  }
+
+  createUnlinkedConfiguredSensor(opcUaEntry: OpcUaConfigModel): CanBusFlatData {
+    const d = new Date(opcUaEntry.CAL_DATE);
+    return {
+      id: opcUaEntry.ANCHOR,
+      anchor: opcUaEntry.ANCHOR,
+      deviceId: null,
+      isoCode: opcUaEntry.ISO_CHANNEL,
+      deviceUserId: null,
+      // sdaqSerial: serial,
+      type: opcUaEntry.INTERFACE_TYPE,
+      sensorUserId: null,
+      channelUnit: null,
+      minValue: +opcUaEntry.MIN,
+      maxValue: +opcUaEntry.MAX,
+      description: opcUaEntry.DESCRIPTION,
+      avgMeasurement: '-',
+      calibrationDate: d,
+      calibrationPeriod: opcUaEntry.CAL_PERIOD,
+      status: RowStatus.LinkedSensorNotPresent,
+      unavailable: true,
+      isVisible: true,
+      isMeasValid: null,
+      sensorUnit: null
+    };
   }
 
   saveOpcUaConfigs() {
@@ -605,20 +531,8 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     });
   }
 
-  toggleLinkedFilter(value: boolean) {
-    this.showLinked = value;
-  }
-
-  toggleUnlinkedFilter(value: boolean) {
-    this.showUnlinked = value;
-  }
-
-  toggleCan1Filter(value: boolean) {
-    this.showCan1 = value;
-  }
-
-  toggleCan2Filter(value: boolean) {
-    this.showCan2 = value;
+  toggleFilter(filters: FilterEvent[]) {
+    this.filters = filters;
   }
 
   toggleSidebar() {
