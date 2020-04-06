@@ -16,7 +16,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-
+define("usr_comp","COMMAND");
 $ramdisk_path="/mnt/ramdisk/";
 
 ob_start("ob_gzhandler");//Enable gzip buffering
@@ -30,7 +30,7 @@ if($requestType == "GET")
 {
 	if(array_key_exists("COMMAND", $_GET))
 	{
-		switch($_GET[COMMAND])
+		switch($_GET[usr_comp])
 		{
 			case "logstats":
 				if($logstats = array_diff(scandir($ramdisk_path), array('..', '.', 'Morfeas_Loggers')))
