@@ -49,10 +49,11 @@ if($requestType == "GET")
 					echo json_encode($logstats_combined);
 				}
 				break;
-			case "loggers": 
+			case "loggers":
 				if($loggers = array_diff(scandir($ramdisk_path . "Morfeas_Loggers"), array('..', '.')))
 				{
 					$loggers = array_values($loggers);// restore array order
+					$loggers_names = new stdClass();
 					$loggers_names->Logger_names = $loggers;
 					header('Content-Type: application/json');
 					echo json_encode($loggers_names);
