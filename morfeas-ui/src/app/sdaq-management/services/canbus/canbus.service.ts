@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { CanBusModel } from '../../models/can-model';
-import { Observable, of, forkJoin } from 'rxjs';
+import { Logstat } from '../../models/can-model';
+import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { CanBusFlatData } from '../../device-info-table/device-info-table.component';
@@ -15,6 +15,10 @@ import { ToastrService } from 'ngx-toastr';
 export class CanbusService {
   constructor(private readonly http: HttpClient, private readonly toastr: ToastrService) { }
 
+  getLogStatData(): Observable<Logstat[]> {
+    const url = environment.API_ROOT + '/sensors';
+    return this.http.get<Logstat[]>(url);
+    /*
   getLogStatData(): Observable<CanBusModel[]> {
     // TODO: temporary solution to a temporary problem, in the future the logstat will be from api i guess
     const url = environment.ROOT + '/ramdisk/';
@@ -23,12 +27,15 @@ export class CanbusService {
     const can1 = this.http.get<CanBusModel>(url + 'logstat_vcan1.json').pipe(
       catchError(this.handleCanbusError));
 
-    return forkJoin(can0, can1);
+    return forkJoin(can0, can1);*/
   }
 
   getIsoCodesByUnit(unit: string): Observable<IsoStandard[]> {
     const url = `${environment.API_ROOT}/get_iso_codes_by_unit`;
-    const params = new HttpParams().set('unit', unit);
+    let params = new HttpParams();
+    if (unit) {
+      params = new HttpParams().set('unit', unit);
+    }
     return this.http.get<IsoStandard[]>(url, { params });
   }
 

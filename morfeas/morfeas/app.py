@@ -2,21 +2,26 @@ import json
 import os
 import xml.dom.minidom
 import xmltodict
+import datetime as dt
 from dicttoxml import dicttoxml
 from typing import Dict
 from flask import Flask, send_from_directory, request, jsonify
+from flask_gzip import Gzip
 from typing import Dict
 from pathlib import Path
 from xml.parsers.expat import ExpatError
-from devices.devices import devices
+from devices.sensors import sensors
 from network_settings.network_settings import network_settings
 from logs.logs import logs
 from config.config import config
 from common.common import common
+from lxml import etree
 
 app = Flask(__name__)
+Gzip(app)
+
 app.config.from_json("../config.json", silent=False)
-app.register_blueprint(devices)
+app.register_blueprint(sensors)
 app.register_blueprint(network_settings)
 app.register_blueprint(logs)
 app.register_blueprint(config)
@@ -51,11 +56,14 @@ def save_opc_ua_configs():
     
     prettyxml = parse_xml(formatted_canbus_data)
 
+    dtd = etree.DTD(os.path.join(app.config['CONFIG_PATH'], 'Morfeas.dtd'))
+    etree_xml = etree.XML(prettyxml)
+
+    if(dtd.validate(etree_xml) == False):
+        return jsonify('OPC UA file validation against Morfeas.dtd failed'), 500
+
     if (prettyxml):
-        with open(
-            app.config['CONFIG_PATH'] + app.config['OPC_UA_CONFIG_FILE'], 
-            'w+'
-        ) as xml_file:
+        with open(os.path.join(app.config['CONFIG_PATH'], app.config['OPC_UA_CONFIG_FILE']), 'w+', encoding="utf-8") as xml_file:
             xml_file.write(prettyxml)
         return jsonify(success=True), 200
 
@@ -63,20 +71,18 @@ def save_opc_ua_configs():
 
 @app.route('/get_iso_codes_by_unit', methods=['GET'])
 def get_iso_codes_by_unit():
-    if (request.args.get('unit')):
-        unit = request.args.get('unit')
-        
-        all = read_xml_file(app.config['ISO_STANDARD_FILE'])
-        result = []
+    all = read_xml_file(app.config['ISO_STANDARD_FILE'])
+    result = []
 
-        for iso_code, props in all['root']['points'].items():
-            if  (unit == props['unit']):
-                item = dict()
-                item['iso_code'] = iso_code
-                item['attributes'] = props
-                result.append(item)
+    for iso_code, props in all['root']['points'].items():
+        result.append({'iso_code': iso_code, 'attributes': props})
+
+    unit = request.args.get('unit')
+    if not unit:
+        return jsonify(result)
     
-    return jsonify(result)
+    filteredResult = list(filter(lambda x: x.get('attributes').get('unit') is unit, result))
+    return jsonify(filteredResult)
 
 def parse_xml(data):
     sensor_item = lambda x: app.config['OPC_UA_XML_CHANNEL_ELEM']
@@ -107,36 +113,25 @@ def format_canbus_data(canbus_data):
     for row in canbus_data:
         sensor = {}
 
+        # TODO: Check what is required for valid OPC UA conf and validate.
+        # Show error in client if the input is not valid
         if ('isoCode' in row and row['isoCode'] is not None):
             sensor['ISO_CHANNEL'] = row['isoCode']
-
-            # TODO: to be dynamic, hard-coded for now - 10.01.2020
-            sensor['INTERFACE_TYPE'] = 'SDAQ'
-            
-            try:
-                if (row['sdaqSerial'] is not None and
-                    row['channelId'] is not None and
-                    row['description'] is not None and
-                    row['minValue'] is not None and
-                    row['maxValue'] is not None):
-                    sensor['ANCHOR'] = '{}.CH{}'.format(
-                        str(row['sdaqSerial']), 
-                        str(row['channelId'])
-                    )
-                    sensor['DESCRIPTION'] = row['description']
-                    sensor['MIN'] = row['minValue']
-                    sensor['MAX'] = row['maxValue']
-
-                    result.append(dict(sensor))
-            except KeyError:
-                print('One or more fields are empty/None')
-
-
+            sensor['INTERFACE_TYPE'] = row['type']
+            sensor['ANCHOR'] = row['anchor']
+            sensor['DESCRIPTION'] = row['description']
+            sensor['MIN'] = row['minValue']
+            sensor['MAX'] = row['maxValue']
+            sensor['UNIT'] = row['channelUnit']
+            if(sensor['INTERFACE_TYPE'] != 'SDAQ' and row['calibrationDate'] is not None):
+                sensor['CAL_DATE'] = dt.datetime.utcfromtimestamp(row['calibrationDate']).strftime("%Y/%m/%d")
+                sensor['CAL_PERIOD'] = row['calibrationPeriod']
+            result.append(dict(sensor))
     return result
 
 def read_xml_file(file_name):
     try: 
-        f = open(app.config['CONFIG_PATH'] + file_name)
+        f = open(os.path.join(app.config['CONFIG_PATH'], file_name))
         with f as xml_file:
             try:
                 data = xmltodict.parse(xml_file.read(), xml_attribs=False)

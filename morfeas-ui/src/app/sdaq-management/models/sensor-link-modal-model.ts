@@ -6,6 +6,7 @@ export interface SensorLinkModalSubmitModel {
 }
 
 export interface SensorLinkModalInitiateModel {
+    anchor: string;
     unit: string;
     configuredIsoCodes: string[];
     unlinked: boolean;
