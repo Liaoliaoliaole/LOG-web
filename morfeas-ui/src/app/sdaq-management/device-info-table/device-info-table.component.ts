@@ -84,6 +84,10 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
         let value = '-';
 
+        if (params.value instanceof Date && params.value.toString() === 'Invalid Date') {
+          return `<span>${value}</span>`;
+        }
+
         if (params.value && !(params.value instanceof Date)) {
           value = this.datePipe.transform(params.value * 1000, 'dd-MM-yyyy HH:mm:ss');
         } else if (params.value instanceof Date) {
