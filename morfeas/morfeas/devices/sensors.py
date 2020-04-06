@@ -9,7 +9,7 @@ sensors = Blueprint('sensors', __name__)
 
 @sensors.route('/sensors', methods=['GET'])
 def get_logstat_content():
-    path = current_app.config["CONFIG_PATH"]
+    path = current_app.config["RAMDISK_PATH"]
     content = dict()
     content['logstats_names'] = []
     content['logstat_contents'] = []
