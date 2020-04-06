@@ -1,13 +1,11 @@
 <div>
-  <div *ngFor="let details of canBusDetails">
+  <div *ngFor="let logstat of logstats">
     <div class="row extraPad">
-      <div class="m-1 font-weight-bold text-uppercase"><span>{{ details["CANBus-interface"] }}</span></div>
-      <div class="m-1"><span>Voltage: {{ details.BUS_voltage }}</span></div>
-      <div class="m-1"><span>Amperage: {{ details.BUS_amperage }}</span></div>
-      <div class="m-1"><span>Utilization: {{ details.BUS_Utilization }}</span></div>
-      <div class="m-1"><span>Detected SDAQs: {{ details.Detected_SDAQs }}</span></div>
-      <div class="m-1"><span>Build date:
-          {{ details.logstat_build_date_UNIX * 1000 | date:'dd-MM-yyyy HH:mm:ss' }}</span></div>
+      <div class="m-1 font-weight-bold text-uppercase"><span>{{ logstat.interface }}</span></div>
+      <div class="m-1" *ngFor="let connection of logstat.connections">
+        {{connection.name}}: {{connection.value}}{{connection.unit}} 
+      </div>
+      <div class="m-1"><span>Build date: {{ logstat.logstat_build_date_UNIX * 1000 | date:'dd-MM-yyyy HH:mm:ss' }}</span></div>
     </div>
   </div>
 </div>

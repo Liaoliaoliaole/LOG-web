@@ -13,15 +13,12 @@ import { SensorLinkModalInitiateModel, SensorLinkModalSubmitAction } from 'src/a
 export class SensorLinkModalComponent implements OnInit {
 
   @ViewChild('isoSelect', { static: false }) isoSelect: any;
-  @ViewChild('description', { static: false }) description: HTMLInputElement;
-  @ViewChild('min', { static: false }) min: HTMLInputElement;
-  @ViewChild('max', { static: false }) max: HTMLInputElement;
 
   options: ModalOptions;
   isoStandards: IsoStandard[];
   filteredIsoStandards: IsoStandard[];
   data: SensorLinkModalInitiateModel;
-  selectedIsoStandard: IsoStandard;
+  selectedIsoStandard: IsoStandard = new IsoStandard();
   dropdownIsoStandard: IsoStandard;
   error = '';
   searchTerm: string;
@@ -35,6 +32,7 @@ export class SensorLinkModalComponent implements OnInit {
 
   ngOnInit() {
     this.data = this.state.options.data;
+    this.selectedIsoStandard.attributes.unit = this.data.unit;
 
     this.canbusService.getIsoCodesByUnit(this.data.unit).subscribe(result => {
       if (
@@ -86,23 +84,6 @@ export class SensorLinkModalComponent implements OnInit {
   }
 
   link() {
-    if (!this.selectedIsoStandard) {
-
-      if (!this.searchTerm) {
-        return;
-      }
-
-      this.selectedIsoStandard = {
-        iso_code: this.searchTerm.trim(),
-        attributes: {
-          description: this.description.value ? this.description.value : '',
-          min: this.min.value ? this.description.value : '0',
-          max: this.max.value ? this.description.value : '0',
-          unit: '-'
-        }
-      };
-    }
-
     if (this.error.length > 0) {
       return;
     }
@@ -141,7 +122,7 @@ export class SensorLinkModalComponent implements OnInit {
     this.data.existingIsoStandard = null;
     this.error = '';
 
-    if (this.selectedIsoStandard) {
+    if (this.selectedIsoStandard.iso_code) {
       this.searchTerm = this.selectedIsoStandard.iso_code;
 
       const temp = Object.assign([], this.filteredIsoStandards);
@@ -188,7 +169,7 @@ export class SensorLinkModalComponent implements OnInit {
   onClose() {
     // TODO: maybe one day replace the library so we dont have to do this to keep the search in the search box
     setTimeout(() => {
-      if ((this.searchTerm && this.searchTerm.length > 0) || this.selectedIsoStandard) {
+      if ((this.searchTerm && this.searchTerm.length > 0) || (this.selectedIsoStandard && this.selectedIsoStandard.iso_code)) {
         this.isoSelect.searchInput.nativeElement.value = (this.searchTerm && this.searchTerm.length > 0)
           ? this.searchTerm : this.selectedIsoStandard.iso_code;
       }

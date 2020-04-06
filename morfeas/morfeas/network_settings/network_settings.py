@@ -11,7 +11,6 @@ from common.common import execute_command
 network_settings = Blueprint('network', __name__)
 
 @network_settings.route('/settings/network/hostname', methods=['GET'])
-
 def get_hostname():
     result = dict()
     
@@ -28,7 +27,6 @@ def get_hostname():
     return resultJSON, 200
 
 @network_settings.route('/settings/network/hostname', methods=['POST'])
-
 def save_hostname():
     h_data = request.get_json()
     current = ''
@@ -234,7 +232,7 @@ def get_network_settings():
     else:
         return resultJSON, 500
 
-@config.route('/server/reboot', methods=['POST'])
+@network_settings.route('/server/reboot', methods=['POST'])
 def morfeas_reboot():
     std = execute_command('sudo reboot')
 
@@ -243,7 +241,7 @@ def morfeas_reboot():
 
     return jsonify(Success=True), 200
 
-@config.route('/server/shutdown', methods=['POST'])
+@network_settings.route('/server/shutdown', methods=['POST'])
 def morfeas_shutdown():
     std = execute_command('sudo shutdown')
 

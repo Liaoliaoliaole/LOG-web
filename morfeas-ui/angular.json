@@ -31,7 +31,9 @@
               "node_modules/bootstrap/scss/bootstrap.scss",
               "src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [
+              "src/assets/js/morfeas_web_if.js"
+            ]
           },
           "configurations": {
             "production": {
