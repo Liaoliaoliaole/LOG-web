@@ -9,6 +9,7 @@ from flask import Blueprint, jsonify, Response
 from flask import current_app
 from flask import Flask, request, jsonify
 from common.common import execute_command
+from common.common import deep_get
 from lxml import etree
 
 config = Blueprint('config', __name__)
@@ -184,14 +185,15 @@ def get_morfeas_config():
 
     # as stated in the spec there should be only one app name
     # so lets hope there is only one app name
-    result['app_name'] = morfeas_config['CONFIG']['COMPONENTS']['OPC_UA_SERVER']['APP_NAME']
+    component_path = ['CONFIG', 'COMPONENTS']
+    result['app_name'] = deep_get(morfeas_config, *component_path,'OPC_UA_SERVER','APP_NAME')
 
     components = dict()
 
-    components['sdaq_handlers'] = morfeas_config['CONFIG']['COMPONENTS']['SDAQ_HANDLER']
-    components['mdaq_handlers'] = morfeas_config['CONFIG']['COMPONENTS']['MDAQ_HANDLER']
-    components['iobox_handlers'] = morfeas_config['CONFIG']['COMPONENTS']['IOBOX_HANDLER']
-    components['mti_handlers'] = morfeas_config['CONFIG']['COMPONENTS']['MTI_HANDLER']
+    components['sdaq_handlers'] = deep_get(morfeas_config, *component_path,'SDAQ_HANDLER')
+    components['mdaq_handlers'] = deep_get(morfeas_config, *component_path,'MDAQ_HANDLER')
+    components['iobox_handlers'] = deep_get(morfeas_config, *component_path,'IOBOX_HANDLER')
+    components['mti_handlers'] = deep_get(morfeas_config, *component_path,'MTI_HANDLER')
 
     result['components'] = components
 

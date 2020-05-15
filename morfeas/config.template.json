@@ -1,5 +1,5 @@
 {
-    "CONFIG_PATH": "/mnt/ramdisk/",
+    "CONFIG_PATH": "/home/pi/Morfeas_core/configuration/",
     "RAMDISK_PATH": "/mnt/ramdisk/",
     "OPC_UA_CONFIG_FILE": "OPC_UA_Config.xml",
     "ISO_STANDARD_FILE": "iso_standards.xml",
@@ -10,10 +10,8 @@
         "MIN_VALUE",
         "MAX_VALUE",
         "DESCRIPTION",
-        "INTERFACE_TYPE"
+        "INTERFACE_TYPE",
+        "UNIT"
     ],
-    "OPC_UA_XML_DOCTYPE": "<!DOCTYPE NODESet SYSTEM 'Morfeas.dtd'>",
-    "OPC_UA_XML_ROOT_ELEM": "NODESet",
-    "OPC_UA_XML_CHANNEL_ELEM": "CHANNEL",
     "DEBUG": false
 }

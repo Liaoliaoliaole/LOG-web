@@ -1,6 +1,15 @@
 # Morfeas Web
 
 ## Deploying the project
+
+### Deploy using install script
+
+DURING THE INSTALLATION THE TARGET DEVICE NEEDS TO BE CONNECTED TO THE INTERNET
+
+1. Download latest version from https://gitlab.com/fantomsam/morfeas_web/-/jobs/artifacts/master/download?job=build+prod
+2. Unzip the file `unzip artifacts.zip`
+3. Run the install.sh `bash install.sh`
+
 **Expects ramdisk to be found in /mnt/ramdisk/ and access rights to the folder to be correct**
 <!--
 ## Pre-requisites:
