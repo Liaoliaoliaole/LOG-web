@@ -25,14 +25,16 @@
             "aot": false,
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              {
+                "glob": "*",
+                "input": "../morfeas_web_if/",
+                "output": "morfeas_web_if/"
+              }
             ],
             "styles": [
               "node_modules/bootstrap/scss/bootstrap.scss",
               "src/styles.scss"
-            ],
-            "scripts": [
-              "src/assets/js/morfeas_web_if.js"
             ]
           },
           "configurations": {

@@ -32,8 +32,8 @@ def get_opc_ua_configs():
     opc_ua_configs = read_xml_file(app.config['OPC_UA_CONFIG_FILE'])
     
     if (opc_ua_configs):
-        if (opc_ua_configs[app.config['OPC_UA_XML_ROOT_ELEM']] is not None):
-            sensors = opc_ua_configs[app.config['OPC_UA_XML_ROOT_ELEM']][app.config['OPC_UA_XML_CHANNEL_ELEM']]
+        if (opc_ua_configs.get('NODESet') is not None):
+            sensors = opc_ua_configs.get('NODESet').get('CHANNEL')
             
             # Create a list if the config file contains only one configured sensor
             if (type(sensors) is not list or len(sensors) == 1):
@@ -57,7 +57,7 @@ def save_opc_ua_configs():
     prettyxml = parse_xml(formatted_canbus_data)
 
     dtd = etree.DTD(os.path.join(app.config['CONFIG_PATH'], 'Morfeas.dtd'))
-    etree_xml = etree.XML(prettyxml)
+    etree_xml = etree.XML(bytes(prettyxml, encoding='utf-8'))
 
     if(dtd.validate(etree_xml) == False):
         return jsonify('OPC UA file validation against Morfeas.dtd failed'), 500
@@ -85,10 +85,10 @@ def get_iso_codes_by_unit():
     return jsonify(filteredResult)
 
 def parse_xml(data):
-    sensor_item = lambda x: app.config['OPC_UA_XML_CHANNEL_ELEM']
+    sensor_item = lambda x: 'CHANNEL'
     xml_data = dicttoxml(
         data, 
-        custom_root=app.config['OPC_UA_XML_ROOT_ELEM'], 
+        custom_root='NODESet', 
         attr_type=False, 
         item_func=sensor_item
     ).decode('utf-8')
@@ -98,14 +98,10 @@ def parse_xml(data):
     if (position_to_add_doctype != -1):
         xml_data = \
             xml_data[:position_to_add_doctype+1] + \
-            app.config['OPC_UA_XML_DOCTYPE'] + \
+           "<!DOCTYPE NODESet SYSTEM 'Morfeas.dtd'>" + \
             xml_data[position_to_add_doctype+1:]
     
-    try: 
-        dom = xml.dom.minidom.parseString(xml_data)
-    except ExpatError:
-        return
-    return dom.toprettyxml() # format xml convention
+    return xml_data
 
 def format_canbus_data(canbus_data):
     result = []

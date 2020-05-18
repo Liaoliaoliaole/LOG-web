@@ -35,7 +35,7 @@ build prod:
     paths:
         - morfeas-ui/dist/morfeas-web/
         - morfeas/
-        - update.sh
+        - install.sh
 
 unit test:
   image: zenika/alpine-chrome:with-node

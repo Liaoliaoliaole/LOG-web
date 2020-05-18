@@ -1,4 +1,5 @@
 import subprocess
+import functools
 from flask import Blueprint
 
 common = Blueprint('common', __name__)
@@ -23,3 +24,7 @@ def execute_command(command):
     except Exception as e:
         returnvalue['stderr'] = str(e)
         return returnvalue
+
+# Get the dictionary values safely, returns null if not found
+def deep_get(dictionary, *keys):
+    return functools.reduce(lambda d, key: d.get(key, None) if isinstance(d, dict) else None, keys, dictionary)
