@@ -21,7 +21,7 @@
                 <div class="input-box">
                     <div class="input-inner-box">
                         <ng-select required name="SDAQselect{{index}}" id="SDAQselect{{index}}" [items]="options"
-                            bindLabel="CANBUS_IF" [(ngModel)]="sdaqComponents[index]" [multiple]="false">
+                            bindLabel="CANBUS_IF" [(ngModel)]="sdaqComponents[index].CANBUS_IF" [multiple]="false">
                         </ng-select>
                     </div>
                     <div class="button-inner-box">
