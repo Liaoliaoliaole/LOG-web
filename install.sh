@@ -72,7 +72,7 @@ SUDOERS_FILE_CONTENT="Cmnd_Alias ALLOW_PASSWORDLESS = /bin/systemctl restart net
                                 /bin/systemctl restart systemd-timesyncd.service,\
                                 /bin/systemctl restart Morfeas_system.service,\
                                 /bin/hostname,\
-                                /sbin/shutdown,\
+                                /sbin/poweroff,\
                                 /sbin/reboot
 
 www-data ALL = (ALL) NOPASSWD: ALLOW_PASSWORDLESS

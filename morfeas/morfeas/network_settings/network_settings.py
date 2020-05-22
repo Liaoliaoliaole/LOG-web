@@ -243,7 +243,7 @@ def morfeas_reboot():
 
 @network_settings.route('/server/shutdown', methods=['POST'])
 def morfeas_shutdown():
-    std = execute_command('sudo shutdown')
+    std = execute_command('sudo poweroff')
 
     if(std['stderr'] != ""):
         return jsonify(std['stderr']), 500
