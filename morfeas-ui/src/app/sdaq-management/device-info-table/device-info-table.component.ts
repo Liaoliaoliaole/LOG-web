@@ -115,6 +115,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   pause = false;
   configuredIsoCodes: string[] = [];
   connectionNames: string[] = [];
+  ifNames: string[] = [];
 
   showLinked = true;
   showUnlinked = true;
@@ -122,6 +123,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   filters: FilterEvent[] = [];
   showUnsaved = false;
   showSidebar = false;
+  showAllComponents = false;
 
   gridOptions: GridOptions = {
     defaultColDef: {
@@ -161,6 +163,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   };
 
   modules = AllCommunityModules;
+
   constructor(
     private readonly canbusService: CanbusService,
     private readonly modalService: ModalService,
@@ -388,6 +391,11 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     this.logstats = logstats;
     this.connectionNames = logstats.map(x => x.if_name);
 
+    if (this.ifNames !== this.connectionNames) {
+      this.ifNames = [];
+      this.ifNames = this.connectionNames;
+    }
+
     let newData = [];
     logstats.forEach(logstat => {
 
@@ -606,5 +614,9 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 
   clearFilters() {
     this.gridOptions.api.setFilterModel(null);
+  }
+
+  allComponents() {
+    this.showAllComponents = !this.showAllComponents;
   }
 }

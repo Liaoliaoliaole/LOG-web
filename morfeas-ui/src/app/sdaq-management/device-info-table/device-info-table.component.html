@@ -1,6 +1,6 @@
 <div class="app-flex">
   <div class="row app-header">
-    <div class="align-self-center p-3 m-auto" style="width:100%">
+    <div class="align-self-center pt-3 px-3 pb-1 m-auto" style="width:100%">
       <div class="col-lg col-md-12 top-right" style="width:100%">
         <div class="sidebar-icon" style="margin-right: 10px;" (click)="toggleSidebar()">
           <img class="sidebar-icon" src="../../../assets/menu.svg">
@@ -14,8 +14,11 @@
         <div class="sidebar-icon" style="margin-right: auto;" (click)="toggleFileModal()">
           <img class="sidebar-icon" src="../../../assets/download.svg">
         </div>
-        <app-canbus-details-bar class="sidebar-details" [logstats]="logstats"></app-canbus-details-bar>
+        <app-canbus-details-bar class="sidebar-details" [logstats]="logstats" [ifNames]="ifNames"
+          [showAllComponents]="showAllComponents">
+        </app-canbus-details-bar>
         <div style="margin-left: auto;">
+          <button class="btn btn-secondary p-3 btn-flat clear" (click)="allComponents()">All Components</button>
           <button class="btn btn-secondary p-3 btn-flat clear" (click)="clearFilters()">Clear filters</button>
         </div>
         <div style="margin-left: 10px;" *ngIf="showUnsaved">

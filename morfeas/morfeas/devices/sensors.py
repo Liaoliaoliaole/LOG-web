@@ -15,7 +15,7 @@ def get_logstat_content():
     content['logstat_contents'] = []
     logstatFiles = [f for f in listdir(path) if isfile(join(path, f))]
     for logstatFile in logstatFiles:
-        with open(join(path, logstatFile), 'r', encoding="us-ascii") as logstatJsonFile:
+        with open(join(path, logstatFile), 'r', encoding="utf-8") as logstatJsonFile:
             if "logstat" in logstatFile:
                 content['logstats_names'].append(logstatFile)
                 content['logstat_contents'].append(json.load(logstatJsonFile))
