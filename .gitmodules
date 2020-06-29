@@ -1,0 +1,3 @@
+[submodule "morfeas_web_if/pecl-dbus"]
+	path = morfeas_web_if/pecl-dbus
+	url = https://github.com/derickr/pecl-dbus.git
