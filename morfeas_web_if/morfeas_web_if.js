@@ -232,7 +232,7 @@ function morfeas_logstat_commonizer(logstats)
 																				  logstats.logstat_contents[i].Electrics.BUS_Shunt_Res_temp, "°C"));
 				}
 				//Load Device's sensors
-				if(logstats.logstat_contents[i].SDAQs_data.length)
+				if(logstats.logstat_contents[i].Detected_SDAQs)
 				{
 					for(let j=0; j<logstats.logstat_contents[i].SDAQs_data.length; j++)
 					{
