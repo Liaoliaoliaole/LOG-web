@@ -56,9 +56,10 @@ def save_opc_ua_configs():
     
     prettyxml = parse_xml(formatted_canbus_data)
 
-    dtd = etree.DTD(os.path.join(app.config['CONFIG_PATH'], 'Morfeas.dtd'))
-    etree_xml = etree.XML(bytes(prettyxml, encoding='utf-8'))
+    with open(os.path.join(app.config['CONFIG_PATH'], 'Morfeas.dtd')) as dtdFile:
+        dtd = etree.DTD(dtdFile)
 
+    etree_xml = etree.XML(bytes(prettyxml, encoding='utf-8'))
     if(dtd.validate(etree_xml) == False):
         return jsonify('OPC UA file validation against Morfeas.dtd failed'), 500
 
@@ -81,7 +82,7 @@ def get_iso_codes_by_unit():
     if not unit:
         return jsonify(result)
     
-    filteredResult = list(filter(lambda x: x.get('attributes').get('unit') is unit, result))
+    filteredResult = list(filter(lambda x: x.get('attributes').get('unit') == unit, result))
     return jsonify(filteredResult)
 
 def parse_xml(data):
@@ -127,7 +128,7 @@ def format_canbus_data(canbus_data):
 
 def read_xml_file(file_name):
     try: 
-        f = open(os.path.join(app.config['CONFIG_PATH'], file_name))
+        f = open(os.path.join(app.config['CONFIG_PATH'], file_name), encoding='utf-8')
         with f as xml_file:
             try:
                 data = xmltodict.parse(xml_file.read(), xml_attribs=False)

@@ -9,7 +9,18 @@ import { Logstat } from '../sdaq-management/models/can-model';
 })
 export class CanbusDetailsBarComponent {
   @Input() logstats: Logstat[];
+  @Input() ifNames: string[];
+  @Input() showAllComponents: boolean;
+
+  toggledLogstats = [];
 
   constructor() { }
 
+  toggleComponent(name: any) {
+    if (this.toggledLogstats.includes(name)) {
+      this.toggledLogstats.splice(this.toggledLogstats.indexOf(name), 1);
+    } else {
+      this.toggledLogstats.push(name);
+    }
+  }
 }

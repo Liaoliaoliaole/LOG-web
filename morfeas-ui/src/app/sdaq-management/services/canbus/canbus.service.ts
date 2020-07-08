@@ -18,22 +18,12 @@ export class CanbusService {
   getLogStatData(): Observable<Logstat[]> {
     const url = environment.API_ROOT + '/sensors';
     return this.http.get<Logstat[]>(url);
-    /*
-  getLogStatData(): Observable<CanBusModel[]> {
-    // TODO: temporary solution to a temporary problem, in the future the logstat will be from api i guess
-    const url = environment.ROOT + '/ramdisk/';
-    const can0 = this.http.get<CanBusModel>(url + 'logstat_vcan0.json').pipe(
-      catchError(this.handleCanbusError));
-    const can1 = this.http.get<CanBusModel>(url + 'logstat_vcan1.json').pipe(
-      catchError(this.handleCanbusError));
-
-    return forkJoin(can0, can1);*/
   }
 
   getIsoCodesByUnit(unit: string): Observable<IsoStandard[]> {
     const url = `${environment.API_ROOT}/get_iso_codes_by_unit`;
     let params = new HttpParams();
-    if (unit) {
+    if (unit && unit !== '-') {
       params = new HttpParams().set('unit', unit);
     }
     return this.http.get<IsoStandard[]>(url, { params });
@@ -50,23 +40,12 @@ export class CanbusService {
 
   saveOpcUaConfigs(canbusData: CanBusFlatData[]): Observable<void> {
     const url = `${environment.API_ROOT}/save_opc_ua_configs`;
-    const httpHeaders = new HttpHeaders({
+    const headers = new HttpHeaders({
       'Content-Type': 'application/json',
     });
-    const options = {
-      headers: httpHeaders
-    };
 
-    // NOTE: uncomment this after linking sensors with isocodes has been implemented.
-    // canbusData = canbusData.filter(sensor => {
-    //   return (sensor.isoCode);
-    // });
 
-    return this.http.post<void>(url, JSON.stringify(canbusData), options);
-  }
-
-  generateAnchor(sdaqSerial: number, channelNumber: number) {
-    return sdaqSerial + '.CH' + channelNumber;
+    return this.http.post<void>(url, JSON.stringify(canbusData), {headers});
   }
 
   private handleCanbusError = (error) => {

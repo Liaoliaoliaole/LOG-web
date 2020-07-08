@@ -152,6 +152,25 @@ function morfeas_logstat_commonizer(logstats)
 				else
 					data_table[data_table_index].sensors = null;
 			}
+			else if(logstats.logstats_names[i].includes("logstat_MTI"))//Morfeas_MTI_if handlers
+			{
+				data_table[data_table_index] = new table_data_entry();
+				//Load IF_name and build_date
+				data_table[data_table_index].if_name = "MTI";
+				data_table[data_table_index].logstat_build_date_UNIX = logstats.logstat_contents[i].logstat_build_date_UNIX;
+				//Load Device's status
+				data_table[data_table_index].connections.push(new connection("Dev_name", logstats.logstat_contents[i].Dev_name));
+				data_table[data_table_index].connections.push(new connection("IPv4_address", logstats.logstat_contents[i].IPv4_address));
+				data_table[data_table_index].connections.push(new connection("Identifier", logstats.logstat_contents[i].Identifier));
+				data_table[data_table_index].connections.push(new connection("Connection_status", logstats.logstat_contents[i].Connection_status));
+				//Load Device's sensors
+				if(logstats.logstat_contents[i].Connection_status === "Okay")
+				{
+					
+				}
+				else
+					data_table[data_table_index].sensors = null;
+			}
 			else if(logstats.logstats_names[i].includes("logstat_IOBOX"))//Morfeas_IOBOX_if handlers
 			{
 				data_table[data_table_index] = new table_data_entry();
@@ -213,7 +232,7 @@ function morfeas_logstat_commonizer(logstats)
 																				  logstats.logstat_contents[i].Electrics.BUS_Shunt_Res_temp, "°C"));
 				}
 				//Load Device's sensors
-				if(logstats.logstat_contents[i].SDAQs_data.length)
+				if(logstats.logstat_contents[i].Detected_SDAQs)
 				{
 					for(let j=0; j<logstats.logstat_contents[i].SDAQs_data.length; j++)
 					{

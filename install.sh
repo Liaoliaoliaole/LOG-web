@@ -39,6 +39,15 @@ function update_assets() {
     sudo chmod 775 "$MORFEAS_RAMDISK_PATH" -R
     sudo chmod 775 "$MORFEAS_CONFIG_FOLDER" -R
 
+    echo "Creating apache2 config.."
+    echo "$APACHE_MORFEAS_CONFIG" | sudo tee /etc/apache2/sites-available/morfeas_web.conf
+
+    echo "Give write privileges to 'other' for Interface, timesyncd.conf, hostname and hosts"
+    sudo chmod o+rw /etc/network/interfaces /etc/systemd/timesyncd.conf /etc/hostname /etc/hosts
+
+    echo "Writing sudoers file..."
+    echo "$SUDOERS_FILE_CONTENT" | sudo EDITOR='tee -a' visudo -f /etc/sudoers.d/Morfeas_web_allow
+
     echo "Restart apache.."
     sudo systemctl restart apache2
 }
@@ -63,7 +72,7 @@ SUDOERS_FILE_CONTENT="Cmnd_Alias ALLOW_PASSWORDLESS = /bin/systemctl restart net
                                 /bin/systemctl restart systemd-timesyncd.service,\
                                 /bin/systemctl restart Morfeas_system.service,\
                                 /bin/hostname,\
-                                /usr/sbin/poweroff,\
+                                /sbin/poweroff,\
                                 /sbin/reboot
 
 www-data ALL = (ALL) NOPASSWD: ALLOW_PASSWORDLESS
@@ -99,7 +108,7 @@ MORFEAS_WEB_CONFIG_JSON='{
     "CONFIG_PATH": "'"$MORFEAS_CONFIG_FOLDER"'",
     "RAMDISK_PATH": "'"$MORFEAS_RAMDISK_PATH"'",
     "OPC_UA_CONFIG_FILE": "OPC_UA_Config.xml",
-    "ISO_STANDARD_FILE": "iso_standards.xml",
+    "ISO_STANDARD_FILE": "ISOstandards.xml",
     "MORFEAS_CONFIG_FILE": "Morfeas_config.xml",
     "OPC_UA_REQUIRED_FIELDS": [
         "ISO_CODE",
@@ -130,18 +139,10 @@ update_assets
 echo "Add www-data user to your group"
 sudo usermod -aG $USER www-data
 
-echo "Creating apache2 config.."
-echo "$APACHE_MORFEAS_CONFIG" | sudo tee /etc/apache2/sites-available/morfeas_web.conf
 # Enable wsgi module
 sudo a2enmod wsgi
 # Disable default config, enable morfeas config
 sudo a2dissite 000-default.conf && sudo a2ensite morfeas_web.conf
-
-echo "Give write privileges to 'other' for Interface, timesyncd.conf, hostname and hosts"
-sudo chmod o+rw /etc/network/interfaces /etc/systemd/timesyncd.conf /etc/hostname /etc/hosts
-
-echo "Writing sudoers file..."
-echo "$SUDOERS_FILE_CONTENT" | sudo EDITOR='tee -a' visudo
 
 sudo systemctl restart apache2
 
