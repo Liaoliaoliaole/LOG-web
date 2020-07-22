@@ -50,3 +50,6 @@ morfeas/venv
 __pycache__/
 .vscode/
 morfeas/config.json
+
+# submodules 
+morfeas_web_if/pecl-dbus
