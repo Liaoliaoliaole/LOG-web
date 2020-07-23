@@ -28,18 +28,19 @@ if($requestType == "POST")
 {
 	if(!isset($_POST["arg"]))
 	{
-		echo "No Argument";
+		echo "Morfeas_DBUS_proxy: No Argument";
 		exit();
 	} 
-	$arg = json_decode($_POST["arg"], false) or die("Parsing of request's argument Failed!!!");
+	$arg = json_decode($_POST["arg"], false) or die("Morfeas_DBUS_proxy:Parsing of request's argument Failed");
 	if(property_exists($arg, "handler_type") && property_exists($arg, "dev_name") && property_exists($arg, "method") && property_exists($arg, "contents"))
 	{
 		$dbus = new Dbus(Dbus::BUS_SYSTEM, false);
 		//$dbus->waitLoop(1);
 		$Bus_name = "org.freedesktop.Morfeas.".$arg->handler_type .".".$arg->dev_name;
 		$Interface = "Morfeas.".$arg->handler_type .".".$arg->dev_name;
-		$proxy = $dbus->createProxy($Bus_name, "/", $Interface); 	
-		eval("echo \$proxy->" . $arg->method . "(\"" . $arg->contents . "\");");
+		$proxy = $dbus->createProxy($Bus_name, "/", $Interface);
+		$contents_str = str_replace("\"", "\\\"", json_encode($arg->contents));
+		eval("echo \$proxy->". $arg->method ."(\"".$contents_str."\");");
 	}
 	else
 		echo "Argument Error!!!";
