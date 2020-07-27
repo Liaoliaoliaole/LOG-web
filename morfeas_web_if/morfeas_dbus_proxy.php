@@ -16,11 +16,14 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+$requestType = $_SERVER['REQUEST_METHOD'];
 $ans;
 function shutdown()
 {
-    global $ans;
-	if(!$ans)
+    global $ans, $requestType;
+	if($requestType == "GET")
+		echo 'GET request not supported!!!';
+	else if(!$ans)
 		echo 'Morfeas_DBUS_proxy: Exit with Error';
 }
 
@@ -32,7 +35,6 @@ header('Expires: 0');
 
 register_shutdown_function('shutdown');
 
-$requestType = $_SERVER['REQUEST_METHOD'];
 if($requestType == "POST")
 {
 	if(!isset($_POST["arg"]))
