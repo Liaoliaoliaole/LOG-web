@@ -16,12 +16,23 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+$ans;
+function shutdown()
+{
+    global $ans;
+	if(!$ans)
+		echo 'Morfeas_DBUS_proxy: Exit with Error';
+}
+
+
 
 ob_start("ob_gzhandler");//Enable gzip buffering
 //Disable caching
 header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
 header('Expires: 0');
+
+register_shutdown_function('shutdown');
 
 $requestType = $_SERVER['REQUEST_METHOD'];
 if($requestType == "POST")
@@ -31,7 +42,7 @@ if($requestType == "POST")
 		echo "Morfeas_DBUS_proxy: No Argument";
 		exit();
 	} 
-	$arg = json_decode($_POST["arg"], false) or die("Morfeas_DBUS_proxy:Parsing of request's argument Failed");
+	$arg = json_decode($_POST["arg"], false) or die("Morfeas_DBUS_proxy: Parsing of request's argument Failed");
 	if(property_exists($arg, "handler_type") && property_exists($arg, "dev_name") && property_exists($arg, "method") && property_exists($arg, "contents"))
 	{
 		$dbus = new Dbus(Dbus::BUS_SYSTEM, false);
@@ -40,7 +51,8 @@ if($requestType == "POST")
 		$Interface = "Morfeas.".$arg->handler_type .".".$arg->dev_name;
 		$proxy = $dbus->createProxy($Bus_name, "/", $Interface);
 		$contents_str = str_replace("\"", "\\\"", json_encode($arg->contents));
-		eval("echo \$proxy->". $arg->method ."(\"".$contents_str."\");");
+		eval("\$ans= \$proxy->". $arg->method ."(\"".$contents_str."\");");
+		echo $ans;
 	}
 	else
 		echo "Argument Error!!!";
