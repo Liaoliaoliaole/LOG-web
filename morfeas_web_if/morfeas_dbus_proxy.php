@@ -24,8 +24,6 @@ function shutdown()
 		echo 'Morfeas_DBUS_proxy: Exit with Error';
 }
 
-
-
 ob_start("ob_gzhandler");//Enable gzip buffering
 //Disable caching
 header('Cache-Control: no-cache, no-store, must-revalidate');
