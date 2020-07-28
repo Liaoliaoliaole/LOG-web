@@ -163,6 +163,8 @@ function morfeas_logstat_commonizer(logstats)
 				data_table[data_table_index].connections.push(new connection("IPv4_address", logstats.logstat_contents[i].IPv4_address));
 				data_table[data_table_index].connections.push(new connection("Identifier", logstats.logstat_contents[i].Identifier));
 				data_table[data_table_index].connections.push(new connection("Connection_status", logstats.logstat_contents[i].Connection_status));
+				data_table[data_table_index].connections.push(new connection("Radio_mode", logstats.logstat_contents[i].MTI_status.Tele_Device_type));
+				data_table[data_table_index].connections.push(new connection("Frequency", logstats.logstat_contents[i].MTI_status.Radio_CH+2400));
 				//Load Device's sensors
 				if(logstats.logstat_contents[i].Connection_status === "Okay")
 				{
