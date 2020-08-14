@@ -218,7 +218,7 @@ function morfeas_logstat_commonizer(logstats)
 										(
 											"MTI",
 											logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
-											logstats.logstat_contents[i].MTI_status.Tele_Device_type+".CH"+(j+1),
+											logstats.logstat_contents[i].Tele_data[j].Dev_type+"(ID:"+logstats.logstat_contents[i].Tele_data[j].Dev_ID+").CH"+(k+1),
 											logstats.logstat_contents[i].Identifier+".ID:"+logstats.logstat_contents[i].Tele_data[j].Dev_ID+"."+"CH"+(k+1),
 											"°C",null,null,
 											logstats.logstat_contents[i].Tele_data[j].CHs_meas[k],
