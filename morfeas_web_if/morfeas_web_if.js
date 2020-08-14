@@ -127,11 +127,10 @@ function morfeas_logstat_commonizer(logstats)
 				data_table[data_table_index].connections.push(new connection("IPv4_address", logstats.logstat_contents[i].IPv4_address));
 				data_table[data_table_index].connections.push(new connection("Identifier", logstats.logstat_contents[i].Identifier));
 				data_table[data_table_index].connections.push(new connection("Connection_status", logstats.logstat_contents[i].Connection_status));
-				data_table[data_table_index].connections.push(new connection("Index", logstats.logstat_contents[i].Index));
-				data_table[data_table_index].connections.push(new connection("Board_temp", logstats.logstat_contents[i].Board_temp, "°C"));
 				//Load Device's sensors
 				if(logstats.logstat_contents[i].MDAQ_Channels !== undefined)
 				{
+					data_table[data_table_index].connections.push(new connection("Board_temp", logstats.logstat_contents[i].Board_temp, "°C"));
 					for(let j=0; j<logstats.logstat_contents[i].MDAQ_Channels.length; j++)
 					{	
 						for(let k=1; k<=3; k++)//limit to 3] 
@@ -163,12 +162,73 @@ function morfeas_logstat_commonizer(logstats)
 				data_table[data_table_index].connections.push(new connection("IPv4_address", logstats.logstat_contents[i].IPv4_address));
 				data_table[data_table_index].connections.push(new connection("Identifier", logstats.logstat_contents[i].Identifier));
 				data_table[data_table_index].connections.push(new connection("Connection_status", logstats.logstat_contents[i].Connection_status));
-				data_table[data_table_index].connections.push(new connection("Radio_mode", logstats.logstat_contents[i].MTI_status.Tele_Device_type));
-				data_table[data_table_index].connections.push(new connection("Frequency", logstats.logstat_contents[i].MTI_status.Radio_CH+2400));
 				//Load Device's sensors
 				if(logstats.logstat_contents[i].Connection_status === "Okay")
 				{
-					
+					data_table[data_table_index].connections.push(new connection("CPU_temp", logstats.logstat_contents[i].MTI_status.MTI_CPU_temp, "°C"));
+					data_table[data_table_index].connections.push(new connection("Battery state", logstats.logstat_contents[i].MTI_status.MTI_charge_status));
+					if(logstats.logstat_contents[i].MTI_status.MTI_charge_status !== "Charging" && logstats.logstat_contents[i].MTI_status.MTI_charge_status !== "Full")
+						data_table[data_table_index].connections.push(new connection("Battery capacity", logstats.logstat_contents[i].MTI_status.MTI_batt_capacity));
+					data_table[data_table_index].connections.push(new connection("Radio_mode", logstats.logstat_contents[i].MTI_status.Tele_Device_type));
+					data_table[data_table_index].connections.push(new connection("RF Channel", logstats.logstat_contents[i].MTI_status.Radio_CH));
+					if(logstats.logstat_contents[i].MTI_status.Tele_Device_type !== "RMSW/MUX")
+					{
+						switch(logstats.logstat_contents[i].MTI_status.Tele_Device_type)
+						{
+							case "TC16":
+								lim=16;//limit to 16], max amount of channels on a TC16 Telemetry.
+								break;
+							case "TC8":
+								lim=8;//limit to 8], max amount of channels on a TC8 Telemetry.
+								break;
+							case "TC4":
+								lim=4;//limit to 4], max amount of channels on a TC4 Telemetry.
+								break;
+							case "QUAD":
+								lim=2;//limit to 2], max amount of channels on a Quadrature counter Telemetry.
+								break;
+							default: lim=0; data_table[data_table_index].sensors = null;
+						}
+						for(let j=0; j<lim; j++)
+						{
+							if(logstats.logstat_contents[i].Tele_data.CHs[j] !=="No sensor")
+								data_table[data_table_index].sensors.push(new sensor
+								(
+									"MTI",
+									logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
+									logstats.logstat_contents[i].MTI_status.Tele_Device_type+".CH"+(j+1),
+									logstats.logstat_contents[i].Identifier+"."+logstats.logstat_contents[i].MTI_status.Tele_Device_type+"."+"CH"+(j+1),
+									lim!==2?"°C":"",null,null,
+									logstats.logstat_contents[i].Tele_data.CHs[j],
+									logstats.logstat_contents[i].Tele_data.IsValid
+								));
+						}
+					}
+					else if(logstats.logstat_contents[i].MTI_status.Tele_Device_type === "RMSW/MUX")
+					{
+						for(let j=0; j<logstats.logstat_contents[i].Tele_data.length; j++)
+						{
+							if(logstats.logstat_contents[i].Tele_data[j].Dev_type === "Mini_RMSW")
+							{
+								for(let k=0; k<4; k++)
+								{									
+									if(logstats.logstat_contents[i].Tele_data[j].CHs_meas[k] !== "No sensor")
+									{
+										data_table[data_table_index].sensors.push(new sensor
+										(
+											"MTI",
+											logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
+											logstats.logstat_contents[i].MTI_status.Tele_Device_type+".CH"+(j+1),
+											logstats.logstat_contents[i].Identifier+".ID:"+logstats.logstat_contents[i].Tele_data[j].Dev_ID+"."+"CH"+(k+1),
+											"°C",null,null,
+											logstats.logstat_contents[i].Tele_data[j].CHs_meas[k],
+											true
+										));
+									}
+								}
+							}
+						}
+					}
 				}
 				else
 					data_table[data_table_index].sensors = null;
@@ -240,18 +300,21 @@ function morfeas_logstat_commonizer(logstats)
 					{
 						for(let k=0; k<logstats.logstat_contents[i].SDAQs_data[j].Meas.length; k++)
 						{
-							data_table[data_table_index].sensors.push(new sensor
-							(
-								"SDAQ",
-								logstats.logstat_contents[i].SDAQs_data[j].SDAQ_type,
-								"ADDR:"+logstats.logstat_contents[i].SDAQs_data[j].Address+".CH"+logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,
-								logstats.logstat_contents[i].SDAQs_data[j].Serial_number+".CH"+logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,
-								logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Unit,
-								logstats.logstat_contents[i].SDAQs_data[j].Calibration_Data[k].Calibration_date_UNIX,
-								logstats.logstat_contents[i].SDAQs_data[j].Calibration_Data[k].Calibration_period,
-								logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Meas_avg,
-								!logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Channel_status_val
-							));
+							if(!logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Channel_status_val)
+							{
+								data_table[data_table_index].sensors.push(new sensor
+								(
+									"SDAQ",
+									logstats.logstat_contents[i].SDAQs_data[j].SDAQ_type,
+									"ADDR:"+logstats.logstat_contents[i].SDAQs_data[j].Address+".CH"+logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,
+									logstats.logstat_contents[i].SDAQs_data[j].Serial_number+".CH"+logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,
+									logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Unit,
+									logstats.logstat_contents[i].SDAQs_data[j].Calibration_Data[k].Calibration_date_UNIX,
+									logstats.logstat_contents[i].SDAQs_data[j].Calibration_Data[k].Calibration_period,
+									logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Meas_avg,
+									!logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Channel_status_val
+								));
+							}
 						}
 					}
 				}
