@@ -1,16 +1,16 @@
 # compiled output
-morfeas-ui/dist
-morfeas-ui/tmp
-morfeas-ui/out-tsc
+**/morfeas-ui/dist
+**/morfeas-ui/tmp
+**/morfeas-ui/out-tsc
 # Only exists if Bazel was run
-morfeas-ui/bazel-out
+**/morfeas-ui/bazel-out
 
 # dependencies
-morfeas-ui/node_modules
+**/node_modules
 
 # profiling files
-morfeas-ui/chrome-profiler-events*.json
-morfeas-ui/speed-measure-plugin*.json
+**/morfeas-ui/chrome-profiler-events*.json
+**/morfeas-ui/speed-measure-plugin*.json
 
 # IDEs and editors
 /.idea
@@ -42,7 +42,7 @@ morfeas-ui/typings
 # System Files
 .DS_Store
 Thumbs.db
-*.cache
+**/.cache
 
 # Python
 morfeas/venv
