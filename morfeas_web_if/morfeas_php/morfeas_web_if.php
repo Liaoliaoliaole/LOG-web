@@ -75,8 +75,10 @@ if($requestType == "GET")
 						header('Content-Type: application/json');
 						echo json_encode($loggers_names);
 				}
-				break;
+				break;			
 		}
+		return;
 	}
+	http_response_code(404);
 }
 ?>
