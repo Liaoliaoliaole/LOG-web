@@ -16,7 +16,7 @@ export class CanbusService {
   constructor(private readonly http: HttpClient, private readonly toastr: ToastrService) { }
 
   getLogStatData(): Observable<Logstat[]> {
-    const url = environment.API_ROOT + '/sensors';
+    const url = environment.API_ROOT + '?COMMAND=logstats';
     return this.http.get<Logstat[]>(url);
   }
 
