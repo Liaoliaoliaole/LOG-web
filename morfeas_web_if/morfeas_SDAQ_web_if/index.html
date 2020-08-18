@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<link rel="shortcut icon" type="image/x-icon" href="/icons/Morfeas_logo_yellow.ico"/>
+<title>Morfeas SDAQ Portal</title>
+</head>
+<body>
+<table id ="loggers" style="margin:left;">
+  <tr>
+	<td colspan="4"><code id="Logger_terminal"></code></td>
+  </tr>
+  <tr>
+	<td style="text-align:left;"><input id="download" type="button" value="Reload Logger names" 
+		onclick="request_mode = mode_enum.Loggers_name;">
+	</td>
+	<td style="text-align:right;">SDAQnet:
+		<select id="logger_select" onchange="request_mode = 1;">
+			<option value='0'>None</option>
+		</select>
+	</td>
+  </tr>
+</table>
+<table id ="main_menu" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;">
+  <tr>
+    <th colspan="5" style="font-size: 200%;">Morfeas SDAQ WEB Portal</th>
+  </tr>
+  <tr>
+	<td colspan="4">Status<br><input id="status" style="text-align:center;" type="textbox" size="20" value="Okay" readonly></td>
+  </tr>
+  <tr>
+    <th colspan="4" style="font-size: 120%;">Main Menu</th>
+  </tr>
+  <tr>
+	<td><input type="button" value="Sensors" onclick='Show_hide(screen_enum.Logstats);display_mode=mode_enum_L2.Sensors;'></td>
+	<td><input type="button" value="Details" onclick='Show_hide(screen_enum.Logstats);display_mode=mode_enum_L2.Details;'></td>
+	<td><input type="button" value="System logs" onclick='Show_hide(screen_enum.Loggers)'></td> 
+  </tr>
+</table>
+
+<!-- Loggers -->
+<table id ="loggers" style="margin:auto;">
+  <tr>
+	<td colspan="4"><code id="Logger_terminal"></code></td>
+  </tr>
+  <tr>
+	<td style="text-align:left;"><input id="download" type="button" value="Reload Logger names" 
+		onclick="request_mode = mode_enum.Loggers_name;">
+	</td>
+	<td style="text-align:right;">Logger:
+		<select id="logger_select" onchange="request_mode = 1;">
+			<option value='0'>None</option>
+		</select>
+	</td>
+  </tr>
+</table>
+
+<!-- Logstats -->
+<div id ="logstats_disp" style="margin:auto; display: none;">
+</div>
+</body>
+<script src='../morfeas_ecma/morfeas_web_if.js'></script>
