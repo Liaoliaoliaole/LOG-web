@@ -17,17 +17,20 @@ input.global_style{
 </style>
 </head>
 <body>
-<table style="margin:auto">
+<table style="margin:auto;text-align:center;margin-bottom:.075in;width:7in;">
   <tr>
     <th colspan="4" style="font-weight: bold; font-size: xx-large">Morfeas WEB</th>
   </tr>
   <tr>
-  </tr>
-  <tr>
-    <td><input type="button" value="ISOName Linker (Wapice)" onclick='PopupCenter("/ISOName_Linker/index.html"+"?q="+makeid(),"","1024","768")'></td>
+    <td><input type="button" value="ISOChannel Linker (Wapice)" onclick='PopupCenter("/ISOChannel_Linker/html/index.html"+"?q="+makeid(),"","1024","768")'></td>
     <td><input type="button" value="Morfeas SDAQ Portal" onclick='PopupCenter("/morfeas_SDAQ_web_if/index.html"+"?q="+makeid(),"","1024","768")'></td>
 	<td><input type="button" value="Morfeas MTI Portal" onclick='PopupCenter("/morfeas_MTI_web_if/index.html"+"?q="+makeid(),"","1024","768")'></td>
 	<td><input type="button" value="Morfeas WEB tester" onclick='PopupCenter("/morfeas_web_tester/index.html"+"?q="+makeid(),"","1024","768")'></td>
+  </tr>
+  <tr>
+    <td><input type="button" value="Morfeas System Configuration" onclick='PopupCenter("/Morfeas_configuration/Morfeas_System_config.html"+"?q="+makeid(),"","1024","768")'></td>
+    <td><input type="button" value="Network Configuration" onclick='PopupCenter("/Morfeas_configuration/Network_config.html"+"?q="+makeid(),"","1024","768")'></td>
+	<td><input type="button" value="Shell in a Box (Applet)" onclick='PopupCenter("https://"+window.location.hostname+":4200","","1024","768")'></td>
   </tr>
 </table>
 <script>
