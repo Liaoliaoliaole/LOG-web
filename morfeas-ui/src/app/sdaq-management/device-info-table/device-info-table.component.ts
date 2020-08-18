@@ -546,7 +546,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   toggleSidebar() {
     this.showSidebar = !this.showSidebar;
   }
-
+/*
   toggleMorfeasConfigModal() {
     this.togglePause();
 
@@ -578,7 +578,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
         console.log(err);
       });
   }
-
+*/
   toggleLogModal() {
     this.togglePause();
 
@@ -594,7 +594,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
         console.log(err);
       });
   }
-
+/*
   // TODO: maybe clean up these a bit at some point
   toggleFileModal() {
     this.togglePause();
@@ -611,7 +611,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
         console.log(err);
       });
   }
-
+*/
   clearFilters() {
     this.gridOptions.api.setFilterModel(null);
   }

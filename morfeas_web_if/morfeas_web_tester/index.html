@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<link rel="shortcut icon" type="image/x-icon" href="Morfeas_logo_yellow.ico"/>
+<link rel="shortcut icon" type="image/x-icon" href="/icons/Morfeas_logo_yellow.ico"/>
 <title>Morfeas_Web_if_test</title>
 </head>
 <body>
@@ -26,8 +26,6 @@
 	<td><input type="button" value="Details" onclick='Show_hide(screen_enum.Logstats);display_mode=mode_enum_L2.Details;'></td>
 	<td><input type="button" value="System logs" onclick='Show_hide(screen_enum.Loggers)'></td> 
 	<td><input id="config" type="button" value="Ethernet Setup" onclick='PopupCenter("config.html"+"?q="+makeid(),"","380","250")'></td>
-	<td><input type="button" value="Rpi reboot" onclick="RPI_command('REBOOT')"></td>
-	<td><input type="button" value="Rpi Shutdown" onclick="RPI_command('POWEROFF')"></td>
   </tr>
 </table>
 
@@ -52,7 +50,7 @@
 <div id ="logstats_disp" style="margin:auto; display: none;">
 </div>
 </body>
-<script src='morfeas_web_if.js'></script>
+<script src='../morfeas_ecma/morfeas_web_if.js'></script>
 <script>
 /*
 @licstart  The following is the entire license notice for the
@@ -203,7 +201,7 @@ else
 		if(request_mode == mode_enum.Loggers_name)
 		{
 			//request names of Loggers
-			xhttp.open("GET", "morfeas_web_if.php?COMMAND=loggers", true);
+			xhttp.open("GET", "../morfeas_php/morfeas_web_if.php?COMMAND=loggers", true);
 			xhttp.send();
 			return;
 		}
@@ -219,7 +217,7 @@ else
 		}
 		else if(request_mode == mode_enum.Logstats)
 		{
-			xhttp.open("GET", "morfeas_web_if.php?COMMAND=logstats", true);
+			xhttp.open("GET", "../morfeas_php/morfeas_web_if.php?COMMAND=logstats", true);
 			xhttp.send();
 		}
 	}
