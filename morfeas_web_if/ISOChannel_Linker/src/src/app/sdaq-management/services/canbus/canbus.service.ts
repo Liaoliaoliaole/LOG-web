@@ -21,7 +21,7 @@ export class CanbusService {
   }
 
   getIsoCodesByUnit(unit: string): Observable<IsoStandard[]> {
-    const url = `${environment.API_ROOT}/get_iso_codes_by_unit`;
+    const url = environment.API_ROOT + '?COMMAND=get_iso_codes_by_unit';
     let params = new HttpParams();
     if (unit && unit !== '-') {
       params = new HttpParams().set('unit', unit);
@@ -30,22 +30,44 @@ export class CanbusService {
   }
 
   getOpcUaConfigs(): Observable<OpcUaConfigModel[]> {
-    const url = `${environment.API_ROOT}/get_opc_ua_configs`;
+    const url = environment.API_ROOT + '?COMMAND=opcua_config';
     const result = this.http.get<any>(url).pipe(
       catchError(this.handleCanbusError)
     );
-
     return result;
   }
 
   saveOpcUaConfigs(canbusData: CanBusFlatData[]): Observable<void> {
-    const url = `${environment.API_ROOT}/save_opc_ua_configs`;
+    function ISOChannel_entry(ISOChannel,
+							  IF_type,
+							  Anchor,
+							  Description,
+							  Max,
+							  Min,
+							  Unit)
+	{
+		this.ISOChannel = ISOChannel === undefined ? "" : ISOChannel;
+		this.IF_type = IF_type === undefined ? "" : IF_type;
+		this.Anchor = Anchor === undefined ? "" : Anchor;
+		this.Description = Description === undefined ? "" : Description;
+		this.Max = Max === undefined ? 0 : Max;
+		this.Min = Min === undefined ? 0 : Min;
+		this.Unit = Unit === undefined || Unit === null ? "-" : Unit;
+	}
+	const url = environment.API_ROOT;
     const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     });
-
-
-    return this.http.post<void>(url, JSON.stringify(canbusData), {headers});
+	var channels = new Array();
+	for(let i = 0; i < canbusData.length; i++)
+		channels.push(new ISOChannel_entry(canbusData[i].isoCode,
+										   canbusData[i].type,
+										   canbusData[i].anchor,
+										   canbusData[i].description,
+										   canbusData[i].maxValue,
+										   canbusData[i].minValue,
+										   canbusData[i].sensorUnit));
+    return this.http.post<void>(url, JSON.stringify(channels), {headers});
   }
 
   private handleCanbusError = (error) => {

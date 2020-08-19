@@ -16,6 +16,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+include("../Morfeas_env.php");
 define("usr_comp","COMMAND");
 $ramdisk_path="/mnt/ramdisk/";
 
@@ -75,10 +76,98 @@ if($requestType == "GET")
 						header('Content-Type: application/json');
 						echo json_encode($loggers_names);
 				}
-				break;			
+				break;
+			case "opcua_config":
+				$OPCUA_Config_xml = simplexml_load_file($opc_ua_config_file . "OPC_UA_Config.xml") or die("Error: Cannot read OPC_UA_config.xml");
+				$OPCUA_Config_xml_to_client = array();
+				$i=0;
+				foreach($OPCUA_Config_xml->children() as $channel) 
+				{
+					$OPCUA_Config_xml_to_client[$i] = $channel;
+					$i++;
+				}					
+				header('Content-Type: application/json');
+				echo json_encode($OPCUA_Config_xml_to_client);
+				break;
+			case "get_iso_codes_by_unit":
+				$ISOstandars_xml = simplexml_load_file($opc_ua_config_file . "ISOstandard.xml") or die("Error: Cannot read ISOstandard.xml");
+				header('Content-Type: application/json');
+				$ISOstandars_xml_to_client = array();
+				$i=0;
+				foreach($ISOstandars_xml->points->children() as $point) 
+				{
+					$iso_code = $point->getName();
+					$attributes = $point;
+					if(array_key_exists("unit", $_GET))
+					{
+						if($point->unit !== $_GET["unit"])
+						{
+							$i++;
+							continue;
+						}
+					}
+					$ISOstandars_xml_to_client[$i] = new stdClass();
+					$ISOstandars_xml_to_client[$i]->iso_code = $iso_code;
+					$ISOstandars_xml_to_client[$i]->attributes = $attributes;
+					$i++;
+				}					
+				echo json_encode($ISOstandars_xml_to_client);
+				break;
+			default:
+				echo "?";
 		}
 		return;
 	}
-	http_response_code(404);
 }
+else if($requestType == "POST")
+{
+	$Channels_json = file_get_contents('php://input');
+	$Channels = json_decode($Channels_json) or die("Error: Decode of ISOChannels failed");
+	
+	$imp = new DOMImplementation;
+	$dtd = $imp->createDocumentType('NODESet', '', 'Morfeas.dtd');
+	$dom = $imp->createDocument('', '', $dtd);
+	$dom->encoding = 'UTF-8';
+	$dom->xmlVersion = '1.0';
+	$dom->formatOutput = true;
+
+	$root = $dom->createElement('NODESet');
+	foreach($Channels as $Channel)
+	{
+		//Validate entry
+		if(!(property_exists($Channel, 'ISOChannel')&&
+			 property_exists($Channel, 'IF_type')&&
+			 property_exists($Channel, 'Anchor')&&
+			 property_exists($Channel, 'Description')&&
+			 property_exists($Channel, 'Min')&&
+			 property_exists($Channel, 'Max')&&
+			 property_exists($Channel, 'Unit')))
+			die("Entry with missing properties");
+		//Load entry data from Channel to root
+		$channel_node = $dom->createElement('CHANNEL');
+		$channel_node_child = $dom->createElement('ISO_CHANNEL', $Channel->ISOChannel);
+		$channel_node->appendChild($channel_node_child);
+		$channel_node_child = $dom->createElement('INTERFACE_TYPE', $Channel->IF_type);
+		$channel_node->appendChild($channel_node_child);
+		$channel_node_child = $dom->createElement('ANCHOR', $Channel->Anchor);
+		$channel_node->appendChild($channel_node_child);
+		$channel_node_child = $dom->createElement('DESCRIPTION', $Channel->Description);
+		$channel_node->appendChild($channel_node_child);
+		$channel_node_child = $dom->createElement('MIN', $Channel->Min);
+		$channel_node->appendChild($channel_node_child);
+		$channel_node_child = $dom->createElement('MAX', $Channel->Max);
+		$channel_node->appendChild($channel_node_child);
+		$channel_node_child = $dom->createElement('UNIT', $Channel->Unit);
+		$channel_node->appendChild($channel_node_child);
+		
+		$root->appendChild($channel_node);
+	}
+	$dom->appendChild($root);
+	//print($dom->saveXML());
+	header('Content-Type: application/json');
+	$dom->save($opc_ua_config_file . "OPC_UA_Config.xml") or die("{\"success\":false}");
+	echo "{\"success\":true}";
+	return;
+}
+http_response_code(404);
 ?>

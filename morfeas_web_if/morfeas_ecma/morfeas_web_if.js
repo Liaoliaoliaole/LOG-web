@@ -149,7 +149,7 @@ function morfeas_logstat_commonizer(logstats)
 					}
 				}
 				else
-					data_table[data_table_index].sensors = null;
+					data_table[data_table_index].sensors = [];
 			}
 			else if(logstats.logstats_names[i].includes("logstat_MTI"))//Morfeas_MTI_if handlers
 			{
@@ -231,7 +231,7 @@ function morfeas_logstat_commonizer(logstats)
 					}
 				}
 				else
-					data_table[data_table_index].sensors = null;
+					data_table[data_table_index].sensors = [];
 			}
 			else if(logstats.logstats_names[i].includes("logstat_IOBOX"))//Morfeas_IOBOX_if handlers
 			{
@@ -271,7 +271,7 @@ function morfeas_logstat_commonizer(logstats)
 					}
 				}
 				else
-					data_table[data_table_index].sensors = null;
+					data_table[data_table_index].sensors = [];
 			}
 			else if(logstats.logstats_names[i].includes("logstat_SDAQs"))//Morfeas_SDAQ_if handlers
 			{
@@ -319,7 +319,7 @@ function morfeas_logstat_commonizer(logstats)
 					}
 				}
 				else
-					data_table[data_table_index].sensors = null;
+					data_table[data_table_index].sensors = [];
 			}
 		}
 	}

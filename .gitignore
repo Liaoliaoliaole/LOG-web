@@ -1,5 +1,3 @@
-/ramdisk
-
 # compiled output
 morfeas-ui/dist
 morfeas-ui/tmp
@@ -44,6 +42,7 @@ morfeas-ui/typings
 # System Files
 .DS_Store
 Thumbs.db
+*.cache
 
 # Python
 morfeas/venv
