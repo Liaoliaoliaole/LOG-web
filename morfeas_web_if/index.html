@@ -8,31 +8,46 @@
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
 <title>Morfeas WEB</title>
 <style>
-td.bold {
+td.bold{
     font-weight: bold;
 }
 input.global_style{
 	width: 3em;
 }
+.content{
+  top: 50%;
+  left: 50%;
+  margin: auto;
+}
 </style>
 </head>
 <body>
-<table style="margin:auto;text-align:center;margin-bottom:.075in;width:7in;">
-  <tr>
-    <th colspan="4" style="font-weight: bold; font-size: xx-large">Morfeas WEB</th>
-  </tr>
-  <tr>
-    <td><input type="button" value="ISOChannel Linker (Wapice)" onclick='PopupCenter("/ISOChannel_Linker/html/index.html","","1024","768")'></td>
-    <td><input type="button" value="SDAQ Portal" onclick='PopupCenter("/morfeas_SDAQ_web_if/index.html"+"?q="+makeid(),"","1024","768")'></td>
-	<td><input type="button" value="MTI Portal" onclick='PopupCenter("/morfeas_MTI_web_if/index.html"+"?q="+makeid(),"","1024","768")'></td>
-	<td><input type="button" value="Component Loggers" onclick='PopupCenter("/morfeas_web_tester/index.html"+"?q="+makeid(),"","1024","768")'></td>
-  </tr>
-  <tr>
-    <td><input type="button" value="Morfeas System Configuration" onclick='PopupCenter("/Morfeas_configuration/Morfeas_System_config.html"+"?q="+makeid(),"","1024","768")'></td>
-    <td><input type="button" value="Network Configuration" onclick='PopupCenter("/Morfeas_configuration/Network_config.html"+"?q="+makeid(),"","1024","768")'></td>
-	<td><input type="button" value="Shell in a Box (Applet)" onclick='PopupCenter("https://"+window.location.hostname+":4200","","1024","768")'></td>
-  </tr>
-</table>
+<div class="content">
+	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:7in;">
+	  <tr>
+		<th colspan="4" style="font-weight: bold; font-size: xx-large"><img src="./art/Morfeas_logo_yellow.png" width="100" height="100"></th>
+	  </tr>
+	  <tr>
+		<th colspan="4" style="font-weight: bold; font-size: xx-large">Morfeas WEB</th>
+	  </tr>
+	  <tr>
+		<td><input type="button" value="ISOChannel Linker (Wapice)" onclick='PopupCenter("/ISOChannel_Linker/html/index.html","","1280","1024")'></td>
+		<td><input type="button" value="SDAQ Portal" onclick='PopupCenter("/morfeas_SDAQ_web_if/index.html"+"?q="+makeid(),"","1024","768")'></td>
+		<td><input type="button" value="MTI Portal" onclick='PopupCenter("/morfeas_MTI_web_if/index.html"+"?q="+makeid(),"","1024","768")'></td>
+		<td><input type="button" value="System Loggers" onclick='PopupCenter("/morfeas_web_tester/index.html"+"?q="+makeid(),"","1024","768")'></td>
+	  </tr>
+	  <tr>
+		<td><input type="button" value="Morfeas System Configuration" onclick='PopupCenter("/Morfeas_configuration/Morfeas_System_config.html"+"?q="+makeid(),"","1024","768")'></td>
+		<td><input type="button" value="Network Configuration" onclick='PopupCenter("/Morfeas_configuration/Network_config.html"+"?q="+makeid(),"","1024","768")'></td>
+		<td><input type="button" value="Shell in a Box (Applet)" onclick='PopupCenter("https://"+window.location.hostname+":4200","","1024","768")'></td>
+	  </tr>
+	</table>
+</div>
+<footer>
+  <p>Author: Sam Harry Tzavaras &#169; 12019-12020<br>
+  <a href="LICENSE">License: AGPL v3</a><br>
+  <a href="mailto:stz001@wartsila.com">Bug report</a></p>
+</footer> 
 <script>
 	function PopupCenter(url, title, w, h) 
 	{
