@@ -100,11 +100,8 @@ if($requestType == "GET")
 					$attributes = $point;
 					if(array_key_exists("unit", $_GET))
 					{
-						if($point->unit !== $_GET["unit"])
-						{
-							$i++;
+						if($point->unit != $_GET["unit"])
 							continue;
-						}
 					}
 					$ISOstandars_xml_to_client[$i] = new stdClass();
 					$ISOstandars_xml_to_client[$i]->iso_code = $iso_code;
