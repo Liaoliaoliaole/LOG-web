@@ -7,6 +7,7 @@
 
 # dependencies
 **/node_modules
+**/.cache
 
 # profiling files
 **/morfeas-ui/chrome-profiler-events*.json
@@ -21,11 +22,11 @@ morfeas-ui/npm-debug.log
 morfeas-ui/yarn-error.log
 morfeas-ui/testem.log
 morfeas-ui/typings
+morfeas_web_if/Morfeas_env.php
 
 # System Files
 .DS_Store
 Thumbs.db
-**/.cache
 
 # Python
 morfeas/venv
