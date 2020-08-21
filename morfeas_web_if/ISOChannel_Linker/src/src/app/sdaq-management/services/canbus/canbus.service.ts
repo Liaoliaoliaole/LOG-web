@@ -62,8 +62,7 @@ export class CanbusService {
 	for(let i = 0; i < canbusData.length; i++)
 	{
 		if(canbusData[i].isoCode.length&&canbusData[i].type.length&&
-		   canbusData[i].anchor.length&&canbusData[i].description.length&&
-		   canbusData[i].maxValue&&canbusData[i].minValue&&canbusData[i].sensorUnit.length)
+		   canbusData[i].anchor.length&&canbusData[i].description.length)
 			channels.push(new ISOChannel_entry(canbusData[i].isoCode,
 											   canbusData[i].type,
 											   canbusData[i].anchor,
