@@ -140,6 +140,14 @@ else if($requestType == "POST")
 			 property_exists($Channel, 'Max')&&
 			 property_exists($Channel, 'Unit')))
 			die("Entry with missing properties");
+		if(!(strlen($Channel->ISOChannel)&&
+			 strlen($Channel->IF_type)&&
+			 strlen($Channel->Anchor)&&
+			 strlen($Channel->Min)&&
+			 strlen($Channel->Max)&&
+			 strlen($Channel->Unit)&&
+			 strlen($Channel->Description)))
+			die("Entry with empty properties");
 		//Load entry data from Channel to root
 		$channel_node = $dom->createElement('CHANNEL');
 		$channel_node_child = $dom->createElement('ISO_CHANNEL', $Channel->ISOChannel);
