@@ -61,15 +61,17 @@ export class CanbusService {
 	var channels = new Array();
 	for(let i = 0; i < canbusData.length; i++)
 	{
-		if(canbusData[i].isoCode.length&&canbusData[i].type.length&&
-		   canbusData[i].anchor.length&&canbusData[i].description.length)
-			channels.push(new ISOChannel_entry(canbusData[i].isoCode,
-											   canbusData[i].type,
-											   canbusData[i].anchor,
-											   canbusData[i].description,
-											   canbusData[i].maxValue,
-											   canbusData[i].minValue,
-											   canbusData[i].sensorUnit));
+		if(typeof canbusData[i].isoCode !== 'undefined')
+		{	
+			if(canbusData[i].isoCode.length&&canbusData[i].type.length&&canbusData[i].anchor.length&&canbusData[i].description.length)
+				channels.push(new ISOChannel_entry(canbusData[i].isoCode,
+												   canbusData[i].type,
+												   canbusData[i].anchor,
+												   canbusData[i].description,
+												   canbusData[i].maxValue,
+												   canbusData[i].minValue,
+												   canbusData[i].sensorUnit));
+		}
 	}
     return this.http.post<void>(url, JSON.stringify(channels), {headers});
   }
