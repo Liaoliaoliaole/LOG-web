@@ -6,6 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
+
 <title>Morfeas WEB</title>
 <style>
 td.bold{
@@ -31,10 +32,10 @@ input.global_style{
 		<th colspan="4" style="font-weight: bold; font-size: xx-large">Morfeas WEB</th>
 	  </tr>
 	  <tr>
-		<td><input type="button" value="ISOChannel Linker (Wapice)" onclick='PopupCenter("/ISOChannel_Linker/html/index.html","","1280","1024")'></td>
-		<td><input type="button" value="SDAQ Portal" onclick='PopupCenter("/morfeas_SDAQ_web_if/index.html"+"?q="+makeid(),"","1024","768")'></td>
-		<td><input type="button" value="MTI Portal" onclick='PopupCenter("/morfeas_MTI_web_if/index.html"+"?q="+makeid(),"","1024","768")'></td>
-		<td><input type="button" value="System Loggers" onclick='PopupCenter("/morfeas_web_tester/index.html"+"?q="+makeid(),"","1024","768")'></td>
+		<td><input type="button" value="ISOChannel Linker (Wapice)" onclick='PopupCenter("/ISOChannel_Linker/html/","","1280","1024")'></td>
+		<td><input type="button" value="SDAQ Portal" onclick='PopupCenter("/morfeas_SDAQ_web_if/"+"?q="+makeid(),"","1024","768")'></td>
+		<td><input type="button" value="MTI Portal" onclick='PopupCenter("/morfeas_MTI_web_if/"+"?q="+makeid(),"","1024","768")'></td>
+		<td><input type="button" value="System Loggers" onclick='PopupCenter("/morfeas_Loggers/"+"?q="+makeid(),"","1024","768")'></td>
 	  </tr>
 	  <tr>
 		<td><input type="button" value="Morfeas System Configuration" onclick='PopupCenter("/Morfeas_configuration/Morfeas_System_config.html"+"?q="+makeid(),"","1024","768")'></td>
@@ -46,37 +47,11 @@ input.global_style{
 <footer>
   <p>Author: Sam Harry Tzavaras &#169; 12019-12020<br>
   <a href="LICENSE">License: AGPL v3</a><br>
-  <a href="mailto:stz001@wartsila.com">Bug report</a></p>
 </footer> 
-<script>
-	function PopupCenter(url, title, w, h) 
-	{
-		// Fixes dual-screen position
-		var dualScreenLeft = window.screenLeft != undefined ? window.screenLeft : screen.left;
-		var dualScreenTop = window.screenTop != undefined ? window.screenTop : screen.top;
-
-		var width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
-		var height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
-
-		var left = ((width / 2) - (w / 2)) + dualScreenLeft;
-		var top = ((height / 2) - (h / 2)) + dualScreenTop;
-		var newWindow = window.open(url, title, 'scrollbars=yes, width=' + w + ', height=' + h + ', top=' + top + ', left=' + left);
-
-		// Puts focus on the newWindow
-		if (window.focus) {
-			newWindow.focus();
-		}
-	}
-	function makeid()
-	{
-		var text = "";
-		var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-		for( var i=0; i < 10; i++ )
-			text += possible.charAt(Math.floor(Math.random() * possible.length));
-
-		return text;
-	}
-</script>
 </body>
+<script src='../morfeas_ecma/common.js'></script>
+<script>
+if (document.documentMode) 
+	alert("IE is obsolete, and does not supported \n Use firefox or chromium");
+</script>
 </html>
