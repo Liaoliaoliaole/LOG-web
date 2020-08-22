@@ -1,0 +1,21 @@
+.link {
+    color: white;
+    background-color: forestgreen;
+}
+
+.link:active {
+    color:#000 !important;
+    background-color: white !important;
+    border-color:white !important;
+}
+
+.unlink {
+    color: white;
+    background-color: firebrick;
+}
+
+.unlink:active {
+    color:#000 !important;
+    background-color: white !important;
+    border-color:white !important;
+}

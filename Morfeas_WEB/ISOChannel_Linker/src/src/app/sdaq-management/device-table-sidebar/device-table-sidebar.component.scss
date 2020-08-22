@@ -1,0 +1,89 @@
+.list-item-text2 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    height: 100%;
+    margin-top: 2px;
+    margin-bottom: -2px;
+}
+
+.unsaved {
+    margin-bottom: 20px;
+    width: 100%;
+    color: firebrick;
+    text-align: center;
+}
+
+.save {
+    background-color: forestgreen !important;
+    color: white !important;
+    align-self: center;
+    width: 100%;
+}
+
+.save:active {
+    color:#000 !important;
+    background-color: white !important;
+    border-color:white !important;
+}
+
+.max-width {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+    
+
+.flex-end {
+    margin-top: auto !important;
+}
+
+//https://codepen.io/guiseek/pen/amPOJw
+
+input[type="checkbox"] {
+  display: none
+}
+
+input[type="checkbox"] + .box:before,
+input[type="checkbox"] + .box:after {
+  transition: all .3s;
+}
+
+input[type="checkbox"] + .box:after {
+  position: absolute;
+  left: 20px;
+  //top: 3px;
+  margin-top: -3px;
+  margin-left: -4px;
+  display: inline-block;
+  content: ' ';
+  width: 20px;
+  height: 20px;
+  border: 2px solid #999;
+  border-radius: 2px;
+  background-color: #fff;
+  z-index: 1000;
+}
+
+input[type="checkbox"]:checked + .box:after {
+  background-color: #2196F3;
+  border-color: #2196F3;
+}
+
+input[type="checkbox"]:checked + .box:before {
+  transform: rotate(45deg);
+  position: absolute;
+  left: 23px;
+  //top: 0px;
+  bottom: 13px;
+  width: 6px;
+  height: 13px;
+  border-width: 2px;
+  border-style: solid;
+  border-top: 0;
+  border-left: 0;
+  border-color: #fff;
+  content: '';
+  z-index: 10000}

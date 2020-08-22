@@ -1,0 +1,63 @@
+<div class="modal-header">
+    <h4 class="modal-title">Configuration</h4>
+    <button type="button" class="close modal-close" (click)="dismiss()">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+
+<div class="modal-body">
+    <div class="form-group row">
+        <label for="iso" class="col-sm-3 col-form-label col-form-label-sm form-label"></label>
+        <div class="col-sm-8">
+            <ng-select #interfaceSelect [ngStyle]="{'pointer-events': error === '' ? 'auto' : 'none'}"
+                placeholder="Interface" [items]="modifiedInterfaces" bindLabel="interface"
+                [(ngModel)]="dropdownInterface" [multiple]="false" (change)="onSelectInterface()">
+            </ng-select>
+        </div>
+    </div>
+    <div class="form-group row">
+        <label for="ipaddress" class="col-sm-3 col-form-label col-form-label-sm form-label">IP Address</label>
+        <div class="col-sm-8">
+            <input #ipaddress type="text" class="form-control form-control-sm input-modal" id="ipaddress"
+                [(ngModel)]="modifiedInterfaces[index].ipAddress" (input)="onNetworkSettingsChange()">
+        </div>
+    </div>
+    <div class="form-group row">
+        <label for="netmask" class="col-sm-3 col-form-label col-form-label-sm form-label">Subnet mask</label>
+        <div class="col-sm-8">
+            <input #netmask type="text" class="form-control form-control-sm input-modal" id="netmask"
+                [(ngModel)]="modifiedInterfaces[index].subnetMask" (input)="onNetworkSettingsChange()">
+        </div>
+    </div>
+    <div class="form-group row">
+        <label for="gateway" class="col-sm-3 col-form-label col-form-label-sm form-label">Default gateway</label>
+        <div class="col-sm-8">
+            <input #gateway type="text" class="form-control form-control-sm input-modal" id="gateway"
+                [(ngModel)]="modifiedInterfaces[index].defaultGateway" (input)="onNetworkSettingsChange()">
+        </div>
+    </div>
+    <div ngDefaultControl [(ngModel)]="error" style="white-space: pre-line; color: red;">{{error}}</div>
+</div>
+<div class="modal-body modal-line">
+    <div class="form-group row">
+        <label for="NTP" class="col-sm-3 col-form-label col-form-label-sm form-label">NTP</label>
+        <div class="col-sm-8">
+            <input #NTP type="text" class="form-control form-control-sm input-modal" id="NTP" [(ngModel)]="ntp"
+                (input)="onNTPSettingsChange()">
+        </div>
+    </div>
+</div>
+<div class="modal-body modal-line">
+    <div class="form-group row">
+        <label for="hostname" class="col-sm-3 col-form-label col-form-label-sm form-label">Hostname</label>
+        <div class="col-sm-8">
+            <input #hostname type="text" class="form-control form-control-sm input-modal" id="hostname"
+                [(ngModel)]="hostName" (input)="onHostnameChange()">
+        </div>
+    </div>
+</div>
+<div class="modal-footer">
+    <div *ngIf="showInfo" style="white-space: pre-line; color: red;">Please wait, this may take several seconds </div>
+    <button type="button" class="btn btn-modal link" (click)="apply()">Apply</button>
+    <button type="button" class="btn btn-secondary btn-modal" (click)="dismiss()">Cancel</button>
+</div>

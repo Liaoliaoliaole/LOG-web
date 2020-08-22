@@ -1,0 +1,111 @@
+.col-sm-0 {
+  -webkit-box-flex: 0;
+  flex: 0 0 4.1666666665%;
+  max-width: 4.1666666665%;
+}
+
+.col-sm-1half {
+  -webkit-box-flex: 0;
+  flex: 0 0 12.4999999995%;
+  max-width: 12.4999999995%;
+}
+
+.extraPad {
+  padding: 5px 15px 5px 5px;
+}
+
+.logstatContainer {
+  display: flex;
+  flex-direction: row;
+  margin: 5px;
+  justify-content: center;
+}
+
+.logstatComponentContainer {
+  display: flex;
+  flex-direction: row;
+  margin: 5px;
+  width: 95vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -47vw;
+  margin-right: -47vw;
+  justify-content: center;
+}
+
+.toggledLogstatContainer {
+  display: flex;
+  flex-direction: row;
+  margin: 10px;
+  border-top: thin solid white;
+  width: 95vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -47vw;
+  margin-right: -47vw;
+}
+
+.buttonContainer {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.logstatBox {
+  flex: 1;
+  margin: 10px;
+}
+
+.logstatButtonBox {
+  display: inline-block;
+  margin-right: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  width: 200px;
+}
+
+.toggledLogstatBox {
+  flex: 1;
+  display: inline-block;
+  width: 300px;
+  line-height: 1.2rem;
+  vertical-align: top;
+  overflow-wrap: break-word;
+  margin-bottom: 5px;
+}
+
+.toggledOuterLogstatBox {
+  flex: 1;
+  padding: 0px;
+  display: inline-block;
+}
+
+.toggledLogstatNameBox {
+  flex: 1;
+  line-height: 1.2rem;
+  overflow-wrap: break-word;
+  max-width: 200px;
+}
+
+.toggledLogstatDateBox {
+  flex: 1;
+  line-height: 1.2rem;
+  overflow-wrap: break-word;
+  max-width: 250px;
+}
+
+.clear {
+  height: 60px;
+}
+
+.comp {
+  width: 200px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+
+.logstatBoxText {
+  margin: 10px;
+}
