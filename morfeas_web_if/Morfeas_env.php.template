@@ -1,4 +1,0 @@
-<?php
-	$opc_ua_config_file = "/home/pi/Morfeas_config/";//Path for Morfeas configuration directory (always add slash at the end)
-    //$iso_standard_file = "iso_standards.xml";
-?>
