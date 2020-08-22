@@ -81,11 +81,11 @@ if($requestType == "GET")
 				$OPCUA_Config_xml = simplexml_load_file($opc_ua_config_file . "OPC_UA_Config.xml") or die("Error: Cannot read OPC_UA_config.xml");
 				$OPCUA_Config_xml_to_client = array();
 				$i=0;
-				foreach($OPCUA_Config_xml->children() as $channel) 
+				foreach($OPCUA_Config_xml->children() as $channel)
 				{
 					$OPCUA_Config_xml_to_client[$i] = $channel;
 					$i++;
-				}					
+				}
 				header('Content-Type: application/json');
 				echo json_encode($OPCUA_Config_xml_to_client);
 				break;
@@ -94,7 +94,7 @@ if($requestType == "GET")
 				header('Content-Type: application/json');
 				$ISOstandars_xml_to_client = array();
 				$i=0;
-				foreach($ISOstandars_xml->points->children() as $point) 
+				foreach($ISOstandars_xml->points->children() as $point)
 				{
 					$iso_code = $point->getName();
 					$attributes = $point;
@@ -107,7 +107,7 @@ if($requestType == "GET")
 					$ISOstandars_xml_to_client[$i]->iso_code = $iso_code;
 					$ISOstandars_xml_to_client[$i]->attributes = $attributes;
 					$i++;
-				}					
+				}
 				echo json_encode($ISOstandars_xml_to_client);
 				break;
 			default:
@@ -120,7 +120,7 @@ else if($requestType == "POST")
 {
 	$Channels_json = file_get_contents('php://input');
 	$Channels = json_decode($Channels_json) or die("Error: Decode of ISOChannels failed");
-	
+
 	$imp = new DOMImplementation;
 	$dtd = $imp->createDocumentType('NODESet', '', 'Morfeas.dtd');
 	$dom = $imp->createDocument('', '', $dtd);
@@ -164,13 +164,13 @@ else if($requestType == "POST")
 		$channel_node->appendChild($channel_node_child);
 		$channel_node_child = $dom->createElement('UNIT', $Channel->Unit);
 		$channel_node->appendChild($channel_node_child);
-		
+
 		$root->appendChild($channel_node);
 	}
 	$dom->appendChild($root);
 	//print($dom->saveXML());
+	$dom->save($opc_ua_config_file . "OPC_UA_Config.xml") or die("Error on OPC_UA_Config.xml write");
 	header('Content-Type: application/json');
-	$dom->save($opc_ua_config_file . "OPC_UA_Config.xml") or die("{\"success\":false}");
 	echo "{\"success\":true}";
 	return;
 }
