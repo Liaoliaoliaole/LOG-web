@@ -22,7 +22,7 @@ morfeas-ui/npm-debug.log
 morfeas-ui/yarn-error.log
 morfeas-ui/testem.log
 morfeas-ui/typings
-**/Morfeas_env.*
+**/Morfeas_env.php
 
 # System Files
 .DS_Store
@@ -34,5 +34,5 @@ __pycache__/
 .vscode/
 morfeas/config.json
 
-# submodules 
+# submodules
 morfeas_web_if/pecl-dbus
