@@ -34,5 +34,3 @@ __pycache__/
 .vscode/
 morfeas/config.json
 
-# submodules
-pecl-dbus

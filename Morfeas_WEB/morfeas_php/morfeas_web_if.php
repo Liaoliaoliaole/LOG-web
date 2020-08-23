@@ -90,7 +90,7 @@ if($requestType == "GET")
 				echo json_encode($OPCUA_Config_xml_to_client);
 				break;
 			case "get_iso_codes_by_unit":
-				$ISOstandars_xml = simplexml_load_file($opc_ua_config_file . "ISOstandard.xml") or die("Error: Cannot read ISOstandard.xml");
+				$ISOstandars_xml = simplexml_load_file($opc_ua_config_file . "ISOstandard.xml") or die("");
 				header('Content-Type: application/json');
 				$ISOstandars_xml_to_client = array();
 				$i=0;
