@@ -120,7 +120,6 @@ if($requestType == "GET")
 else if($requestType == "POST")
 {
 	$RX_data = file_get_contents('php://input');
-	print_r($RX_data);
 	$Channels_json = LZW_decompress($RX_data);
 	print_r($Channels_json);
 	$Channels = json_decode($Channels_json) or die("Error: Decode of ISOChannels failed");

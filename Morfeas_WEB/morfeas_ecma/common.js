@@ -52,9 +52,9 @@ function LZW_compress(data)
 		wc,
 		w = "",
 		result = [],
-		dictSize = 256;
+		dictSize = 65536;
 
-	for (i = 0; i < 256; i += 1)
+	for (i = 0; i < 65536; i += 1)
 		dictionary[String.fromCharCode(i)] = i;
 	for (i = 0; i < data.length; i += 1)
 	{

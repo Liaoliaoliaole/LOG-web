@@ -18,27 +18,30 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 */
 //Class forked from https://rosettacode.org/wiki/LZW_compression#PHP
 
-function LZW_decompress($com) 
+function LZW_decompress($com)
 {
 	$com = explode(",",$com);
 	$i;$w;$k;$result;
 	$dictionary = array();
 	$entry = "";
-	$dictSize = 256;
+	$dictSize = 65536;
 
-	for ($i = 0; $i < 256; $i++)
+	for ($i = 0; $i < 65536; $i++)
 		$dictionary[$i] = chr($i);
 	$w = chr($com[0]);
 	$result = $w;
 	for ($i = 1; $i < count($com); $i++)
 	{
 		$k = $com[$i];
-		if ($dictionary[$k]) {
+		if ($dictionary[$k])
 			$entry = $dictionary[$k];
-		} else {
-			if ($k === $dictSize) {
+		else
+		{
+			if ($k === $dictSize)
 				$entry = $w.$w[0];
-			} else {
+			else 
+			{
+				print("Exit null".$i);
 				return null;
 			}
 		}
