@@ -17,6 +17,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 include("../Morfeas_env.php");
+include("./LZW.php");
 define("usr_comp","COMMAND");
 $ramdisk_path="/mnt/ramdisk/";
 
@@ -78,7 +79,8 @@ if($requestType == "GET")
 				}
 				break;
 			case "opcua_config":
-				$OPCUA_Config_xml = simplexml_load_file($opc_ua_config_file . "OPC_UA_Config.xml") or die("Error: Cannot read OPC_UA_config.xml");
+				header('Content-Type: application/json');
+				$OPCUA_Config_xml = simplexml_load_file($opc_ua_config_file . "OPC_UA_Config.xml") or die("{}");
 				$OPCUA_Config_xml_to_client = array();
 				$i=0;
 				foreach($OPCUA_Config_xml->children() as $channel)
@@ -86,12 +88,11 @@ if($requestType == "GET")
 					$OPCUA_Config_xml_to_client[$i] = $channel;
 					$i++;
 				}
-				header('Content-Type: application/json');
 				echo json_encode($OPCUA_Config_xml_to_client);
 				break;
 			case "get_iso_codes_by_unit":
-				$ISOstandars_xml = simplexml_load_file($opc_ua_config_file . "ISOstandard.xml") or die("");
 				header('Content-Type: application/json');
+				$ISOstandars_xml = simplexml_load_file($opc_ua_config_file . "ISOstandard.xml") or die("{}");
 				$ISOstandars_xml_to_client = array();
 				$i=0;
 				foreach($ISOstandars_xml->points->children() as $point)
@@ -118,8 +119,14 @@ if($requestType == "GET")
 }
 else if($requestType == "POST")
 {
-	$Channels_json = file_get_contents('php://input');
+	$RX_data = file_get_contents('php://input');
+	print_r($RX_data);
+	$Channels_json = LZW_decompress($RX_data);
+	print_r($Channels_json);
 	$Channels = json_decode($Channels_json) or die("Error: Decode of ISOChannels failed");
+
+	if(!property_exists($Channels, 'data'))
+		die("Error: No data property!!!");
 
 	$imp = new DOMImplementation;
 	$dtd = $imp->createDocumentType('NODESet', '', 'Morfeas.dtd');
@@ -129,43 +136,47 @@ else if($requestType == "POST")
 	$dom->formatOutput = true;
 
 	$root = $dom->createElement('NODESet');
-	foreach($Channels as $Channel)
+	if(sizeof($Channels->data))//If there is data
 	{
-		//Validate entry
-		if(!(property_exists($Channel, 'ISOChannel')&&
-			 property_exists($Channel, 'IF_type')&&
-			 property_exists($Channel, 'Anchor')&&
-			 property_exists($Channel, 'Description')&&
-			 property_exists($Channel, 'Min')&&
-			 property_exists($Channel, 'Max')&&
-			 property_exists($Channel, 'Unit')))
-			die("Entry with missing properties");
-		if(!(strlen($Channel->ISOChannel)&&
-			 strlen($Channel->IF_type)&&
-			 strlen($Channel->Anchor)&&
-			 strlen($Channel->Min)&&
-			 strlen($Channel->Max)&&
-			 strlen($Channel->Unit)&&
-			 strlen($Channel->Description)))
-			die("Entry with empty properties");
-		//Load entry data from Channel to root
-		$channel_node = $dom->createElement('CHANNEL');
-		$channel_node_child = $dom->createElement('ISO_CHANNEL', $Channel->ISOChannel);
-		$channel_node->appendChild($channel_node_child);
-		$channel_node_child = $dom->createElement('INTERFACE_TYPE', $Channel->IF_type);
-		$channel_node->appendChild($channel_node_child);
-		$channel_node_child = $dom->createElement('ANCHOR', $Channel->Anchor);
-		$channel_node->appendChild($channel_node_child);
-		$channel_node_child = $dom->createElement('DESCRIPTION', $Channel->Description);
-		$channel_node->appendChild($channel_node_child);
-		$channel_node_child = $dom->createElement('MIN', $Channel->Min);
-		$channel_node->appendChild($channel_node_child);
-		$channel_node_child = $dom->createElement('MAX', $Channel->Max);
-		$channel_node->appendChild($channel_node_child);
-		$channel_node_child = $dom->createElement('UNIT', $Channel->Unit);
-		$channel_node->appendChild($channel_node_child);
-
-		$root->appendChild($channel_node);
+		$data_num=0;
+		foreach($Channels->data as $Channel)
+		{
+			//Validate entry
+			if(!(property_exists($Channel, 'ISOChannel')&&
+				 property_exists($Channel, 'IF_type')&&
+				 property_exists($Channel, 'Anchor')&&
+				 property_exists($Channel, 'Description')&&
+				 property_exists($Channel, 'Min')&&
+				 property_exists($Channel, 'Max')&&
+				 property_exists($Channel, 'Unit')))
+				die("Entry (".$data_num.") have missing properties");
+			if(!(strlen($Channel->ISOChannel)&&
+				 strlen($Channel->IF_type)&&
+				 strlen($Channel->Anchor)&&
+				 strlen($Channel->Min)&&
+				 strlen($Channel->Max)&&
+				 strlen($Channel->Unit)&&
+				 strlen($Channel->Description)))
+				die("Entry (".$data_num.") have empty properties");
+			//Load entry data from Channel to root
+			$channel_node = $dom->createElement('CHANNEL');
+			$channel_node_child = $dom->createElement('ISO_CHANNEL', $Channel->ISOChannel);
+			$channel_node->appendChild($channel_node_child);
+			$channel_node_child = $dom->createElement('INTERFACE_TYPE', $Channel->IF_type);
+			$channel_node->appendChild($channel_node_child);
+			$channel_node_child = $dom->createElement('ANCHOR', $Channel->Anchor);
+			$channel_node->appendChild($channel_node_child);
+			$channel_node_child = $dom->createElement('DESCRIPTION', $Channel->Description);
+			$channel_node->appendChild($channel_node_child);
+			$channel_node_child = $dom->createElement('MIN', $Channel->Min);
+			$channel_node->appendChild($channel_node_child);
+			$channel_node_child = $dom->createElement('MAX', $Channel->Max);
+			$channel_node->appendChild($channel_node_child);
+			$channel_node_child = $dom->createElement('UNIT', $Channel->Unit);
+			$channel_node->appendChild($channel_node_child);
+			$root->appendChild($channel_node);
+			$data_num++;
+		}
 	}
 	$dom->appendChild($root);
 	//print($dom->saveXML());

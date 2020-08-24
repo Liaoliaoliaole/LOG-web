@@ -515,7 +515,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
       // sdaqSerial: serial,
       type: opcUaEntry.INTERFACE_TYPE,
       sensorUserId: null,
-      channelUnit: null,
+      channelUnit: opcUaEntry.UNIT,
       minValue: +opcUaEntry.MIN,
       maxValue: +opcUaEntry.MAX,
       description: opcUaEntry.DESCRIPTION,

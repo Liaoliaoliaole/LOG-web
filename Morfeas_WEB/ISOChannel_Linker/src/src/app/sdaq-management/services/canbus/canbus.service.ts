@@ -8,6 +8,7 @@ import { CanBusFlatData } from '../../device-info-table/device-info-table.compon
 import { IsoStandard } from '../../models/iso-standard-model';
 import { OpcUaConfigModel } from '../../models/opcua-config-model';
 import { ToastrService } from 'ngx-toastr';
+declare const LZW_compress: any;
 
 @Injectable({
   providedIn: 'root'
@@ -38,7 +39,11 @@ export class CanbusService {
   }
 
   saveOpcUaConfigs(canbusData: CanBusFlatData[]): Observable<void> {
-    function ISOChannel_entry(ISOChannel,
+	function ISOChannels()
+	{
+		this.data = new Array();
+	}
+	function ISOChannel_entry(ISOChannel,
 							  IF_type,
 							  Anchor,
 							  Description,
@@ -58,23 +63,23 @@ export class CanbusService {
     const headers = new HttpHeaders({
       'Content-Type': 'application/json'
     });
-	var channels = new Array();
+	var channels = new ISOChannels();
 	for(let i = 0; i < canbusData.length; i++)
 	{
-		if(typeof canbusData[i].isoCode !== 'undefined' && 
+		if(typeof canbusData[i].isoCode !== 'undefined' &&
 		   typeof canbusData[i].type !== 'undefined' &&
 		   typeof canbusData[i].anchor !== 'undefined')
-		{	
-			channels.push(new ISOChannel_entry(canbusData[i].isoCode,
-											   canbusData[i].type,
-											   canbusData[i].anchor,
-											   canbusData[i].description,
-											   canbusData[i].maxValue,
-											   canbusData[i].minValue,
-											   canbusData[i].sensorUnit));
+		{
+			channels.data.push(new ISOChannel_entry(canbusData[i].isoCode,
+													canbusData[i].type,
+													canbusData[i].anchor,
+													canbusData[i].description,
+													canbusData[i].maxValue,
+													canbusData[i].minValue,
+													canbusData[i].channelUnit));
 		}
 	}
-    return this.http.post<void>(url, JSON.stringify(channels), {headers});
+    return this.http.post<void>(url, LZW_compress(JSON.stringify(channels)));
   }
 
   private handleCanbusError = (error) => {

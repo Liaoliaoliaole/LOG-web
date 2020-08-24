@@ -1,5 +1,5 @@
-/*    
-@licstart  The following is the entire license notice for the 
+/*
+@licstart  The following is the entire license notice for the
 JavaScript code in this page.
 
 Copyright (C) 12019-12020  Sam Harry Tzavaras
@@ -7,7 +7,7 @@ Copyright (C) 12019-12020  Sam Harry Tzavaras
 The JavaScript code in this page is free software: you can
 redistribute it and/or modify it under the terms of the GNU
 General Public License (GNU AGPL) as published by the Free Software
-Foundation, either version 3 of the License, or any later version.  
+Foundation, either version 3 of the License, or any later version.
 The code is distributed WITHOUT ANY WARRANTY;
 without even the implied warranty of MERCHANTABILITY or FITNESS
 FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
@@ -15,7 +15,7 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-function PopupCenter(url, title, w, h) 
+function PopupCenter(url, title, w, h)
 {
 	// Fixes dual-screen position
 	var dualScreenLeft = window.screenLeft != undefined ? window.screenLeft : screen.left;
@@ -42,4 +42,35 @@ function makeid()
 		text += possible.charAt(Math.floor(Math.random() * possible.length));
 
 	return text;
+}
+//LZW Compression function, forked from https://rosettacode.org/wiki/LZW_compression
+function LZW_compress(data)
+{
+	var i,
+		dictionary = {},
+		c,
+		wc,
+		w = "",
+		result = [],
+		dictSize = 256;
+
+	for (i = 0; i < 256; i += 1)
+		dictionary[String.fromCharCode(i)] = i;
+	for (i = 0; i < data.length; i += 1)
+	{
+		c = data.charAt(i);
+		wc = w + c;
+		if (dictionary.hasOwnProperty(wc))
+			w = wc;
+		else
+		{
+			result.push(dictionary[w]);
+			dictionary[wc] = dictSize++;
+			w = String(c);
+		}
+	}
+	if (w !== "")
+		result.push(dictionary[w]);
+	
+	return result.toString();
 }
