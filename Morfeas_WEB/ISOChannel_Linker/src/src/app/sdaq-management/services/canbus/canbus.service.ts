@@ -46,12 +46,12 @@ export class CanbusService {
 							  Min,
 							  Unit)
 	{
-		this.ISOChannel = ISOChannel === undefined ? "" : ISOChannel;
-		this.IF_type = IF_type === undefined ? "" : IF_type;
-		this.Anchor = Anchor === undefined ? "" : Anchor;
-		this.Description = Description === undefined ? "" : Description;
-		this.Max = Max === undefined ? 0 : Max;
-		this.Min = Min === undefined ? 0 : Min;
+		this.ISOChannel = ISOChannel;
+		this.IF_type = IF_type;
+		this.Anchor = Anchor;
+		this.Description = Description === undefined ? "-" : Description;
+		this.Max = isNaN(Max)? 0 : Max;
+		this.Min = isNaN(Min)? 100 : Min;
 		this.Unit = Unit === undefined || Unit === null ? "-" : Unit;
 	}
 	const url = environment.API_ROOT;
@@ -61,16 +61,17 @@ export class CanbusService {
 	var channels = new Array();
 	for(let i = 0; i < canbusData.length; i++)
 	{
-		if(typeof canbusData[i].isoCode !== 'undefined')
+		if(typeof canbusData[i].isoCode !== 'undefined' && 
+		   typeof canbusData[i].type !== 'undefined' &&
+		   typeof canbusData[i].anchor !== 'undefined')
 		{	
-			if(canbusData[i].isoCode.length&&canbusData[i].type.length&&canbusData[i].anchor.length&&canbusData[i].description.length)
-				channels.push(new ISOChannel_entry(canbusData[i].isoCode,
-												   canbusData[i].type,
-												   canbusData[i].anchor,
-												   canbusData[i].description,
-												   canbusData[i].maxValue,
-												   canbusData[i].minValue,
-												   canbusData[i].sensorUnit));
+			channels.push(new ISOChannel_entry(canbusData[i].isoCode,
+											   canbusData[i].type,
+											   canbusData[i].anchor,
+											   canbusData[i].description,
+											   canbusData[i].maxValue,
+											   canbusData[i].minValue,
+											   canbusData[i].sensorUnit));
 		}
 	}
     return this.http.post<void>(url, JSON.stringify(channels), {headers});

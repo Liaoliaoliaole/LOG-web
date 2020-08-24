@@ -62,6 +62,7 @@ export class SensorLinkModalComponent implements OnInit {
 
       this.isoStandards = result;
     });
+	
   }
 
   validateAttributes() {
