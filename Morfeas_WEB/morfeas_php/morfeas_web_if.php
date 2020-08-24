@@ -92,7 +92,8 @@ if($requestType == "GET")
 				break;
 			case "get_iso_codes_by_unit":
 				header('Content-Type: application/json');
-				$ISOstandars_xml = simplexml_load_file($opc_ua_config_file . "ISOstandard.xml") or die("{}");
+				file_exists($opc_ua_config_file . "ISOstandard.xml") or die("{}");
+				$ISOstandars_xml = simplexml_load_file($opc_ua_config_file . "ISOstandard.xml");
 				$ISOstandars_xml_to_client = array();
 				$i=0;
 				foreach($ISOstandars_xml->points->children() as $point)
@@ -120,9 +121,8 @@ if($requestType == "GET")
 else if($requestType == "POST")
 {
 	$RX_data = file_get_contents('php://input');
-	$Channels_json = LZW_decompress($RX_data);
-	print_r($Channels_json);
-	$Channels = json_decode($Channels_json) or die("Error: Decode of ISOChannels failed");
+	$Channels_json = LZW_decompress($RX_data) or die("Error: Decompressing of ISOChannels failed");
+	$Channels = json_decode($Channels_json) or die("Error: JSON Decode of ISOChannels failed");
 
 	if(!property_exists($Channels, 'data'))
 		die("Error: No data property!!!");

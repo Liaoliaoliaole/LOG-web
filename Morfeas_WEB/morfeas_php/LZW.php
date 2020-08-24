@@ -24,10 +24,11 @@ function LZW_decompress($com)
 	$i;$w;$k;$result;
 	$dictionary = array();
 	$entry = "";
-	$dictSize = 65536;
+	$dictSize = 256;
 
-	for ($i = 0; $i < 65536; $i++)
+	for ($i = 0; $i < $dictSize; $i++)
 		$dictionary[$i] = chr($i);
+
 	$w = chr($com[0]);
 	$result = $w;
 	for ($i = 1; $i < count($com); $i++)
@@ -39,11 +40,8 @@ function LZW_decompress($com)
 		{
 			if ($k === $dictSize)
 				$entry = $w.$w[0];
-			else 
-			{
-				print("Exit null".$i);
-				return null;
-			}
+			//else
+				//return null;
 		}
 		$result .= $entry;
 		$dictionary[$dictSize++] = $w . $entry[0];

@@ -52,9 +52,9 @@ function LZW_compress(data)
 		wc,
 		w = "",
 		result = [],
-		dictSize = 65536;
+		dictSize = 256;//sizeof UTF-8
 
-	for (i = 0; i < 65536; i += 1)
+	for (i = 0; i < dictSize; i += 1)
 		dictionary[String.fromCharCode(i)] = i;
 	for (i = 0; i < data.length; i += 1)
 	{
@@ -71,6 +71,11 @@ function LZW_compress(data)
 	}
 	if (w !== "")
 		result.push(dictionary[w]);
-	
+
+	console.log(dictionary);
+
+	console.log(data.length);
+	console.log(result.join("").length);
+
 	return result.toString();
 }
