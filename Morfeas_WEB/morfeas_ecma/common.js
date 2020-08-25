@@ -44,49 +44,77 @@ function makeid()
 	return text;
 }
 //Compression function
+function uncompress(data)
+{
+	"use strict";
+	var i,
+		dictOffset = 0,
+		dictionary = [],
+		result = "";
+
+	dictOffset = data.charCodeAt(0);
+
+	for (i=1; i<data.length; i++)
+	{
+		if(data.charAt(i)<String.fromCharCode(dictOffset))
+		{
+			dictionary.push(data.charAt(i));
+			result += data.charAt(i);
+		}
+		else
+		{
+			result += dictionary[data.charCodeAt(i)-dictOffset] + data.charAt(i+1);
+			dictionary.push(dictionary[data.charCodeAt(i)-dictOffset]+data.charAt(i+1));
+			i++;
+
+		}
+	}
+	return result;
+}
+
+//Compression function
 function compress(data)
 {
 	"use strict";
 	if(typeof(data)!=="string")
 		return null;
-	const dictOffset = 256;
+
 	var i, _index, index,
-		dictionary = new Array(),
+		dictOffset = 0,
+		dictionary = [],
 		word = "",
 		result = "";
-	
-	for (i=0, _index=0; i<data.length; i++)
+
+	for(i=0; i<data.length; i++)
 	{
+		if(data.charCodeAt(i)>dictOffset)
+			dictOffset = data.charCodeAt(i);
+	}
+	dictOffset++;
+
+	for(i=0, _index=0; i<data.length; i++)
+	{
+
 		word += data.charAt(i);
-		if ((index = dictionary.indexOf(word)) === -1)//Not on dictionary
+		if((index = dictionary.indexOf(word)) === -1)//Not on dictionary
 		{
 			dictionary.push(word);
-			if(word.length === 1)
-				result += word;
-			else
-				result +=  String.fromCharCode(dictOffset+_index) + word.replace(dictionary[_index], "");
-			word = "";	
+			result += word.length===1 ? word : String.fromCharCode(dictOffset+_index) + word.replace(dictionary[_index], "");
+			word = "";
 		}
 		else
 			_index = index;
 	}
-	
-	console.log(data);
-	console.log(dictionary);
-	console.log(result);
-	
-	console.log(data.length);
-	console.log(result.length);
-	console.log(((1-result.length/data.length)*100)+"%");
+	if(word !== "")
+		result += word;
+	result = String.fromCharCode(dictOffset) + result;
 
-	
-	/*
-	var str_res = new String();
-	for(i=0; i<result.length; i++)
-		str_res +=String.fromCharCode(result[i]);
-	console.log(str_res);
-	
-	//return result.toString();
-	*/
-	return "";
+	console.log("Compression Ratio:"+Math.round((((1-result.length/data.length)) + Number.EPSILON)*100)+"%");
+	console.log(data);
+	console.log(result);
+	var uncomp = uncompress(result);
+	console.log("Uncompress="+uncomp);
+	console.log(data === uncomp ? "Success!!!":"Failure");
+
+	return result;
 }
