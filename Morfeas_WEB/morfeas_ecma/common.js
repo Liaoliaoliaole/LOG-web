@@ -43,39 +43,50 @@ function makeid()
 
 	return text;
 }
-//LZW Compression function, forked from https://rosettacode.org/wiki/LZW_compression
-function LZW_compress(data)
+//Compression function
+function compress(data)
 {
-	var i,
-		dictionary = {},
-		c,
-		wc,
-		w = "",
-		result = [],
-		dictSize = 256;//sizeof UTF-8
-
-	for (i = 0; i < dictSize; i += 1)
-		dictionary[String.fromCharCode(i)] = i;
-	for (i = 0; i < data.length; i += 1)
+	"use strict";
+	if(typeof(data)!=="string")
+		return null;
+	const dictOffset = 256;
+	var i, _index, index,
+		dictionary = new Array(),
+		word = "",
+		result = "";
+	
+	for (i=0, _index=0; i<data.length; i++)
 	{
-		c = data.charAt(i);
-		wc = w + c;
-		if (dictionary.hasOwnProperty(wc))
-			w = wc;
-		else
+		word += data.charAt(i);
+		if ((index = dictionary.indexOf(word)) === -1)//Not on dictionary
 		{
-			result.push(dictionary[w]);
-			dictionary[wc] = dictSize++;
-			w = String(c);
+			dictionary.push(word);
+			if(word.length === 1)
+				result += word;
+			else
+				result +=  String.fromCharCode(dictOffset+_index) + word.replace(dictionary[_index], "");
+			word = "";	
 		}
+		else
+			_index = index;
 	}
-	if (w !== "")
-		result.push(dictionary[w]);
-
+	
+	console.log(data);
 	console.log(dictionary);
-
+	console.log(result);
+	
 	console.log(data.length);
-	console.log(result.join("").length);
+	console.log(result.length);
+	console.log(((1-result.length/data.length)*100)+"%");
 
-	return result.toString();
+	
+	/*
+	var str_res = new String();
+	for(i=0; i<result.length; i++)
+		str_res +=String.fromCharCode(result[i]);
+	console.log(str_res);
+	
+	//return result.toString();
+	*/
+	return "";
 }

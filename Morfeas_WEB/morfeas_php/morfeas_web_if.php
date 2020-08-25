@@ -17,7 +17,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 include("../Morfeas_env.php");
-include("./LZW.php");
+include("./Supplementary.php");
 define("usr_comp","COMMAND");
 $ramdisk_path="/mnt/ramdisk/";
 
@@ -121,7 +121,7 @@ if($requestType == "GET")
 else if($requestType == "POST")
 {
 	$RX_data = file_get_contents('php://input');
-	$Channels_json = LZW_decompress($RX_data) or die("Error: Decompressing of ISOChannels failed");
+	$Channels_json = decompress($RX_data) or die("Error: Decompressing of ISOChannels failed");
 	$Channels = json_decode($Channels_json) or die("Error: JSON Decode of ISOChannels failed");
 
 	if(!property_exists($Channels, 'data'))

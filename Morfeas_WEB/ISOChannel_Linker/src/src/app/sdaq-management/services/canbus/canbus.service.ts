@@ -8,7 +8,7 @@ import { CanBusFlatData } from '../../device-info-table/device-info-table.compon
 import { IsoStandard } from '../../models/iso-standard-model';
 import { OpcUaConfigModel } from '../../models/opcua-config-model';
 import { ToastrService } from 'ngx-toastr';
-declare const LZW_compress: any;
+declare const compress: any;
 
 @Injectable({
   providedIn: 'root'
@@ -79,7 +79,7 @@ export class CanbusService {
 													canbusData[i].channelUnit));
 		}
 	}
-    return this.http.post<void>(url, LZW_compress(JSON.stringify(channels)));
+    return this.http.post<void>(url, compress(JSON.stringify(channels)));
   }
 
   private handleCanbusError = (error) => {

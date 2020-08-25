@@ -18,7 +18,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 */
 //Class forked from https://rosettacode.org/wiki/LZW_compression#PHP
 
-function LZW_decompress($com)
+function decompress($com)
 {
 	$com = explode(",",$com);
 	$i;$w;$k;$result;
@@ -40,8 +40,8 @@ function LZW_decompress($com)
 		{
 			if ($k === $dictSize)
 				$entry = $w.$w[0];
-			//else
-				//return null;
+			else
+				return null;
 		}
 		$result .= $entry;
 		$dictionary[$dictSize++] = $w . $entry[0];
