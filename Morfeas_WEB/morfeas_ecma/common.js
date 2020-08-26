@@ -43,6 +43,7 @@ function makeid()
 
 	return text;
 }
+/*
 //Compression function
 function uncompress(data)
 {
@@ -71,6 +72,7 @@ function uncompress(data)
 	}
 	return result;
 }
+*/
 
 //Compression function
 function compress(data)
@@ -96,10 +98,10 @@ function compress(data)
 	{
 
 		word += data.charAt(i);
-		if((index = dictionary.indexOf(word)) === -1)//Not on dictionary
+		if((index = dictionary.indexOf(word)) < 0)//Not in dictionary
 		{
 			dictionary.push(word);
-			result += word.length===1 ? word : String.fromCharCode(dictOffset+_index) + word.replace(dictionary[_index], "");
+			result += word.length==1 ? word : String.fromCharCode(dictOffset+_index) + word.replace(dictionary[_index], "");
 			word = "";
 		}
 		else
@@ -110,11 +112,15 @@ function compress(data)
 	result = String.fromCharCode(dictOffset) + result;
 
 	console.log("Compression Ratio:"+Math.round((((1-result.length/data.length)) + Number.EPSILON)*100)+"%");
+	console.log("Sizeof(data)="+data.length);
+	console.log("Sizeof(result)="+result.length);
+	console.log(dictionary);
+	/*
 	console.log(data);
 	console.log(result);
 	var uncomp = uncompress(result);
 	console.log("Uncompress="+uncomp);
 	console.log(data === uncomp ? "Success!!!":"Failure");
-
+*/
 	return result;
 }

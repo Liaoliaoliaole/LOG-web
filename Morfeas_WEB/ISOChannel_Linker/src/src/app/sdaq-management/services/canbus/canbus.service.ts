@@ -61,7 +61,7 @@ export class CanbusService {
 	}
 	const url = environment.API_ROOT;
     const headers = new HttpHeaders({
-      'Content-Type': 'application/json'
+      'Content-Type': 'text/plain; charset=UTF-8'
     });
 	var channels = new ISOChannels();
 	for(let i = 0; i < canbusData.length; i++)
@@ -79,7 +79,7 @@ export class CanbusService {
 													canbusData[i].channelUnit));
 		}
 	}
-    return this.http.post<void>(url, compress(JSON.stringify(channels)));
+    return this.http.post<void>(url, compress(JSON.stringify(channels)), {headers});
   }
 
   private handleCanbusError = (error) => {

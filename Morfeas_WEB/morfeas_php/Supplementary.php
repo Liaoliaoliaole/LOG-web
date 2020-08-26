@@ -16,37 +16,81 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-//Class forked from https://rosettacode.org/wiki/LZW_compression#PHP
 
-function decompress($com)
+/*
+//Compression function
+function uncompress(data)
 {
-	$com = explode(",",$com);
-	$i;$w;$k;$result;
-	$dictionary = array();
-	$entry = "";
-	$dictSize = 256;
+	"use strict";
+	var i,
+		dictOffset = 0,
+		dictionary = [],
+		result = "";
 
-	for ($i = 0; $i < $dictSize; $i++)
-		$dictionary[$i] = chr($i);
+	dictOffset = data.charCodeAt(0);
 
-	$w = chr($com[0]);
-	$result = $w;
-	for ($i = 1; $i < count($com); $i++)
+	for (i=1; i<data.length; i++)
 	{
-		$k = $com[$i];
-		if ($dictionary[$k])
-			$entry = $dictionary[$k];
+		if(data.charAt(i)<String.fromCharCode(dictOffset))
+		{
+			dictionary.push(data.charAt(i));
+			result += data.charAt(i);
+		}
 		else
 		{
-			if ($k === $dictSize)
-				$entry = $w.$w[0];
-			else
-				return null;
+			result += dictionary[data.charCodeAt(i)-dictOffset] + data.charAt(i+1);
+			dictionary.push(dictionary[data.charCodeAt(i)-dictOffset]+data.charAt(i+1));
+			i++;
+
 		}
-		$result .= $entry;
-		$dictionary[$dictSize++] = $w . $entry[0];
-		$w = $entry;
 	}
+	return result;
+}
+*/
+
+function decompress($data)
+{
+	mb_check_encoding($data, "UTF-8") or die("Decompression Error!!!!");
+	//echo strlen($data)."\n";
+	$result = "";
+	$dictionary = array();
+
+	if($dictOffset = ord($data[0])>0x7F)//Check for Unicode
+		$dictOffset = mb_ord(substr($data, 0, 2));
+
+	echo "dictOffset=".$dictOffset."\n";
+
+	for ($i=1; $i<strlen($data); $i++)
+	{
+		if(ord($c=$data[$i])>0x7F)//Check for Unicode
+			$c=$data[++$i];
+
+		if($c<chr($dictOffset))
+		{
+			array_push($dictionary, $c);
+			$result .= $c;
+		}
+		else
+		{
+			$dict_pos = ord($c)-$dictOffset;
+			if(isset($dictionary[$dict_pos]))
+			{
+				$result .= $dictionary[$dict_pos].$data[$i+1];
+				array_push($dictionary, $dictionary[$dict_pos].$data[$i+1]);
+				$i++;
+			}
+			else
+			{
+				echo "Error ".$c.'('.ord($c).") Pos".$i."\n";
+				echo "Error offset:".($dict_pos)."\n";
+				print_r($dictionary);
+				return NULL;
+			}
+		}
+	}
+
+	print_r($dictionary);
+	echo $result."\n";
 	return $result;
 }
 ?>
