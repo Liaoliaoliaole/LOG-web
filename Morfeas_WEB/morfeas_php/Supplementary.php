@@ -48,31 +48,52 @@ function uncompress(data)
 }
 */
 
+function charSizeAt($inp_str, $pos)
+{
+	if(ord($inp_str[pos])<=0x7F)//Check for ASCII
+		return 0;
+	else//Char is Unicode
+	{
+		$scan = $inp_str[pos];
+		$i=1;
+		while(1)
+		{
+			if(!(($scan <<=1)&0x80))
+				break;
+			$i++;
+		}
+	}
+	return $i;
+}
+
 function decompress($data)
 {
-	mb_check_encoding($data, "UTF-8") or die("Decompression Error!!!!");
-	//echo strlen($data)."\n";
 	$result = "";
 	$dictionary = array();
 
-	if($dictOffset = ord($data[0])>0x7F)//Check for Unicode
-		$dictOffset = mb_ord(substr($data, 0, 2));
+	mb_check_encoding($data, "UTF-8") or die("Decompression Error!!!!");
+	//echo strlen($data)."\n";
+
+	$dictOffset = mb_ord(substr($data, 0));
 
 	echo "dictOffset=".$dictOffset."\n";
 
+
+
 	for ($i=1; $i<strlen($data); $i++)
 	{
-		if(ord($c=$data[$i])>0x7F)//Check for Unicode
-			$c=$data[++$i];
 
-		if($c<chr($dictOffset))
+		if(ord($c=$data[$i])>0x7F)//Check for Unicode
+			$c=mb_chr($data[$i]);
+
+		if($c<mb_chr($dictOffset))
 		{
 			array_push($dictionary, $c);
 			$result .= $c;
 		}
 		else
 		{
-			$dict_pos = ord($c)-$dictOffset;
+			$dict_pos = mb_ord($c)-$dictOffset;
 			if(isset($dictionary[$dict_pos]))
 			{
 				$result .= $dictionary[$dict_pos].$data[$i+1];
@@ -81,7 +102,7 @@ function decompress($data)
 			}
 			else
 			{
-				echo "Error ".$c.'('.ord($c).") Pos".$i."\n";
+				//echo "Error ".$c.'('.ord($c).") Pos".$i."\n";
 				echo "Error offset:".($dict_pos)."\n";
 				print_r($dictionary);
 				return NULL;
