@@ -33,6 +33,7 @@ function PopupCenter(url, title, w, h)
 		newWindow.focus();
 	}
 }
+
 function makeid()
 {
 	var text = "";
@@ -43,37 +44,6 @@ function makeid()
 
 	return text;
 }
-/*
-//Compression function
-function uncompress(data)
-{
-	"use strict";
-	var i,
-		dictOffset = 0,
-		dictionary = [],
-		result = "";
-
-	dictOffset = data.charCodeAt(0);
-
-	for (i=1; i<data.length; i++)
-	{
-		if(data.charAt(i)<String.fromCharCode(dictOffset))
-		{
-			dictionary.push(data.charAt(i));
-			result += data.charAt(i);
-		}
-		else
-		{
-			result += dictionary[data.charCodeAt(i)-dictOffset] + data.charAt(i+1);
-			dictionary.push(dictionary[data.charCodeAt(i)-dictOffset]+data.charAt(i+1));
-			i++;
-
-		}
-	}
-	return result;
-}
-*/
-
 //Compression function
 function compress(data)
 {
@@ -112,15 +82,15 @@ function compress(data)
 	result = String.fromCharCode(dictOffset) + result;
 
 	console.log("Compression Ratio:"+Math.round((((1-result.length/data.length)) + Number.EPSILON)*100)+"%");
+	/*
 	console.log("Sizeof(data)="+data.length);
 	console.log("Sizeof(result)="+result.length);
 	console.log(dictionary);
-	/*
 	console.log(data);
 	console.log(result);
 	var uncomp = uncompress(result);
 	console.log("Uncompress="+uncomp);
 	console.log(data === uncomp ? "Success!!!":"Failure");
-*/
+	*/
 	return result;
 }
