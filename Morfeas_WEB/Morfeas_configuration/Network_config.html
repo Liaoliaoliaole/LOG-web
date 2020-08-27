@@ -5,8 +5,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<link rel="shortcut icon" type="image/x-icon" href="rpi_logo.ico" />
-<title>Raspberry Pi Controller Network</title>
+<link rel="shortcut icon" type="image/x-icon" href="../art/rpi_logo.ico" />
+<title>Network Configuration</title>
 <style>
 td.bold {
     font-weight: bold;
@@ -19,79 +19,116 @@ input.global_style{
 <body>
 <table style="margin:auto">
   <tr>
-    <th colspan="2">Ethernet Configuration</th>
+    <th colspan="2">Machine Identifier</th>
+  </tr>
+  <tr>
+    <td>Hostname</td>
+    <td>
+		<input style="width:20;" type="text" id="hostname">
+	</td>
+  </tr>
+  <tr>
+    <th colspan="2">Internet Configuration</th>
+  </tr>
+  <tr>
+	<td>
+		<select id="ip_conf">
+			<option value="Static">Static</option>
+			<option value="dhcp">DHCP</option>
+		</select>
+	</td>
   </tr>
   <tr>
     <td>Network IP</td>
-    <td class="bold">192 : 168 : <input class="global_style" type="number" name="ip"> : <input class="global_style" type="number" name="ip"></td> 
-  </tr>
-  <tr>
-    <td>Subnet Mask</td>
-    <td class="bold">255 : 255 : <input class="global_style" type="number" name="mask"> : <input class="global_style" type="number" name="mask"></td> 
+    <td>
+		<input class="global_style" type="number" name="ip" min="0" max="255">.
+		<input class="global_style" type="number" name="ip" min="0" max="255">.
+		<input class="global_style" type="number" name="ip" min="0" max="255">.
+		<input class="global_style" type="number" name="ip" min="0" max="255">/
+		<input class="global_style" type="number" name="mask" min="0" max="32">
+	</td>
   </tr>
   <tr>
     <td>Default Gateway</td>
-    <td class="bold">192 : 168 : <input class="global_style" type="number" name="gateway"> : <input class="global_style" type="number" name="gateway"></td> 
+    <td>
+		<input class="global_style" type="number" name="gateway" min="0" max="255">.
+		<input class="global_style" type="number" name="gateway" min="0" max="255">.
+		<input class="global_style" type="number" name="gateway" min="0" max="255">.
+		<input class="global_style" type="number" name="gateway" min="0" max="255">
+	</td>
   </tr>
   <tr>
-    <th colspan="2">ModBus TCP Configuration</th>
+    <th colspan="2">NTP Configuration</th>
   </tr>
   <tr>
-    <td>TCP Port</td>
-    <td><input style="width: 5em;" id="modbus_port" type="number"> (default 502)</td>  
-  </tr>
-  <tr>
-    <td>Address</td>
-    <td><input style="width: 5em;"value="0...4" type="text" readonly></td>  
-  </tr>
-  <tr>
-    <td>Max Connections</td>
-    <td><input class="global_style" id="connections" type="number"> (default 5)</td>
+    <td>IP address</td>
+     <td>
+		<input class="global_style" type="number" name="ntp" min="0" max="255">.
+		<input class="global_style" type="number" name="ntp" min="0" max="255">.
+		<input class="global_style" type="number" name="ntp" min="0" max="255">.
+		<input class="global_style" type="number" name="ntp" min="0" max="255">
+	</td>
   </tr>
   <tr>
     <td><input id="default" type="button" value="load Default" onclick="default_config()"></td>
     <td style="text-align: right;"><input id="Save" type="button" value="Save and Reboot" onclick="Send_to_rpi()"></td>
   </tr>
 </table>
-
+<script src='../morfeas_ecma/common.js'></script>
 <script>
-    //DOM vars
-	var ip=document.getElementsByName("ip"),mask=document.getElementsByName("mask"),
-	    gateway=document.getElementsByName("gateway"),connections=document.getElementById("connections"),
-		modbus_port=document.getElementById("modbus_port"),modbus_add=0;//document.getElementById("modbus_add");
-	//ajax object for configuration receive and send
-	var config,fl,xhttp = new XMLHttpRequest();
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this page.
+
+Copyright (C) 12019-12020  Sam Harry Tzavaras
+
+The JavaScript code in this page is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU AGPL) as published by the Free Software
+Foundation, either version 3 of the License, or any later version.
+The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
+
+@licend  The above is the entire license notice
+for the JavaScript code in this page.
+*/
+	//DOM vars
+	var hostname=document.getElementById("hostname"),
+		ip=document.getElementsByName("ip"),
+		mask=document.getElementsByName("mask"),
+	    gateway=document.getElementsByName("gateway"),
+		ntp=document.getElementsByName("ntp");
+	
+	//Set limits
+	
+	//AJAX object for configuration receive and send
+	var fl,xhttp = new XMLHttpRequest();
 	var Request = {
 		  GET: 1,
 		  POST: 0
 		};
-	xhttp.onreadystatechange = function() {
-		if (this.readyState == 4 && this.status == 200) {
+	xhttp.onreadystatechange = function() 
+	{
+		if (this.readyState == 4 && this.status == 200) 
+		{
 			if(fl==Request.GET)//Get request
 			{
-				config = JSON.parse(xhttp.responseText);
-				default_config();
+				var config;
+				if(config = JSON.parse(xhttp.responseText))
+					default_config(config);
 			}
 		}
-	}; 
-	//Get the configuration 
+	};
+	//Get the configuration
 	fl=Request.GET;
-	xhttp.open("GET", "config.json"+"?q="+makeid(), true);
+	xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getCurConfig", true);
 	xhttp.send();
-	function makeid()
-	{
-		var text = "";
-		var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-		for( var i=0; i < 5; i++ )
-			text += possible.charAt(Math.floor(Math.random() * possible.length));
-
-		return text;
-	}	
-	function default_config()
+	function default_config(config)
 	{
-		//config min and max value to number input
-		for(i=0;i<2;i++)
+		hostname.value = config.hostname
+		for(let i=0;i<4;i++)
 		{
 			ip[i].max=255;ip[i].min=0;
 			mask[i].max=255;mask[i].min=0;
@@ -107,12 +144,11 @@ input.global_style{
 				gateway[i].min=1;
 			}
 		}
-		connections.max="10";connections.min="1";
-		modbus_add.min="5";modbus_add.max="255";
-		modbus_port.max="65535";modbus_port.min="1";
-		modbus_port.value=config.modbus_tcp_port;
-		connections.value=config.max_con;
-		//modbus_add.value=config.slave_add;
+		/*
+		for(let i=0;i<4;i++)
+		{
+		}
+		*/
 	}
 	function Send_to_rpi()
 	{
@@ -141,23 +177,23 @@ input.global_style{
 		 ||!Number.isInteger(parseFloat(connections.value)))
 		{
 			alert("Max connections number NOT Valid");
-			return;				
+			return;
 		}
 		/*if((parseInt(modbus_add.value)>parseInt(modbus_add.max))
 		 ||(parseInt(modbus_add.value)<parseInt(modbus_add.min))
 		 ||!Number.isInteger(parseFloat(modbus_add.value)))
 		{
 			alert("ModBus Address NOT in Range (6..255)");
-			return;				
+			return;
 		}*/
 		if((parseInt(modbus_port.value)>parseInt(modbus_port.max))
 		 ||(parseInt(modbus_port.value)<parseInt(modbus_port.min))
 		 || modbus_port.value==80||!Number.isInteger(parseFloat(modbus_port.value)))
 		{
 			alert("ModBus Port NOT in Range");
-			return;				
+			return;
 		}
-		//Send the configuration 
+		//Send the configuration
 		fl=Request.POST;
 		xhttp.open("POST", "config.php", true);
 		xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");

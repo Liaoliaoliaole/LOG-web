@@ -149,7 +149,10 @@ else
 											last_row.insertCell().innerHTML = logstat[i].sensors[j].type;
 											last_row.insertCell().innerHTML = logstat[i].sensors[j].deviceUserIdentifier;
 											last_row.insertCell().innerHTML = logstat[i].sensors[j].sensorUserId;
-											last_row.insertCell().innerHTML = logstat[i].sensors[j].avgMeasurement+" "+(logstat[i].sensors[j].unit?logstat[i].sensors[j].unit:"");
+											last_row.insertCell().innerHTML = logstat[i].sensors[j].Is_meas_valid? 
+																			  logstat[i].sensors[j].avgMeasurement.toFixed(3)+(logstat[i].sensors[j].unit?logstat[i].sensors[j].unit:""):
+																			  "Error!!!";
+											
 										}
 									}
 								}

@@ -38,7 +38,7 @@ function makeid()
 {
 	var text = "";
 	var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
+	
 	for( var i=0; i < 10; i++ )
 		text += possible.charAt(Math.floor(Math.random() * possible.length));
 
@@ -80,17 +80,6 @@ function compress(data)
 	if(word !== "")
 		result += word;
 	result = String.fromCharCode(dictOffset) + result;
-
-	console.log("Compression Ratio:"+Math.round((((1-result.length/data.length)) + Number.EPSILON)*100)+"%");
-	/*
-	console.log("Sizeof(data)="+data.length);
-	console.log("Sizeof(result)="+result.length);
-	console.log(dictionary);
-	console.log(data);
-	console.log(result);
-	var uncomp = uncompress(result);
-	console.log("Uncompress="+uncomp);
-	console.log(data === uncomp ? "Success!!!":"Failure");
-	*/
+	//console.log("Compression Ratio:"+Math.round((((1-result.length/data.length)) + Number.EPSILON)*100)+"%");
 	return result;
 }

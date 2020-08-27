@@ -61,6 +61,11 @@ function morfeas_logstat_commonizer(logstats)
 	if(logstats.logstat_contents === undefined)
 		return "missing logstat_contents";
 	
+	function norm(num, targetLength) 
+	{
+		return num.toString().padStart(targetLength, 0);
+	}
+	
 	function sensor(type,
 				deviceUserIdentifier, 
 				sensorUserId, 
@@ -110,10 +115,10 @@ function morfeas_logstat_commonizer(logstats)
 				data_table[data_table_index].logstat_build_date_UNIX = logstats.logstat_contents[i].logstat_build_date_UNIX;
 				//Load system's status
 				data_table[data_table_index].sensors = null;
-				data_table[data_table_index].connections.push(new connection("CPU_temp", logstats.logstat_contents[i].CPU_temp, "°C"));
-				data_table[data_table_index].connections.push(new connection("CPU_Util", logstats.logstat_contents[i].CPU_Util, "%"));
-				data_table[data_table_index].connections.push(new connection("RAM_Util", logstats.logstat_contents[i].RAM_Util, "%"));
-				data_table[data_table_index].connections.push(new connection("Disk_Util", logstats.logstat_contents[i].Disk_Util, "%"));
+				data_table[data_table_index].connections.push(new connection("CPU_temp", logstats.logstat_contents[i].CPU_temp.toFixed(2), "°C"));
+				data_table[data_table_index].connections.push(new connection("CPU_Util", logstats.logstat_contents[i].CPU_Util.toFixed(2), "%"));
+				data_table[data_table_index].connections.push(new connection("RAM_Util", logstats.logstat_contents[i].RAM_Util.toFixed(2), "%"));
+				data_table[data_table_index].connections.push(new connection("Disk_Util", logstats.logstat_contents[i].Disk_Util.toFixed(2), "%"));
 				data_table[data_table_index].connections.push(new connection("Up_time", logstats.logstat_contents[i].Up_time, "sec"));
 			}
 			else if(logstats.logstats_names[i].includes("logstat_MDAQ"))//Morfeas_MDAQ_if handlers
@@ -135,16 +140,19 @@ function morfeas_logstat_commonizer(logstats)
 					{	
 						for(let k=1; k<=3; k++)//limit to 3] 
 						{
-							data_table[data_table_index].sensors.push(new sensor
-							(
-								"MDAQ",
-								logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
-								"CH"+logstats.logstat_contents[i].MDAQ_Channels[j].Channel+".Val"+k,
-								logstats.logstat_contents[i].Identifier+'.'+"CH"+logstats.logstat_contents[i].MDAQ_Channels[j].Channel+".Val"+k,
-								null,null,null,
-								eval("logstats.logstat_contents[i].MDAQ_Channels[j].Values.Value"+k),
-								eval("logstats.logstat_contents[i].MDAQ_Channels[j].Warnings.Is_Value"+k+"_valid")
-							));
+							if(eval("logstats.logstat_contents[i].MDAQ_Channels[j].Warnings.Is_Value"+k+"_valid"))
+							{								
+								data_table[data_table_index].sensors.push(new sensor
+								(
+									"MDAQ",
+									logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
+									"CH"+norm(logstats.logstat_contents[i].MDAQ_Channels[j].Channel,2)+".Val"+k,
+									logstats.logstat_contents[i].Identifier+'.'+"CH"+logstats.logstat_contents[i].MDAQ_Channels[j].Channel+".Val"+k,
+									null,null,null,
+									eval("logstats.logstat_contents[i].MDAQ_Channels[j].Values.Value"+k),
+									eval("logstats.logstat_contents[i].MDAQ_Channels[j].Warnings.Is_Value"+k+"_valid")
+								));
+							}
 						}
 					}
 				}
@@ -259,7 +267,7 @@ function morfeas_logstat_commonizer(logstats)
 									(
 										"IOBOX",
 										logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
-										"RX"+j+".CH"+k,
+										"RX"+j+".CH"+norm(k,2),
 										logstats.logstat_contents[i].Identifier+".RX"+j+".CH"+k,
 										"°C",null,null,
 										eval("logstats.logstat_contents[i].RX"+j+".CH"+k),
@@ -277,7 +285,7 @@ function morfeas_logstat_commonizer(logstats)
 			{
 				data_table[data_table_index] = new table_data_entry();
 				//Load IF_name and build_date
-				data_table[data_table_index].if_name = "SDAQ ("+logstats.logstat_contents[i].CANBus_interface+")";
+				data_table[data_table_index].if_name = "SDAQs ("+logstats.logstat_contents[i].CANBus_interface+")";
 				data_table[data_table_index].logstat_build_date_UNIX = logstats.logstat_contents[i].logstat_build_date_UNIX;
 				//Load Device's status
 				data_table[data_table_index].connections.push(new connection("BUS_Utilization", logstats.logstat_contents[i].BUS_Utilization, "%"));
@@ -287,11 +295,11 @@ function morfeas_logstat_commonizer(logstats)
 					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_last_calibration_UNIX", 
 																				  logstats.logstat_contents[i].Electrics.Last_calibration_UNIX));
 					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_outVoltage", 
-																				  logstats.logstat_contents[i].Electrics.BUS_voltage, "V"));
+																				  logstats.logstat_contents[i].Electrics.BUS_voltage.toFixed(2), "V"));
 					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_outAmperage", 
-																				  logstats.logstat_contents[i].Electrics.BUS_amperage, "A"));
+																				  logstats.logstat_contents[i].Electrics.BUS_amperage.toFixed(2), "A"));
 					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_ShuntTemp", 
-																				  logstats.logstat_contents[i].Electrics.BUS_Shunt_Res_temp, "°C"));
+																				  logstats.logstat_contents[i].Electrics.BUS_Shunt_Res_temp.toFixed(2), "°C"));
 				}
 				//Load Device's sensors
 				if(logstats.logstat_contents[i].Detected_SDAQs)
@@ -306,13 +314,13 @@ function morfeas_logstat_commonizer(logstats)
 								(
 									"SDAQ",
 									logstats.logstat_contents[i].SDAQs_data[j].SDAQ_type,
-									"ADDR:"+logstats.logstat_contents[i].SDAQs_data[j].Address+".CH"+logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,
+									"ADDR:"+norm(logstats.logstat_contents[i].SDAQs_data[j].Address,2)+".CH"+norm(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,2),
 									logstats.logstat_contents[i].SDAQs_data[j].Serial_number+".CH"+logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,
 									logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Unit,
 									logstats.logstat_contents[i].SDAQs_data[j].Calibration_Data[k].Calibration_date_UNIX,
 									logstats.logstat_contents[i].SDAQs_data[j].Calibration_Data[k].Calibration_period,
 									logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Meas_avg,
-									!logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Channel_status_val
+									!(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Channel_status_val)
 								));
 							}
 						}
