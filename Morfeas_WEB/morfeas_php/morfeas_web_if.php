@@ -146,15 +146,13 @@ else if($requestType == "POST")
 				 property_exists($Channel, 'Anchor')&&
 				 property_exists($Channel, 'Description')&&
 				 property_exists($Channel, 'Min')&&
-				 property_exists($Channel, 'Max')&&
-				 property_exists($Channel, 'Unit')))
+				 property_exists($Channel, 'Max')))
 				die("Entry (".$data_num.") have missing properties");
 			if(!(strlen($Channel->ISOChannel)&&
 				 strlen($Channel->IF_type)&&
 				 strlen($Channel->Anchor)&&
 				 strlen($Channel->Min)&&
 				 strlen($Channel->Max)&&
-				 strlen($Channel->Unit)&&
 				 strlen($Channel->Description)))
 				die("Entry (".$data_num.") have empty properties");
 			//Load entry data from Channel to root
@@ -171,8 +169,11 @@ else if($requestType == "POST")
 			$channel_node->appendChild($channel_node_child);
 			$channel_node_child = $dom->createElement('MAX', $Channel->Max);
 			$channel_node->appendChild($channel_node_child);
-			$channel_node_child = $dom->createElement('UNIT', $Channel->Unit);
-			$channel_node->appendChild($channel_node_child);
+			if(property_exists($Channel, 'Unit') && strlen($Channel->Unit))
+			{
+				$channel_node_child = $dom->createElement('UNIT', $Channel->Unit);
+				$channel_node->appendChild($channel_node_child);
+			}
 			$root->appendChild($channel_node);
 			$data_num++;
 		}
