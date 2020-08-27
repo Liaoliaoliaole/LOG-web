@@ -31,6 +31,7 @@ input.global_style{
     <th colspan="2">Internet Configuration</th>
   </tr>
   <tr>
+	<td>Mode</td>
 	<td>
 		<select id="ip_conf">
 			<option value="Static">Static</option>
@@ -38,23 +39,23 @@ input.global_style{
 		</select>
 	</td>
   </tr>
-  <tr>
-    <td>Network IP</td>
-    <td>
-		<input class="global_style" type="number" name="ip" min="0" max="255">.
-		<input class="global_style" type="number" name="ip" min="0" max="255">.
-		<input class="global_style" type="number" name="ip" min="0" max="255">.
-		<input class="global_style" type="number" name="ip" min="0" max="255">/
-		<input class="global_style" type="number" name="mask" min="0" max="32">
+  <tr name="static_config">
+	<td>Network IP</td>
+	<td>
+		<input class="global_style" type="number" name="ip">.
+		<input class="global_style" type="number" name="ip">.
+		<input class="global_style" type="number" name="ip">.
+		<input class="global_style" type="number" name="ip">/
+		<input class="global_style" type="number" id="mask" min="0" max="32">
 	</td>
   </tr>
-  <tr>
-    <td>Default Gateway</td>
-    <td>
-		<input class="global_style" type="number" name="gateway" min="0" max="255">.
-		<input class="global_style" type="number" name="gateway" min="0" max="255">.
-		<input class="global_style" type="number" name="gateway" min="0" max="255">.
-		<input class="global_style" type="number" name="gateway" min="0" max="255">
+  <tr name="static_config">
+	<td>Gateway</td>
+	<td>
+		<input class="global_style" type="number" name="gateway">.
+		<input class="global_style" type="number" name="gateway">.
+		<input class="global_style" type="number" name="gateway">.
+		<input class="global_style" type="number" name="gateway">
 	</td>
   </tr>
   <tr>
@@ -63,14 +64,14 @@ input.global_style{
   <tr>
     <td>IP address</td>
      <td>
-		<input class="global_style" type="number" name="ntp" min="0" max="255">.
-		<input class="global_style" type="number" name="ntp" min="0" max="255">.
-		<input class="global_style" type="number" name="ntp" min="0" max="255">.
-		<input class="global_style" type="number" name="ntp" min="0" max="255">
+		<input class="global_style" type="number" name="ntp">.
+		<input class="global_style" type="number" name="ntp">.
+		<input class="global_style" type="number" name="ntp">.
+		<input class="global_style" type="number" name="ntp">
 	</td>
   </tr>
   <tr>
-    <td><input id="default" type="button" value="load Default" onclick="default_config()"></td>
+    <td><input id="default" type="button" value="load Default" onclick="default_config(config)"></td>
     <td style="text-align: right;"><input id="Save" type="button" value="Save and Reboot" onclick="Send_to_rpi()"></td>
   </tr>
 </table>
@@ -93,63 +94,51 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
+
+	function static_conf(visible)
+	{
+		var static_config=document.getElementsByName("static_config");
+		static_config[0].style.visibility=visible?"visible":"collapse";
+		static_config[1].style.visibility=visible?"visible":"collapse";
+	}
 	//DOM vars
 	var hostname=document.getElementById("hostname"),
 		ip=document.getElementsByName("ip"),
-		mask=document.getElementsByName("mask"),
+		mask=document.getElementById("mask"),
 	    gateway=document.getElementsByName("gateway"),
 		ntp=document.getElementsByName("ntp");
-	
-	//Set limits
-	
+
 	//AJAX object for configuration receive and send
-	var fl,xhttp = new XMLHttpRequest();
-	var Request = {
-		  GET: 1,
-		  POST: 0
-		};
-	xhttp.onreadystatechange = function() 
+	var config, xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function()
 	{
-		if (this.readyState == 4 && this.status == 200) 
+		if (this.readyState == 4 && this.status == 200)
 		{
-			if(fl==Request.GET)//Get request
-			{
-				var config;
-				if(config = JSON.parse(xhttp.responseText))
-					default_config(config);
-			}
+			if(config = JSON.parse(xhttp.responseText))
+				default_config(config);
 		}
 	};
 	//Get the configuration
-	fl=Request.GET;
 	xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getCurConfig", true);
 	xhttp.send();
 
-	function default_config(config)
+	function default_config(local_config)
 	{
-		hostname.value = config.hostname
+		if(!local_config)
+			return;
+		hostname.value = local_config.hostname;
 		for(let i=0;i<4;i++)
 		{
 			ip[i].max=255;ip[i].min=0;
-			mask[i].max=255;mask[i].min=0;
-			mask[i].max=255;mask[i].min=0;
 			gateway[i].max=255;gateway[i].min=0;
-
-			ip[i].value=config.eth_ip[i+2];
-			mask[i].value=config.mask[i+2];
-			gateway[i].value=config.gateway[i+2];
-			if(i==1)
-			{
-				ip[i].min=1;
-				gateway[i].min=1;
-			}
+			/*
+			ip[i].value=config.ip;
+			mask[i].value=config.mask;
+			gateway[i].value=config.gateway;
+			*/
 		}
-		/*
-		for(let i=0;i<4;i++)
-		{
-		}
-		*/
 	}
+	/*
 	function Send_to_rpi()
 	{
 		const mask_val=[0,128,192,224,240,248,252,254,255];
@@ -179,13 +168,13 @@ for the JavaScript code in this page.
 			alert("Max connections number NOT Valid");
 			return;
 		}
-		/*if((parseInt(modbus_add.value)>parseInt(modbus_add.max))
+		if((parseInt(modbus_add.value)>parseInt(modbus_add.max))
 		 ||(parseInt(modbus_add.value)<parseInt(modbus_add.min))
 		 ||!Number.isInteger(parseFloat(modbus_add.value)))
 		{
 			alert("ModBus Address NOT in Range (6..255)");
 			return;
-		}*/
+		}
 		if((parseInt(modbus_port.value)>parseInt(modbus_port.max))
 		 ||(parseInt(modbus_port.value)<parseInt(modbus_port.min))
 		 || modbus_port.value==80||!Number.isInteger(parseFloat(modbus_port.value)))
@@ -202,6 +191,7 @@ for the JavaScript code in this page.
 					+"."+gateway[1].value+"&PORT="+modbus_port.value+"&MAX_CONN="+connections.value+"&ADD="+modbus_add);//.value
 		alert("Rpi Save configuration and Rebooting");
 	}
+	*/
 </script>
 </body>
 </html>
