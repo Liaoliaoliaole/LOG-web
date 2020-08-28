@@ -80,7 +80,7 @@ if($requestType == "GET")
 				break;
 			case "opcua_config":
 				header('Content-Type: application/json');
-				$OPCUA_Config_xml = simplexml_load_file($opc_ua_config_file . "OPC_UA_Config.xml") or die("{}");
+				$OPCUA_Config_xml = simplexml_load_file($opc_ua_config_dir."OPC_UA_Config.xml") or die("{}");
 				$OPCUA_Config_xml_to_client = array();
 				$i=0;
 				foreach($OPCUA_Config_xml->children() as $channel)
@@ -92,8 +92,8 @@ if($requestType == "GET")
 				break;
 			case "get_iso_codes_by_unit":
 				header('Content-Type: application/json');
-				file_exists($opc_ua_config_file . "ISOstandard.xml") or die("{}");
-				$ISOstandars_xml = simplexml_load_file($opc_ua_config_file . "ISOstandard.xml");
+				file_exists($opc_ua_config_dir."ISOstandard.xml") or die("{}");
+				$ISOstandars_xml = simplexml_load_file($opc_ua_config_dir."ISOstandard.xml");
 				$ISOstandars_xml_to_client = array();
 				$i=0;
 				foreach($ISOstandars_xml->points->children() as $point)

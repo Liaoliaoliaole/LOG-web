@@ -1,29 +1,36 @@
 <?php
-	class dhcpcd 
+	class eth_if_config 
 	{
 		public $mode;
 		public $ip;
-		public $mask;
 		public $gate;
 	   
 		function parser($if_name) 
 		{
-			$dhcpd_cont=file_get_contents("/etc/dhcpcd.conf.back");
-			$dhcpd_cont=explode("\n",$dhcpd_cont);
-			foreach($dhcpd_cont as $key => $line)
-				if(!strlen($line)||$line[0]==="#")
-					unset($dhcpd_cont[$key]);
-			$dhcpd_cont = array_values($dhcpd_cont);
-			if($key=array_search("interface ".$if_name, $dhcpd_cont))
+			exec("ip link show ".$if_name, $ret_str, $ret_val);
+			if($ret_val)
+				return 1;
+			if(!$eth_if=file_get_contents("/etc/network/interface.d/".$if_name))
 			{
-				//$ip = 
-			}
-			else
 				$this->mode="DHCP";
-			return;
+				return 0;
+			}
+			$eth_if=explode("\n",$eth_if);
+			foreach($eth_if as $key => $line)
+				if(!strlen($line)||$line[0]==="#")
+					unset($eth_if[$key]);
+			$eth_if = array_values($eth_if);
+			if($key=array_search("interface ".$if_name, $eth_if))
+			{
+				$this->mode="Static";
+				$this->ip = $dhcpd_cont[$key+1];
+				$this->gate = $dhcpd_cont[$key+2];
+			}
+			return 0;
 		}
 	}
 
+	include("../Morfeas_env.php");
 	include("./Supplementary.php");
 
 	ob_start("ob_gzhandler");//Enable gzip buffering
@@ -40,22 +47,20 @@
 			switch($_GET["COMMAND"])
 			{
 				case "getCurConfig":
-					//get and decode contents from dhcpcd.conf
-					$conf = new dhcpcd();
-					$conf->parser("eth0");
-					
+					$conf = new eth_if_config();
+					if($conf->parser($eth_if_name))
+						die("\$eth_if_name($eth_if_name) does not exist!!!");
 					$currConfig = new stdClass();
 					$currConfig->hostname=gethostname();
 					if(($currConfig->mode=$conf->mode)==='Static')
 					{
 						$currConfig->ip=$conf->ip;
-						$currConfig->mask=$conf->mask;
 						$currConfig->gate=$conf->gate;
 					}
+					
 					echo json_encode($currConfig);
 					return;
 			}
-
 		}
 	}
 	else if($requestType == 'POST')
