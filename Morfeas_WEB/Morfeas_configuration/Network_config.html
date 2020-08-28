@@ -33,7 +33,7 @@ input.global_style{
   <tr>
 	<td>Mode</td>
 	<td>
-		<select id="ip_conf">
+		<select id="mode" onchange="static_conf(!this.selectedIndex);">
 			<option value="Static">Static</option>
 			<option value="dhcp">DHCP</option>
 		</select>
@@ -42,20 +42,20 @@ input.global_style{
   <tr name="static_config">
 	<td>Network IP</td>
 	<td>
-		<input class="global_style" type="number" name="ip">.
-		<input class="global_style" type="number" name="ip">.
-		<input class="global_style" type="number" name="ip">.
-		<input class="global_style" type="number" name="ip">/
-		<input class="global_style" type="number" id="mask" min="0" max="32">
+		<input class="global_style" name="ip">.
+		<input class="global_style" name="ip">.
+		<input class="global_style" name="ip">.
+		<input class="global_style" name="ip">/
+		<input class="global_style" id="mask">
 	</td>
   </tr>
   <tr name="static_config">
 	<td>Gateway</td>
 	<td>
-		<input class="global_style" type="number" name="gateway">.
-		<input class="global_style" type="number" name="gateway">.
-		<input class="global_style" type="number" name="gateway">.
-		<input class="global_style" type="number" name="gateway">
+		<input class="global_style" name="gateway">.
+		<input class="global_style" name="gateway">.
+		<input class="global_style" name="gateway">.
+		<input class="global_style" name="gateway">
 	</td>
   </tr>
   <tr>
@@ -64,14 +64,14 @@ input.global_style{
   <tr>
     <td>IP address</td>
      <td>
-		<input class="global_style" type="number" name="ntp">.
-		<input class="global_style" type="number" name="ntp">.
-		<input class="global_style" type="number" name="ntp">.
-		<input class="global_style" type="number" name="ntp">
+		<input class="global_style" name="ntp">.
+		<input class="global_style" name="ntp">.
+		<input class="global_style" name="ntp">.
+		<input class="global_style" name="ntp">
 	</td>
   </tr>
   <tr>
-    <td><input id="default" type="button" value="load Default" onclick="default_config(config)"></td>
+    <td><input id="default" type="button" value="Load Last" onclick="default_config(config)"></td>
     <td style="text-align: right;"><input id="Save" type="button" value="Save and Reboot" onclick="Send_to_rpi()"></td>
   </tr>
 </table>
@@ -94,20 +94,71 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-
+	"use strict";
 	function static_conf(visible)
 	{
 		var static_config=document.getElementsByName("static_config");
 		static_config[0].style.visibility=visible?"visible":"collapse";
 		static_config[1].style.visibility=visible?"visible":"collapse";
 	}
+
+	function default_config(_config)
+	{
+		if(!_config)
+			return;
+		hostname.value = _config.hostname;
+		switch(_config.mode)
+		{
+			case "Static":
+				static_conf(true);
+				mode.selectedIndex = 0;
+				for(let i=0;i<4;i++)
+				{
+					ip[i].value=(_config.ip>>((3-i)*8))&0xff;
+					gateway[i].value=(_config.gate>>((3-i)*8))&0xff;
+					ntp[i].value=(_config.ntp>>((3-i)*8))&0xff;
+				}
+				mask.value=_config.mask;
+				break;
+			case "DHCP":
+				static_conf(false);
+				mode.selectedIndex = 1;
+				break;
+		}
+	}
+	function val(inp)
+	{
+		console.log(inp.value);
+		if(inp.value==="")
+			inp.value=0;
+		else if(Number(inp.value)>inp.max)
+			inp.value=inp.max;
+		else if(Number(inp.value)<inp.min)
+			inp.value=inp.min;	
+	}
 	//DOM vars
 	var hostname=document.getElementById("hostname"),
+		mode=document.getElementById("mode"),
 		ip=document.getElementsByName("ip"),
 		mask=document.getElementById("mask"),
 	    gateway=document.getElementsByName("gateway"),
 		ntp=document.getElementsByName("ntp");
-
+	//Set Limits
+	for(let i=0;i<4;i++)
+	{
+		ip[i].type="number";
+		ip[i].max=255;ip[i].min=0;
+		ip[i].oninput = function(){val(this)};
+		gateway[i].type="number";
+		gateway[i].max=255;gateway[i].min=0;
+		gateway[i].oninput = function(){val(this)};
+		ntp[i].type="number";
+		ntp[i].max=255;ntp[i].min=0;
+		ntp[i].oninput = function(){val(this)};
+	}
+	mask.type="number";
+	mask.max=32;mask.min=0;
+	mask.oninput = function(){val(this)};
 	//AJAX object for configuration receive and send
 	var config, xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function()
@@ -122,27 +173,10 @@ for the JavaScript code in this page.
 	xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getCurConfig", true);
 	xhttp.send();
 
-	function default_config(local_config)
-	{
-		if(!local_config)
-			return;
-		hostname.value = local_config.hostname;
-		for(let i=0;i<4;i++)
-		{
-			ip[i].max=255;ip[i].min=0;
-			gateway[i].max=255;gateway[i].min=0;
-			/*
-			ip[i].value=config.ip;
-			mask[i].value=config.mask;
-			gateway[i].value=config.gateway;
-			*/
-		}
-	}
-	/*
 	function Send_to_rpi()
 	{
 		const mask_val=[0,128,192,224,240,248,252,254,255];
-		for(i=0;i<2;i++)
+		for(let i=0;i<4;i++)
 		{
 			if((parseInt(ip[i].value)>parseInt(ip[i].max))
 			 ||(parseInt(ip[i].value)<parseInt(ip[i].min))
@@ -182,6 +216,7 @@ for the JavaScript code in this page.
 			alert("ModBus Port NOT in Range");
 			return;
 		}
+		/*
 		//Send the configuration
 		fl=Request.POST;
 		xhttp.open("POST", "config.php", true);
@@ -190,8 +225,8 @@ for the JavaScript code in this page.
 					+mask[0].value+"."+mask[1].value+"&GATE=192.168."+gateway[0].value
 					+"."+gateway[1].value+"&PORT="+modbus_port.value+"&MAX_CONN="+connections.value+"&ADD="+modbus_add);//.value
 		alert("Rpi Save configuration and Rebooting");
+		*/
 	}
-	*/
 </script>
 </body>
 </html>

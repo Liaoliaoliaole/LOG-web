@@ -1,35 +1,72 @@
 <?php
-	class eth_if_config 
+	class eth_if_config
 	{
 		public $mode;
 		public $ip;
+		public $mask;
 		public $gate;
-	   
-		function parser($if_name) 
+		function parser($if_name)
 		{
-			exec("ip link show ".$if_name, $ret_str, $ret_val);
-			if($ret_val)
-				return 1;
-			if(!$eth_if=file_get_contents("/etc/network/interface.d/".$if_name))
+			if(!file_exists('/sys/class/net/'.$if_name))
+				return -1;
+			if(!($eth_if=file_get_contents("/etc/network/interfaces.d/".$if_name)))
 			{
 				$this->mode="DHCP";
 				return 0;
 			}
 			$eth_if=explode("\n",$eth_if);
 			foreach($eth_if as $key => $line)
+			{
+				$eth_if[$key]=preg_replace('/[ \t\r\n]{2,}|[ ]+$/', '', $eth_if[$key]);
 				if(!strlen($line)||$line[0]==="#")
 					unset($eth_if[$key]);
+			}
 			$eth_if = array_values($eth_if);
-			if($key=array_search("interface ".$if_name, $eth_if))
+			if($key=array_search('iface '.$if_name.' inet static', $eth_if))
 			{
 				$this->mode="Static";
-				$this->ip = $dhcpd_cont[$key+1];
-				$this->gate = $dhcpd_cont[$key+2];
+				if($ip_str=substr($eth_if[$key+1],strpos($eth_if[$key+1],"address")+strlen("address ")))
+				{
+					$this->ip=ip2long($ip_str);
+					if($netmask=substr($eth_if[$key+2],strpos($eth_if[$key+2],"netmask")+strlen("netmask ")))
+					{
+						$netmask=ip2long($netmask);
+						$this->mask=0;
+						while($netmask&(1<<31))
+						{
+							$this->mask++;
+							$netmask<<=1;
+						}
+					}
+					if($gateway =substr($eth_if[$key+3],strpos($eth_if[$key+3],"gateway")+strlen("gateway ")))
+						$this->gate=ip2long($gateway);
+				}
 			}
 			return 0;
 		}
 	}
-
+	function get_timesyncd_ntp()
+	{
+		if(!($timesyncd_config_file=file_get_contents("/etc/systemd/timesyncd.conf")))
+			return null;
+		$timesyncd_config_file=explode("\n",$timesyncd_config_file);
+		foreach($timesyncd_config_file as $key=>$line)
+		{
+			$timesyncd_config_file[$key]=preg_replace('/[ \t\r\n]|[ ]+$/', '', $timesyncd_config_file[$key]);
+			if(!strlen($line)||$line[0]==="#")
+				unset($timesyncd_config_file[$key]);
+		}
+		$timesyncd_config_file = array_values($timesyncd_config_file);
+		foreach($timesyncd_config_file as $key=>$line)
+		{
+			if(strpos($line,'NTP=')===0)
+			{
+				$ntp_ip_str=substr($line,strpos($line,"NTP=")+strlen("NTP="));
+				return ip2long($ntp_ip_str);
+			}
+		}
+		return null;
+	}
 	include("../Morfeas_env.php");
 	include("./Supplementary.php");
 
@@ -55,9 +92,10 @@
 					if(($currConfig->mode=$conf->mode)==='Static')
 					{
 						$currConfig->ip=$conf->ip;
+						$currConfig->mask=$conf->mask;
 						$currConfig->gate=$conf->gate;
 					}
-					
+					$currConfig->ntp=get_timesyncd_ntp();
 					echo json_encode($currConfig);
 					return;
 			}
@@ -100,19 +138,7 @@
 
 			file_put_contents("/etc/rc.local",$interface_config);
 			//exec('sudo reboot');
-			/*
-			$dhcpcd_config=file_get_contents("/etc/dhcpcd.conf");
-		    $dhcpcd_config = substr($dhcpcd_config, 0, strrpos($dhcpcd_config, 'interface eth0.0'));
-			$dhcpcd_config = sprintf("%sinterface eth0.0\nstatic ip_address=%d.%d.%d.%d/%d\nstatic routers=%d.%d.%d.%d\nstatic domain_name_servers=%d.%d.%d.%d\n"
-									  ,$dhcpcd_config,$config_file_json->eth_ip[0],$config_file_json->eth_ip[1],$config_file_json->eth_ip[2],$config_file_json->eth_ip[3]
-									  ,$mask,$config_file_json->gateway[0],$config_file_json->gateway[1],$config_file_json->gateway[2],$config_file_json->gateway[3]
-									  ,$config_file_json->gateway[0],$config_file_json->gateway[1],$config_file_json->gateway[2],$config_file_json->gateway[3]);
-			file_put_contents("/etc/dhcpcd.conf",$dhcpcd_config);
-			exec('sudo reboot');
-			*/
 		}
-		else
-			echo 'Argument Error';
 	}
 	http_response_code(404);
 ?>
