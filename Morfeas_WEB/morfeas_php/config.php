@@ -7,13 +7,17 @@
 		public $gate;
 		function parser($if_name)
 		{
+			if(!$if_name)
+				die('Argument $eth_if_name is NULL!!!');
 			if(!file_exists('/sys/class/net/'.$if_name))
-				return -1;
-			if(!($eth_if=file_get_contents("/etc/network/interfaces.d/".$if_name)))
+				die("Adapter \"$if_name\" does not exist!!!");
+			if(!file_exists('/etc/network/interfaces.d/'.$if_name))
 			{
 				$this->mode="DHCP";
-				return 0;
+				return;
 			}
+			else
+				$eth_if=file_get_contents('/etc/network/interfaces.d/'.$if_name);
 			$eth_if=explode("\n",$eth_if);
 			foreach($eth_if as $key => $line)
 			{
@@ -42,7 +46,7 @@
 						$this->gate=ip2long($gateway);
 				}
 			}
-			return 0;
+			return;
 		}
 	}
 	function get_timesyncd_ntp()
@@ -85,8 +89,7 @@
 			{
 				case "getCurConfig":
 					$conf = new eth_if_config();
-					if($conf->parser($eth_if_name))
-						die("\$eth_if_name($eth_if_name) does not exist!!!");
+					$conf->parser($eth_if_name);
 					$currConfig = new stdClass();
 					$currConfig->hostname=gethostname();
 					if(($currConfig->mode=$conf->mode)==='Static')
@@ -96,6 +99,7 @@
 						$currConfig->gate=$conf->gate;
 					}
 					$currConfig->ntp=get_timesyncd_ntp();
+					header('Content-Type: application/json');
 					echo json_encode($currConfig);
 					return;
 			}
@@ -103,7 +107,13 @@
 	}
 	else if($requestType == 'POST')
 	{
-		define("mask_val",[0,128,192,224,240,248,252,254,255]);
+		$RX_data = file_get_contents('php://input');
+		$new_config_json = decompress($RX_data) or die("Error: Decompressing of ISOChannels failed");
+		$new_config = json_decode($new_config_json) or die("Error: JSON Decode of ISOChannels failed");
+		print_r($new_config);
+		echo long2ip($new_config->ip);
+		return;
+		/*
 		if(array_key_exists("IP_ADD", $_POST)&&array_key_exists("MASK", $_POST)&&array_key_exists("GATE", $_POST)&&array_key_exists("PORT", $_POST))
 		{
 			$config_file_json=json_decode(file_get_contents("config.json"));
@@ -135,10 +145,10 @@
 									  $config_file_json->gateway[2],
 									  $config_file_json->gateway[3]);
 									  echo $interface_config;
-
 			file_put_contents("/etc/rc.local",$interface_config);
 			//exec('sudo reboot');
 		}
+		*/
 	}
 	http_response_code(404);
 ?>

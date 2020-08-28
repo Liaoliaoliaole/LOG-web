@@ -35,7 +35,7 @@ input.global_style{
 	<td>
 		<select id="mode" onchange="static_conf(!this.selectedIndex);">
 			<option value="Static">Static</option>
-			<option value="dhcp">DHCP</option>
+			<option value="DHCP">DHCP</option>
 		</select>
 	</td>
   </tr>
@@ -122,19 +122,20 @@ for the JavaScript code in this page.
 				break;
 			case "DHCP":
 				static_conf(false);
+				for(let i=0;i<4;i++)
+					ntp[i].value=(_config.ntp>>((3-i)*8))&0xff;
 				mode.selectedIndex = 1;
 				break;
 		}
 	}
 	function val(inp)
 	{
-		console.log(inp.value);
 		if(inp.value==="")
 			inp.value=0;
 		else if(Number(inp.value)>inp.max)
 			inp.value=inp.max;
 		else if(Number(inp.value)<inp.min)
-			inp.value=inp.min;	
+			inp.value=inp.min;
 	}
 	//DOM vars
 	var hostname=document.getElementById("hostname"),
@@ -157,16 +158,24 @@ for the JavaScript code in this page.
 		ntp[i].oninput = function(){val(this)};
 	}
 	mask.type="number";
-	mask.max=32;mask.min=0;
+	mask.max=32;mask.min=1;
 	mask.oninput = function(){val(this)};
 	//AJAX object for configuration receive and send
-	var config, xhttp = new XMLHttpRequest();
+	var config=null, xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function()
 	{
 		if (this.readyState == 4 && this.status == 200)
 		{
-			if(config = JSON.parse(xhttp.responseText))
+			if(xhttp.getResponseHeader("Content-Type")==="application/json")
+			{
+				config = JSON.parse(xhttp.responseText);
 				default_config(config);
+			}
+			else
+			{
+				alert(xhttp.responseText);
+				//window.close();
+			}
 		}
 	};
 	//Get the configuration
@@ -175,57 +184,76 @@ for the JavaScript code in this page.
 
 	function Send_to_rpi()
 	{
-		const mask_val=[0,128,192,224,240,248,252,254,255];
+		if(!config)
+			return;
+		var new_config={hostname,mode,ip,mask,gateway,ntp};
+
+		if(hostname.value === config.hostname)
+			delete new_config.hostname;
+		else
+			new_config.hostname=hostname.value;
+		new_config.mode=mode.value;
+		if(new_config.mode !== config.mode)
+		{
+			if(new_config.mode === "Static")
+			{
+				for(let i=0; i<4; i++)
+				{
+					new_config.ip<<=8;
+					new_config.ip+=Number(ip[i].value);
+					new_config.gateway<<=8;
+					new_config.gateway+=Number(gateway[i].value);
+				}
+				if(!(new_config.mask=Number(mask.value)))
+				{
+					alert("Invalid Subnet Mask!!!");
+					return;
+				}
+				var mask_num=1<<31;
+				for(let i=0; i<new_config.mask-1; i++)
+					mask_num>>=1;
+				if(!(~mask_num & new_config.ip)||(mask_num | new_config.ip) === -1 ||
+				  !(0xFF000000 & new_config.ip)||((new_config.ip>>24)&0x000000FF) === 0xFF)
+				{
+					alert("IP address is invalid!!!");
+					return;
+				}
+				if(!new_config.gateway)
+				{
+					alert("Invalid Gateway!!!");
+					return;
+				}
+			}
+			else
+			{
+				delete new_config.ip;
+				delete new_config.mask;
+				delete new_config.gateway;
+			}
+		}
+		else
+		{
+			delete new_config.ip;
+			delete new_config.mask;
+			delete new_config.gateway;
+			delete new_config.mode;
+		}
 		for(let i=0;i<4;i++)
 		{
-			if((parseInt(ip[i].value)>parseInt(ip[i].max))
-			 ||(parseInt(ip[i].value)<parseInt(ip[i].min))
-			 ||(parseInt(gateway[i].value)>parseInt(gateway[i].max))
-			 ||(parseInt(gateway[i].value)<parseInt(gateway[i].min))
-			 ||!Number.isInteger(parseFloat(ip[i].value)))
-			{
-				alert("IP address or IP of default Gateway in not valid");
-				return;
-			}
-			if((mask_val.indexOf(parseInt(mask[i].value))<0)
-			 ||(parseInt(mask[1].value)>0&&parseInt(mask[0].value)!=255)
-			 ||(parseInt(mask[1].value))==255)
-			{
-				alert("Subnet mask in not valid");
-				return;
-			}
+			new_config.ntp<<=8;
+			new_config.ntp+=Number(ntp[i].value);
 		}
-		if((parseInt(connections.value)>parseInt(connections.max))
-		 ||(parseInt(connections.value)<parseInt(connections.min))
-		 ||!Number.isInteger(parseFloat(connections.value)))
+		if(!new_config.ntp||new_config.ntp===-1)
 		{
-			alert("Max connections number NOT Valid");
+			alert("Invalid IP of NTP server!!!");
 			return;
 		}
-		if((parseInt(modbus_add.value)>parseInt(modbus_add.max))
-		 ||(parseInt(modbus_add.value)<parseInt(modbus_add.min))
-		 ||!Number.isInteger(parseFloat(modbus_add.value)))
-		{
-			alert("ModBus Address NOT in Range (6..255)");
-			return;
-		}
-		if((parseInt(modbus_port.value)>parseInt(modbus_port.max))
-		 ||(parseInt(modbus_port.value)<parseInt(modbus_port.min))
-		 || modbus_port.value==80||!Number.isInteger(parseFloat(modbus_port.value)))
-		{
-			alert("ModBus Port NOT in Range");
-			return;
-		}
-		/*
+		console.log(new_config);
 		//Send the configuration
-		fl=Request.POST;
-		xhttp.open("POST", "config.php", true);
-		xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-		xhttp.send("IP_ADD=192.168."+ip[0].value+"."+ip[1].value+"&MASK=255.255."
-					+mask[0].value+"."+mask[1].value+"&GATE=192.168."+gateway[0].value
-					+"."+gateway[1].value+"&PORT="+modbus_port.value+"&MAX_CONN="+connections.value+"&ADD="+modbus_add);//.value
-		alert("Rpi Save configuration and Rebooting");
-		*/
+		xhttp.open("POST", "../morfeas_php/config.php", true);
+		xhttp.setRequestHeader("Content-type", "text/plain");
+		xhttp.send(compress(JSON.stringify(new_config)));
+		//alert("Rpi Save configuration and Rebooting");
 	}
 </script>
 </body>
