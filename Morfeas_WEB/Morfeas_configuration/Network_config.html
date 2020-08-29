@@ -24,7 +24,7 @@ input.global_style{
   <tr>
     <td>Hostname</td>
     <td>
-		<input style="width:20;" type="text" id="hostname">
+		<input style="width:16;" type="text" id="hostname">
 	</td>
   </tr>
   <tr>
@@ -107,6 +107,9 @@ for the JavaScript code in this page.
 		if(!_config)
 			return;
 		hostname.value = _config.hostname;
+		if(_config.ntp)
+			for(let i=0;i<4;i++)
+				ntp[i].value=(_config.ntp>>((3-i)*8))&0xff;
 		switch(_config.mode)
 		{
 			case "Static":
@@ -116,14 +119,11 @@ for the JavaScript code in this page.
 				{
 					ip[i].value=(_config.ip>>((3-i)*8))&0xff;
 					gateway[i].value=(_config.gate>>((3-i)*8))&0xff;
-					ntp[i].value=(_config.ntp>>((3-i)*8))&0xff;
 				}
 				mask.value=_config.mask;
 				break;
 			case "DHCP":
 				static_conf(false);
-				for(let i=0;i<4;i++)
-					ntp[i].value=(_config.ntp>>((3-i)*8))&0xff;
 				mode.selectedIndex = 1;
 				break;
 		}
@@ -184,14 +184,28 @@ for the JavaScript code in this page.
 
 	function Send_to_rpi()
 	{
-		if(!config)
-			return;
 		var new_config={hostname,mode,ip,mask,gateway,ntp};
 
+		if(!config)
+		{
+			alert("Nothing to commit!!!");
+			return;
+		}
 		if(hostname.value === config.hostname)
 			delete new_config.hostname;
 		else
+		{
+			var illegal_chars = new RegExp('[\\/:*?"<>|. ]|^-|-$|^\d');
+			if(!(hostname.value.length)||hostname.value.length>=16||
+			   illegal_chars.test(hostname.value))
+			{
+				alert("Hostname is Invalid!!!\n"+
+					  "Must contain ONLY:\n"+
+					  "Latin letters and numbers");
+				return;
+			}
 			new_config.hostname=hostname.value;
+		}
 		new_config.mode=mode.value;
 		if(new_config.mode !== config.mode)
 		{
@@ -199,6 +213,16 @@ for the JavaScript code in this page.
 			{
 				for(let i=0; i<4; i++)
 				{
+					if(ip[i].value=="")
+					{
+						new_config.ip=0;
+						break;
+					}
+					if(gateway[i].value=="")
+					{
+						new_config.gateway=0;
+						break;
+					}
 					new_config.ip<<=8;
 					new_config.ip+=Number(ip[i].value);
 					new_config.gateway<<=8;
@@ -209,18 +233,21 @@ for the JavaScript code in this page.
 					alert("Invalid Subnet Mask!!!");
 					return;
 				}
+				if(!new_config.gateway)
+				{
+					alert("Invalid Gateway!!!");
+					return;
+				}
 				var mask_num=1<<31;
 				for(let i=0; i<new_config.mask-1; i++)
+				{
+					mask_num|=1<<31;
 					mask_num>>=1;
+				}
 				if(!(~mask_num & new_config.ip)||(mask_num | new_config.ip) === -1 ||
 				  !(0xFF000000 & new_config.ip)||((new_config.ip>>24)&0x000000FF) === 0xFF)
 				{
 					alert("IP address is invalid!!!");
-					return;
-				}
-				if(!new_config.gateway)
-				{
-					alert("Invalid Gateway!!!");
 					return;
 				}
 			}
@@ -240,12 +267,17 @@ for the JavaScript code in this page.
 		}
 		for(let i=0;i<4;i++)
 		{
+			if(ntp[i].value==="")
+			{
+				new_config.ntp=0;
+				break;
+			}
 			new_config.ntp<<=8;
 			new_config.ntp+=Number(ntp[i].value);
 		}
 		if(!new_config.ntp||new_config.ntp===-1)
 		{
-			alert("Invalid IP of NTP server!!!");
+			alert("Invalid NTP server's IP!!!");
 			return;
 		}
 		console.log(new_config);

@@ -111,7 +111,7 @@
 		$new_config_json = decompress($RX_data) or die("Error: Decompressing of ISOChannels failed");
 		$new_config = json_decode($new_config_json) or die("Error: JSON Decode of ISOChannels failed");
 		print_r($new_config);
-		echo long2ip($new_config->ip);
+		//echo long2ip($new_config->ip);
 		return;
 		/*
 		if(array_key_exists("IP_ADD", $_POST)&&array_key_exists("MASK", $_POST)&&array_key_exists("GATE", $_POST)&&array_key_exists("PORT", $_POST))
