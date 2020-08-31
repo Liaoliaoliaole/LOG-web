@@ -62,7 +62,7 @@ input.global_style{
     <th colspan="2">NTP Configuration</th>
   </tr>
   <tr>
-    <td>IP address</td>
+    <td>NTP IP</td>
      <td>
 		<input class="global_style" name="ntp">.
 		<input class="global_style" name="ntp">.
@@ -158,7 +158,7 @@ for the JavaScript code in this page.
 		ntp[i].oninput = function(){val(this)};
 	}
 	mask.type="number";
-	mask.max=32;mask.min=1;
+	mask.max=30;mask.min=4;
 	mask.oninput = function(){val(this)};
 	//AJAX object for configuration receive and send
 	var config=null, xhttp = new XMLHttpRequest();
@@ -184,13 +184,25 @@ for the JavaScript code in this page.
 
 	function Send_to_rpi()
 	{
-		var new_config={hostname,mode,ip,mask,gateway,ntp};
+		var new_config={hostname:"",mode:"",ip:0,mask:0,gate:0,ntp:0};
 
-		if(!config)
+		if(get_new_hostname(new_config)) return;
+		if(get_new_mode(new_config)) return;
+		if(get_new_ntp(new_config)) return;
+		if(!(Object.keys(new_config).length))
 		{
 			alert("Nothing to commit!!!");
 			return;
 		}
+		console.log(new_config);
+		//Send the configuration
+		xhttp.open("POST", "../morfeas_php/config.php", true);
+		xhttp.setRequestHeader("Content-type", "text/plain");
+		xhttp.send(compress(JSON.stringify(new_config)));
+		//alert("Rpi Save configuration and Rebooting");
+	}
+	function get_new_hostname(new_config)
+	{
 		if(hostname.value === config.hostname)
 			delete new_config.hostname;
 		else
@@ -202,69 +214,77 @@ for the JavaScript code in this page.
 				alert("Hostname is Invalid!!!\n"+
 					  "Must contain ONLY:\n"+
 					  "Latin letters and numbers");
-				return;
+				return -1;
 			}
 			new_config.hostname=hostname.value;
 		}
+		return 0;
+	}
+	function get_new_mode(new_config)
+	{
 		new_config.mode=mode.value;
-		if(new_config.mode !== config.mode)
-		{
-			if(new_config.mode === "Static")
-			{
-				for(let i=0; i<4; i++)
-				{
-					if(ip[i].value=="")
-					{
-						new_config.ip=0;
-						break;
-					}
-					if(gateway[i].value=="")
-					{
-						new_config.gateway=0;
-						break;
-					}
-					new_config.ip<<=8;
-					new_config.ip+=Number(ip[i].value);
-					new_config.gateway<<=8;
-					new_config.gateway+=Number(gateway[i].value);
-				}
-				if(!(new_config.mask=Number(mask.value)))
-				{
-					alert("Invalid Subnet Mask!!!");
-					return;
-				}
-				if(!new_config.gateway)
-				{
-					alert("Invalid Gateway!!!");
-					return;
-				}
-				var mask_num=1<<31;
-				for(let i=0; i<new_config.mask-1; i++)
-				{
-					mask_num|=1<<31;
-					mask_num>>=1;
-				}
-				if(!(~mask_num & new_config.ip)||(mask_num | new_config.ip) === -1 ||
-				  !(0xFF000000 & new_config.ip)||((new_config.ip>>24)&0x000000FF) === 0xFF)
-				{
-					alert("IP address is invalid!!!");
-					return;
-				}
-			}
-			else
-			{
-				delete new_config.ip;
-				delete new_config.mask;
-				delete new_config.gateway;
-			}
-		}
-		else
+		if(new_config.mode !== "Static")
 		{
 			delete new_config.ip;
 			delete new_config.mask;
-			delete new_config.gateway;
-			delete new_config.mode;
+			delete new_config.gate;
+			return 0;
 		}
+		new_config.mask=Number(mask.value);
+		if(!new_config.mask || new_config.mask>31)
+		{
+			alert("Invalid Subnet Mask!!!");
+			return -1;
+		}
+		for(let i=0; i<4; i++)
+		{
+			if(ip[i].value=="")
+			{
+				new_config.ip=0;
+				break;
+			}
+			if(gateway[i].value=="")
+			{
+				new_config.gate=0;
+				break;
+			}
+			new_config.ip<<=8;
+			new_config.ip+=Number(ip[i].value);
+			new_config.gate<<=8;
+			new_config.gate+=Number(gateway[i].value);
+		}
+		new_config.ip=new_config.ip>>>0;//convert to unsigned
+		new_config.gate=new_config.gate>>>0;
+		if(!new_config.gate)
+		{
+			alert("Invalid Gateway!!!");
+			return -1;
+		}
+		var mask_num=1<<31;
+		for(let i=0; i<new_config.mask-1; i++)
+		{
+			mask_num|=1<<31;
+			mask_num>>=1;
+		}
+		if(!(~mask_num & new_config.ip)||(mask_num | new_config.ip) === -1 ||
+		  !(0xFF000000 & new_config.ip)||((new_config.ip>>24)&0x000000FF) === 0xFF)
+		{
+			alert("IP address is invalid!!!");
+			return -1;
+		}
+		if((new_config.ip == config.ip)&&
+		   (new_config.mask == config.mask)&&
+		   (new_config.gate == config.gate))
+		{
+		   delete new_config.mode;
+		   delete new_config.ip;
+		   delete new_config.mask;
+		   delete new_config.gate
+		}
+		return 0;
+	}
+	function get_new_ntp(new_config)
+	{
 		for(let i=0;i<4;i++)
 		{
 			if(ntp[i].value==="")
@@ -275,17 +295,15 @@ for the JavaScript code in this page.
 			new_config.ntp<<=8;
 			new_config.ntp+=Number(ntp[i].value);
 		}
+		new_config.ntp=new_config.ntp>>>0;
 		if(!new_config.ntp||new_config.ntp===-1)
 		{
 			alert("Invalid NTP server's IP!!!");
-			return;
+			return -1;
 		}
-		console.log(new_config);
-		//Send the configuration
-		xhttp.open("POST", "../morfeas_php/config.php", true);
-		xhttp.setRequestHeader("Content-type", "text/plain");
-		xhttp.send(compress(JSON.stringify(new_config)));
-		//alert("Rpi Save configuration and Rebooting");
+		if(new_config.ntp === config.ntp)
+			delete new_config.ntp;
+		return 0;
 	}
 </script>
 </body>

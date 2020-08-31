@@ -1,4 +1,6 @@
 <?php
+	require("../Morfeas_env.php");
+	require("./Supplementary.php");
 	class eth_if_config
 	{
 		public $mode;
@@ -71,9 +73,84 @@
 		}
 		return null;
 	}
-	include("../Morfeas_env.php");
-	include("./Supplementary.php");
+	function new_hostname($new_hostname)
+	{
+		isset($new_hostname) or die('$new_hostname is Undefined!!!!');
+		$cur_hostname = gethostname();
+		if(!strlen($new_hostname)||strlen($new_hostname)>=16||
+		   preg_match('/[\\/:*?"<>|. ]|^-|-$|^\d/',$new_hostname))
+			die("Hostname is Invalid!!!\n".
+				  "Must contain ONLY:\n".
+				  "Latin letters and numbers");
+		if($cur_hostname === $new_hostname)
+			return;
 
+		file_put_contents('/etc/hostname', $new_hostname)or die("/etc/hostname in Unwritable");
+		if(($hosts=file_get_contents('/etc/hosts'))==False) die("/etc/hosts is Unreadable");
+		$hosts=str_replace($cur_hostname, $new_hostname, $hosts);
+		file_put_contents('/etc/hosts',$hosts)or die("/etc/hosts file is Unwritable");
+	}
+	function new_ip($new_config, $eth_if_name)
+	{
+		isset($eth_if_name) or die('$eth_if_name is Undefined!!!!');
+		isset($new_config) or die('$new_config is Undefined!!!!');
+		if($new_config->mask<4||$new_config->mask>30)
+			die("Subnet mask is Invalid!!!");
+		$new_mask=0;
+		while($new_config->mask)
+		{
+			$new_mask>>=1;
+			$new_mask|=1<<31;
+			$new_config->mask--;
+		}
+		if(!($new_config->ip&~$new_mask)||($new_config->ip|$new_mask)===0xFFFFFFFF)
+			die('IP address is Invalid!!!');
+		$new_ip=long2ip($new_config->ip);
+		$new_mask=long2ip($new_mask);
+		if(!$new_config->gate||!$new_config->gate === 0xFFFFFFFF)
+			die('Gateway is Invalid!!!');
+		$new_gate=long2ip($new_config->gate);
+
+		$if_config= "auto $eth_if_name\n".
+					"iface $eth_if_name inet static\n".
+					"address $new_ip\n".
+					"netmask $new_mask\n".
+					"gateway $new_gate\n".
+					"dns-nameservers 4.4.4.4\n".
+					"dns-nameservers 8.8.8.8\n";
+		file_put_contents("/etc/network/interfaces.d/$eth_if_name",$if_config)or die("Can't create new Network configuration file!!!");
+	}
+	function new_ntp($new_ntp)
+	{
+		isset($new_ntp) or die('$new_ntp is Undefined!!!!');
+		$new_ntp=long2ip($new_ntp);
+		if(!$new_ntp||$new_ntp===0xFFFFFFFF)
+			die("NTP IP address is invalid!!!");
+		if(!($timesyncd_config_file=file_get_contents("/etc/systemd/timesyncd.conf")))
+			die("Unable to read /etc/systemd/timesyncd.conf !!!");
+		$timesyncd_config_file=explode("\n",$timesyncd_config_file);
+		foreach($timesyncd_config_file as $key=>$line)
+		{
+			if(preg_match('/^NTP=/',$line))
+			{
+				$timesyncd_config_file[$key]="NTP=$new_ntp";
+				break;
+			}
+		}
+		if($key==(count($timesyncd_config_file)-1))
+		{
+			foreach($timesyncd_config_file as $key=>$line)
+			{
+				if(preg_match('/^\[Time\]/',$line))
+				{
+					array_splice($timesyncd_config_file, $key+1, 0, "NTP=$new_ntp");
+					break;
+				}
+			}
+		}
+		$timesyncd_config_file=implode("\n",$timesyncd_config_file);
+		file_put_contents('/etc/systemd/timesyncd.conf',$timesyncd_config_file)or die("Can't write timesyncd.conf!!!");
+	}
 	ob_start("ob_gzhandler");//Enable gzip buffering
 	//Disable caching
 	header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -107,48 +184,29 @@
 	}
 	else if($requestType == 'POST')
 	{
+		isset($eth_if_name) or die('$eth_if_name is Undefined!!!');
 		$RX_data = file_get_contents('php://input');
 		$new_config_json = decompress($RX_data) or die("Error: Decompressing of ISOChannels failed");
 		$new_config = json_decode($new_config_json) or die("Error: JSON Decode of ISOChannels failed");
-		print_r($new_config);
+		//print_r($new_config);
 		//echo long2ip($new_config->ip);
-		return;
-		/*
-		if(array_key_exists("IP_ADD", $_POST)&&array_key_exists("MASK", $_POST)&&array_key_exists("GATE", $_POST)&&array_key_exists("PORT", $_POST))
-		{
-			$config_file_json=json_decode(file_get_contents("config.json"));
-			$config_file_json->eth_ip=explode(".",$_POST['IP_ADD']);
-			$config_file_json->mask=explode(".",$_POST['MASK']);
-			$config_file_json->gateway=explode(".",$_POST['GATE']);
-			$config_file_json->modbus_tcp_port=intval($_POST['PORT']);
-			$config_file_json->max_con=intval($_POST['MAX_CONN']);
-			$config_file_json->slave_add=intval($_POST['ADD']);
-			file_put_contents("config.json",json_encode($config_file_json));// save the config file (json format)
-			//change static ip, mask of rpi's eth0:0 interface
-			//$mask=16+array_search($config_file_json->mask[2], $mask_val)+array_search($config_file_json->mask[3], $mask_val);
-			$interface_config=file_get_contents("/etc/network/interfaces");
-		    $interface_config = substr($interface_config, 0, strrpos($interface_config, 'iface eth0:0 inet static'));
-			$interface_config = sprintf("%siface eth0:0 inet static\n\taddress %d.%d.%d.%d\n\tnetmask %d.%d.%d.%d\n",
-									  $interface_config,
-									  $config_file_json->eth_ip[0],$config_file_json->eth_ip[1],$config_file_json->eth_ip[2],$config_file_json->eth_ip[3],
-									  $config_file_json->mask[0],$config_file_json->mask[1],$config_file_json->mask[2],$config_file_json->mask[3]);
-									  //echo $interface_config;
-			file_put_contents("/etc/network/interfaces",$interface_config);
-			//add gateway on rc.local
-			$interface_config=file_get_contents("/etc/rc.local");
-		    $interface_config = substr($interface_config, 0, strrpos($interface_config, 'sudo route add default gw'));
+		//{hostname:"",mode:"",ip:0,mask:0,gate:0,ntp:0};
 
-			$interface_config = sprintf("%ssudo route add default gw %d.%d.%d.%d eth0:0\nexit 0\n",
-									  $interface_config,
-									  $config_file_json->gateway[0],
-									  $config_file_json->gateway[1],
-									  $config_file_json->gateway[2],
-									  $config_file_json->gateway[3]);
-									  echo $interface_config;
-			file_put_contents("/etc/rc.local",$interface_config);
-			//exec('sudo reboot');
+		if(property_exists($new_config,"hostname"))
+			new_hostname($new_config->hostname);
+		if(property_exists($new_config,"mode"))
+		{
+			if($new_config->mode==="Static")
+				new_ip($new_config, $eth_if_name);
+			else if($new_config->mode==="DHCP")
+			{
+				is_writable("/etc/network/interfaces.d/$eth_if_name") or die("Permission error @ /etc/network/interfaces.d/$eth_if_name");
+				unlink("/etc/network/interfaces.d/$eth_if_name") or die("Can not remove /etc/network/interfaces.d/$eth_if_name");
+			}
 		}
-		*/
+		if(property_exists($new_config,"ntp"))
+			new_ntp($new_config->ntp);
+		return;
 	}
 	http_response_code(404);
 ?>
