@@ -94,6 +94,9 @@
 	{
 		isset($eth_if_name) or die('$eth_if_name is Undefined!!!!');
 		isset($new_config) or die('$new_config is Undefined!!!!');
+		property_exists($new_config,"ip")or die('$new_config->ip is Undefined!!!!');
+		property_exists($new_config,"mask")or die('$new_config->mask is Undefined!!!!');
+		property_exists($new_config,"gate")or die('$new_config->gate is Undefined!!!!');
 		if($new_config->mask<4||$new_config->mask>30)
 			die("Subnet mask is Invalid!!!");
 		$new_mask=0;
@@ -188,9 +191,6 @@
 		$RX_data = file_get_contents('php://input');
 		$new_config_json = decompress($RX_data) or die("Error: Decompressing of ISOChannels failed");
 		$new_config = json_decode($new_config_json) or die("Error: JSON Decode of ISOChannels failed");
-		//print_r($new_config);
-		//echo long2ip($new_config->ip);
-		//{hostname:"",mode:"",ip:0,mask:0,gate:0,ntp:0};
 
 		if(property_exists($new_config,"hostname"))
 			new_hostname($new_config->hostname);
@@ -203,9 +203,17 @@
 				is_writable("/etc/network/interfaces.d/$eth_if_name") or die("Permission error @ /etc/network/interfaces.d/$eth_if_name");
 				unlink("/etc/network/interfaces.d/$eth_if_name") or die("Can not remove /etc/network/interfaces.d/$eth_if_name");
 			}
+
 		}
+		if(property_exists($new_config,"hostname")||property_exists($new_config,"mode"))
+			exec('sudo systemctl restart networking.service');
 		if(property_exists($new_config,"ntp"))
+		{
 			new_ntp($new_config->ntp);
+			exec('sudo systemctl restart systemd-timesyncd.service');
+		}
+		header('Content-Type: application/json');
+		echo '{"report":"Okay"}';
 		return;
 	}
 	http_response_code(404);

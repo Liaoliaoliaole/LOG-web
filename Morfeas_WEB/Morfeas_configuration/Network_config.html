@@ -72,7 +72,7 @@ input.global_style{
   </tr>
   <tr>
     <td><input id="default" type="button" value="Load Last" onclick="default_config(config)"></td>
-    <td style="text-align: right;"><input id="Save" type="button" value="Save and Reboot" onclick="Send_to_rpi()"></td>
+    <td style="text-align: right;"><input id="Save" type="button" value="Set" onclick="Send_config()"></td>
   </tr>
 </table>
 <script src='../morfeas_ecma/common.js'></script>
@@ -162,6 +162,7 @@ for the JavaScript code in this page.
 	mask.oninput = function(){val(this)};
 	//AJAX object for configuration receive and send
 	var config=null, xhttp = new XMLHttpRequest();
+	xhttp.timeout = 5000;
 	xhttp.onreadystatechange = function()
 	{
 		if (this.readyState == 4 && this.status == 200)
@@ -169,20 +170,29 @@ for the JavaScript code in this page.
 			if(xhttp.getResponseHeader("Content-Type")==="application/json")
 			{
 				config = JSON.parse(xhttp.responseText);
-				default_config(config);
+				if(config.hasOwnProperty("report"))
+				{
+					if(config.report)
+						location.reload(true);
+				}
+				else
+					default_config(config);
 			}
 			else
-			{
 				alert(xhttp.responseText);
-				//window.close();
-			}
 		}
+	};
+	xhttp.ontimeout = function (e)
+	{
+		alert("Device configured and Rebooted\n"+
+			  "Refresh all the related Windows");
+		window.close();
 	};
 	//Get the configuration
 	xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getCurConfig", true);
 	xhttp.send();
 
-	function Send_to_rpi()
+	function Send_config()
 	{
 		var new_config={hostname:"",mode:"",ip:0,mask:0,gate:0,ntp:0};
 
@@ -199,7 +209,6 @@ for the JavaScript code in this page.
 		xhttp.open("POST", "../morfeas_php/config.php", true);
 		xhttp.setRequestHeader("Content-type", "text/plain");
 		xhttp.send(compress(JSON.stringify(new_config)));
-		//alert("Rpi Save configuration and Rebooting");
 	}
 	function get_new_hostname(new_config)
 	{
@@ -228,6 +237,8 @@ for the JavaScript code in this page.
 			delete new_config.ip;
 			delete new_config.mask;
 			delete new_config.gate;
+			if(new_config.mode===config.mode)
+				delete new_config.mode;
 			return 0;
 		}
 		new_config.mask=Number(mask.value);
