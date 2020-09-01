@@ -16,8 +16,8 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-include("../Morfeas_env.php");
-include("./Supplementary.php");
+require("../Morfeas_env.php");
+require("./Supplementary.php");
 define("usr_comp","COMMAND");
 $ramdisk_path="/mnt/ramdisk/";
 
@@ -180,7 +180,7 @@ else if($requestType == "POST")
 	}
 	$dom->appendChild($root);
 	//print($dom->saveXML());
-	$dom->save($opc_ua_config_file . "OPC_UA_Config.xml") or die("Error on OPC_UA_Config.xml write");
+	$dom->save($opc_ua_config_dir."OPC_UA_Config.xml") or die("Error on OPC_UA_Config.xml write");
 	header('Content-Type: application/json');
 	echo "{\"success\":true}";
 	return;

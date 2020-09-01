@@ -28,7 +28,7 @@
 					unset($eth_if[$key]);
 			}
 			$eth_if = array_values($eth_if);
-			if($key=array_search('iface '.$if_name.' inet static', $eth_if))
+			if($key=array_search("iface $if_name inet static", $eth_if))
 			{
 				$this->mode="Static";
 				if($ip_str=substr($eth_if[$key+1],strpos($eth_if[$key+1],"address")+strlen("address ")))
@@ -182,6 +182,10 @@
 					header('Content-Type: application/json');
 					echo json_encode($currConfig);
 					return;
+				case "timedatectl":
+					exec("timedatectl timesync-status", $ret_str);
+					echo implode("<br>",$ret_str);
+					return;
 			}
 		}
 	}
@@ -193,20 +197,25 @@
 		$new_config = json_decode($new_config_json) or die("Error: JSON Decode of ISOChannels failed");
 
 		if(property_exists($new_config,"hostname"))
+		{
 			new_hostname($new_config->hostname);
+			exec("sudo hostname $new_config->hostname");
+			exec('sudo systemctl restart networking.service');
+		}
 		if(property_exists($new_config,"mode"))
 		{
 			if($new_config->mode==="Static")
+			{
 				new_ip($new_config, $eth_if_name);
+				exec('sudo systemctl restart networking.service');
+			}
 			else if($new_config->mode==="DHCP")
 			{
 				is_writable("/etc/network/interfaces.d/$eth_if_name") or die("Permission error @ /etc/network/interfaces.d/$eth_if_name");
 				unlink("/etc/network/interfaces.d/$eth_if_name") or die("Can not remove /etc/network/interfaces.d/$eth_if_name");
+				exec('sudo reboot');
 			}
-
 		}
-		if(property_exists($new_config,"hostname")||property_exists($new_config,"mode"))
-			exec('sudo systemctl restart networking.service');
 		if(property_exists($new_config,"ntp"))
 		{
 			new_ntp($new_config->ntp);

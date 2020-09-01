@@ -52,21 +52,22 @@ function compress(data)
 		return null;
 
 	var i, _index, index,
-		dictOffset = 0,
-		dictionary = [],
-		word = "",
-		result = "";
+		checksum=0,
+		dictOffset=0,
+		dictionary=[],
+		word="",
+		result="";
 
 	for(i=0; i<data.length; i++)
 	{
 		if(data.charCodeAt(i)>dictOffset)
 			dictOffset = data.charCodeAt(i);
+		checksum^=data.charCodeAt(i);
 	}
 	dictOffset++;
 
 	for(i=0, _index=0; i<data.length; i++)
 	{
-
 		word += data.charAt(i);
 		if((index = dictionary.indexOf(word)) < 0)//Not in dictionary
 		{
@@ -79,7 +80,7 @@ function compress(data)
 	}
 	if(word !== "")
 		result += word;
-	result = String.fromCharCode(dictOffset) + result;
-	//console.log("Compression Ratio:"+Math.round((((1-result.length/data.length)) + Number.EPSILON)*100)+"%");
+	result = String.fromCharCode(dictOffset) + result + String.fromCharCode(checksum&0xFF);
+	console.log("Compression Ratio:"+Math.round((((1-result.length/data.length)) + Number.EPSILON)*100)+"%");
 	return result;
 }

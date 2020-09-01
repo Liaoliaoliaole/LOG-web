@@ -19,26 +19,25 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 //Decompression function
 function decompress($data)
 {
+	function charSizeAt($inp, $pos)
+	{
+		if(ord($inp[$pos])<=0x7F)//Check for ASCII
+			return 1;
+		else//Char is Unicode
+		{
+			$s=ord($inp[$pos]);
+			$i=1;
+			while(1)
+			{
+				if(!(($s<<=1)&0x80))
+					break;
+				$i++;
+			}
+		}
+		return $i;
+	};
 	function unicodetoarray($inp)
 	{
-		function charSizeAt($inp, $pos)
-		{
-			if(ord($inp[$pos])<=0x7F)//Check for ASCII
-				return 1;
-			else//Char is Unicode
-			{
-				$s=ord($inp[$pos]);
-				$i=1;
-				while(1)
-				{
-					if(!(($s<<=1)&0x80))
-						break;
-					$i++;
-				}
-			}
-			return $i;
-		};
-
 		$ret_arr = array();
 		for($i=0, $c=0; $i<strlen($inp); $i+=$c)
 		{
@@ -48,13 +47,14 @@ function decompress($data)
 		return $ret_arr;
 	};
 
-	//mb_check_encoding($data, "UTF-8") or die("Decompression Error!!!!");
 	$result = "";
 	$dictionary = array();
 	$data = unicodetoarray($data);
 	$dictOffset = mb_ord($data[0]);
+	$RX_Checksum=mb_ord($data[count($data)-1]);
+	$Cal_Checksum=0;
 
-	for($i=1; $i<count($data); $i++)
+	for($i=1; $i<count($data)-1; $i++)
 	{
 		if(mb_ord($data[$i])<$dictOffset)
 		{
@@ -74,6 +74,15 @@ function decompress($data)
 				return NULL;
 		}
 	}
-	return $result;
+	$data = unicodetoarray($result);
+	foreach($data as $num)
+		$Cal_Checksum^=mb_ord($num);
+	if(!($RX_Checksum^($Cal_Checksum&0xFF)))
+		return $result;
+	else
+	{
+		echo "Checksum Error: $RX_Checksum!=$Cal_Checksum\n";
+		return NULL;
+	}
 }
 ?>

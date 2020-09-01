@@ -68,6 +68,7 @@ input.global_style{
 		<input class="global_style" name="ntp">.
 		<input class="global_style" name="ntp">.
 		<input class="global_style" name="ntp">
+		<input type="button" value="Stats" onclick='PopupCenter("../morfeas_php/config.php?COMMAND=timedatectl","","360","270")'>
 	</td>
   </tr>
   <tr>
@@ -173,7 +174,10 @@ for the JavaScript code in this page.
 				if(config.hasOwnProperty("report"))
 				{
 					if(config.report)
+					{
+						alert("Okay");
 						location.reload(true);
+					}
 				}
 				else
 					default_config(config);
