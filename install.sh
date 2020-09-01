@@ -21,7 +21,10 @@ mode_uninstall()
 		sudo gpasswd -d www-data morfeas
 		echo "Remove assdasd"
 	fi
-	sudo chmod g-w /etc/network/interfaces.d/ /etc/systemd/timesyncd.conf
+	sudo chmod g-w /etc/network/interfaces.d \
+	               /etc/systemd/timesyncd.conf \
+				   /etc/hostname \
+				   /etc/hosts&&
 	sudo service apache2 restart
 }
 echo 'Welcome to Morfeas WEB Installation script'
