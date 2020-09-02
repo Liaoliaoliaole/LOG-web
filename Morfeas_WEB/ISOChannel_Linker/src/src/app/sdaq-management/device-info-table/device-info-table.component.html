@@ -28,8 +28,7 @@
   <div class="row" style="flex-grow: 1;">
     <div class="col-lg-1 col-lg-1half col-md-12 bottom-left" *ngIf="showSidebar">
       <app-device-table-sidebar [columns]="tableColumns" [showUnsaved]="showUnsaved" [connections]="connectionNames"
-        style="width:100%" (columnToggle)="toggleColumnVisibility($event)" (logToggle)="toggleLogModal()"
-        (activeFilters)="toggleFilter($event)">
+        style="width:100%" (columnToggle)="toggleColumnVisibility($event)" (activeFilters)="toggleFilter($event)">
       </app-device-table-sidebar>
     </div>
     <div class="col-lg col-md-12 bottom-right">

@@ -15,11 +15,7 @@ import { SensorLinkModalComponent } from 'src/app/modals/components/sensor-link-
 import { SensorLinkModalInitiateModel, SensorLinkModalSubmitModel, SensorLinkModalSubmitAction } from '../models/sensor-link-modal-model';
 import { ToastrService } from 'ngx-toastr';
 import { DatePipe } from '@angular/common';
-import { ConfigModalComponent } from 'src/app/modals/components/config-modal/config-modal.component';
-import { LogModalComponent } from 'src/app/modals/components/log-modal/log-modal.component';
 import { ModalOptions } from 'src/app/modals/modal-options';
-import { MorfeasConfigModalComponent } from 'src/app/modals/components/morfeas-config-modal/morfeas-config-modal.component';
-import { FileModalComponent } from 'src/app/modals/components/file-modal/file-modal.component';
 declare const morfeas_logstat_commonizer: any;
 
 export interface CanBusFlatData {
@@ -578,23 +574,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
         console.log(err);
       });
   }
-*/
-  toggleLogModal() {
-    this.togglePause();
 
-    this.modalService
-      .confirm({
-        component: LogModalComponent
-      })
-      .then(() => {
-
-      })
-      .catch((err: any) => {
-        this.togglePause();
-        console.log(err);
-      });
-  }
-/*
   // TODO: maybe clean up these a bit at some point
   toggleFileModal() {
     this.togglePause();

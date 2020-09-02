@@ -56,7 +56,7 @@ export class CanbusService {
 		this.Anchor = Anchor;
 		this.Description = Description === undefined || !Description.length ? "-" : Description;
 		this.Max = isNaN(Max)? 0 : Max;
-		this.Min = isNaN(Min)? 100 : Min;
+		this.Min = isNaN(Min)? 0 : Min;
 		if(IF_type !== "SDAQ")
 			this.Unit = Unit === undefined || Unit === null ? "-" : Unit;
 	}

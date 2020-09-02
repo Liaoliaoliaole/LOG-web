@@ -46,6 +46,7 @@
 </table>
 <!-- Logstats -->
 <div id ="logstats_disp" style="margin:auto; display: none;"></div>
+<!-- Footnote -->
 <footer>
   <p>Author: Sam Harry Tzavaras &#169; 12019-12020<br>
   <a href="../LICENSE">License: AGPL v3</a><br>
@@ -121,13 +122,13 @@ else
 					break;
 				case mode_enum.Logger_content:
 					document.getElementById("status").value = "Morfeas Loggers";
-					if(Logger_terminal.scrollTop == Logger_terminal.scrollHeight)
+					var new_content = morfeas_opcua_logger_colorizer(this.responseText);
+					//console.log(document.body.scrollTop);
+					if(Logger_terminal.innerHTML !== new_content)
 					{
-						Logger_terminal.innerHTML = morfeas_opcua_logger_colorizer(this.responseText);
-						Logger_terminal.scrollTop = Logger_terminal.scrollHeight;
+						Logger_terminal.innerHTML = new_content;
+						window.scrollTo(0,document.body.scrollHeight);
 					}
-					else
-						Logger_terminal.innerHTML = morfeas_opcua_logger_colorizer(this.responseText);
 					break;
 				case mode_enum.Logstats:
 					logstat = morfeas_logstat_commonizer(this.responseText);
