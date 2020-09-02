@@ -33,7 +33,7 @@
 				</ul>
 			  </li>
 			</ul>
-		  </li>  
+		  </li>
 		</ul>
 	  </li>
 	</ul>
@@ -59,6 +59,10 @@ else
 	  });
 	}
 
+	function plot_config(conf)
+	{
+
+	}
 	//AJAX object for configuration receive and send
 	var config=null, xhttp = new XMLHttpRequest();
 	xhttp.timeout = 5000;
@@ -67,10 +71,7 @@ else
 		if (this.readyState == 4 && this.status == 200)
 		{
 			if(this.getResponseHeader("Content-Type")==="application/xml")
-			{
-				var morfeas_config = this.responseXML;
-				console.log(new XMLSerializer().serializeToString(morfeas_config));
-			}
+				plot_config(this.responseXML);
 			else
 				alert(this.responseText);
 		}

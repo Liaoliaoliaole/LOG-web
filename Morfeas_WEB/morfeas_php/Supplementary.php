@@ -74,8 +74,7 @@ function decompress($data)
 				return NULL;
 		}
 	}
-	$data = unicodetoarray($result);
-	foreach($data as $num)
+	foreach(unicodetoarray($result) as $num)
 		$Cal_Checksum^=mb_ord($num);
 	if(!($RX_Checksum^($Cal_Checksum&0xFF)))
 		return $result;
