@@ -168,9 +168,9 @@ for the JavaScript code in this page.
 	{
 		if (this.readyState == 4 && this.status == 200)
 		{
-			if(xhttp.getResponseHeader("Content-Type")==="application/json")
+			if(this.getResponseHeader("Content-Type")==="application/json")
 			{
-				config = JSON.parse(xhttp.responseText);
+				config = JSON.parse(this.responseText);
 				if(config.hasOwnProperty("report"))
 				{
 					if(config.report)
@@ -183,7 +183,7 @@ for the JavaScript code in this page.
 					default_config(config);
 			}
 			else
-				alert(xhttp.responseText);
+				alert(this.responseText);
 		}
 	};
 	xhttp.ontimeout = function (e)

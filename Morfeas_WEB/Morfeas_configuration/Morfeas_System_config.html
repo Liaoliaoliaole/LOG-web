@@ -46,15 +46,41 @@
 <script src='../morfeas_ecma/common.js'></script>
 <script src='../morfeas_ecma/morfeas_web_if.js'></script>
 <script>
+"use strict";
 if (document.documentMode)
 	alert("IE is obsolete, and does not supported \n Use firefox or chromium");
+else
+{
+	var toggler = document.getElementsByClassName("caret");
+	for (let i = 0; i < toggler.length; i++) {
+	  toggler[i].addEventListener("click", function() {
+		this.parentElement.querySelector(".nested").classList.toggle("active");
+		this.classList.toggle("caret-down");
+	  });
+	}
 
-var toggler = document.getElementsByClassName("caret");
-for (let i = 0; i < toggler.length; i++) {
-  toggler[i].addEventListener("click", function() {
-    this.parentElement.querySelector(".nested").classList.toggle("active");
-    this.classList.toggle("caret-down");
-  });
+	//AJAX object for configuration receive and send
+	var config=null, xhttp = new XMLHttpRequest();
+	xhttp.timeout = 5000;
+	xhttp.onreadystatechange = function()
+	{
+		if (this.readyState == 4 && this.status == 200)
+		{
+			if(this.getResponseHeader("Content-Type")==="application/xml")
+			{
+				var morfeas_config = this.responseXML;
+				console.log(new XMLSerializer().serializeToString(morfeas_config));
+			}
+			else
+				alert(this.responseText);
+		}
+	};
+	xhttp.ontimeout = function(){
+		alert("Communication Error!!!");
+	};
+	//Get the configuration
+	xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getMorfeasConfig", true);
+	xhttp.send();
 }
 </script>
 </html>

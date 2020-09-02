@@ -167,7 +167,7 @@
 		{
 			switch($_GET["COMMAND"])
 			{
-				case "getCurConfig":
+				case 'getCurConfig':
 					$conf = new eth_if_config();
 					$conf->parser($eth_if_name);
 					$currConfig = new stdClass();
@@ -182,9 +182,17 @@
 					header('Content-Type: application/json');
 					echo json_encode($currConfig);
 					return;
-				case "timedatectl":
+				case 'timedatectl':
 					exec("timedatectl timesync-status", $ret_str);
 					echo implode("<br>",$ret_str);
+					return;
+				case 'getMorfeasConfig':
+					$doc = new DOMDocument('1.0');
+					$doc->load($opc_ua_config_dir."Morfeas_config.xml",LIBXML_NOBLANKS) or die("Fail to read Morfeas_config.xml");
+					$doc->formatOutput = false;
+					header('Content-Type: application/xml');
+					echo $doc->saveXML();
+					//print_r($doc);
 					return;
 			}
 		}
