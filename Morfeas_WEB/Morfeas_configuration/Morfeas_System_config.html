@@ -19,7 +19,7 @@
 	</table>
 </div>
 <div>
-	<ul id="myUL">
+	<ul id="Comp_UL">
 	  <!--<li><span class="caret">Beverages</span>
 		<ul class="nested">
 		  <li><span class="caret">Tea</span>
@@ -52,16 +52,32 @@ if (document.documentMode)
 else
 {
 	var toggler = document.getElementsByClassName("caret");
-	for (let i = 0; i < toggler.length; i++) {
-	  toggler[i].addEventListener("click", function() {
-		this.parentElement.querySelector(".nested").classList.toggle("active");
-		this.classList.toggle("caret-down");
-	  });
+	for (let i = 0; i < toggler.length; i++) 
+	{
+		toggler[i].addEventListener("click", function() 
+		{
+			this.parentElement.querySelector(".nested").classList.toggle("active");
+			this.classList.toggle("caret-down");
+		});
 	}
 
-	function plot_config(conf)
+	function plot_config(confxml)
 	{
-
+		var listNode=document.getElementById("Comp_UL"),
+		morfeas_components=confxml.getElementsByTagName("COMPONENTS")[0],
+		comp=morfeas_components.firstChild;
+		for (let i = 0; i <morfeas_components.childNodes.length; i++)
+		{
+		  if(comp.nodeType == Node.ELEMENT_NODE) 
+		  {
+			let textNode = document.createTextNode(comp.nodeName),
+			liNode = document.createElement("LI");
+			
+			liNode.appendChild(textNode);
+			listNode.appendChild(liNode);
+		  }
+		  comp = comp.nextSibling;
+		} 
 	}
 	//AJAX object for configuration receive and send
 	var config=null, xhttp = new XMLHttpRequest();
