@@ -18,25 +18,13 @@
 	  </tr>
 	</table>
 </div>
-<div>
-	<ul id="Comp_UL">
-	  <!--<li><span class="caret">Beverages</span>
-		<ul class="nested">
-		  <li><span class="caret">Tea</span>
-			<ul class="nested">
-			  <li><span class="caret">Green Tea</span>
-				<ul class="nested">
-				  <li>Sencha</li>
-				  <li>Gyokuro</li>
-				  <li>Matcha</li>
-				  <li>Pi Lo Chun</li>
-				</ul>
-			  </li>
-			</ul>
-		  </li>
-		</ul>
-	  </li>-->
-	</ul>
+<div style="width: 100%; overflow: hidden;">
+    <div style="width:30%;float:left;">
+		<ul id="Comp_UL"></ul>
+	</div>
+    <div style="width:70%;float:right;">
+		<table id="comp_args"></table>
+	</div>
 </div>
 <footer>
   <p>Author: Sam Harry Tzavaras &#169; 12019-12020<br>
@@ -51,28 +39,34 @@ if (document.documentMode)
 	alert("IE is obsolete, and does not supported \n Use firefox or chromium");
 else
 {
-	var toggler = document.getElementsByClassName("caret");
-	for (let i = 0; i < toggler.length; i++) 
-	{
-		toggler[i].addEventListener("click", function() 
-		{
-			this.parentElement.querySelector(".nested").classList.toggle("active");
-			this.classList.toggle("caret-down");
-		});
-	}
-
-	function plot_config(confxml)
+	var curr_config_xml;
+	var comp_args_table = document.getElementById("comp_args");
+	function config_list(morfeas_components)
 	{
 		var listNode=document.getElementById("Comp_UL"),
-		morfeas_components=confxml.getElementsByTagName("COMPONENTS")[0],
 		comp=morfeas_components.firstChild;
-		for (let i = 0; i <morfeas_components.childNodes.length; i++)
+		for(let i = 0; i<morfeas_components.childNodes.length; i++)
 		{
 		  if(comp.nodeType == Node.ELEMENT_NODE) 
 		  {
-			let textNode = document.createTextNode(comp.nodeName),
+			let comp_name_id;
+			if(!(comp_name_id=get_comp_name(comp)))
+				continue;
+			let textNode = document.createTextNode(comp_name_id),
 			liNode = document.createElement("LI");
-			
+			liNode.classList.add("caret");
+			liNode.addEventListener("click", function(){
+				var others = document.getElementsByClassName("caret-down");
+				for(let j = 0; j < others.length; j++) 
+					if(others[j] !== this)
+					{
+						others[j].style.fontWeight = "normal";
+						others[j].classList.value = "caret";
+					}
+				this.classList.value = "caret-down";
+				this.style.fontWeight = "bold";
+				set_comp_table(comp_args_table, curr_config_xml, this.innerText);
+			});
 			liNode.appendChild(textNode);
 			listNode.appendChild(liNode);
 		  }
@@ -87,7 +81,10 @@ else
 		if (this.readyState == 4 && this.status == 200)
 		{
 			if(this.getResponseHeader("Content-Type")==="application/xml")
-				plot_config(this.responseXML);
+			{
+				curr_config_xml = this.responseXML.getElementsByTagName("COMPONENTS")[0];
+				config_list(curr_config_xml);
+			}
 			else
 				alert(this.responseText);
 		}

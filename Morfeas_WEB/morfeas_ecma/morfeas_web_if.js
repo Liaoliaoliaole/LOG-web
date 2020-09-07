@@ -16,6 +16,75 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 for the JavaScript code in this page.
 */
 
+//function to get morfeas component name, return comp_name_id on success, NULL otherwise
+function get_comp_name(comp)
+{
+	if(!comp)
+		return null;
+	switch(comp.nodeName)
+	{
+		case "OPC_UA_SERVER":
+			return "OPC-UA SERVER";
+		case "SDAQ_HANDLER":
+			return comp.nodeName.replace("_HANDLER","")+" ("+comp.getElementsByTagName("CANBUS_IF")[0].textContent+")";
+		case "MDAQ_HANDLER":
+		case "IOBOX_HANDLER":
+		case "MTI_HANDLER":
+			return comp.nodeName.replace("_HANDLER","")+" ("+comp.getElementsByTagName("DEV_NAME")[0].textContent+")";
+		default: return null;
+	}
+}
+//function for set component's argument to the configuration table
+function set_comp_table(args_table, _curr_config_xml, comp_id)
+{
+	function appendHeader(table, header_str)
+	{
+		var h=document.createElement("TH");
+		var t=document.createTextNode(header_str);
+		h.appendChild(t);
+		h.colSpan="2";
+		table.appendChild(h);
+	};
+	function appendArguments(table, xml_root)
+	{
+		var arg=xml_root.firstChild;
+		for(let i=0,row_count=0; i<xml_root.childNodes.length; i++)
+		{
+			 if(arg.nodeType == Node.ELEMENT_NODE)
+			 {
+				var nRow = table.insertRow(row_count);
+				nRow.insertCell(0).innerHTML=arg.nodeName+':';
+				var arg_inp=document.createElement("INPUT");
+				arg_inp.setAttribute("type", "text");
+				arg_inp.value=arg.textContent;
+				nRow.insertCell(1).appendChild(arg_inp);	
+				row_count++;
+			 }
+			 arg = arg.nextSibling;
+		}
+	};
+	if(!args_table||!_curr_config_xml||!comp_id)
+		return;
+	var comps;
+	args_table.innerHTML="";
+	appendHeader(args_table, comp_id);
+	if(comp_id === "OPC-UA SERVER")
+		appendArguments(args_table, _curr_config_xml.getElementsByTagName("OPC_UA_SERVER")[0]);
+	else
+	{
+		var handler_info=comp_id.split(" "),
+		comp_node=_curr_config_xml.getElementsByTagName(handler_info[0]+"_HANDLER");
+		for(let i=0; i<comp_node.length; i++)
+		{
+			if(comp_node[i].firstChild.textContent === handler_info[1].replaceAll(/[()]/g,""))
+			{
+				appendArguments(args_table, comp_node[i]);
+				return;
+			}
+		}
+	}
+}
+
 /*
  *ANSI escape sequences for color output taken from here:
  * https://stackoverflow.com/questions/3219393/stdlib-and-colored-output-in-c
@@ -28,7 +97,6 @@ for the JavaScript code in this page.
 # define ANSI_COLOR_CYAN    "\x1b[36m"
 # define ANSI_COLOR_RESET   "\x1b[0m"
 */
-
 function morfeas_opcua_logger_colorizer(inp)
 {
 	var ret;
