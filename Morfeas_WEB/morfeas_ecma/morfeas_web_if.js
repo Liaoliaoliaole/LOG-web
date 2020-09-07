@@ -57,7 +57,7 @@ function set_comp_table(args_table, _curr_config_xml, comp_id)
 				var arg_inp=document.createElement("INPUT");
 				arg_inp.setAttribute("type", "text");
 				arg_inp.value=arg.textContent;
-				nRow.insertCell(1).appendChild(arg_inp);	
+				nRow.insertCell(1).appendChild(arg_inp);
 				row_count++;
 			 }
 			 arg = arg.nextSibling;
@@ -76,7 +76,7 @@ function set_comp_table(args_table, _curr_config_xml, comp_id)
 		comp_node=_curr_config_xml.getElementsByTagName(handler_info[0]+"_HANDLER");
 		for(let i=0; i<comp_node.length; i++)
 		{
-			if(comp_node[i].firstChild.textContent === handler_info[1].replaceAll(/[()]/g,""))
+			if(comp_node[i].firstChild.textContent === handler_info[1].replace(/[()]/g,""))
 			{
 				appendArguments(args_table, comp_node[i]);
 				return;

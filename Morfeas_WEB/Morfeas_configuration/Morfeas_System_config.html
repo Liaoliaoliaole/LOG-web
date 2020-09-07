@@ -47,7 +47,7 @@ else
 		comp=morfeas_components.firstChild;
 		for(let i = 0; i<morfeas_components.childNodes.length; i++)
 		{
-		  if(comp.nodeType == Node.ELEMENT_NODE) 
+		  if(comp.nodeType == Node.ELEMENT_NODE)
 		  {
 			let comp_name_id;
 			if(!(comp_name_id=get_comp_name(comp)))
@@ -55,9 +55,10 @@ else
 			let textNode = document.createTextNode(comp_name_id),
 			liNode = document.createElement("LI");
 			liNode.classList.add("caret");
-			liNode.addEventListener("click", function(){
+			liNode.addEventListener("click", function()
+			{
 				var others = document.getElementsByClassName("caret-down");
-				for(let j = 0; j < others.length; j++) 
+				for(let j = 0; j<others.length; j++)
 					if(others[j] !== this)
 					{
 						others[j].style.fontWeight = "normal";
@@ -71,7 +72,7 @@ else
 			listNode.appendChild(liNode);
 		  }
 		  comp = comp.nextSibling;
-		} 
+		}
 	}
 	//AJAX object for configuration receive and send
 	var config=null, xhttp = new XMLHttpRequest();
