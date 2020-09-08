@@ -161,9 +161,10 @@ function set_comp_table(args_table, _curr_config_xml, comp_id)
 				var arg_inp=document.createElement("INPUT");
 				arg_inp.setAttribute("type", "text");
 				arg_inp.value=arg.textContent;
+				var name = arg.nodeName;
 				arg_inp.addEventListener("input", function()
 				{
-					inp_sanit(this,String(arg.nodeName));
+					inp_sanit(this,name);
 				});
 				nRow.insertCell(1).appendChild(arg_inp);
 				row_count++;
