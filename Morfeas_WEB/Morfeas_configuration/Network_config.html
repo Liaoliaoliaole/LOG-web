@@ -160,7 +160,7 @@ for the JavaScript code in this page.
 	}
 	mask.type="number";
 	mask.max=30;mask.min=4;
-	mask.oninput = function(){val(this)};
+	mask.onchange = function(){val(this)};
 	//AJAX object for configuration receive and send
 	var config=null, xhttp = new XMLHttpRequest();
 	xhttp.timeout = 5000;

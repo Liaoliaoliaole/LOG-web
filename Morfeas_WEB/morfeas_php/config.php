@@ -33,7 +33,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 			if(!file_exists('/etc/network/interfaces.d/'.$if_name))
 			{
 				$this->mode="DHCP";
-				return;
+				return 1;
 			}
 			else
 				$eth_if=file_get_contents('/etc/network/interfaces.d/'.$if_name);
@@ -50,22 +50,39 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				$this->mode="Static";
 				if($ip_str=substr($eth_if[$key+1],strpos($eth_if[$key+1],"address")+strlen("address ")))
 				{
-					$this->ip=ip2long($ip_str);
-					if($netmask=substr($eth_if[$key+2],strpos($eth_if[$key+2],"netmask")+strlen("netmask ")))
+					if(!($pos=strpos($ip_str,'/')))
 					{
-						$netmask=ip2long($netmask);
-						$this->mask=0;
-						while($netmask&(1<<31))
+						$this->ip=ip2long($ip_str);
+						if($netmask=substr($eth_if[$key+2],strpos($eth_if[$key+2],"netmask")+strlen("netmask ")))
 						{
-							$this->mask++;
-							$netmask<<=1;
+							$netmask=ip2long($netmask);
+							$this->mask=0;
+							while($netmask&(1<<31))
+							{
+								$this->mask++;
+								$netmask<<=1;
+							}
+							if($gateway=substr($eth_if[$key+3],strpos($eth_if[$key+3],"gateway")+strlen("gateway ")))
+							$this->gate=ip2long($gateway);
+							return 1;
 						}
 					}
-					if($gateway =substr($eth_if[$key+3],strpos($eth_if[$key+3],"gateway")+strlen("gateway ")))
-						$this->gate=ip2long($gateway);
+					else
+					{
+						$this->mask=(int)substr($ip_str,$pos+1);
+						$this->ip=ip2long(substr($ip_str,0,$pos));
+						if($gateway =substr($eth_if[$key+2],strpos($eth_if[$key+2],"gateway")+strlen("gateway ")))
+							$this->gate=ip2long($gateway);
+					}
 				}
+				else
+					return null;
 			}
-			return;
+			else if(array_search("iface $if_name inet dhcp", $eth_if))
+				$this->mode="DHCP";
+			else
+				return null;
+			return 1;
 		}
 	}
 	function get_timesyncd_ntp()
@@ -107,37 +124,49 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 		$hosts=str_replace($cur_hostname, $new_hostname, $hosts);
 		file_put_contents('/etc/hosts',$hosts)or die("/etc/hosts file is Unwritable");
 	}
-	function new_ip($new_config, $eth_if_name)
+	function new_ip_conf($new_config, $eth_if_name)
 	{
 		isset($eth_if_name) or die('$eth_if_name is Undefined!!!!');
 		isset($new_config) or die('$new_config is Undefined!!!!');
-		property_exists($new_config,"ip")or die('$new_config->ip is Undefined!!!!');
-		property_exists($new_config,"mask")or die('$new_config->mask is Undefined!!!!');
-		property_exists($new_config,"gate")or die('$new_config->gate is Undefined!!!!');
-		if($new_config->mask<4||$new_config->mask>30)
-			die("Subnet mask is Invalid!!!");
-		$new_mask=0;
-		while($new_config->mask)
+		if(!($new_config->mode==="DHCP"||$new_config->mode==="Static"))
+			die('Value of $new_config->mode is Invalid!!!!');
+		if($new_config->mode==="DHCP")
 		{
-			$new_mask>>=1;
-			$new_mask|=1<<31;
-			$new_config->mask--;
+			$if_config= "auto $eth_if_name\n".
+					    "iface $eth_if_name inet dhcp\n".
+						"allow-hotplug $eth_if_name\n";
 		}
-		if(!($new_config->ip&~$new_mask)||($new_config->ip|$new_mask)===0xFFFFFFFF)
-			die('IP address is Invalid!!!');
-		$new_ip=long2ip($new_config->ip);
-		$new_mask=long2ip($new_mask);
-		if(!$new_config->gate||!$new_config->gate === 0xFFFFFFFF)
-			die('Gateway is Invalid!!!');
-		$new_gate=long2ip($new_config->gate);
+		else
+		{
+			property_exists($new_config,"ip")or die('$new_config->ip is Undefined!!!!');
+			property_exists($new_config,"mask")or die('$new_config->mask is Undefined!!!!');
+			property_exists($new_config,"gate")or die('$new_config->gate is Undefined!!!!');
+			if($new_config->mask<4||$new_config->mask>30)
+				die("Subnet mask is Invalid!!!");
+			$new_mask=$new_config->mask;
+			$bit_mask=0;
+			while($new_mask)
+			{
+				$bit_mask>>=1;
+				$bit_mask|=1<<31;
+				$new_mask--;
+			}
+			if(!($new_config->ip&~$bit_mask)||($new_config->ip|$bit_mask)===0xFFFFFFFF)
+				die('IP address is Invalid!!!');
+			$new_ip=long2ip($new_config->ip);
+			$new_mask=$new_config->mask;
+			if(!$new_config->gate||!$new_config->gate === 0xFFFFFFFF)
+				die('Gateway is Invalid!!!');
+			$new_gate=long2ip($new_config->gate);
 
-		$if_config= "auto $eth_if_name\n".
-					"iface $eth_if_name inet static\n".
-					"address $new_ip\n".
-					"netmask $new_mask\n".
-					"gateway $new_gate\n".
-					"dns-nameservers 4.4.4.4\n".
-					"dns-nameservers 8.8.8.8\n";
+			$if_config= "auto $eth_if_name\n".
+						"allow-hotplug $eth_if_name\n".
+						"iface $eth_if_name inet static\n".
+						"address $new_ip/$new_mask\n".
+						"gateway $new_gate\n".
+						"dns-nameservers 4.4.4.4\n".
+						"dns-nameservers 8.8.8.8\n";
+		}
 		file_put_contents("/etc/network/interfaces.d/$eth_if_name",$if_config)or die("Can't create new Network configuration file!!!");
 	}
 	function new_ntp($new_ntp)
@@ -186,7 +215,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 			{
 				case 'getCurConfig':
 					$conf = new eth_if_config();
-					$conf->parser($eth_if_name);
+					$conf->parser($eth_if_name) or Die("Parsing of configuration file failed!!!");
 					$currConfig = new stdClass();
 					$currConfig->hostname=gethostname();
 					if(($currConfig->mode=$conf->mode)==='Static')
@@ -229,17 +258,8 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 		}
 		if(property_exists($new_config,"mode"))
 		{
-			if($new_config->mode==="Static")
-			{
-				new_ip($new_config, $eth_if_name);
-				exec('sudo systemctl restart networking.service');
-			}
-			else if($new_config->mode==="DHCP")
-			{
-				is_writable("/etc/network/interfaces.d/$eth_if_name") or die("Permission error @ /etc/network/interfaces.d/$eth_if_name");
-				unlink("/etc/network/interfaces.d/$eth_if_name") or die("Can not remove /etc/network/interfaces.d/$eth_if_name");
-				exec('sudo reboot');
-			}
+			new_ip_conf($new_config, $eth_if_name);
+			exec('sudo systemctl restart networking.service');
 		}
 		if(property_exists($new_config,"ntp"))
 		{
