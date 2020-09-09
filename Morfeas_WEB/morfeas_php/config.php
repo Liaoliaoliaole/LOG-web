@@ -249,7 +249,6 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 		$RX_data = file_get_contents('php://input');
 		$new_config_json = decompress($RX_data) or die("Error: Decompressing of ISOChannels failed");
 		$new_config = json_decode($new_config_json) or die("Error: JSON Decode of ISOChannels failed");
-
 		if(property_exists($new_config,"hostname"))
 		{
 			new_hostname($new_config->hostname);

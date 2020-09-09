@@ -12,9 +12,14 @@
 </head>
 <body>
 <div class="content">
-	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:7in;">
+	<table style="margin:auto;text-align:center;margin-bottom:.075in;">
 	  <tr>
-		<th colspan="5" style="font-weight: bold; font-size: xx-large">Morfeas System Configuration</th>
+		<th colspan="3" style="font-weight: bold; font-size: xx-large">System Configuration</th>
+	  </tr>
+	  <tr>
+		<td><input type="button" value="Morfeas system"></td>
+		<td><input type="button" value="ISOStandards"></td>
+		<td><input type="button" value="Up/DownLoad"></td>
 	  </tr>
 	</table>
 </div>
@@ -25,6 +30,10 @@
     <div style="width:70%;float:right;">
 		<table id="comp_args"></table>
 	</div>
+</div>
+<div style="width: 100%; overflow: hidden;">
+</div>
+<div style="width: 100%; overflow: hidden;">
 </div>
 <footer>
   <p>Author: Sam Harry Tzavaras &#169; 12019-12020<br>
@@ -81,11 +90,12 @@ else
 	xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getMorfeasConfig", true);
 	xhttp.send();
 }
-function components_list(morfeas_components)
+function components_list(morfeas_components_xml)
 {
 	var listNode=document.getElementById("Comp_UL"),
-	comp=morfeas_components.firstChild;
-	for(let i = 0; i<morfeas_components.childNodes.length; i++)
+	comp=morfeas_components_xml.firstChild;
+	listNode.innerHTML="";
+	for(let i = 0; i<morfeas_components_xml.childNodes.length; i++)
 	{
 	  if(comp.nodeType == Node.ELEMENT_NODE)
 	  {
