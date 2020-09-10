@@ -25,6 +25,7 @@
 </div>
 <div style="width: 100%; overflow: hidden;">
     <div style="width:30%;float:left;">
+		<input type="button" value="Set">
 		<ul id="Comp_UL"></ul>
 	</div>
     <div style="width:70%;float:right;">
@@ -90,6 +91,24 @@ else
 	xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getMorfeasConfig", true);
 	xhttp.send();
 }
+//function to get morfeas component name, return comp_name_id on success, NULL otherwise
+function get_comp_name(comp)
+{
+	if(!comp)
+		return null;
+	switch(comp.nodeName)
+	{
+		case "OPC_UA_SERVER":
+			return "OPC-UA SERVER";
+		case "SDAQ_HANDLER":
+			return comp.nodeName.replace("_HANDLER","")+" ("+comp.getElementsByTagName("CANBUS_IF")[0].textContent+")";
+		case "MDAQ_HANDLER":
+		case "IOBOX_HANDLER":
+		case "MTI_HANDLER":
+			return comp.nodeName.replace("_HANDLER","")+" ("+comp.getElementsByTagName("DEV_NAME")[0].textContent+")";
+		default: return null;
+	}
+}
 function components_list(morfeas_components_xml)
 {
 	var listNode=document.getElementById("Comp_UL"),
@@ -105,6 +124,8 @@ function components_list(morfeas_components_xml)
 		let textNode = document.createTextNode(comp_name_id),
 		liNode = document.createElement("LI");
 		liNode.classList.add("caret");
+		liNode.setAttribute("name", comp.nodeName);
+		liNode.setAttribute("id", i);
 		liNode.addEventListener("click", function()
 		{
 			var others = document.getElementsByClassName("caret-down");
@@ -122,24 +143,6 @@ function components_list(morfeas_components_xml)
 		listNode.appendChild(liNode);
 	  }
 	  comp = comp.nextSibling;
-	}
-}
-//function to get morfeas component name, return comp_name_id on success, NULL otherwise
-function get_comp_name(comp)
-{
-	if(!comp)
-		return null;
-	switch(comp.nodeName)
-	{
-		case "OPC_UA_SERVER":
-			return "OPC-UA SERVER";
-		case "SDAQ_HANDLER":
-			return comp.nodeName.replace("_HANDLER","")+" ("+comp.getElementsByTagName("CANBUS_IF")[0].textContent+")";
-		case "MDAQ_HANDLER":
-		case "IOBOX_HANDLER":
-		case "MTI_HANDLER":
-			return comp.nodeName.replace("_HANDLER","")+" ("+comp.getElementsByTagName("DEV_NAME")[0].textContent+")";
-		default: return null;
 	}
 }
 //function for input sanitization
@@ -176,6 +179,13 @@ function set_comp_table(args_table, _curr_config_xml, comp_id)
 				{
 					inp_sanit(this,name);
 				});
+				arg_inp.addEventListener("change", function()
+				{
+					
+					var list_select = document.getElementsByClassName("caret-down");
+					if(list_select[0].innerHTML.charAt(0)!=="*")
+						list_select[0].innerHTML="*"+list_select[0].innerHTML;
+				});
 				nRow.insertCell(1).appendChild(arg_inp);
 				row_count++;
 			}
@@ -195,7 +205,7 @@ function set_comp_table(args_table, _curr_config_xml, comp_id)
 		comp_node=_curr_config_xml.getElementsByTagName(handler_info[0]+"_HANDLER");
 		for(let i=0; i<comp_node.length; i++)
 		{
-			if(comp_node[i].firstChild.textContent === handler_info[1].replace(/[()]/g,""))
+			if(comp_node[i].firstChild.textContent === handler_info[1].replace(/[()*]/g,""))
 			{
 				appendArguments(args_table, comp_node[i]);
 				return;
