@@ -248,26 +248,31 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 		isset($eth_if_name) or die('$eth_if_name is Undefined!!!');
 		$RX_data = file_get_contents('php://input');
 		$new_config_json = decompress($RX_data) or die("Error: Decompressing of ISOChannels failed");
-		$new_config = json_decode($new_config_json) or die("Error: JSON Decode of ISOChannels failed");
-		if(property_exists($new_config,"hostname"))
+		switch($_SERVER["CONTENT_TYPE"])
 		{
-			new_hostname($new_config->hostname);
-			exec("sudo hostname $new_config->hostname");
-			exec('sudo systemctl restart networking.service');
+			case "json_comp":	
+				$new_config = json_decode($new_config_json) or die("Error: JSON Decode of ISOChannels failed");
+				if(property_exists($new_config,"hostname"))
+				{
+					new_hostname($new_config->hostname);
+					exec("sudo hostname $new_config->hostname");
+					exec('sudo systemctl restart networking.service');
+				}
+				if(property_exists($new_config,"mode"))
+				{
+					new_ip_conf($new_config, $eth_if_name);
+					exec('sudo systemctl restart networking.service');
+				}
+				if(property_exists($new_config,"ntp"))
+				{
+					new_ntp($new_config->ntp);
+					exec('sudo systemctl restart systemd-timesyncd.service');
+				}
+				header('Content-Type: application/json');
+				echo '{"report":"Okay"}';
+				return;
+			case "xml_comp":
 		}
-		if(property_exists($new_config,"mode"))
-		{
-			new_ip_conf($new_config, $eth_if_name);
-			exec('sudo systemctl restart networking.service');
-		}
-		if(property_exists($new_config,"ntp"))
-		{
-			new_ntp($new_config->ntp);
-			exec('sudo systemctl restart systemd-timesyncd.service');
-		}
-		header('Content-Type: application/json');
-		echo '{"report":"Okay"}';
-		return;
 	}
 	http_response_code(404);
 ?>

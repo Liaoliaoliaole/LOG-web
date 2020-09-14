@@ -211,7 +211,7 @@ for the JavaScript code in this page.
 		console.log(new_config);
 		//Send the configuration
 		xhttp.open("POST", "../morfeas_php/config.php", true);
-		xhttp.setRequestHeader("Content-type", "text/plain");
+		xhttp.setRequestHeader("Content-type", "json_comp");
 		xhttp.send(compress(JSON.stringify(new_config)));
 	}
 	function get_new_hostname(new_config)
