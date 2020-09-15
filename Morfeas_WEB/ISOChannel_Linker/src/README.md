@@ -1,6 +1,6 @@
 # ISOChannel Linker
-*** This is a externally developed module site for the ISOCode linking functionality. 
-The component is compiling with npm. However, is precompiled and the web files located one level up at the html directory.
+*This is a externally developed module site for the ISOCode linking functionality.*\
+The component is compiling with npm. However, is precompiled and the web files located one level up at the html directory.\
 In case of any modification follow the following for recompilation.
 
 ### Requirements
