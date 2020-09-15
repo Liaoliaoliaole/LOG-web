@@ -14,7 +14,7 @@
 <div class="content">
 	<table style="margin:auto;text-align:center;margin-bottom:.075in;">
 	  <tr>
-		<th colspan="3" style="font-weight: bold; font-size: xx-large">System Configuration</th>
+		<th colspan="4" style="font-weight: bold; font-size: xx-large">System Configuration</th>
 	  </tr>
 	  <tr>
 		<td><input type="button" value="Morfeas system"></td>
@@ -23,7 +23,7 @@
 	  </tr>
 	</table>
 </div>
-<div style="width: 100%; overflow: hidden;">
+<div style="width: 100%; overflow: hidden;"><!--Morfeas system config-->
     <div style="width:30%;float:left;">
 		<input type="button" value="Set">
 		<ul id="Comp_UL"></ul>
@@ -32,9 +32,9 @@
 		<table id="comp_args"></table>
 	</div>
 </div>
-<div style="width: 100%; overflow: hidden;">
+<div style="width: 100%; overflow: hidden;"><!--ISOStandards-->
 </div>
-<div style="width: 100%; overflow: hidden;">
+<div style="width: 100%; overflow: hidden;"><!--Up/DownLoad-->
 </div>
 <footer>
   <p>Author: Sam Harry Tzavaras &#169; 12019-12020<br>
@@ -150,7 +150,7 @@ function inp_sanit(inp, name)
 {
 	console.log(name);
 	console.log(inp.value);
-}	
+}
 //function for set component's argument to the configuration table
 function set_comp_table(args_table, _curr_config_xml, comp_id)
 {
@@ -181,7 +181,7 @@ function set_comp_table(args_table, _curr_config_xml, comp_id)
 				});
 				arg_inp.addEventListener("change", function()
 				{
-					
+
 					var list_select = document.getElementsByClassName("caret-down");
 					if(list_select[0].innerHTML.charAt(0)!=="*")
 						list_select[0].innerHTML="*"+list_select[0].innerHTML;
