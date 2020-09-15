@@ -39,3 +39,5 @@ Add "extension=dbus" at the extensions section of php.ini file for apache. Usual
 $ sudo chmod +x ./install.sh
 $ ./install.sh
 ```
+#License
+The subproject license under [AGPLv3](./Morfeas_WEB/LICENSE) or later 
