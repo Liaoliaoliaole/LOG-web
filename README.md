@@ -13,6 +13,8 @@ For compilation and usage of this project the following dependencies required.
 * [PHP-XML](https://sourceforge.net/projects/xmlphp) -  A class written in php to create, edit, modify and read XML documents.
 * [PHP-MBstring](https://packages.debian.org/stretch/php-mbstring) - PHP module for manipulation of Multibyte String (UNICODE, etc).
 
+The Morfeas_core must spit the logstats at the "/mnt/ramdisk", Where is mounted on a dedicated `tmpfs`.
+
 ### Get the Source
 ```
 $ # Clone the project's source code
