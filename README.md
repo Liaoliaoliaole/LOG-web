@@ -33,7 +33,7 @@ $ make -j$(nproc)
 $ sudo make install
 ```
 To enable php-dbus:
-Add "extension=dbus" at the extensions section of php.ini file for apache. Usually located at "/etc/php/X.XX/apache2/"
+Add `extension=dbus` at the extensions section of php.ini file for apache. Usually located at "/etc/php/X.XX/apache2/"
 ### Installation of the Morfeas-Web Project
 ```
 $ sudo chmod +x ./install.sh
