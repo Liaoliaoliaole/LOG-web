@@ -224,7 +224,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 			{
 				case 'getbundle':
 					$bundle_content=bundle_make();
-					$bundle_name=gethostname().'_'.date("Y_d_m");
+					$bundle_name=gethostname().'_'.date("Y_d_m_G_i_s");
 					header('Content-Description: File Transfer');
 					header('Content-Type: Mordeas_bundle');
 					header("Content-Disposition: attachment; filename=\"$bundle_name.mbl\"");
