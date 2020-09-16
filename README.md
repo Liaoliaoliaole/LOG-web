@@ -1,6 +1,8 @@
 <div align="center"> <img src="./Morfeas_WEB/art/Morfeas_logo_yellow.png" width="150"> </div>
+
 # Morfeas Web
 This is the Repository for the Morfeas Web, sub-project of the Morfeas Project.
+
 ### Requirements
 For compilation and usage of this project the following dependencies required.
 * [Morfeas_core](https://gitlab.com/fantomsam/morfeas_project) - The core of the Morfeas project.
