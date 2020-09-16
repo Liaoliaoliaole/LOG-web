@@ -53,7 +53,6 @@ input.global_style{
 </body>
 <script src='../morfeas_ecma/common.js'></script>
 <script>
-if (document.documentMode) 
-	alert("IE is obsolete, and does not supported \n Use firefox or chromium");
+	comp_check();
 </script>
 </html>

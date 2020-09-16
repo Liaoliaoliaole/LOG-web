@@ -2,11 +2,11 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<meta http-equiv="Pragma" content="no-cache" />
-<meta http-equiv="Expires" content="0" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
+<link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico">
 <link rel="stylesheet" type="text/css" href="Morfeas_System_config.css">
 <title>Morfeas WEB</title>
 </head>
@@ -17,13 +17,13 @@
 		<th colspan="4" style="font-weight: bold; font-size: xx-large">System Configuration</th>
 	  </tr>
 	  <tr>
-		<td><input type="button" value="Morfeas system"></td>
-		<td><input type="button" value="ISOStandards"></td>
-		<td><input type="button" value="Up/DownLoad"></td>
+		<td><input type="button" value="Morfeas system" onclick="disp_sel(disp_mode.cnf)"></td>
+		<td><input type="button" value="ISOStandards" onclick="disp_sel(disp_mode.std)"></td>
+		<td><input type="button" value="Up/Down Load" onclick="disp_sel(disp_mode.ud)"></td>
 	  </tr>
 	</table>
 </div>
-<div style="width: 100%; overflow: hidden;"><!--Morfeas system config-->
+<div name="tab" style="width: 100%; overflow: hidden;"><!--Morfeas system config-->
     <div style="width:30%;float:left;">
 		<input type="button" value="Set">
 		<ul id="Comp_UL"></ul>
@@ -32,9 +32,22 @@
 		<table id="comp_args"></table>
 	</div>
 </div>
-<div style="width: 100%; overflow: hidden;"><!--ISOStandards-->
+<div name="tab" style="width:100%; overflow:hidden; display:none"><!--ISOStandards-->
 </div>
-<div style="width: 100%; overflow: hidden;"><!--Up/DownLoad-->
+<div name="tab" style="width:100%; overflow:hidden; display:none"><!--Up/DownLoad-->
+	<table style="margin:auto;text-align:left;margin-bottom:.075in;">
+		<tr>
+			<td>
+				<form method="post" enctype="multipart/form-data">
+					<input type="file" id="bundle" accept=".mbl">
+					<input type="button" value="Upload Bundle" onclick="up()">
+				</form>
+			</td>
+		</tr>
+		<tr>
+			<td><input type="button" value="Download bundle" onclick="down()"></td>
+		</tr>
+	</table>
 </div>
 <footer>
   <p>Author: Sam Harry Tzavaras &#169; 12019-12020<br>
@@ -42,7 +55,7 @@
 </footer>
 </body>
 <script src='../morfeas_ecma/common.js'></script>
-<script src='../morfeas_ecma/morfeas_web_if.js'></script>
+<script src='./Morfeas_System_config.js'></script>
 <script>
 /*
 @licstart  The following is the entire license notice for the
@@ -61,12 +74,15 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-"use strict";
-if (document.documentMode)
-	alert("IE is obsolete, and does not supported \n Use firefox or chromium");
-else
-{
-	var curr_config_xml;
+	"use strict";
+	comp_check();
+	const disp_mode = {
+	   cnf: 0,
+	   std: 1,
+	   ud: 2
+	};
+	Object.freeze(disp_mode);
+	var curr_tab=disp_mode.cnf, curr_config_xml;
 	var comp_args_table = document.getElementById("comp_args");
 	//AJAX object for configuration receive and send
 	var config=null, xhttp = new XMLHttpRequest();
@@ -87,131 +103,46 @@ else
 	xhttp.ontimeout = function(){
 		alert("Communication Error!!!");
 	};
+	function disp_sel(mode)
+	{
+		if(mode === curr_tab)
+			return;
+		var tabs = document.getElementsByName("tab");
+		tabs.forEach(tab=>{tab.style.display="none"});
+		switch(mode)
+		{
+			case disp_mode.cnf:
+				tabs[disp_mode.cnf].style.display="block";
+				break;
+			case disp_mode.std:
+				tabs[disp_mode.std].style.display="block";
+				break
+			case disp_mode.ud:
+				tabs[disp_mode.ud].style.display="block";
+				break
+		}
+		curr_tab = mode;
+	}
+		
 	//Get the configuration
 	xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getMorfeasConfig", true);
 	xhttp.send();
-}
-//function to get morfeas component name, return comp_name_id on success, NULL otherwise
-function get_comp_name(comp)
-{
-	if(!comp)
-		return null;
-	switch(comp.nodeName)
-	{
-		case "OPC_UA_SERVER":
-			return "OPC-UA SERVER";
-		case "SDAQ_HANDLER":
-			return comp.nodeName.replace("_HANDLER","")+" ("+comp.getElementsByTagName("CANBUS_IF")[0].textContent+")";
-		case "MDAQ_HANDLER":
-		case "IOBOX_HANDLER":
-		case "MTI_HANDLER":
-			return comp.nodeName.replace("_HANDLER","")+" ("+comp.getElementsByTagName("DEV_NAME")[0].textContent+")";
-		default: return null;
-	}
-}
-function components_list(morfeas_components_xml)
-{
-	var listNode=document.getElementById("Comp_UL"),
-	comp=morfeas_components_xml.firstChild;
-	listNode.innerHTML="";
-	for(let i = 0; i<morfeas_components_xml.childNodes.length; i++)
-	{
-	  if(comp.nodeType == Node.ELEMENT_NODE)
-	  {
-		let comp_name_id;
-		if(!(comp_name_id=get_comp_name(comp)))
-			continue;
-		let textNode = document.createTextNode(comp_name_id),
-		liNode = document.createElement("LI");
-		liNode.classList.add("caret");
-		liNode.setAttribute("name", comp.nodeName);
-		liNode.setAttribute("id", i);
-		liNode.addEventListener("click", function()
-		{
-			var others = document.getElementsByClassName("caret-down");
-			for(let j = 0; j<others.length; j++)
-				if(others[j] !== this)
-				{
-					others[j].style.fontWeight = "normal";
-					others[j].classList.value = "caret";
-				}
-			this.classList.value = "caret-down";
-			this.style.fontWeight = "bold";
-			set_comp_table(comp_args_table, curr_config_xml, this.innerText);
-		});
-		liNode.appendChild(textNode);
-		listNode.appendChild(liNode);
-	  }
-	  comp = comp.nextSibling;
-	}
-}
-//function for input sanitization
-function inp_sanit(inp, name)
-{
-	console.log(name);
-	console.log(inp.value);
-}
-//function for set component's argument to the configuration table
-function set_comp_table(args_table, _curr_config_xml, comp_id)
-{
-	function appendHeader(table, header_str)
-	{
-		var h=document.createElement("TH");
-		var t=document.createTextNode(header_str);
-		h.appendChild(t);
-		h.colSpan="2";
-		table.appendChild(h);
-	};
-	function appendArguments(table, xml_root)
-	{
-		var arg=xml_root.firstChild;
-		for(let i=0,row_count=0; i<xml_root.childNodes.length; i++)
-		{
-			if(arg.nodeType == Node.ELEMENT_NODE)
-			{
-				var nRow = table.insertRow(row_count);
-				nRow.insertCell(0).innerHTML=arg.nodeName+':';
-				var arg_inp=document.createElement("INPUT");
-				arg_inp.setAttribute("type", "text");
-				arg_inp.value=arg.textContent;
-				var name = arg.nodeName;
-				arg_inp.addEventListener("input", function()
-				{
-					inp_sanit(this,name);
-				});
-				arg_inp.addEventListener("change", function()
-				{
-
-					var list_select = document.getElementsByClassName("caret-down");
-					if(list_select[0].innerHTML.charAt(0)!=="*")
-						list_select[0].innerHTML="*"+list_select[0].innerHTML;
-				});
-				nRow.insertCell(1).appendChild(arg_inp);
-				row_count++;
-			}
-			arg = arg.nextSibling;
+	
+	//Init of FileReader object
+	const reader = new FileReader();
+	reader.addEventListener('load', function(){
+			xhttp.open("POST", "../morfeas_php/config.php", true);
+			xhttp.setRequestHeader("Content-type", "Mordeas_bundle");
+			xhttp.send(this.result);
 		}
-	};
-	if(!args_table||!_curr_config_xml||!comp_id)
-		return;
-	var comps;
-	args_table.innerHTML="";
-	appendHeader(args_table, comp_id);
-	if(comp_id === "OPC-UA SERVER")
-		appendArguments(args_table, _curr_config_xml.getElementsByTagName("OPC_UA_SERVER")[0]);
-	else
+	);
+	reader.addEventListener('error', function(){alert("File Read Error!!!");});
+	//Function for upload a Morfeas Bundle
+	function up(data)
 	{
-		var handler_info=comp_id.split(" "),
-		comp_node=_curr_config_xml.getElementsByTagName(handler_info[0]+"_HANDLER");
-		for(let i=0; i<comp_node.length; i++)
-		{
-			if(comp_node[i].firstChild.textContent === handler_info[1].replace(/[()*]/g,""))
-			{
-				appendArguments(args_table, comp_node[i]);
-				return;
-			}
-		}
+		const fileSelector = document.getElementById('bundle');
+		const fileList = fileSelector.files;
+		reader.readAsArrayBuffer(fileList[0]);
 	}
-}
 </script>
 </html>

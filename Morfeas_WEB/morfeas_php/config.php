@@ -18,6 +18,15 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 */
 	require("../Morfeas_env.php");
 	require("./Supplementary.php");
+	function bundle_make()
+	{
+		global $opc_ua_config_dir;
+		$bundle=new stdClass();
+		$bundle->OPC_UA_config=file_get_contents($opc_ua_config_dir."OPC_UA_Config.xml");
+		$bundle->Morfeas_config=file_get_contents($opc_ua_config_dir."Morfeas_config.xml");
+		$bundle->Checksum=0;
+		return gzencode(json_encode($bundle));
+	}
 	class eth_if_config
 	{
 		public $mode;
@@ -213,6 +222,15 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 		{
 			switch($_GET["COMMAND"])
 			{
+				case 'getbundle':
+					$bundle_content=bundle_make();
+					$bundle_name=gethostname().'_'.date("Y_d_m");
+					header('Content-Description: File Transfer');
+					header('Content-Type: Mordeas_bundle');
+					header("Content-Disposition: attachment; filename=\"$bundle_name.mbl\"");
+					header('Content-Length: '.strlen($bundle_content));
+					echo $bundle_content;
+					return;
 				case 'getCurConfig':
 					$conf = new eth_if_config();
 					$conf->parser($eth_if_name) or Die("Parsing of configuration file failed!!!");
@@ -247,11 +265,11 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 	{
 		isset($eth_if_name) or die('$eth_if_name is Undefined!!!');
 		$RX_data = file_get_contents('php://input');
-		$new_config_json = decompress($RX_data) or die("Error: Decompressing of ISOChannels failed");
 		switch($_SERVER["CONTENT_TYPE"])
 		{
-			case "json_comp":	
-				$new_config = json_decode($new_config_json) or die("Error: JSON Decode of ISOChannels failed");
+			case "json_comp":
+				$data = decompress($RX_data) or die("Error: Decompressing of ISOChannels failed");
+				$new_config = json_decode($data) or die("Error: JSON Decode of ISOChannels failed");
 				if(property_exists($new_config,"hostname"))
 				{
 					new_hostname($new_config->hostname);
@@ -271,7 +289,20 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				header('Content-Type: application/json');
 				echo '{"report":"Okay"}';
 				return;
+			case "Mordeas_bundle":
+				$data = gzdecode($RX_data) or die("Server: Decompressing of Bundle failed");
+				$bundle = json_decode($data) or die("Server: JSON Decode of Bundle failed");
+				if(property_exists($bundle,"OPC_UA_config")&&
+				   property_exists($bundle,"Morfeas_config")&&
+				   property_exists($bundle,"Checksum"))
+				{
+					echo $bundle->Morfeas_config;
+				}
+				else
+					die("Server: Bundle does not have valid content");
+				return;
 			case "xml_comp":
+				return;
 		}
 	}
 	http_response_code(404);

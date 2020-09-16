@@ -15,6 +15,15 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
+function comp_check()
+{
+	if(document.documentMode)
+	{
+		alert("IE is obsolete, and does not supported \n Use firefox or chromium");
+		window.close();
+	}
+}
+
 function PopupCenter(url, title, w, h)
 {
 	// Fixes dual-screen position
