@@ -36,9 +36,9 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 		function parser($if_name)
 		{
 			if(!$if_name)
-				die('Argument $eth_if_name is NULL!!!');
+				die('Server: Argument $eth_if_name is NULL!!!');
 			if(!file_exists('/sys/class/net/'.$if_name))
-				die("Adapter \"$if_name\" does not exist!!!");
+				die("Server: Adapter \"$if_name\" does not exist!!!");
 			if(!file_exists('/etc/network/interfaces.d/'.$if_name))
 			{
 				$this->mode="DHCP";
@@ -118,7 +118,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 	}
 	function new_hostname($new_hostname)
 	{
-		isset($new_hostname) or die('$new_hostname is Undefined!!!!');
+		isset($new_hostname) or die('Server: $new_hostname is Undefined!!!!');
 		$cur_hostname = gethostname();
 		if(!strlen($new_hostname)||strlen($new_hostname)>=16||
 		   preg_match('/[\\/:*?"<>|. ]|^-|-$|^\d/',$new_hostname))
@@ -128,17 +128,17 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 		if($cur_hostname === $new_hostname)
 			return;
 
-		file_put_contents('/etc/hostname', $new_hostname)or die("/etc/hostname in Unwritable");
-		if(($hosts=file_get_contents('/etc/hosts'))==False) die("/etc/hosts is Unreadable");
+		file_put_contents('/etc/hostname', $new_hostname)or die("Server: /etc/hostname in Unwritable");
+		if(($hosts=file_get_contents('/etc/hosts'))==False) die("Server: /etc/hosts is Unreadable");
 		$hosts=str_replace($cur_hostname, $new_hostname, $hosts);
-		file_put_contents('/etc/hosts',$hosts)or die("/etc/hosts file is Unwritable");
+		file_put_contents('/etc/hosts',$hosts)or die("Server: /etc/hosts file is Unwritable");
 	}
 	function new_ip_conf($new_config, $eth_if_name)
 	{
-		isset($eth_if_name) or die('$eth_if_name is Undefined!!!!');
-		isset($new_config) or die('$new_config is Undefined!!!!');
+		isset($eth_if_name) or die('Server: $eth_if_name is Undefined!!!!');
+		isset($new_config) or die('Server: $new_config is Undefined!!!!');
 		if(!($new_config->mode==="DHCP"||$new_config->mode==="Static"))
-			die('Value of $new_config->mode is Invalid!!!!');
+			die('Server: Value of $new_config->mode is Invalid!!!!');
 		if($new_config->mode==="DHCP")
 		{
 			$if_config= "auto $eth_if_name\n".
@@ -151,7 +151,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 			property_exists($new_config,"mask")or die('$new_config->mask is Undefined!!!!');
 			property_exists($new_config,"gate")or die('$new_config->gate is Undefined!!!!');
 			if($new_config->mask<4||$new_config->mask>30)
-				die("Subnet mask is Invalid!!!");
+				die("Server: Subnet mask is Invalid!!!");
 			$new_mask=$new_config->mask;
 			$bit_mask=0;
 			while($new_mask)
@@ -161,11 +161,11 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				$new_mask--;
 			}
 			if(!($new_config->ip&~$bit_mask)||($new_config->ip|$bit_mask)===0xFFFFFFFF)
-				die('IP address is Invalid!!!');
+				die('Server: IP address is Invalid!!!');
 			$new_ip=long2ip($new_config->ip);
 			$new_mask=$new_config->mask;
 			if(!$new_config->gate||!$new_config->gate === 0xFFFFFFFF)
-				die('Gateway is Invalid!!!');
+				die('Server: Gateway is Invalid!!!');
 			$new_gate=long2ip($new_config->gate);
 
 			$if_config= "auto $eth_if_name\n".
@@ -176,16 +176,16 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 						"dns-nameservers 4.4.4.4\n".
 						"dns-nameservers 8.8.8.8\n";
 		}
-		file_put_contents("/etc/network/interfaces.d/$eth_if_name",$if_config)or die("Can't create new Network configuration file!!!");
+		file_put_contents("/etc/network/interfaces.d/$eth_if_name",$if_config)or die("Server: Can't create new Network configuration file!!!");
 	}
 	function new_ntp($new_ntp)
 	{
-		isset($new_ntp) or die('$new_ntp is Undefined!!!!');
+		isset($new_ntp) or die('Server: $new_ntp is Undefined!!!!');
 		$new_ntp=long2ip($new_ntp);
 		if(!$new_ntp||$new_ntp===0xFFFFFFFF)
-			die("NTP IP address is invalid!!!");
+			die("Server: NTP IP address is invalid!!!");
 		if(!($timesyncd_config_file=file_get_contents("/etc/systemd/timesyncd.conf")))
-			die("Unable to read /etc/systemd/timesyncd.conf !!!");
+			die("Server: Unable to read /etc/systemd/timesyncd.conf !!!");
 		$timesyncd_config_file=explode("\n",$timesyncd_config_file);
 		foreach($timesyncd_config_file as $key=>$line)
 		{
@@ -207,7 +207,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 			}
 		}
 		$timesyncd_config_file=implode("\n",$timesyncd_config_file);
-		file_put_contents('/etc/systemd/timesyncd.conf',$timesyncd_config_file)or die("Can't write timesyncd.conf!!!");
+		file_put_contents('/etc/systemd/timesyncd.conf',$timesyncd_config_file)or die("Server: Can't write timesyncd.conf!!!");
 	}
 	ob_start("ob_gzhandler");//Enable gzip buffering
 	//Disable caching
@@ -233,7 +233,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					return;
 				case 'getCurConfig':
 					$conf = new eth_if_config();
-					$conf->parser($eth_if_name) or Die("Parsing of configuration file failed!!!");
+					$conf->parser($eth_if_name) or Die("Server: Parsing of configuration file failed!!!");
 					$currConfig = new stdClass();
 					$currConfig->hostname=gethostname();
 					if(($currConfig->mode=$conf->mode)==='Static')
@@ -252,7 +252,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					return;
 				case 'getMorfeasConfig':
 					$doc = new DOMDocument('1.0');
-					$doc->load($opc_ua_config_dir."Morfeas_config.xml",LIBXML_NOBLANKS) or die("Fail to read Morfeas_config.xml");
+					$doc->load($opc_ua_config_dir."Morfeas_config.xml",LIBXML_NOBLANKS) or die("Server: Fail to read Morfeas_config.xml");
 					$doc->formatOutput = false;
 					header('Content-Type: application/xml');
 					echo $doc->saveXML();
@@ -263,13 +263,13 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 	}
 	else if($requestType == 'POST')
 	{
-		isset($eth_if_name) or die('$eth_if_name is Undefined!!!');
+		isset($eth_if_name) or die('Server: $eth_if_name is Undefined!!!');
 		$RX_data = file_get_contents('php://input');
 		switch($_SERVER["CONTENT_TYPE"])
 		{
 			case "net_conf":
-				$data = decompress($RX_data) or die("Error: Decompressing of ISOChannels failed");
-				$new_config = json_decode($data) or die("Error: JSON Decode of ISOChannels failed");
+				$data = decompress($RX_data) or die("Server: Decompressing of ISOChannels failed");
+				$new_config = json_decode($data) or die("Server: JSON Decode of ISOChannels failed");
 				if(property_exists($new_config,"hostname"))
 				{
 					new_hostname($new_config->hostname);
@@ -296,7 +296,10 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				   property_exists($bundle,"Morfeas_config")&&
 				   property_exists($bundle,"Checksum"))
 				{
-					echo $bundle->Morfeas_config;
+					file_put_contents($opc_ua_config_dir."OPC_UA_Config.xml",$bundle->OPC_UA_config)or Die("Server: OPC_UA_config.xml is Unwritable!!!");
+					file_put_contents($opc_ua_config_dir."Morfeas_config.xml",$bundle->Morfeas_config)or Die("Server: Morfeas_config.xml is Unwritable!!!");					
+					exec('sudo systemctl restart Morfeas_system.service');
+					echo("Server: Morfeas System Reconfigured and Restarted");
 				}
 				else
 					die("Server: Bundle does not have valid content");

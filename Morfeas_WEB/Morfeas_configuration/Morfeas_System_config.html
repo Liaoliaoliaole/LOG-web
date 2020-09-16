@@ -82,7 +82,7 @@ for the JavaScript code in this page.
 	   ud: 2
 	};
 	Object.freeze(disp_mode);
-	var curr_tab=disp_mode.cnf, curr_config_xml;
+	var curr_tab=disp_mode.cnf, curr_config_xml, new_config_xml;
 	var comp_args_table = document.getElementById("comp_args");
 	//AJAX object for configuration receive and send
 	var config=null, xhttp = new XMLHttpRequest();
@@ -93,8 +93,18 @@ for the JavaScript code in this page.
 		{
 			if(this.getResponseHeader("Content-Type")==="application/xml")
 			{
-				curr_config_xml = this.responseXML.getElementsByTagName("COMPONENTS")[0];
-				components_list(curr_config_xml);
+				switch(curr_tab)
+				{
+					case disp_mode.cnf:
+						curr_config_xml = this.responseXML.getElementsByTagName("COMPONENTS")[0];
+						new_config_xml = (new DOMParser()).parseFromString((new XMLSerializer()).serializeToString(this.responseXML), "application/xml");
+						new_config_xml = new_config_xml.getElementsByTagName("COMPONENTS")[0];
+						components_list(new_config_xml);
+						break;
+					case disp_mode.std:
+
+						break
+				}
 			}
 			else
 				alert(this.responseText);
@@ -123,11 +133,11 @@ for the JavaScript code in this page.
 		}
 		curr_tab = mode;
 	}
-		
+
 	//Get the configuration
 	xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getMorfeasConfig", true);
 	xhttp.send();
-	
+
 	//Init of FileReader object
 	const reader = new FileReader();
 	reader.addEventListener('load', function(){
