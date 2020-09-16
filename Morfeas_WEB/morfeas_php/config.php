@@ -267,7 +267,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 		$RX_data = file_get_contents('php://input');
 		switch($_SERVER["CONTENT_TYPE"])
 		{
-			case "json_comp":
+			case "net_conf":
 				$data = decompress($RX_data) or die("Error: Decompressing of ISOChannels failed");
 				$new_config = json_decode($data) or die("Error: JSON Decode of ISOChannels failed");
 				if(property_exists($new_config,"hostname"))
