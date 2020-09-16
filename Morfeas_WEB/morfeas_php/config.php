@@ -289,7 +289,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				header('Content-Type: application/json');
 				echo '{"report":"Okay"}';
 				return;
-			case "Mordeas_bundle":
+			case "Morfeas_bundle":
 				$data = gzdecode($RX_data) or die("Server: Decompressing of Bundle failed");
 				$bundle = json_decode($data) or die("Server: JSON Decode of Bundle failed");
 				if(property_exists($bundle,"OPC_UA_config")&&
