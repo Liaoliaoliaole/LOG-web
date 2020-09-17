@@ -254,16 +254,21 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					$doc = new DOMDocument('1.0');
 					$doc->load($opc_ua_config_dir."Morfeas_config.xml",LIBXML_NOBLANKS) or die("Server: Fail to read Morfeas_config.xml");
 					$doc->formatOutput = false;
-					header('Content-Type: application/xml');
+					header('Content-Type: Morfeas_config');
 					echo $doc->saveXML();
-					//print_r($doc);
+					return;
+				case 'getISOStandard':
+					$doc = new DOMDocument('1.0');
+					$doc->load($opc_ua_config_dir."ISOstandard.xml",LIBXML_NOBLANKS) or die("Server: Fail to read ISOStandard.xml");
+					$doc->formatOutput = false;
+					header('Content-Type: ISOStandard');
+					echo $doc->saveXML();
 					return;
 			}
 		}
 	}
 	else if($requestType == 'POST')
 	{
-		isset($eth_if_name) or die('Server: $eth_if_name is Undefined!!!');
 		$RX_data = file_get_contents('php://input');
 		switch($_SERVER["CONTENT_TYPE"])
 		{
@@ -278,6 +283,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				}
 				if(property_exists($new_config,"mode"))
 				{
+					isset($eth_if_name) or die('Server: $eth_if_name is Undefined!!!');
 					new_ip_conf($new_config, $eth_if_name);
 					exec('sudo systemctl restart networking.service');
 				}
@@ -288,6 +294,21 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				}
 				header('Content-Type: application/json');
 				echo '{"report":"Okay"}';
+				return;
+			case "Morfeas_config":
+				$data = decompress($RX_data) or die("Server: Decompressing of Morfeas_config failed");
+				echo $data;
+				/*
+				$imp = new DOMImplementation;
+				$dtd = $imp->createDocumentType('NODESet', '', 'Morfeas.dtd');
+				$dom = $imp->createDocument('', '', $dtd);
+				$dom->encoding = 'UTF-8';
+				$dom->xmlVersion = '1.0';
+				$dom->formatOutput = true;
+				*/
+				return;
+			case "ISOstandard":
+				$data = decompress($RX_data) or die("Server: Decompressing of ISOstandard failed");
 				return;
 			case "Morfeas_bundle":
 				$data = gzdecode($RX_data) or die("Server: Decompressing of Bundle failed");
@@ -305,8 +326,6 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				}
 				else
 					die("Server: Bundle does not have valid content");
-				return;
-			case "xml_comp":
 				return;
 		}
 	}

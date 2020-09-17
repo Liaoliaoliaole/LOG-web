@@ -15,12 +15,42 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
+		//--- Functions for Up/DownLoad tab ---//
+//Init of FileReader object
+const reader = new FileReader();
+reader.addEventListener('load', function(){
+		xhttp.open("POST", "../morfeas_php/config.php", true);
+		xhttp.setRequestHeader("Content-type", "Morfeas_bundle");
+		xhttp.send(this.result);
+	}
+);
+reader.addEventListener('error', function(){alert("File Read Error!!!");});
+//Function for upload a Morfeas Bundle
+function bundle_upload(data)
+{
+	const fileSelector = document.getElementById('bundle');
+	const fileList = fileSelector.files;
+	reader.readAsArrayBuffer(fileList[0]);
+}
 //Function for download Morfeas Bundle
-function down()
+function bundle_download()
 {
 	window.open("../morfeas_php/config.php"+"?COMMAND=getbundle", '_self');
 }
-//function to get morfeas component name, return comp_name_id on success, NULL otherwise
+		//--- Functions for Morfeas system tab ---//
+//Function that send the new_morfeas_confit to the server
+function save_morfeas_config()
+{
+	if(new_morfeas_config_xml.innerHTML !== curr_morfeas_config_xml.innerHTML)
+	{
+		xhttp.open("POST", "../morfeas_php/config.php", true);
+		xhttp.setRequestHeader("Content-type", "Morfeas_config");
+		xhttp.send(compress((new XMLSerializer()).serializeToString(new_morfeas_config_xml)));
+	}
+	else
+		alert("Nothing to commit");
+}
+//Function to get morfeas component name, return comp_name_id on success, NULL otherwise
 function get_comp_name(comp)
 {
 	if(!comp)
@@ -38,12 +68,12 @@ function get_comp_name(comp)
 		default: return null;
 	}
 }
-function components_list(morfeas_components_xml)
+function morfeas_comp_list(new_morfeas_components_xml, curr_morfeas_components_xml)
 {
 	var listNode=document.getElementById("Comp_UL"),
-	comp=morfeas_components_xml.firstChild;
+	comp=new_morfeas_components_xml.firstChild;
 	listNode.innerHTML="";
-	for(let i = 0; i<morfeas_components_xml.childNodes.length; i++)
+	for(let i = 0; i<new_morfeas_components_xml.childNodes.length; i++)
 	{
 	  if(comp.nodeType == Node.ELEMENT_NODE)
 	  {
@@ -54,7 +84,6 @@ function components_list(morfeas_components_xml)
 		liNode = document.createElement("LI");
 		liNode.classList.add("caret");
 		liNode.setAttribute("name", comp.nodeName);
-		liNode.setAttribute("id", i);
 		liNode.addEventListener("click", function()
 		{
 			var others = document.getElementsByClassName("caret-down");
@@ -66,7 +95,9 @@ function components_list(morfeas_components_xml)
 				}
 			this.classList.value = "caret-down";
 			this.style.fontWeight = "bold";
-			set_comp_table(comp_args_table, curr_config_xml, this.innerText);
+			morfeas_comp_table(comp_args_table,
+							   new_morfeas_components_xml.childNodes[i],
+							   curr_morfeas_components_xml.childNodes[i]);
 		});
 		liNode.appendChild(textNode);
 		listNode.appendChild(liNode);
@@ -74,71 +105,77 @@ function components_list(morfeas_components_xml)
 	  comp = comp.nextSibling;
 	}
 }
-//function for input sanitization
-function inp_sanit(inp, name)
-{
-	console.log(name);
-	console.log(inp.value);
-}
 //function for set component's argument to the configuration table
-function set_comp_table(args_table, _curr_config_xml, comp_id)
+function morfeas_comp_table(args_table, _newConfigXML_node, _currConfigXML_Node)
 {
-	function appendHeader(table, header_str)
+	args_table.innerHTML="";//clear arg_table
+	//Add component name as header
+	var h=document.createElement("TH");
+	var t=document.createTextNode(_newConfigXML_node.nodeName);
+	h.appendChild(t);
+	h.colSpan="2";
+	args_table.appendChild(h);
+	//Add component's elements to the args_table
+	for(let i=0,row_count=0; i<_newConfigXML_node.childNodes.length; i++)
 	{
-		var h=document.createElement("TH");
-		var t=document.createTextNode(header_str);
-		h.appendChild(t);
-		h.colSpan="2";
-		table.appendChild(h);
-	};
-	function appendArguments(table, xml_root)
-	{
-		var arg=xml_root.firstChild;
-		for(let i=0,row_count=0; i<xml_root.childNodes.length; i++)
+		if(_newConfigXML_node.childNodes[i].nodeType == Node.ELEMENT_NODE)
 		{
-			if(arg.nodeType == Node.ELEMENT_NODE)
+			var nRow = args_table.insertRow(row_count);
+			nRow.insertCell(0).innerHTML=_newConfigXML_node.childNodes[i].nodeName+':';
+			var arg_inp=document.createElement("INPUT");
+			arg_inp.setAttribute("type", "text");
+			arg_inp.value=_newConfigXML_node.childNodes[i].textContent;
+			arg_inp.addEventListener("change", function()
 			{
-				var nRow = table.insertRow(row_count);
-				nRow.insertCell(0).innerHTML=arg.nodeName+':';
-				var arg_inp=document.createElement("INPUT");
-				arg_inp.setAttribute("type", "text");
-				arg_inp.value=arg.textContent;
-				var name = arg.nodeName;
-				arg_inp.addEventListener("input", function()
+				if(_newConfigXML_node.childNodes[i].nodeName === "IPv4_ADDR")//Check if is input for IPv4
 				{
-					inp_sanit(this,name);
-				});
-				arg_inp.addEventListener("change", function()
+					const patt= new RegExp(/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/);
+					if(!patt.test(this.value))
+					{
+						alert("You have entered an invalid IP address!")
+						return;
+					}
+				}
+				_newConfigXML_node.childNodes[i].textContent = this.value;
+				const list_select = document.getElementsByClassName("caret-down")[0];
+				if(_newConfigXML_node.childNodes[i].textContent !== _currConfigXML_Node.childNodes[i].textContent)
 				{
-
-					var list_select = document.getElementsByClassName("caret-down");
-					if(list_select[0].innerHTML.charAt(0)!=="*")
-						list_select[0].innerHTML="*"+list_select[0].innerHTML;
-				});
-				nRow.insertCell(1).appendChild(arg_inp);
-				row_count++;
-			}
-			arg = arg.nextSibling;
+					if(list_select.innerHTML.charAt(0)!=="*")
+						list_select.innerHTML="*"+list_select.innerHTML;
+				}
+				else
+					list_select.innerHTML=list_select.innerHTML.replace('*',"");
+			});
+			arg_inp.addEventListener("input", function()
+			{
+				this.value = this.value.replace(" ","");
+			});
+			nRow.insertCell(1).appendChild(arg_inp);
+			row_count++;
 		}
-	};
-	if(!args_table||!_curr_config_xml||!comp_id)
-		return;
-	var comps;
-	args_table.innerHTML="";
-	appendHeader(args_table, comp_id);
-	if(comp_id === "OPC-UA SERVER")
-		appendArguments(args_table, _curr_config_xml.getElementsByTagName("OPC_UA_SERVER")[0]);
-	else
+	}
+}
+		//--- Functions for ISOStandards tab ---//
+//Function that diploid ISOstandard table 
+function isoSTD(table, ISOstd_xml)
+{
+	table.innerHTML="";
+	var nRow = table.insertRow(0);
+	nRow.insertCell(0).innerHTML="NAME";
+	for(let i=0; i<ISOstd_xml.childNodes[0].childNodes.length; i++)
+		nRow.insertCell(i+1).innerHTML=ISOstd_xml.childNodes[0].childNodes[i].nodeName.toUpperCase();
+	//Add isoSTD elements to the table
+	for(let i=0, row_count=1; i<ISOstd_xml.childNodes.length; i++)
 	{
-		var handler_info=comp_id.split(" "),
-		comp_node=_curr_config_xml.getElementsByTagName(handler_info[0]+"_HANDLER");
-		for(let i=0; i<comp_node.length; i++)
+		if(ISOstd_xml.childNodes[i].nodeType == Node.ELEMENT_NODE)
 		{
-			if(comp_node[i].firstChild.textContent === handler_info[1].replace(/[()*]/g,""))
+			nRow = table.insertRow(row_count);
+			nRow.insertCell(0).innerHTML=ISOstd_xml.childNodes[i].nodeName;
+			for(let j=0; j<ISOstd_xml.childNodes[i].childNodes.length; j++)
 			{
-				appendArguments(args_table, comp_node[i]);
-				return;
+				nRow.insertCell(j+1).innerHTML=ISOstd_xml.childNodes[i].childNodes[j].textContent;
 			}
+			row_count++;
 		}
 	}
 }

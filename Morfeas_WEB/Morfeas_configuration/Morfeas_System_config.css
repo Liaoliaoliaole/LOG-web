@@ -18,7 +18,6 @@ ul, #myUL {
 }
 .caret {
 	cursor: pointer;
-	/*user-select: none;*/
 }
 .caret::before {
 	content: "\25B6";

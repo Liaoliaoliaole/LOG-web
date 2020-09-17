@@ -19,20 +19,21 @@
 	  <tr>
 		<td><input type="button" value="Morfeas system" onclick="disp_sel(disp_mode.cnf)"></td>
 		<td><input type="button" value="ISOStandards" onclick="disp_sel(disp_mode.std)"></td>
-		<td><input type="button" value="Up/Down Load" onclick="disp_sel(disp_mode.ud)"></td>
+		<td><input type="button" value="Up/DownLoad" onclick="disp_sel(disp_mode.ud)"></td>
 	  </tr>
 	</table>
 </div>
-<div name="tab" style="width: 100%; overflow: hidden;"><!--Morfeas system config-->
+<div name="tab" style="width: 100%; overflow: hidden; display:none"><!--Morfeas system config-->
     <div style="width:30%;float:left;">
-		<input type="button" value="Set">
 		<ul id="Comp_UL"></ul>
+		<input type="button" value="Save" onclick="save_morfeas_config()">
 	</div>
     <div style="width:70%;float:right;">
 		<table id="comp_args"></table>
 	</div>
 </div>
 <div name="tab" style="width:100%; overflow:hidden; display:none"><!--ISOStandards-->
+	<table id="ISO_std_table" style="margin:auto;text-align:left;margin-bottom:.075in;"></table>
 </div>
 <div name="tab" style="width:100%; overflow:hidden; display:none"><!--Up/DownLoad-->
 	<table style="margin:auto;text-align:left;margin-bottom:.075in;">
@@ -40,12 +41,12 @@
 			<td>
 				<form method="post" enctype="multipart/form-data">
 					<input type="file" id="bundle" accept=".mbl">
-					<input type="button" value="Upload Bundle" onclick="up()">
+					<input type="button" value="Upload Bundle" onclick="bundle_upload()">
 				</form>
 			</td>
 		</tr>
 		<tr>
-			<td><input type="button" value="Download bundle" onclick="down()"></td>
+			<td><input type="button" value="Download bundle" onclick="bundle_download()"></td>
 		</tr>
 	</table>
 </div>
@@ -82,8 +83,15 @@ for the JavaScript code in this page.
 	   ud: 2
 	};
 	Object.freeze(disp_mode);
-	var curr_tab=disp_mode.cnf, curr_config_xml, new_config_xml;
+
+	//Vars for Morfeas_config tab
+	var curr_morfeas_config_xml, new_morfeas_config_xml;
 	var comp_args_table = document.getElementById("comp_args");
+	//Vars for ISOStandards tab
+	var curr_ISOstd_xml;
+	var isoSTD_table=document.getElementById("ISO_std_table");
+	
+	var curr_tab=-1;//Var for tabs state
 	//AJAX object for configuration receive and send
 	var config=null, xhttp = new XMLHttpRequest();
 	xhttp.timeout = 5000;
@@ -91,19 +99,22 @@ for the JavaScript code in this page.
 	{
 		if (this.readyState == 4 && this.status == 200)
 		{
-			if(this.getResponseHeader("Content-Type")==="application/xml")
+			if(this.getResponseHeader("Content-Type")==="Morfeas_config")
 			{
-				switch(curr_tab)
+				if(curr_tab === disp_mode.cnf)
 				{
-					case disp_mode.cnf:
-						curr_config_xml = this.responseXML.getElementsByTagName("COMPONENTS")[0];
-						new_config_xml = (new DOMParser()).parseFromString((new XMLSerializer()).serializeToString(this.responseXML), "application/xml");
-						new_config_xml = new_config_xml.getElementsByTagName("COMPONENTS")[0];
-						components_list(new_config_xml);
-						break;
-					case disp_mode.std:
-
-						break
+					curr_morfeas_config_xml = this.responseXML.getElementsByTagName("COMPONENTS")[0];
+					new_morfeas_config_xml = (new DOMParser()).parseFromString((new XMLSerializer()).serializeToString(this.responseXML), "application/xml");
+					new_morfeas_config_xml = new_morfeas_config_xml.getElementsByTagName("COMPONENTS")[0];
+					morfeas_comp_list(new_morfeas_config_xml, curr_morfeas_config_xml);
+				}
+			}
+			else if(this.getResponseHeader("Content-Type")==="ISOStandard")
+			{
+				if(curr_tab === disp_mode.std)
+				{
+					curr_ISOstd_xml = this.responseXML.getElementsByTagName("points")[0];
+					isoSTD(isoSTD_table, curr_ISOstd_xml);
 				}
 			}
 			else
@@ -122,9 +133,19 @@ for the JavaScript code in this page.
 		switch(mode)
 		{
 			case disp_mode.cnf:
+				if(!curr_morfeas_config_xml)
+				{
+					xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getMorfeasConfig", true);
+					xhttp.send();
+				}
 				tabs[disp_mode.cnf].style.display="block";
 				break;
 			case disp_mode.std:
+				if(!curr_ISOstd_xml)
+				{
+					xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getISOStandard", true);
+					xhttp.send();
+				}
 				tabs[disp_mode.std].style.display="block";
 				break
 			case disp_mode.ud:
@@ -132,27 +153,6 @@ for the JavaScript code in this page.
 				break
 		}
 		curr_tab = mode;
-	}
-
-	//Get the configuration
-	xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getMorfeasConfig", true);
-	xhttp.send();
-
-	//Init of FileReader object
-	const reader = new FileReader();
-	reader.addEventListener('load', function(){
-			xhttp.open("POST", "../morfeas_php/config.php", true);
-			xhttp.setRequestHeader("Content-type", "Morfeas_bundle");
-			xhttp.send(this.result);
-		}
-	);
-	reader.addEventListener('error', function(){alert("File Read Error!!!");});
-	//Function for upload a Morfeas Bundle
-	function up(data)
-	{
-		const fileSelector = document.getElementById('bundle');
-		const fileList = fileSelector.files;
-		reader.readAsArrayBuffer(fileList[0]);
 	}
 </script>
 </html>
