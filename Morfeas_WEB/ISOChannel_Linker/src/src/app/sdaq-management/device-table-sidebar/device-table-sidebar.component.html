@@ -1,0 +1,33 @@
+<div class="max-width">
+    <button class="btn btn-secondary btn-flat p-3 m-3" (click)="toggleShowOptions()">Show options</button>
+    <div *ngIf="showOptions" class="list-group mb-3">
+        <div class="list-group-item list-flat-item" *ngFor="let column of columns" (click)="onColumnClick(column)">
+            <label class="form-check-label pl-4" style="width: 100%; height: 100%;">
+                <input type="checkbox" [checked]="column.isVisible" (change)="onColumnClick(column)"><span
+                    class="box"></span>
+                <div class="list-item-text2">{{column.displayName}}</div>
+            </label>
+        </div>
+        <div class="list-group-item list-flat-item" style="margin-top: 20px;" (click)="filterConnection('linked', linkedFilter)">
+            <label class="form-check-label pl-4" style="width: 100%; height: 100%;">
+                <input type="checkbox" [checked]="!filters.has('linked')" (change)="filterConnection('linked', linkedFilter)"><span class="box"></span>
+                <div class="list-item-text2">Show Linked</div>
+            </label>
+        </div>
+        <div class="list-group-item list-flat-item" (click)="filterConnection('unlinked', unlinkedFilter)">
+            <label class="form-check-label pl-4" style="width: 100%; height: 100%;">
+                <input type="checkbox" [checked]="!filters.has('unlinked')" (change)="filterConnection('unlinked', unlinkedFilter)"><span class="box"></span>
+                <div class="list-item-text2">Show Unlinked</div>
+            </label>
+        </div>
+        <div class="list-group-item list-flat-item" *ngFor="let connection of connections" (click)="filterConnection(connection, deviceFilter(connection))">
+            <label class="form-check-label pl-4" style="width: 100%; height: 100%;">
+                <input type="checkbox" [checked]="!filters.has(connection)" (change)="filterConnection(connection, deviceFilter(connection))"><span class="box"></span>
+                <div class="list-item-text2">Show {{connection}}</div>
+            </label>
+        </div>
+    </div>
+    <div class="m-3 flex-end">
+        <div *ngIf="showUnsaved" class="unsaved h5">You have unsaved configurations</div>
+    </div>
+</div>

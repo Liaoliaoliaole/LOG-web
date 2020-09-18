@@ -1,165 +1,43 @@
+<div align="center"> <img src="./Morfeas_WEB/art/Morfeas_logo_yellow.png" width="150"> </div>
+
 # Morfeas Web
+This is the Repository for the Morfeas Web, sub-project of the Morfeas Project.
 
-## Deploying the project
+### Requirements
+For compilation and usage of this project the following dependencies required.
+* [Morfeas_core](https://gitlab.com/fantomsam/morfeas_project) - The core of the Morfeas project.
+* [Apache2](https://www.apache.org/) - The Apache WEB server.
+* [PHP](https://www.php.net/) - The PHP scripting language.
+* [libapache2-mod-php](https://packages.debian.org/stretch/libapache2-mod-php) - The PHP module for the Apache 2 webserver.
+* [php-dev](https://packages.debian.org/sid/php/php-dev) - Collection of Headers and other PHP needed for compiling additional modules.
+* [php-xml](https://sourceforge.net/projects/xmlphp) -  A class written in php to create, edit, modify and read XML documents.
+* [php-mbstring](https://packages.debian.org/stretch/php-mbstring) - PHP module for manipulation of Multibyte String (UNICODE, etc).
 
-### Deploy using install script
+The Morfeas_core must spit the logstats at the `/mnt/ramdisk`. Where is mounted on a dedicated `tmpfs`.
 
-DURING THE INSTALLATION THE TARGET DEVICE NEEDS TO BE CONNECTED TO THE INTERNET
-
-1. Download latest version from https://gitlab.com/fantomsam/morfeas_web/-/jobs/artifacts/master/download?job=build+prod
-2. Unzip the file `unzip artifacts.zip`
-3. Run the install.sh `bash install.sh`
-
-**Expects ramdisk to be found in /mnt/ramdisk/ and access rights to the folder to be correct**
-<!--
-## Pre-requisites:
-- [NodeJS](https://nodejs.org/en/)
-- [npm](https://www.npmjs.com/)
--->
-## Clone project and Install Dependencies
+### Get the Source
 ```
-$ #Clone Project's repository and change directory 
-$ git clone https://gitlab.com/fantomsam/morfeas_web.git Morfeas_web && cd Morfeas_web
-$ #Update/Upgrade GNU distro
-$ sudo apt update && sudo apt upgrade
-$ #Install apache 2 and dependencies
-$ sudo apt install apache2 apache2-dev python3-dev python3-venv php libapache2-mod-php npm
-$ npm install -g npm
-$ npm install nodejs
-$ #Install Dependences for Python 3
-$ sudo pip3 install wheel mod-wsgi
-$ sudo pip3 install -r ./morfeas/requirements.txt
-$ #Add "www-data" user to your group
-$ sudo usermod -aG $USER www-data
-```
-
-# Building the UI project
-1. Install the required dependencies by running `npm install`
-1. Build the Angular project by running `npm run build-prod` inside the `morfeas-ui/` folder. The transpiled files will be in `morfeas-ui/dist/morfeas-web/` which can be then copied to the web server.
-
-<!--
-_Setup artifacts_
-
-Download latest artifact from Gitlab CI jobs
-
-```
-cd <downloads folder>
-unzip artifacts.zip
-mkdir /var/www/morfeas_web
-rm /var/www/index.html
-```
-
-_move artifacts to /var/www/_
--->
-## Copy the builded UI project and the backend application to "www" Directory 
-
-```
+$ # Clone the project's source code
+$ git clone https://gitlab.com/fantomsam/morfeas_web Morfeas_web
 $ cd Morfeas_web
-$ sudo mkdir /var/www/morfeas_web
-$ sudo chown $USER /var/www/morfeas_web
-$ sudo chown $USER /var/www/html
-$ sudo rm /var/www/html/* && cp -r ./morfeas-ui/dist/morfeas-web/* /var/www/html/
-$ cp -r morfeas /var/www/morfeas_web/
+$ # Get Source of the submodules
+$ git submodule update --init --recursive --remote --merge
 ```
-## Configure Morfeas_Web Backend and setup site-config for Apache 2  
+### Compilation and installation of the submodules
+#### pecl-dbus
 ```
-$ cp morfeas/config.template.json /var/www/morfeas_web/config.json
-$ #Modify config.json accordingly with Morfeas_system paths and files
-$ nano /var/www/morfeas_web/config.json
-$ #Make Morfeas_web site's configuration 
-$ sudo nano /etc/apache2/sites-available/morfeas_web.conf
+$ cd pecl-dbus
+$ phpize
+$ ./configure
+$ make -j$(nproc)
+$ sudo make install
 ```
-
-### Use the following content as config template
-**Create and Place the site's Configuration at /etc/apache2/sites-available/morfeas_web.conf**
+To enable php-dbus:
+Add `extension=dbus` at the extensions section of php.ini file for apache. Usually located at `/etc/php/X.XX/apache2/`
+### Installation of the Morfeas-Web Project
 ```
-<VirtualHost *:80>
-    ServerName localhost
-    ErrorLog ${APACHE_LOG_DIR}/error.log
-    CustomLog ${APACHE_LOG_DIR}/access.log combined
-
-    WSGIDaemonProcess morfeas_web user=#YOUR_USER_NAME group=#YOUR_USER_GROUP 
-    WSGIScriptAlias /api /var/www/morfeas_web/morfeas/morfeas.wsgi
-
-    Alias /ramdisk /mnt/ramdisk/
-
-    <Directory /var/www/html>
-        Require all granted
-    </Directory>
-    
-    <Directory /mnt/ramdisk>
-        Options Indexes
-        Require all granted
-    </Directory>
-</VirtualHost>
-
+$ sudo chmod +x ./install.sh
+$ ./install.sh
 ```
-
-## Enable Apache modules and site
-```
-$ #Config apache's module wsgi
-$ sudo sh -c "mod_wsgi-express module-config > /etc/apache2/mods-available/wsgi.load"
-$ #Enable module wsgi
-$ sudo a2enmod wsgi
-$ #Disable default and enable morfeas_web site
-$ sudo a2dissite 000-default.conf && sudo a2ensite morfeas_web.conf
-$ #Restart apache 
-$ sudo systemctl restart apache2
-```
-<!-- #Commented By Sam
-## Add www-data (apache user) to sudoers in order to be able to restart the networking 
-```
-$ sudo nano /etc/sudoers/
-$ #Add the following under user privilege specification
-$ # www-data  ALL=(ALL:ALL) NOPASSWD: ALL
-$ #This can be later changed to something more suitable so apache user doesnt have full rights to the system
-```
-
-## Give www-data (apache user) rights to read and write to /etc/network/interfaces
--->
-
-## Give access privileges to "others" and allow specific Passwordless calls for "www-data" user  
-```
-$ #Give write privileges to "other" for Interface, timesyncd.conf, hostname and hosts 
-$ sudo chmod o+rw /etc/network/interfaces /etc/systemd/timesyncd.conf /etc/hostname /etc/hosts 
-$ #Create specific passwordless access file 
-$ sudo visudo -f /etc/sudoers.d/Morfeas_web_allow
-```
-### Copy the following to "/etc/sudoers.d/Morfeas_web_allow" file
-```
-Cmnd_Alias ALLOW_PASSWORDLESS = /bin/systemctl restart networking.service,\
-                                /bin/systemctl restart systemd-timesyncd.service,\
-                                /bin/systemctl restart Morfeas_system.service,\
-                                /bin/hostname,\
-                                /usr/sbin/poweroff,\
-                                /sbin/reboot
-
-www-data ALL = (ALL) NOPASSWD: ALLOW_PASSWORDLESS
-```
-
-# Usefull:
-## Running the backend
-_Pre-requisites:_
-- python3
-- python3-venv
-- python3-pip
-
-***Python3 comes preinstalled with most GNU/Linux Distros.***
-
-Instructions
-1. Create virtualenv. In the repository root, run the following command `python3 -m venv ./morfeas/venv/`
-2. Activate the virtual env with `source morfeas/venv/bin/activate`
-3. Install wheel `pip3 install wheel`
-4. Install dependencies with `pip3 install -r morfeas/requirements.txt`
-5. Setup the `config.json` using the `config.template.json` (`cp morfeas/config.template.json morfeas/config.json`, adjust the contents as necessary)
-6. Run the dev backend with `python3 morfeas/app.py`
-7. Exit virtual env by issuing command `deactivate`
-
-#### Additional useful commands:
-
-`npm run start`, run the local development server
-`npm run test`, run the unit tests. (Requires Chromium to be installed, as its using HeadlessChrome.)
-`npm run lint`, run the linter
-
-You can also install [Angular CLI](https://cli.angular.io/). Instructions to use that can be found in the README in `morfeas-ui/README.md`
-
+# License
+The subproject license under [AGPLv3](./Morfeas_WEB/LICENSE) or later

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<link rel="shortcut icon" type="image/x-icon" href="../art/rpi_logo.png" />
+<title>Network Configuration</title>
+<style>
+td.bold {
+    font-weight: bold;
+}
+input.global_style{
+	width: 3em;
+}
+</style>
+</head>
+<body>
+<table style="margin:auto">
+  <tr>
+    <th colspan="2">Machine Identifier</th>
+  </tr>
+  <tr>
+    <td>Hostname</td>
+    <td>
+		<input style="width:16;" type="text" id="hostname">
+	</td>
+  </tr>
+  <tr>
+    <th colspan="2">Internet Configuration</th>
+  </tr>
+  <tr>
+	<td>Mode</td>
+	<td>
+		<select id="mode" onchange="static_conf(!this.selectedIndex);">
+			<option value="Static">Static</option>
+			<option value="DHCP">DHCP</option>
+		</select>
+	</td>
+  </tr>
+  <tr name="static_config">
+	<td>Network IP</td>
+	<td>
+		<input class="global_style" name="ip">.
+		<input class="global_style" name="ip">.
+		<input class="global_style" name="ip">.
+		<input class="global_style" name="ip">/
+		<input class="global_style" id="mask">
+	</td>
+  </tr>
+  <tr name="static_config">
+	<td>Gateway</td>
+	<td>
+		<input class="global_style" name="gateway">.
+		<input class="global_style" name="gateway">.
+		<input class="global_style" name="gateway">.
+		<input class="global_style" name="gateway">
+	</td>
+  </tr>
+  <tr>
+    <th colspan="2">NTP Configuration</th>
+  </tr>
+  <tr>
+    <td>NTP IP</td>
+     <td>
+		<input class="global_style" name="ntp">.
+		<input class="global_style" name="ntp">.
+		<input class="global_style" name="ntp">.
+		<input class="global_style" name="ntp">
+		<input type="button" value="Stats" onclick='PopupCenter("../morfeas_php/config.php?COMMAND=timedatectl","","360","270")'>
+	</td>
+  </tr>
+  <tr>
+    <td><input id="default" type="button" value="Load Last" onclick="default_config(config)"></td>
+    <td style="text-align: right;"><input id="Save" type="button" value="Set" onclick="Send_config()"></td>
+  </tr>
+</table>
+<script src='../morfeas_ecma/common.js'></script>
+<script>
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this page.
+
+Copyright (C) 12019-12020  Sam Harry Tzavaras
+
+The JavaScript code in this page is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU AGPL) as published by the Free Software
+Foundation, either version 3 of the License, or any later version.
+The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
+
+@licend  The above is the entire license notice
+for the JavaScript code in this page.
+*/
+	"use strict";
+	comp_check();
+	function static_conf(visible)
+	{
+		var static_config=document.getElementsByName("static_config");
+		static_config[0].style.visibility=visible?"visible":"collapse";
+		static_config[1].style.visibility=visible?"visible":"collapse";
+	}
+
+	function default_config(_config)
+	{
+		if(!_config)
+			return;
+		hostname.value = _config.hostname;
+		if(_config.ntp)
+			for(let i=0;i<4;i++)
+				ntp[i].value=(_config.ntp>>((3-i)*8))&0xff;
+		switch(_config.mode)
+		{
+			case "Static":
+				static_conf(true);
+				mode.selectedIndex = 0;
+				for(let i=0;i<4;i++)
+				{
+					ip[i].value=(_config.ip>>((3-i)*8))&0xff;
+					gateway[i].value=(_config.gate>>((3-i)*8))&0xff;
+				}
+				mask.value=_config.mask;
+				break;
+			case "DHCP":
+				static_conf(false);
+				mode.selectedIndex = 1;
+				break;
+		}
+	}
+	function val(inp)
+	{
+		if(inp.value==="")
+			inp.value=0;
+		else if(Number(inp.value)>inp.max)
+			inp.value=inp.max;
+		else if(Number(inp.value)<inp.min)
+			inp.value=inp.min;
+	}
+	//DOM vars
+	var hostname=document.getElementById("hostname"),
+		mode=document.getElementById("mode"),
+		ip=document.getElementsByName("ip"),
+		mask=document.getElementById("mask"),
+	    gateway=document.getElementsByName("gateway"),
+		ntp=document.getElementsByName("ntp");
+	//Set Limits
+	for(let i=0;i<4;i++)
+	{
+		ip[i].type="number";
+		ip[i].max=255;ip[i].min=0;
+		ip[i].oninput = function(){val(this)};
+		gateway[i].type="number";
+		gateway[i].max=255;gateway[i].min=0;
+		gateway[i].oninput = function(){val(this)};
+		ntp[i].type="number";
+		ntp[i].max=255;ntp[i].min=0;
+		ntp[i].oninput = function(){val(this)};
+	}
+	mask.type="number";
+	mask.max=30;mask.min=4;
+	mask.onchange = function(){val(this)};
+	//AJAX object for configuration receive and send
+	var config=null, xhttp = new XMLHttpRequest();
+	xhttp.timeout = 5000;
+	xhttp.onreadystatechange = function()
+	{
+		if (this.readyState == 4 && this.status == 200)
+		{
+			if(this.getResponseHeader("Content-Type")==="application/json")
+			{
+				config = JSON.parse(this.responseText);
+				if(config.hasOwnProperty("report"))
+				{
+					if(config.report)
+					{
+						alert("Okay");
+						location.reload(true);
+					}
+				}
+				else
+					default_config(config);
+			}
+			else
+				alert(this.responseText);
+		}
+	};
+	xhttp.ontimeout = function (e)
+	{
+		alert("Device configured and Rebooted\n"+
+			  "Refresh all the related Windows");
+		window.close();
+	};
+	//Get the configuration
+	xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getCurConfig", true);
+	xhttp.send();
+
+	function Send_config()
+	{
+		var new_config={hostname:"",mode:"",ip:0,mask:0,gate:0,ntp:0};
+
+		if(get_new_hostname(new_config)) return;
+		if(get_new_mode(new_config)) return;
+		if(get_new_ntp(new_config)) return;
+		if(!(Object.keys(new_config).length))
+		{
+			alert("Nothing to commit!!!");
+			return;
+		}
+		console.log(new_config);
+		//Send the configuration
+		xhttp.open("POST", "../morfeas_php/config.php", true);
+		xhttp.setRequestHeader("Content-type", "net_conf");
+		xhttp.send(compress(JSON.stringify(new_config)));
+	}
+	function get_new_hostname(new_config)
+	{
+		if(hostname.value === config.hostname)
+			delete new_config.hostname;
+		else
+		{
+			var illegal_chars = new RegExp('[\\/:*?"<>|. ]|^-|-$|^\d');
+			if(!(hostname.value.length)||hostname.value.length>=16||
+			   illegal_chars.test(hostname.value))
+			{
+				alert("Hostname is Invalid!!!\n"+
+					  "Must contain ONLY:\n"+
+					  "Latin letters and numbers");
+				return -1;
+			}
+			new_config.hostname=hostname.value;
+		}
+		return 0;
+	}
+	function get_new_mode(new_config)
+	{
+		new_config.mode=mode.value;
+		if(new_config.mode !== "Static")
+		{
+			delete new_config.ip;
+			delete new_config.mask;
+			delete new_config.gate;
+			if(new_config.mode===config.mode)
+				delete new_config.mode;
+			return 0;
+		}
+		new_config.mask=Number(mask.value);
+		if(!new_config.mask || new_config.mask>31)
+		{
+			alert("Invalid Subnet Mask!!!");
+			return -1;
+		}
+		for(let i=0; i<4; i++)
+		{
+			if(ip[i].value=="")
+			{
+				new_config.ip=0;
+				break;
+			}
+			if(gateway[i].value=="")
+			{
+				new_config.gate=0;
+				break;
+			}
+			new_config.ip<<=8;
+			new_config.ip+=Number(ip[i].value);
+			new_config.gate<<=8;
+			new_config.gate+=Number(gateway[i].value);
+		}
+		new_config.ip=new_config.ip>>>0;//convert to unsigned
+		new_config.gate=new_config.gate>>>0;
+		if(!new_config.gate)
+		{
+			alert("Invalid Gateway!!!");
+			return -1;
+		}
+		var mask_num=1<<31;
+		for(let i=0; i<new_config.mask-1; i++)
+		{
+			mask_num|=1<<31;
+			mask_num>>=1;
+		}
+		if(!(~mask_num & new_config.ip)||(mask_num | new_config.ip) === -1 ||
+		  !(0xFF000000 & new_config.ip)||((new_config.ip>>24)&0x000000FF) === 0xFF)
+		{
+			alert("IP address is invalid!!!");
+			return -1;
+		}
+		if((new_config.ip == config.ip)&&
+		   (new_config.mask == config.mask)&&
+		   (new_config.gate == config.gate))
+		{
+		   delete new_config.mode;
+		   delete new_config.ip;
+		   delete new_config.mask;
+		   delete new_config.gate
+		}
+		return 0;
+	}
+	function get_new_ntp(new_config)
+	{
+		for(let i=0;i<4;i++)
+		{
+			if(ntp[i].value==="")
+			{
+				new_config.ntp=0;
+				break;
+			}
+			new_config.ntp<<=8;
+			new_config.ntp+=Number(ntp[i].value);
+		}
+		new_config.ntp=new_config.ntp>>>0;
+		if(!new_config.ntp||new_config.ntp===-1)
+		{
+			alert("Invalid NTP server's IP!!!");
+			return -1;
+		}
+		if(new_config.ntp === config.ntp)
+			delete new_config.ntp;
+		return 0;
+	}
+</script>
+</body>
+</html>
