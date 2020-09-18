@@ -156,7 +156,7 @@ function morfeas_comp_table(args_table, _newConfigXML_node, _currConfigXML_Node)
 	}
 }
 		//--- Functions for ISOStandards tab ---//
-//Function that diploid ISOstandard table 
+//Function that diploid ISOstandard table
 function isoSTD(table, ISOstd_xml)
 {
 	table.innerHTML="";

@@ -321,7 +321,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					if (crc32($bundle->OPC_UA_config.$bundle->Morfeas_config)!==$bundle->Checksum)
 						die("Server: Bundle Checksum Error!!!");
 					file_put_contents($opc_ua_config_dir."OPC_UA_Config.xml",$bundle->OPC_UA_config)or Die("Server: OPC_UA_config.xml is Unwritable!!!");
-					file_put_contents($opc_ua_config_dir."Morfeas_config.xml",$bundle->Morfeas_config)or Die("Server: Morfeas_config.xml is Unwritable!!!");					
+					file_put_contents($opc_ua_config_dir."Morfeas_config.xml",$bundle->Morfeas_config)or Die("Server: Morfeas_config.xml is Unwritable!!!");
 					exec('sudo systemctl restart Morfeas_system.service');
 					echo("Server: Morfeas System Reconfigured and Restarted");
 				}
