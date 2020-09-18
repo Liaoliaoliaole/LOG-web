@@ -1,0 +1,36 @@
+td.bold{
+    font-weight: bold;
+}
+input.global_style{
+	width: 3em;
+}
+.content{
+	top: 50%;
+	left: 50%;
+	margin: auto;
+}
+ul, #myUL {
+	list-style-type: none;
+}
+#myUL {
+	margin: 0;
+	padding: 0;
+}
+.caret {
+	cursor: pointer;
+}
+.caret::before {
+	content: "\25B6";
+	color: black;
+	display: inline-block;
+	margin-right: 6px;
+}
+.caret-down::before {
+	transform: rotate(90deg);
+}
+.nested {
+	display: none;
+}
+.active {
+	display: block;
+}

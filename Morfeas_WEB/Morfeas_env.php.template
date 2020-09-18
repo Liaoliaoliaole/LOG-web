@@ -1,0 +1,4 @@
+<?php
+	$eth_if_name = "eth0";//Name of the Ethernet if that will configured by network configuration page.
+	$opc_ua_config_dir = "/home/pi/Morfeas_config/";//Path for Morfeas configuration directory (always add slash at the end).
+?>

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<link rel="shortcut icon" type="image/x-icon" href="../art/Morfeas_logo_yellow.ico"/>
+<title>Morfeas System Loggers</title>
+</head>
+<body>
+<table id ="main_menu" style="margin:auto;text-align:center;margin-bottom:.075in;width:4in;">
+  <tr>
+    <th colspan="5" style="font-size: 200%;">System Loggers</th>
+  </tr>
+  <tr>  
+  </tr>
+  <tr>
+	<td colspan="4"><input id="status" style="text-align:center;" type="textbox" size="20" value="Okay" readonly></td>
+  </tr>
+  <tr>
+    <th colspan="4" style="font-size: 120%;">Main Menu</th>
+  </tr>
+  <tr>
+	<td><input type="button" value="Sensors" onclick='Show_hide(screen_enum.Logstats);display_mode=mode_enum_L2.Sensors;'></td>
+	<td><input type="button" value="Details" onclick='Show_hide(screen_enum.Logstats);display_mode=mode_enum_L2.Details;'></td>
+	<td><input type="button" value="System logs" onclick='Show_hide(screen_enum.Loggers)'></td> 
+  </tr>
+</table>
+
+<!-- Loggers -->
+<table id ="loggers" style="margin:auto;">
+  <tr>
+	<td colspan="4"><code id="Logger_terminal"></code></td>
+  </tr>
+  <tr>
+	<td style="text-align:left;"><input id="download" type="button" value="Reload Logger names" 
+		onclick="request_mode = mode_enum.Loggers_name;">
+	</td>
+	<td style="text-align:right;">Logger:
+		<select id="logger_select" onchange="request_mode = 1;">
+			<option value='0'>None</option>
+		</select>
+	</td>
+  </tr>
+</table>
+<!-- Logstats -->
+<div id ="logstats_disp" style="margin:auto; display: none;"></div>
+<!-- Footnote -->
+<footer>
+  <p>Author: Sam Harry Tzavaras &#169; 12019-12020<br>
+  <a href="../LICENSE">License: AGPL v3</a><br>
+</footer>
+</body>
+<script src='../morfeas_ecma/morfeas_web_if.js'></script>
+<script src='../morfeas_ecma/common.js'></script>
+<script>
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this page.
+
+Copyright (C) 12019-12020  Sam Harry Tzavaras
+
+The JavaScript code in this page is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU AGPL) as published by the Free Software
+Foundation, either version 3 of the License, or any later version.  
+The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+@licend  The above is the entire license notice
+for the JavaScript code in this page.
+*/
+	"use strict";
+	comp_check();
+	
+	var screen_enum = {
+				  Loggers: 0,
+				  Logstats: 1,
+				};
+	var mode_enum = {
+					Loggers_name: 0,
+					Logger_content: 1,
+					Logstats: 2
+				};
+	var mode_enum_L2 = {
+					Sensors: 0,
+					Details: 1
+				};
+	var request_mode = mode_enum.Loggers_name;
+	var display_mode;
+	var Logger_terminal = document.getElementById("Logger_terminal");
+	var logstats_disp = document.getElementById("logstats_disp");
+	var logstat;
+	Logger_terminal.innerHTML="";
+	//AJAX response handler
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function(){
+		if (this.readyState == 4 && this.status == 200)
+		{
+			switch(request_mode)
+			{
+				case mode_enum.Loggers_name:
+					var Logger_names = JSON.parse(this.responseText);
+					var log_select = document.getElementById("logger_select");
+					log_select.options.length = 1;
+					for (var i=0; i < Logger_names.Logger_names.length; i++)
+					{
+						var opt = document.createElement("option");
+						opt.text = Logger_names.Logger_names[i];
+						log_select.add(opt);
+						request_mode = mode_enum.Logger_content;
+					}
+					break;
+				case mode_enum.Logger_content:
+					document.getElementById("status").value = "Morfeas Loggers";
+					var new_content = morfeas_opcua_logger_colorizer(this.responseText);
+					//console.log(document.body.scrollTop);
+					if(Logger_terminal.innerHTML !== new_content)
+					{
+						Logger_terminal.innerHTML = new_content;
+						window.scrollTo(0,document.body.scrollHeight);
+					}
+					break;
+				case mode_enum.Logstats:
+					logstat = morfeas_logstat_commonizer(this.responseText);
+					if(typeof logstat !== 'string')
+					{
+						switch(display_mode)
+						{
+							case mode_enum_L2.Sensors:
+								document.getElementById("status").value = "Sensors";
+								var sensors_table = document.createElement("TABLE");
+								sensors_table.style="margin:auto;margin-bottom:.075in;width:6in;";
+								for(let i=0; i<logstat.length; i++)
+								{
+									if(logstat[i].sensors)
+									{
+										for(let j=0; j<logstat[i].sensors.length; j++)
+										{		
+											var last_row = sensors_table.insertRow();
+											last_row.insertCell().innerHTML = logstat[i].sensors[j].type;
+											last_row.insertCell().innerHTML = logstat[i].sensors[j].deviceUserIdentifier;
+											last_row.insertCell().innerHTML = logstat[i].sensors[j].sensorUserId;
+											last_row.insertCell().innerHTML = logstat[i].sensors[j].Is_meas_valid? 
+																			  logstat[i].sensors[j].avgMeasurement.toFixed(3)+(logstat[i].sensors[j].unit?logstat[i].sensors[j].unit:""):
+																			  "Error!!!";
+											
+										}
+									}
+								}
+								logstats_disp.textContent = '';//remove all children
+								logstats_disp.appendChild(sensors_table);
+								break;
+							case mode_enum_L2.Details:
+								document.getElementById("status").value = "Details";
+								logstats_disp.textContent = '';//remove all children
+								for(let i=0; i<logstat.length; i++)
+								{
+									if(logstat[i].connections)
+									{
+										var details_table = document.createElement("TABLE");
+										details_table.style="margin:auto;margin-bottom:.075in;width:4in;";
+										details_table.createTHead().innerHTML = logstat[i].if_name;
+										for(let j=0; j<logstat[i].connections.length; j++)
+										{		
+											var last_row = details_table.insertRow();
+											last_row.insertCell().innerHTML = logstat[i].connections[j].name;
+											if(logstat[i].connections[j].name.includes("UNIX"))
+											{
+												var date_conv = new Date();
+												date_conv.setTime(logstat[i].connections[j].value*1000)
+												last_row.insertCell().innerHTML = date_conv.getFullYear()+"/"+
+																				  (date_conv.getMonth()+1)+"/"+ 
+																				  date_conv.getDate();
+											}
+											else
+												last_row.insertCell().innerHTML = logstat[i].connections[j].value + (logstat[i].connections[j].unit?logstat[i].connections[j].unit:"");
+										}
+										logstats_disp.appendChild(details_table);
+									}
+								}
+								break;
+						}
+					}
+					else
+						document.getElementById("status").value = logstat;
+					break;
+			}
+		}
+	};
+
+	//main timer
+	window.setInterval(Morfeas_request, 1000);
+	function Morfeas_request()
+	{
+		var selected_logger = document.getElementById("logger_select");
+		if(request_mode == mode_enum.Loggers_name)
+		{
+			//request names of Loggers
+			xhttp.open("GET", "../morfeas_php/morfeas_web_if.php?COMMAND=loggers", true);
+			xhttp.send();
+			return;
+		}
+		else if(request_mode == mode_enum.Logger_content)
+		{
+			if(selected_logger.selectedIndex)
+			{
+				xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + selected_logger.value + "?q="+makeid(), true);
+				xhttp.send();
+			}
+			else
+				Logger_terminal.innerHTML="";
+		}
+		else if(request_mode == mode_enum.Logstats)
+		{
+			xhttp.open("GET", "../morfeas_php/morfeas_web_if.php?COMMAND=logstats", true);
+			xhttp.send();
+		}
+	}
+	function PopupCenter(url, title, w, h) 
+	{
+		// Fixes dual-screen position
+		var dualScreenLeft = window.screenLeft != undefined ? window.screenLeft : screen.left;
+		var dualScreenTop = window.screenTop != undefined ? window.screenTop : screen.top;
+
+		var width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+		var height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+
+		var left = ((width / 2) - (w / 2)) + dualScreenLeft;
+		var top = ((height / 2) - (h / 2)) + dualScreenTop;
+		var newWindow = window.open(url, title, 'scrollbars=yes, width=' + w + ', height=' + h + ', top=' + top + ', left=' + left);
+
+		// Puts focus on the newWindow
+		if (window.focus) {
+			newWindow.focus();
+		}
+	}
+	function makeid()
+	{
+		var text = "";
+		var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+		for( var i=0; i < 10; i++ )
+			text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+		return text;
+	}
+	function Show_hide(log_set) 
+	{
+		if(log_set==screen_enum.Loggers)
+		{
+			document.getElementById("loggers").style.display="table";
+			document.getElementById("logstats_disp").style.display="none";
+			document.getElementById("logger_select").selectedIndex = 0; 
+			Logger_terminal.innerHTML="";
+			request_mode = mode_enum.Loggers_name;
+		}
+		else if(log_set==screen_enum.Logstats)
+		{
+			document.getElementById("loggers").style.display="none";
+			document.getElementById("logstats_disp").style.display="inline";
+			request_mode = mode_enum.Logstats;
+		}
+	}
+</script>
+</html>

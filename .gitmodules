@@ -1,0 +1,4 @@
+[submodule "pecl-dbus"]
+	path = pecl-dbus
+	url = https://github.com/derickr/pecl-dbus.git
+	ignore = dirty
