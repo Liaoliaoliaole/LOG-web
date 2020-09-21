@@ -1,3 +1,4 @@
+//@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
 /*
 @licstart  The following is the entire license notice for the
 JavaScript code in this page.
@@ -15,6 +16,10 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
+
+//Constants declaration 
+const ISOSTD_NODE_MAX_LENGTH=20;
+
 function comp_check()
 {
 	if(document.documentMode)
@@ -41,6 +46,7 @@ function PopupCenter(url, title, w, h)
 	if (window.focus) {
 		newWindow.focus();
 	}
+	return newWindow;
 }
 
 function makeid()
@@ -93,3 +99,4 @@ function compress(data)
 	console.log("Compression Ratio:"+Math.round((((1-result.length/data.length)) + Number.EPSILON)*100)+"%");
 	return result;
 }
+//@license-end

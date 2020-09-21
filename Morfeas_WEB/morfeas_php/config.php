@@ -22,8 +22,8 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 	{
 		global $opc_ua_config_dir;
 		$bundle=new stdClass();
-		$bundle->OPC_UA_config=file_get_contents($opc_ua_config_dir."OPC_UA_Config.xml");
-		$bundle->Morfeas_config=file_get_contents($opc_ua_config_dir."Morfeas_config.xml");
+		$bundle->OPC_UA_config=file_get_contents($opc_ua_config_dir."OPC_UA_Config.xml") or Die("Server: Unable to read OPC_UA_Config.xml");
+		$bundle->Morfeas_config=file_get_contents($opc_ua_config_dir."Morfeas_config.xml") or Die('Server: Unable to read Morfeas_config.xml');
 		$bundle->Checksum=crc32($bundle->OPC_UA_config.$bundle->Morfeas_config);
 		return gzencode(json_encode($bundle));
 	}
@@ -231,6 +231,15 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					header('Content-Length: '.strlen($bundle_content));
 					echo $bundle_content;
 					return;
+				case 'getISOStandard_file':
+					$ISO_STD_cont=file_get_contents($opc_ua_config_dir."ISOstandard.xml") or Die("Unable to read ISOStandard.xml");
+					$ISO_STD_name='ISOStandard_'.gethostname().'_'.date("Y_d_m_G_i_s");
+					header('Content-Description: File Transfer');
+					header('Content-Type: Mordeas_bundle');
+					header("Content-Disposition: attachment; filename=\"$ISO_STD_name.xml\"");
+					header('Content-Length: '.strlen($ISO_STD_cont));
+					echo $ISO_STD_cont;
+					return;
 				case 'getCurConfig':
 					$conf = new eth_if_config();
 					$conf->parser($eth_if_name) or Die("Server: Parsing of configuration file failed!!!");
@@ -310,6 +319,11 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				return;
 			case "ISOstandard":
 				$data = decompress($RX_data) or die("Server: Decompressing of ISOstandard failed");
+				$dom = DOMDocument::loadXML($data);
+				$dom->formatOutput = true;
+				$dom->saveXML();
+				$dom->save($opc_ua_config_dir."ISOstandard.xml") or Die("Server: Unable to Write ISOstandard.xml");
+				echo "Server: New ISOStandard XML saved";
 				return;
 			case "Morfeas_bundle":
 				$data = gzdecode($RX_data) or die("Server: Decompressing of Bundle failed");

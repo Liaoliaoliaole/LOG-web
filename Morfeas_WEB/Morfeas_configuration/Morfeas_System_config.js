@@ -1,3 +1,4 @@
+//@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
 /*
 @licstart  The following is the entire license notice for the
 JavaScript code in this page.
@@ -16,23 +17,130 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 for the JavaScript code in this page.
 */
 		//--- Functions for Up/DownLoad tab ---//
+var isoSTD_xml_str;
 //Init of FileReader object
 const reader = new FileReader();
-reader.addEventListener('load', function(){
-		xhttp.open("POST", "../morfeas_php/config.php", true);
-		xhttp.setRequestHeader("Content-type", "Morfeas_bundle");
-		xhttp.send(this.result);
-	}
-);
-reader.addEventListener('error', function(){alert("File Read Error!!!");});
-//Function for upload a Morfeas Bundle
-function bundle_upload(data)
+reader.onerror = function(){alert("File Read Error!!!");};
+//Function for ISOStandard XML file Sanitization, called onChange of selected file
+function isoSTD_xml_file_val(selected_files)
 {
-	const fileSelector = document.getElementById('bundle');
-	const fileList = fileSelector.files;
-	reader.readAsArrayBuffer(fileList[0]);
+	reader.onload = function(){
+		var xml_inp = this.result;
+		xml_inp = xml_inp.replace(/[\t\r\n]+/g, '');
+		var removed_elements = new Array();
+		var _isoSTD_xml = (new DOMParser()).parseFromString(xml_inp, "application/xml");
+		if(_isoSTD_xml.firstElementChild.nodeName ==="parsererror")
+		{
+			alert("XML Parsing Error!!!");
+			isoSTD_xml_str = ""; selected_files.value="";
+			return;
+		}
+		if(_isoSTD_xml.firstChild.nodeName !== "root")
+		{
+			alert("Not \"root\" node");
+			isoSTD_xml_str = ""; selected_files.value="";
+			return;
+		}
+		if(_isoSTD_xml.firstChild.firstChild.nodeName !== "points")
+		{
+			alert("Not \"points\" node");
+			isoSTD_xml_str = ""; selected_files.value="";
+			return;
+		}
+		for(let i=0; i<_isoSTD_xml.firstChild.firstChild.childElementCount; i++)//Check for nodes with errors
+		{
+			if(_isoSTD_xml.firstChild.firstChild.childNodes[i].nodeName.length >= ISOSTD_NODE_MAX_LENGTH)
+			{
+				let gtbd_node = _isoSTD_xml.firstChild.firstChild.childNodes[i]
+				let rem_elem_obj = new Object();
+				rem_elem_obj.name = gtbd_node.nodeName;
+				removed_elements.push(rem_elem_obj);
+				_isoSTD_xml.firstChild.firstChild.removeChild(gtbd_node);
+				continue;
+			}
+			for(let j=0; j<_isoSTD_xml.firstChild.firstChild.childNodes[i].childElementCount; j++)
+			{
+				let node = _isoSTD_xml.firstChild.firstChild.childNodes[i].childNodes[j];
+				switch(node.nodeName)
+				{
+					case "description":
+					case "unit": break;
+					case "max":
+					case "min":
+						if(isNaN(node.textContent))
+						{
+							alert(_isoSTD_xml.firstChild.firstChild.childNodes[i].nodeName+'.'+node.nodeName+" is NAN");
+							isoSTD_xml_str = ""; selected_files.value="";
+							return;
+						}
+						break;
+					default: _isoSTD_xml.firstChild.firstChild.childNodes[i].removeChild(node);
+				}
+			}
+		}
+		for(let i=0; i<_isoSTD_xml.firstChild.firstChild.childElementCount-1; i++)//Check for duplicate
+		{
+			let check_node = _isoSTD_xml.firstChild.firstChild.childNodes[i];
+			for(let j=i+1; j<_isoSTD_xml.firstChild.firstChild.childElementCount-1; j++)
+			{
+				let _select_node = _isoSTD_xml.firstChild.firstChild.childNodes[j];
+				if(check_node.nodeName === _select_node.nodeName)
+				{
+					alert("Node \""+_isoSTD_xml.firstChild.firstChild.childNodes[i].nodeName+"\" found multiple times");
+					isoSTD_xml_str = ""; selected_files.value="";
+					return;
+				}
+			}
+		}
+		isoSTD_xml_str = compress((new XMLSerializer()).serializeToString(_isoSTD_xml));
+		if(removed_elements.length)
+		{
+			console.log(removed_elements);
+			let report_win = PopupCenter("about:blank", "ISOstandard File Report", 500, 300);
+			report_win.document.write("<p>Hello, world!</p>");
+		}
+	};
+	reader.readAsText(selected_files.files[0]);
 }
-//Function for download Morfeas Bundle
+//Function for up/download ISOStandards
+function isoSTD_upload()
+{
+	const fileSelector = document.getElementById('isoSTD_xml_file');
+	const fileList = fileSelector.files;
+	if(fileList.length && isoSTD_xml_str)
+	{
+		xhttp.open("POST", "../morfeas_php/config.php", true);
+		xhttp.setRequestHeader("Content-type", "ISOstandard");
+		xhttp.send(isoSTD_xml_str);
+		fileSelector.value = "";
+		curr_ISOstd_xml="";//element from ISOStandards tab
+	}
+	else
+		alert("No ISOStandard XML file is selected");
+}
+function isoSTD_download()
+{
+	window.open("../morfeas_php/config.php"+"?COMMAND=getISOStandard_file", '_self');
+}
+//Functions for up/download a Morfeas Bundle
+function bundle_upload()
+{
+	const fileList = document.getElementById('bundle_file').files;
+	if(fileList.length)
+	{
+		reader.onload = function(){
+			xhttp.open("POST", "../morfeas_php/config.php", true);
+			xhttp.setRequestHeader("Content-type", "Morfeas_bundle");
+			xhttp.send(this.result);
+			document.getElementById('bundle_file').value = "";
+			curr_morfeas_config_xml="";
+			new_morfeas_config_xml="";
+		};
+		reader.readAsArrayBuffer(fileList[0]);
+	}
+	else
+		alert("No bundle file is selected");
+}
 function bundle_download()
 {
 	window.open("../morfeas_php/config.php"+"?COMMAND=getbundle", '_self');
@@ -84,7 +192,7 @@ function morfeas_comp_list(new_morfeas_components_xml, curr_morfeas_components_x
 		liNode = document.createElement("LI");
 		liNode.classList.add("caret");
 		liNode.setAttribute("name", comp.nodeName);
-		liNode.addEventListener("click", function()
+		liNode.onclick = function()
 		{
 			var others = document.getElementsByClassName("caret-down");
 			for(let j = 0; j<others.length; j++)
@@ -98,7 +206,7 @@ function morfeas_comp_list(new_morfeas_components_xml, curr_morfeas_components_x
 			morfeas_comp_table(comp_args_table,
 							   new_morfeas_components_xml.childNodes[i],
 							   curr_morfeas_components_xml.childNodes[i]);
-		});
+		};
 		liNode.appendChild(textNode);
 		listNode.appendChild(liNode);
 	  }
@@ -125,7 +233,7 @@ function morfeas_comp_table(args_table, _newConfigXML_node, _currConfigXML_Node)
 			var arg_inp=document.createElement("INPUT");
 			arg_inp.setAttribute("type", "text");
 			arg_inp.value=_newConfigXML_node.childNodes[i].textContent;
-			arg_inp.addEventListener("change", function()
+			arg_inp.onchange = function()
 			{
 				if(_newConfigXML_node.childNodes[i].nodeName === "IPv4_ADDR")//Check if is input for IPv4
 				{
@@ -145,11 +253,11 @@ function morfeas_comp_table(args_table, _newConfigXML_node, _currConfigXML_Node)
 				}
 				else
 					list_select.innerHTML=list_select.innerHTML.replace('*',"");
-			});
-			arg_inp.addEventListener("input", function()
+			};
+			arg_inp.oninput = function()
 			{
 				this.value = this.value.replace(" ","");
-			});
+			};
 			nRow.insertCell(1).appendChild(arg_inp);
 			row_count++;
 		}
@@ -179,3 +287,4 @@ function isoSTD(table, ISOstd_xml)
 		}
 	}
 }
+//@license-end

@@ -23,6 +23,13 @@ input.global_style{
 </style>
 </head>
 <body>
+<span style="margin:auto; float:right;">
+	<a style="cursor:pointer;color:blue;}"
+	onclick='PopupCenter("/Help_and_manuals/Help/"+"?q="+makeid(),"","1480","800")'
+	onMouseOver="this.style.color='red'"
+	onMouseOut="this.style.color='blue'">Morfeas-WEB Docs</a>
+</span>
+<br>
 <div class="content">
 	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:7in;">
 	  <tr>
@@ -49,7 +56,7 @@ input.global_style{
 <footer>
   <p>Author: Sam Harry Tzavaras &#169; 12019-12020<br>
   <a href="LICENSE">License: AGPL v3</a><br>
-</footer> 
+</footer>
 </body>
 <script src='../morfeas_ecma/common.js'></script>
 <script>
