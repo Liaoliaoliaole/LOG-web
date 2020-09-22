@@ -16,7 +16,7 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-
+"use strict";
 //Constants declaration 
 const ISOSTD_NODE_MAX_LENGTH=20;
 
@@ -98,5 +98,31 @@ function compress(data)
 	result = String.fromCharCode(dictOffset) + result + String.fromCharCode(checksum&0xFF);
 	console.log("Compression Ratio:"+Math.round((((1-result.length/data.length)) + Number.EPSILON)*100)+"%");
 	return result;
+}
+
+function generateTableHead(table, data) 
+{
+	let thead = table.createTHead();
+	let row = thead.insertRow();
+	for(let key of data) 
+	{
+		let th = document.createElement("th");
+		let text = document.createTextNode(key);
+		th.appendChild(text);
+		row.appendChild(th);
+	}
+}
+function generateTable(table, data) 
+{
+  for(let element of data) 
+  {
+    let row = table.insertRow();
+    for(let key in element) 
+	{
+      let cell = row.insertCell();
+      let text = document.createTextNode(element[key]);
+      cell.appendChild(text);
+    }
+  }
 }
 //@license-end

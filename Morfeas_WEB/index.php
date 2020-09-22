@@ -9,11 +9,17 @@
 
 <title>Morfeas WEB</title>
 <style>
+#footer{
+   position:absolute;
+   bottom:2%;
+   width:99%;
+}
+img.bsize{
+	width:35px;
+	height:40px;
+}
 td.bold{
     font-weight: bold;
-}
-input.global_style{
-	width: 3em;
 }
 .content{
   top: 50%;
@@ -24,7 +30,7 @@ input.global_style{
 </head>
 <body>
 <span style="margin:auto; float:right;">
-	<a style="cursor:pointer;color:blue;}"
+	<a style="cursor:pointer;color:blue;"
 	onclick='PopupCenter("/Help_and_manuals/Help/"+"?q="+makeid(),"","1480","800")'
 	onMouseOver="this.style.color='red'"
 	onMouseOut="this.style.color='blue'">Morfeas-WEB Docs</a>
@@ -33,29 +39,52 @@ input.global_style{
 <div class="content">
 	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:7in;">
 	  <tr>
-		<th colspan="5" style="font-weight: bold; font-size: xx-large"><img src="./art/Morfeas_logo_yellow.png" width="100" height="100"></th>
+		<th colspan="4" style="font-weight: bold; font-size: xx-large">
+			<img src="./art/Morfeas_logo_yellow.png" width="100" height="100">
+		</th>
 	  </tr>
 	  <tr>
-		<th colspan="5" style="font-weight: bold; font-size: xx-large">Morfeas WEB<br>(<?php echo gethostname();?>)</th>
+		<th colspan="4" style="font-weight: bold; font-size: xx-large">Morfeas WEB<br>(<?php echo gethostname();?>)</th>
 	  </tr>
 	  <tr>
-		<td><input type="button" value="SDAQs Portal" onclick='PopupCenter("/morfeas_SDAQ_web_if/"+"?q="+makeid(),"","1024","768")'></td>
-		<td><input type="button" value="MDAQs Portal" onclick='PopupCenter("/morfeas_MDAQ_web_if/"+"?q="+makeid(),"","1024","768")'></td>
-		<td><input type="button" value="IOBOXs Portal" onclick='PopupCenter("/morfeas_IOBOX_web_if/"+"?q="+makeid(),"","1024","768")'></td>
-		<td><input type="button" value="MTIs Portal" onclick='PopupCenter("/morfeas_MTI_web_if/"+"?q="+makeid(),"","1024","768")'></td>
+		<td><button type="button" onclick='PopupCenter("/morfeas_SDAQ_web_if/"+"?q="+makeid(),"","1024","768")'>SDAQs<br>Portal</td>
+		<td><button type="button" onclick='PopupCenter("/morfeas_MDAQ_web_if/"+"?q="+makeid(),"","1024","768")'>MDAQs<br>Portal</td>
+		<td><button type="button" onclick='PopupCenter("/morfeas_IOBOX_web_if/"+"?q="+makeid(),"","1024","768")'>IOBOXs<br>Portal</td>
+		<td><button type="button" onclick='PopupCenter("/morfeas_MTI_web_if/"+"?q="+makeid(),"","1024","768")'>MTIs<br>Portal</td>
 	  </tr>
 	  <tr>
-		<td><input type="button" value="ISOChannel Linker (Wapice)" onclick='PopupCenter("/ISOChannel_Linker/html/","","1280","1024")'></td>
-		<td><input type="button" value="System Loggers" onclick='PopupCenter("/morfeas_Loggers/"+"?q="+makeid(),"","1024","768")'></td>
-		<td><input type="button" value="System Components" onclick='PopupCenter("/Morfeas_configuration/Morfeas_System_config.html"+"?q="+makeid(),"","1024","768")'></td>
-		<td><input type="button" value="Network Configuration" onclick='PopupCenter("/Morfeas_configuration/Network_config.html"+"?q="+makeid(),"","560","300")'></td>
-		<!--<td><input type="button" value="Shell in a Box (Applet)" onclick='PopupCenter("https://"+window.location.hostname+":4200","","1024","768")'></td>-->
+		<td><button type="button" onclick='PopupCenter("/ISOChannel_Linker/html/","","1280","1024")'>
+			<span title="ISOChannel Linker">
+				<img src="./art/anchor.png" class="bsize">
+			</span>
+		</td>
+		<td><button type="button" onclick='PopupCenter("/morfeas_Loggers/"+"?q="+makeid(),"","1024","768")'>
+			<span title="System Loggers">
+				<img src="./art/logger.svg" class="bsize">
+			</span>
+		</td>
+		<td><button type="button" onclick='PopupCenter("/Morfeas_configuration/Morfeas_System_config.html"+"?q="+makeid(),"","1024","768")'>
+			<span title="System Configuration">
+				<img src="./art/morfeas_gear.png" class="bsize">
+			</span>
+		</td>
+		<td><button type="button" onclick='PopupCenter("/Morfeas_configuration/Network_config.html"+"?q="+makeid(),"","560","300")'>
+			<span title="Network Configuration">
+				<img src="./art/eth.png" class="bsize">
+			</span>
+		</td>
 	  </tr>
 	</table>
 </div>
-<footer>
-  <p>Author: Sam Harry Tzavaras &#169; 12019-12020<br>
-  <a href="LICENSE">License: AGPL v3</a><br>
+<footer id="footer">
+	<div style="float:left;"> 
+		Author: Sam Harry Tzavaras &#169; 12019-12020<br>
+		<a href="LICENSE">License: AGPLv3</a>
+	</div>
+	<div style="float:right;"> 
+		<a style="color:white;" onclick='PopupCenter("https://"+window.location.hostname+":4200","","1024","768")'>π</a>
+		<img src="./art/debian.png">
+	</div>
 </footer>
 </body>
 <script src='../morfeas_ecma/common.js'></script>

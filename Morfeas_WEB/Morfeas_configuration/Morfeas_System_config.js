@@ -16,6 +16,7 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
+"use strict";
 		//--- Functions for Up/DownLoad tab ---//
 var isoSTD_xml_str;
 //Init of FileReader object
@@ -26,9 +27,9 @@ function isoSTD_xml_file_val(selected_files)
 {
 	reader.onload = function(){
 		var xml_inp = this.result;
-		xml_inp = xml_inp.replace(/[\t\r\n]+/g, '');
+		xml_inp = xml_inp.replace(/>[ \s\r\n]*</g,"><");
 		var removed_elements = new Array();
-		var _isoSTD_xml = (new DOMParser()).parseFromString(xml_inp, "application/xml");
+		var _isoSTD_xml = (new DOMParser()).parseFromString(xml_inp, "text/xml");
 		if(_isoSTD_xml.firstElementChild.nodeName ==="parsererror")
 		{
 			alert("XML Parsing Error!!!");
@@ -53,9 +54,11 @@ function isoSTD_xml_file_val(selected_files)
 			{
 				let gtbd_node = _isoSTD_xml.firstChild.firstChild.childNodes[i]
 				let rem_elem_obj = new Object();
-				rem_elem_obj.name = gtbd_node.nodeName;
+				rem_elem_obj.Node_Name = gtbd_node.nodeName;
+				rem_elem_obj.Reason = "Too long name (>="+ISOSTD_NODE_MAX_LENGTH+")";
 				removed_elements.push(rem_elem_obj);
 				_isoSTD_xml.firstChild.firstChild.removeChild(gtbd_node);
+				i--;
 				continue;
 			}
 			for(let j=0; j<_isoSTD_xml.firstChild.firstChild.childNodes[i].childElementCount; j++)
@@ -74,7 +77,12 @@ function isoSTD_xml_file_val(selected_files)
 							return;
 						}
 						break;
-					default: _isoSTD_xml.firstChild.firstChild.childNodes[i].removeChild(node);
+					default:
+						let rem_elem_obj = new Object();
+						rem_elem_obj.Node_Name = _isoSTD_xml.firstChild.firstChild.childNodes[i].nodeName+'.'+node.nodeName;
+						rem_elem_obj.Reason = "Unknown nodeName";
+						removed_elements.push(rem_elem_obj);
+						_isoSTD_xml.firstChild.firstChild.childNodes[i].removeChild(node);
 				}
 			}
 		}
@@ -95,9 +103,11 @@ function isoSTD_xml_file_val(selected_files)
 		isoSTD_xml_str = compress((new XMLSerializer()).serializeToString(_isoSTD_xml));
 		if(removed_elements.length)
 		{
-			console.log(removed_elements);
-			let report_win = PopupCenter("about:blank", "ISOstandard File Report", 500, 300);
-			report_win.document.write("<p>Hello, world!</p>");
+			let report_win = PopupCenter("about:blank", "", 500, 300);
+			var table = document.createElement("table");
+			generateTableHead(table, Object.keys(removed_elements[0]));
+			generateTable(table, removed_elements);
+			report_win.document.write("<div style=\"text-align:center;\"><b>The following Node(s) have been removed</b></div><br>"+table.outerHTML);
 		}
 	};
 	reader.readAsText(selected_files.files[0]);
