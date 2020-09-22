@@ -1,6 +1,6 @@
 <?php
 /*
-File: LWZ.php PHP Script for decompression via LZW algorithm
+File: Supplementary.php PHP Script for decompression via LZW algorithm
 Copyright (C) 12019-12020  Sam harry Tzavaras
 
 	This program is free software: you can redistribute it and/or modify
@@ -49,7 +49,7 @@ function decompress($data)
 
 	$result = "";
 	$dictionary = array();
-	$data = unicodetoarray($data);
+	$data = mb_str_split($data);
 	$dictOffset = mb_ord($data[0]);
 	$RX_Checksum=mb_ord($data[count($data)-1]);
 	$Cal_Checksum=0;
@@ -78,10 +78,6 @@ function decompress($data)
 		$Cal_Checksum^=mb_ord($num);
 	if(!($RX_Checksum^($Cal_Checksum&0xFF)))
 		return $result;
-	else
-	{
-		echo "Checksum Error: $RX_Checksum!=$Cal_Checksum\n";
-		return NULL;
-	}
+	return NULL;
 }
 ?>
