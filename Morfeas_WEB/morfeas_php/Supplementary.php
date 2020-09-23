@@ -19,65 +19,52 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 //Decompression function
 function decompress($data)
 {
-	function charSizeAt($inp, $pos)
-	{
-		if(ord($inp[$pos])<=0x7F)//Check for ASCII
-			return 1;
-		else//Char is Unicode
-		{
-			$s=ord($inp[$pos]);
-			$i=1;
-			while(1)
-			{
-				if(!(($s<<=1)&0x80))
-					break;
-				$i++;
-			}
-		}
-		return $i;
-	};
-	function unicodetoarray($inp)
-	{
-		$ret_arr = array();
-		for($i=0, $c=0; $i<strlen($inp); $i+=$c)
-		{
-			$c=charSizeAt($inp, $i);
-			array_push($ret_arr, substr($inp, $i, $c));
-		}
-		return $ret_arr;
-	};
+	if(!$data)
+		return null;
 
+	$Cal_Checksum=0;
 	$result = "";
 	$dictionary = array();
-	$data = mb_str_split($data);
+
+	$data = preg_split('/(?<!^)(?!$)/u', $data);
 	$dictOffset = mb_ord($data[0]);
 	$RX_Checksum=mb_ord($data[count($data)-1]);
-	$Cal_Checksum=0;
 
 	for($i=1; $i<count($data)-1; $i++)
 	{
-		if(mb_ord($data[$i])<$dictOffset)
+		if(($code=mb_ord($data[$i]))<$dictOffset)
 		{
-			array_push($dictionary, $data[$i]);
-			$result .= $data[$i];
+			$new_dict_entry = new stdClass();
+			$new_dict_entry->data = $data[$i];
+			$new_dict_entry->num = $code;
+			$dictionary[] = $new_dict_entry;
+
+			$result .= $new_dict_entry->data;
+			$Cal_Checksum ^= $new_dict_entry->num;
 		}
 		else
 		{
-			$dict_pos = mb_ord($data[$i])-$dictOffset;
+			$dict_pos = $code-$dictOffset;
 			if(isset($dictionary[$dict_pos]))
 			{
-				$result .= $dictionary[$dict_pos].$data[$i+1];
-				array_push($dictionary, $dictionary[$dict_pos].$data[$i+1]);
+				$new_dict_entry = new stdClass();
+				$new_dict_entry->data = ($dictionary[$dict_pos]->data).$data[$i+1];
+				$new_dict_entry->num = ($dictionary[$dict_pos]->num)^mb_ord($data[$i+1]);
+				$dictionary[] = $new_dict_entry;
+
+				$result .= $new_dict_entry->data;
+				$Cal_Checksum ^= $new_dict_entry->num;
+
 				$i++;
 			}
 			else
-				return NULL;
+				Die("Server: Fatal error at decompression!!!");
 		}
 	}
-	foreach(unicodetoarray($result) as $num)
-		$Cal_Checksum^=mb_ord($num);
-	if(!($RX_Checksum^($Cal_Checksum&0xFF)))
+	$Cal_Checksum&=0xFF;
+	if(!($RX_Checksum^$Cal_Checksum))
 		return $result;
-	return NULL;
+	else
+		die("Server: Checksum error at decompression! ($RX_Checksum!=$Cal_Checksum)");
 }
 ?>

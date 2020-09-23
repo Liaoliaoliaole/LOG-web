@@ -109,28 +109,33 @@ for the JavaScript code in this page.
 	xhttp.timeout = 5000;
 	xhttp.onreadystatechange = function()
 	{
-		if (this.readyState == 4 && this.status == 200)
-		{
-			if(this.getResponseHeader("Content-Type")==="Morfeas_config")
+		if(this.readyState == 4)
+		{		
+			if(this.status == 200)
 			{
-				if(curr_tab === disp_mode.cnf)
+				if(this.getResponseHeader("Content-Type")==="Morfeas_config")
 				{
-					curr_morfeas_config_xml = this.responseXML.getElementsByTagName("COMPONENTS")[0];
-					new_morfeas_config_xml = (new DOMParser()).parseFromString((new XMLSerializer()).serializeToString(this.responseXML), "application/xml");
-					new_morfeas_config_xml = new_morfeas_config_xml.getElementsByTagName("COMPONENTS")[0];
-					morfeas_comp_list(new_morfeas_config_xml, curr_morfeas_config_xml);
+					if(curr_tab === disp_mode.cnf)
+					{
+						curr_morfeas_config_xml = this.responseXML.getElementsByTagName("COMPONENTS")[0];
+						new_morfeas_config_xml = (new DOMParser()).parseFromString((new XMLSerializer()).serializeToString(this.responseXML), "application/xml");
+						new_morfeas_config_xml = new_morfeas_config_xml.getElementsByTagName("COMPONENTS")[0];
+						morfeas_comp_list(new_morfeas_config_xml, curr_morfeas_config_xml);
+					}
 				}
-			}
-			else if(this.getResponseHeader("Content-Type")==="ISOStandard")
-			{
-				if(curr_tab === disp_mode.std)
+				else if(this.getResponseHeader("Content-Type")==="ISOStandard")
 				{
-					curr_ISOstd_xml = this.responseXML.getElementsByTagName("points")[0];
-					isoSTD(isoSTD_table, curr_ISOstd_xml);
+					if(curr_tab === disp_mode.std)
+					{
+						curr_ISOstd_xml = this.responseXML.getElementsByTagName("points")[0];
+						isoSTD(isoSTD_table, curr_ISOstd_xml);
+					}
 				}
+				else
+					alert(this.responseText);
 			}
-			else
-				alert(this.responseText);
+			else if(this.status == 500)
+				alert("FATAL Error on server!!!");
 		}
 	};
 	xhttp.ontimeout = function(){

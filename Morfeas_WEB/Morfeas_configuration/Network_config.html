@@ -168,7 +168,7 @@ for the JavaScript code in this page.
 	xhttp.timeout = 5000;
 	xhttp.onreadystatechange = function()
 	{
-		if (this.readyState == 4 && this.status == 200)
+		if(this.readyState == 4 && this.status == 200)
 		{
 			if(this.getResponseHeader("Content-Type")==="application/json")
 			{
@@ -187,6 +187,8 @@ for the JavaScript code in this page.
 			else
 				alert(this.responseText);
 		}
+		else if(this.status == 500)
+			alert("FATAL Error on server!!!");
 	};
 	xhttp.ontimeout = function (e)
 	{
