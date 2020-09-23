@@ -16,6 +16,7 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
+"use strict";
 /*
  *ANSI escape sequences for color output taken from here:
  * https://stackoverflow.com/questions/3219393/stdlib-and-colored-output-in-c
@@ -180,6 +181,7 @@ function morfeas_logstat_commonizer(logstats)
 					data_table[data_table_index].connections.push(new connection("RF Channel", logstats.logstat_contents[i].MTI_status.Radio_CH));
 					if(logstats.logstat_contents[i].MTI_status.Tele_Device_type !== "RMSW/MUX")
 					{
+						let lim;
 						switch(logstats.logstat_contents[i].MTI_status.Tele_Device_type)
 						{
 							case "TC16":
