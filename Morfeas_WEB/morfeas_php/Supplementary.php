@@ -32,34 +32,27 @@ function decompress($data)
 
 	for($i=1; $i<count($data)-1; $i++)
 	{
+		$new_dict_entry = new stdClass();
 		if(($code=mb_ord($data[$i]))<$dictOffset)
 		{
-			$new_dict_entry = new stdClass();
 			$new_dict_entry->data = $data[$i];
 			$new_dict_entry->num = $code;
-			$dictionary[] = $new_dict_entry;
-
-			$result .= $new_dict_entry->data;
-			$Cal_Checksum ^= $new_dict_entry->num;
 		}
 		else
 		{
 			$dict_pos = $code-$dictOffset;
 			if(isset($dictionary[$dict_pos]))
 			{
-				$new_dict_entry = new stdClass();
 				$new_dict_entry->data = ($dictionary[$dict_pos]->data).$data[$i+1];
 				$new_dict_entry->num = ($dictionary[$dict_pos]->num)^mb_ord($data[$i+1]);
-				$dictionary[] = $new_dict_entry;
-
-				$result .= $new_dict_entry->data;
-				$Cal_Checksum ^= $new_dict_entry->num;
-
 				$i++;
 			}
 			else
 				Die("Server: Fatal error at decompression!!!");
 		}
+		$dictionary[] = $new_dict_entry;
+		$result .= $new_dict_entry->data;
+		$Cal_Checksum ^= $new_dict_entry->num;
 	}
 	$Cal_Checksum&=0xFF;
 	if(!($RX_Checksum^$Cal_Checksum))
