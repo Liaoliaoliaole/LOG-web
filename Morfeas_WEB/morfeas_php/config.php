@@ -273,7 +273,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					header('Content-Type: ISOStandard');
 					echo $doc->saveXML();
 					return;
-				case 'getCANifs'
+				case 'getCANifs':
 					exec("SDAQ_worker -l");
 					return;
 			}
