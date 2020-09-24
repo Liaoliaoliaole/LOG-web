@@ -17,156 +17,40 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 for the JavaScript code in this page.
 */
 "use strict";
-		//--- Functions for Up/DownLoad tab ---//
-var isoSTD_xml_str;
-//Init of FileReader object
-const reader = new FileReader();
-reader.onerror = function(){alert("File Read Error!!!");};
-//Function for ISOStandard XML file Sanitization, called onChange of selected file
-function isoSTD_xml_file_val(selected_files)
-{
-	reader.onload = function(){
-		var xml_inp = this.result;
-		xml_inp = xml_inp.replace(/>[ \s\r\n]*</g,"><");
-		var removed_elements = new Array();
-		var _isoSTD_xml = (new DOMParser()).parseFromString(xml_inp, "text/xml");
-		if(_isoSTD_xml.firstElementChild.nodeName ==="parsererror")
-		{
-			alert("XML Parsing Error!!!");
-			isoSTD_xml_str = ""; selected_files.value="";
-			return;
-		}
-		if(_isoSTD_xml.firstChild.nodeName !== "root")
-		{
-			alert("Not \"root\" node");
-			isoSTD_xml_str = ""; selected_files.value="";
-			return;
-		}
-		if(_isoSTD_xml.firstChild.firstChild.nodeName !== "points")
-		{
-			alert("Not \"points\" node");
-			isoSTD_xml_str = ""; selected_files.value="";
-			return;
-		}
-		for(let i=0; i<_isoSTD_xml.firstChild.firstChild.childElementCount; i++)//Check for nodes with errors
-		{
-			if(_isoSTD_xml.firstChild.firstChild.childNodes[i].nodeName.length >= ISOSTD_NODE_MAX_LENGTH)
-			{
-				let gtbd_node = _isoSTD_xml.firstChild.firstChild.childNodes[i]
-				let rem_elem_obj = new Object();
-				rem_elem_obj.Node_Name = gtbd_node.nodeName;
-				rem_elem_obj.Reason = "Too long name (>="+ISOSTD_NODE_MAX_LENGTH+")";
-				removed_elements.push(rem_elem_obj);
-				_isoSTD_xml.firstChild.firstChild.removeChild(gtbd_node);
-				i--;
-				continue;
-			}
-			for(let j=0; j<_isoSTD_xml.firstChild.firstChild.childNodes[i].childElementCount; j++)
-			{
-				let node = _isoSTD_xml.firstChild.firstChild.childNodes[i].childNodes[j];
-				switch(node.nodeName)
-				{
-					case "description":
-					case "unit": break;
-					case "max":
-					case "min":
-						if(isNaN(node.textContent))
-						{
-							alert(_isoSTD_xml.firstChild.firstChild.childNodes[i].nodeName+'.'+node.nodeName+" is NAN");
-							isoSTD_xml_str = ""; selected_files.value="";
-							return;
-						}
-						break;
-					default:
-						let rem_elem_obj = new Object();
-						rem_elem_obj.Node_Name = _isoSTD_xml.firstChild.firstChild.childNodes[i].nodeName+'.'+node.nodeName;
-						rem_elem_obj.Reason = "Unknown nodeName";
-						removed_elements.push(rem_elem_obj);
-						_isoSTD_xml.firstChild.firstChild.childNodes[i].removeChild(node);
-				}
-			}
-		}
-		for(let i=0; i<_isoSTD_xml.firstChild.firstChild.childElementCount-1; i++)//Check for duplicate
-		{
-			let check_node = _isoSTD_xml.firstChild.firstChild.childNodes[i];
-			for(let j=i+1; j<_isoSTD_xml.firstChild.firstChild.childElementCount-1; j++)
-			{
-				let _select_node = _isoSTD_xml.firstChild.firstChild.childNodes[j];
-				if(check_node.nodeName === _select_node.nodeName)
-				{
-					alert("Node \""+_isoSTD_xml.firstChild.firstChild.childNodes[i].nodeName+"\" found multiple times");
-					isoSTD_xml_str = ""; selected_files.value="";
-					return;
-				}
-			}
-		}
-		isoSTD_xml_str = compress((new XMLSerializer()).serializeToString(_isoSTD_xml));
-		if(removed_elements.length)
-		{
-			let report_win = PopupCenter("about:blank", "", 500, 300);
-			var table = document.createElement("table");
-			generateTableHead(table, Object.keys(removed_elements[0]));
-			generateTable(table, removed_elements);
-			report_win.document.write("<div style=\"text-align:center;\"><b>The following Node(s) have been removed</b></div><br>"+table.outerHTML);
-		}
-	};
-	reader.readAsText(selected_files.files[0]);
-}
-//Function for up/download ISOStandards
-function isoSTD_upload()
-{
-	const fileSelector = document.getElementById('isoSTD_xml_file');
-	const fileList = fileSelector.files;
-	if(fileList.length && isoSTD_xml_str)
-	{
-		xhttp.open("POST", "../morfeas_php/config.php", true);
-		xhttp.setRequestHeader("Content-type", "ISOstandard");
-		xhttp.send(isoSTD_xml_str);
-		fileSelector.value = "";
-		curr_ISOstd_xml="";//element from ISOStandards tab
-	}
-	else
-		alert("No ISOStandard XML file is selected");
-}
-function isoSTD_download()
-{
-	window.open("../morfeas_php/config.php"+"?COMMAND=getISOStandard_file", '_self');
-}
-//Functions for up/download a Morfeas Bundle
-function bundle_upload()
-{
-	const fileList = document.getElementById('bundle_file').files;
-	if(fileList.length)
-	{
-		reader.onload = function(){
-			xhttp.open("POST", "../morfeas_php/config.php", true);
-			xhttp.setRequestHeader("Content-type", "Morfeas_bundle");
-			xhttp.send(this.result);
-			document.getElementById('bundle_file').value = "";
-			curr_morfeas_config_xml="";
-			new_morfeas_config_xml="";
-		};
-		reader.readAsArrayBuffer(fileList[0]);
-	}
-	else
-		alert("No bundle file is selected");
-}
-function bundle_download()
-{
-	window.open("../morfeas_php/config.php"+"?COMMAND=getbundle", '_self');
-}
 		//--- Functions for Morfeas system tab ---//
+//Function that delete the selected Morfeas component
+function delete_selected_Morfeas_comp()
+{
+	var listNodes=document.getElementById("Comp_UL");
+	var comp_args=document.getElementById("comp_args");
+	var selected_listnode = document.getElementsByClassName("caret-down");
+
+	if(!selected_listnode.length)
+		return;
+	if(selected_listnode[0].textContent==="OPC-UA SERVER")
+	{
+		alert("\"OPC-UA SERVER\" component can't be deleted");
+		return;
+	}
+	var elem_attr= selected_listnode[0].attributes["name"].value.split('@');
+	var elem_name = elem_attr[0];
+	var elem_pos = Number(elem_attr[1]);
+	if(!elem_name||!elem_pos)
+		return;
+	if(new_morfeas_config_xml.childNodes[elem_pos].nodeName === elem_name)
+	{
+		new_morfeas_config_xml.removeChild(new_morfeas_config_xml.childNodes[elem_pos]);
+		curr_morfeas_config_xml.removeChild(curr_morfeas_config_xml.childNodes[elem_pos]);
+	}
+	comp_args.innerHTML="";
+	morfeas_comp_list(new_morfeas_config_xml, curr_morfeas_config_xml);
+}
 //Function that send the new_morfeas_confit to the server
 function save_morfeas_config()
 {
-	if(new_morfeas_config_xml.innerHTML !== curr_morfeas_config_xml.innerHTML)
-	{
-		xhttp.open("POST", "../morfeas_php/config.php", true);
-		xhttp.setRequestHeader("Content-type", "Morfeas_config");
-		xhttp.send(compress((new XMLSerializer()).serializeToString(new_morfeas_config_xml)));
-	}
-	else
-		alert("Nothing to commit");
+	xhttp.open("POST", "../morfeas_php/config.php", true);
+	xhttp.setRequestHeader("Content-type", "Morfeas_config");
+	xhttp.send(compress((new XMLSerializer()).serializeToString(new_morfeas_config_xml)));
 }
 //Function to get morfeas component name, return comp_name_id on success, NULL otherwise
 function get_comp_name(comp)
@@ -201,7 +85,7 @@ function morfeas_comp_list(new_morfeas_components_xml, curr_morfeas_components_x
 		let textNode = document.createTextNode(comp_name_id),
 		liNode = document.createElement("LI");
 		liNode.classList.add("caret");
-		liNode.setAttribute("name", comp.nodeName);
+		liNode.setAttribute("name", comp.nodeName+"@"+i);
 		liNode.onclick = function()
 		{
 			var others = document.getElementsByClassName("caret-down");
@@ -223,7 +107,7 @@ function morfeas_comp_list(new_morfeas_components_xml, curr_morfeas_components_x
 	  comp = comp.nextSibling;
 	}
 }
-//function for set component's argument to the configuration table
+//Function for set component's argument to the configuration table
 function morfeas_comp_table(args_table, _newConfigXML_node, _currConfigXML_Node)
 {
 	args_table.innerHTML="";//clear arg_table
@@ -274,8 +158,8 @@ function morfeas_comp_table(args_table, _newConfigXML_node, _currConfigXML_Node)
 	}
 }
 		//--- Functions for ISOStandards tab ---//
-//Function that diploid ISOstandard table
-function isoSTD(table, ISOstd_xml)
+//Function that develop ISOstandard table
+function isoSTD_develop(table, ISOstd_xml)
 {
 	table.innerHTML="";
 	var nRow = table.insertRow(0);
@@ -296,5 +180,53 @@ function isoSTD(table, ISOstd_xml)
 			row_count++;
 		}
 	}
+}
+		//--- Functions for Up/DownLoad tab ---//
+var isoSTD_xml_str;
+//Init of FileReader object
+const reader = new FileReader();
+reader.onerror = function(){alert("File Read Error!!!");};
+//Function for up/download ISOStandards
+function isoSTD_upload()
+{
+	const fileSelector = document.getElementById('isoSTD_xml_file');
+	const fileList = fileSelector.files;
+	if(fileList.length && isoSTD_xml_str)
+	{
+		xhttp.open("POST", "../morfeas_php/config.php", true);
+		xhttp.setRequestHeader("Content-type", "ISOstandard");
+		xhttp.send(isoSTD_xml_str);
+		fileSelector.value = "";
+		curr_ISOstd_xml="";//element from ISOStandards tab
+	}
+	else
+		alert("No ISOStandard XML file is selected");
+}
+function isoSTD_download()
+{
+	window.open("../morfeas_php/config.php"+"?COMMAND=getISOStandard_file", '_self');
+}
+//Functions for up/download a Morfeas Bundle
+function bundle_upload()
+{
+	const fileList = document.getElementById('bundle_file').files;
+	if(fileList.length)
+	{
+		reader.onload = function(){
+			xhttp.open("POST", "../morfeas_php/config.php", true);
+			xhttp.setRequestHeader("Content-type", "Morfeas_bundle");
+			xhttp.send(this.result);
+			document.getElementById('bundle_file').value = "";
+			curr_morfeas_config_xml="";
+			new_morfeas_config_xml="";
+		};
+		reader.readAsArrayBuffer(fileList[0]);
+	}
+	else
+		alert("No bundle file is selected");
+}
+function bundle_download()
+{
+	window.open("../morfeas_php/config.php"+"?COMMAND=getbundle", '_self');
 }
 //@license-end

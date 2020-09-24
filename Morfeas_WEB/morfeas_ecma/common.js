@@ -17,9 +17,6 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 for the JavaScript code in this page.
 */
 "use strict";
-//Constants declaration 
-const ISOSTD_NODE_MAX_LENGTH=20;
-
 function comp_check()
 {
 	if(document.documentMode)
@@ -100,11 +97,11 @@ function compress(data)
 	return result;
 }
 
-function generateTableHead(table, data) 
+function generateTableHead(table, data)
 {
 	let thead = table.createTHead();
 	let row = thead.insertRow();
-	for(let key of data) 
+	for(let key of data)
 	{
 		let th = document.createElement("th");
 		let text = document.createTextNode(key);
@@ -112,12 +109,12 @@ function generateTableHead(table, data)
 		row.appendChild(th);
 	}
 }
-function generateTable(table, data) 
+function generateTable(table, data)
 {
-  for(let element of data) 
+  for(let element of data)
   {
     let row = table.insertRow();
-    for(let key in element) 
+    for(let key in element)
 	{
       let cell = row.insertCell();
       let text = document.createTextNode(element[key]);

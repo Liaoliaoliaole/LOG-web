@@ -273,6 +273,9 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					header('Content-Type: ISOStandard');
 					echo $doc->saveXML();
 					return;
+				case 'getCANifs'
+					exec("SDAQ_worker -l");
+					return;
 			}
 		}
 	}
@@ -306,8 +309,10 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				return;
 			case "Morfeas_config":
 				$data = decompress($RX_data) or die("Server: Decompressing of Morfeas_config failed");
-				$new_morfeas_conf=simplexml_load_string($data) or die("Error: Cannot create object");
-				print_r($new_morfeas_conf);
+				$dom = DOMDocument::loadXML($data) or die("Server: XML Parsing error at Morfeas_config");
+				$dom->formatOutput = true;
+				echo($dom->saveXML());
+				
 				/*
 				$imp = new DOMImplementation;
 				$dtd = $imp->createDocumentType('NODESet', '', 'Morfeas.dtd');
@@ -319,9 +324,8 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				return;
 			case "ISOstandard":
 				$data = decompress($RX_data) or die("Server: Decompressing of ISOstandard failed");
-				$dom = DOMDocument::loadXML($data);
+				$dom = DOMDocument::loadXML($data) or die("Server: XML Parsing error at ISOstandard");
 				$dom->formatOutput = true;
-				$dom->saveXML();
 				$dom->save($opc_ua_config_dir."ISOstandard.xml") or Die("Server: Unable to Write ISOstandard.xml");
 				echo "Server: New ISOStandard XML saved";
 				return;

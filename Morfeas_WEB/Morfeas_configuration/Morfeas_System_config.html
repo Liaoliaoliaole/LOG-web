@@ -10,7 +10,7 @@
 <link rel="stylesheet" type="text/css" href="Morfeas_System_config.css">
 <title>Morfeas WEB</title>
 </head>
-<body>
+<body onunload="destroy_child_wins()">
 <div class="content">
 	<table style="margin:auto;text-align:center;margin-bottom:.075in;">
 	  <tr>
@@ -26,7 +26,11 @@
 <div name="tab" style="width: 100%; overflow: hidden; display:none"><!--Morfeas system config-->
     <div style="width:30%;float:left;">
 		<ul id="Comp_UL"></ul>
-		<input type="button" value="Save" onclick="save_morfeas_config()">
+		<div style="margin-left:10%;">
+			<input type="button" value="Add" onclick='child_wins.push(PopupCenter("./morfeas_component_add.html"+"?q="+makeid(),"","600","300"))'>
+			<input type="button" value="Remove" onclick="delete_selected_Morfeas_comp()">
+			<input type="button" value="Save" onclick="save_morfeas_config()">
+		</div>
 	</div>
     <div style="width:70%;float:right;">
 		<table id="comp_args"></table>
@@ -66,6 +70,7 @@
 </body>
 <script src='../morfeas_ecma/common.js'></script>
 <script src='./Morfeas_System_config.js'></script>
+<script src='./isoSTD_xml_file_validation.js'></script>
 <script>
 //@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
 /*
@@ -94,6 +99,7 @@ for the JavaScript code in this page.
 	};
 	Object.freeze(disp_mode);
 
+	var child_wins = new Array();
 	//Vars for Morfeas_config tab
 	var curr_morfeas_config_xml, new_morfeas_config_xml;
 	var comp_args_table = document.getElementById("comp_args");
@@ -110,7 +116,7 @@ for the JavaScript code in this page.
 	xhttp.onreadystatechange = function()
 	{
 		if(this.readyState == 4)
-		{		
+		{
 			if(this.status == 200)
 			{
 				if(this.getResponseHeader("Content-Type")==="Morfeas_config")
@@ -128,7 +134,7 @@ for the JavaScript code in this page.
 					if(curr_tab === disp_mode.std)
 					{
 						curr_ISOstd_xml = this.responseXML.getElementsByTagName("points")[0];
-						isoSTD(isoSTD_table, curr_ISOstd_xml);
+						isoSTD_develop(isoSTD_table, curr_ISOstd_xml);
 					}
 				}
 				else
@@ -170,6 +176,14 @@ for the JavaScript code in this page.
 				break
 		}
 		curr_tab = mode;
+	}
+	function destroy_child_wins()
+	{
+		if(child_wins.length == 0)
+			return;
+		for(let i=0; i<child_wins.length; i++)
+			if(!child_wins[i].closed)	
+				child_wins[i].close();
 	}
 //@license-end
 </script>
