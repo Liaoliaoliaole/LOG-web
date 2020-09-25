@@ -129,14 +129,18 @@ function morfeas_comp_table(args_table, _newConfigXML_node, _currConfigXML_Node)
 			arg_inp.value=_newConfigXML_node.childNodes[i].textContent;
 			arg_inp.onchange = function()
 			{
-				if(_newConfigXML_node.childNodes[i].nodeName === "IPv4_ADDR")//Check if is input for IPv4
+				if(_newConfigXML_node.childNodes[i].nodeName === "IPv4_ADDR")
 				{
-					const patt= new RegExp(/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/);
-					if(!patt.test(this.value))
+					if(!ip_addr_val(this.value))
 					{
-						alert("You have entered an invalid IP address!")
+						this.value = _newConfigXML_node.childNodes[i].textContent;
+						alert("You have entered an invalid IP address!");
 						return;
 					}
+				}
+				else if(_newConfigXML_node.childNodes[i].nodeName === "DEV_NAME")
+				{
+					
 				}
 				_newConfigXML_node.childNodes[i].textContent = this.value;
 				const list_select = document.getElementsByClassName("caret-down")[0];

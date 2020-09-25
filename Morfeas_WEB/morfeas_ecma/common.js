@@ -56,6 +56,13 @@ function makeid()
 
 	return text;
 }
+
+function ip_addr_val(ip_addr)
+{
+	const patt= new RegExp(/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/);
+	return patt.test(ip_addr)?true:false;
+}
+
 //Compression function
 function compress(data)
 {
