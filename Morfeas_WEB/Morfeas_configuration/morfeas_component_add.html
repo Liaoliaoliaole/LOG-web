@@ -9,7 +9,24 @@
 <title>Morfeas Component</title>
 </head>
 <body>
-
+<table id="comp_add_table" style="margin:auto;text-align:left;margin-bottom:.075in;">
+	<tr>
+		<th colspan="2" style="font-weight: bold; font-size: xx-large">Add Component</th>
+	</tr>
+	<tr>
+		<td>Component Type:</td>
+		<td>
+			<select id="comp_type" onchange="new_comp(this[this.selectedIndex])">
+				<option>None</option>
+				<option value="SDAQ_HANDLER">SDAQ</option>
+				<option value="MDAQ_HANDLER">MDAQ</option>
+				<option value="IOBOX_HANDLER">IO-BOX</option>
+				<option value="MTI_HANDLER">MTI</option>
+			</select>
+		</td>
+	</tr>
+</table>
+<table id="comp_add_table_data" style="margin:auto;text-align:left;margin-bottom:.075in;"></table>
 </body>
 <script>
 //@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
@@ -31,7 +48,21 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 for the JavaScript code in this page.
 */
 	"use strict";
-
+	document.getElementById('comp_type').selectedIndex = 0;
+	var comp_data_table = document.getElementById('comp_add_table_data');
+	function new_comp(sel)
+	{
+		comp_data_table.innerHTML = "";
+		switch(sel.value)
+		{
+			case "SDAQ_HANDLER":
+				break;
+			case "MDAQ_HANDLER":
+			case "IOBOX_HANDLER":
+			case "MTI_HANDLER":
+				break;
+		}
+	}
 //@license-end
 </script>
 </html>
