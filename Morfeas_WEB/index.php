@@ -7,7 +7,7 @@
 <meta http-equiv="Expires" content="0" />
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
 
-<title>Morfeas WEB</title>
+<title>Morfeas WEB (<?php echo gethostname();?>)</title>
 <style>
 #footer{
    position:absolute;
