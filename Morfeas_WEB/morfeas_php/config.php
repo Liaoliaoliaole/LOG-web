@@ -329,6 +329,10 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					new_ntp($new_config->ntp);
 					exec('sudo systemctl restart systemd-timesyncd.service');
 				}
+				if(property_exists($new_config,"can_ifs"))
+				{
+					
+				}
 				header('Content-Type: application/json');
 				echo '{"report":"Okay"}';
 				return;

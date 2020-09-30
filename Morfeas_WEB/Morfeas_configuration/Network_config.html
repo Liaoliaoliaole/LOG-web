@@ -130,6 +130,16 @@ for the JavaScript code in this page.
 				mode.selectedIndex = 1;
 				break;
 		}
+		if(_config.hasOwnProperty("CAN_ifs"))
+		{
+			for(let i=0; i<_config.CAN_ifs.length; i++)
+			{
+				if(_config.CAN_ifs[i].if_Type==="can")
+				{
+					console.log(_config.CAN_ifs[i]);
+				}
+			}
+		}
 	}
 	function val(inp)
 	{
@@ -172,17 +182,20 @@ for the JavaScript code in this page.
 		{
 			if(this.getResponseHeader("Content-Type")==="application/json")
 			{
-				config = JSON.parse(this.responseText);
-				if(config.hasOwnProperty("report"))
+				var rx_msg = JSON.parse(this.responseText);
+				if(rx_msg.hasOwnProperty("report"))
 				{
-					if(config.report)
+					if(rx_msg.report)
 					{
 						alert("Okay");
 						location.reload(true);
 					}
 				}
 				else
+				{
+					config = rx_msg;
 					default_config(config);
+				}
 			}
 			else
 				alert(this.responseText);
