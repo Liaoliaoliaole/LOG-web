@@ -116,6 +116,26 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 		}
 		return null;
 	}
+	function getCANifs()
+	{
+		$ret = Array();
+		exec("SDAQ_worker -l", $names);
+		if(($lim=count($names)))
+		{
+			for($i=0;$i<$lim;$i++)
+			{
+				$ret[$i]=new stdClass();
+				$ret[$i]->if_Name=$names[$i];
+				exec("ip -det link show $names[$i]", $if_details);
+				$if_details = preg_replace('/\s{2,}/', '', $if_details);
+				if(($ret[$i]->if_Type=explode(' ', $if_details[2])[0])=="can")
+					$ret[$i]->bitrate=explode(' ', $if_details[3])[1];
+			}
+			return $ret;
+		}
+		else
+			return NULL;
+	}
 	function new_hostname($new_hostname)
 	{
 		isset($new_hostname) or die('Server: $new_hostname is Undefined!!!!');
@@ -252,6 +272,8 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 						$currConfig->gate=$conf->gate;
 					}
 					$currConfig->ntp=get_timesyncd_ntp();
+					if(($CAN_ifs=getCANifs()))
+						$currConfig->CAN_ifs=$CAN_ifs;
 					header('Content-Type: application/json');
 					echo json_encode($currConfig);
 					return;
@@ -273,7 +295,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					header('Content-Type: ISOStandard');
 					echo $doc->saveXML();
 					return;
-				case 'getCANifs':
+				case 'getCANifs_names':
 					exec("SDAQ_worker -l", $ret_str);
 					header('Content-Type: application/json');
 					echo json_encode($ret_str);
@@ -314,7 +336,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				$dom = DOMDocument::loadXML($data) or die("Server: XML Parsing error at Morfeas_config");
 				$dom->formatOutput = true;
 				echo($dom->saveXML());
-				
+
 				/*
 				$imp = new DOMImplementation;
 				$dtd = $imp->createDocumentType('NODESet', '', 'Morfeas.dtd');
