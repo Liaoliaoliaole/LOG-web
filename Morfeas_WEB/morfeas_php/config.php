@@ -203,9 +203,9 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 	function new_ntp($new_ntp)
 	{
 		isset($new_ntp) or die('Server: $new_ntp is Undefined!!!!');
-		$new_ntp=long2ip($new_ntp);
 		if(!$new_ntp||$new_ntp===0xFFFFFFFF)
 			die("Server: NTP IP address is invalid!!!");
+		$new_ntp=long2ip($new_ntp);
 		if(!($timesyncd_config_file=file_get_contents("/etc/systemd/timesyncd.conf")))
 			die("Server: Unable to read /etc/systemd/timesyncd.conf !!!");
 		$timesyncd_config_file=explode("\n",$timesyncd_config_file);
