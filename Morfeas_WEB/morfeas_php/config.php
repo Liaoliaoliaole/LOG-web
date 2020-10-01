@@ -83,8 +83,6 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 						if($gateway =substr($eth_if[$key+2],strpos($eth_if[$key+2],"gateway")+strlen("gateway ")))
 							$this->gate=ip2long($gateway);
 					}
-					$this->ip=$this->ip<0?-$$this->ip:$this->ip;
-					$this->gate=$this->gate<0?-$this->gate:$this->gate;
 				}
 				else
 					return null;
@@ -113,8 +111,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 			if(strpos($line,'NTP=')===0)
 			{
 				$ntp_ip_str=substr($line,strpos($line,"NTP=")+strlen("NTP="));
-				$ntp_ip_num=ip2long($ntp_ip_str);
-				return $ntp_ip_num<0?-$ntp_ip_num:$ntp_ip_num;
+				return ip2long($ntp_ip_str);
 			}
 		}
 		return null;
