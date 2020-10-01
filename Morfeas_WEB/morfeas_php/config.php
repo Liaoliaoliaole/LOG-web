@@ -183,12 +183,12 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 			}
 			if(!($new_config->ip&~$bit_mask)||($new_config->ip|$bit_mask)===0xFFFFFFFF)
 				die('Server: IP address is Invalid!!!');
-			$new_ip=long2ip($new_config->ip);
+			$new_ip=long2ip($new_config->ip)or die("Server: Failure at IP conversion!!!");
 			$new_mask=$new_config->mask;
 			if(!$new_config->gate||!$new_config->gate === 0xFFFFFFFF ||
 			   !($new_config->gate&~$bit_mask)||($new_config->gate|$bit_mask)===0xFFFFFFFF)
 				die('Server: Gateway is Invalid!!!');
-			$new_gate=long2ip($new_config->gate);
+			$new_gate=long2ip($new_config->gate)or die("Server: Failure at IP conversion!!!");
 
 			$if_config= "auto $eth_if_name\n".
 						"allow-hotplug $eth_if_name\n".
@@ -205,7 +205,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 		isset($new_ntp) or die('Server: $new_ntp is Undefined!!!!');
 		if(!$new_ntp||$new_ntp===0xFFFFFFFF)
 			die("Server: NTP IP address is invalid!!!");
-		$new_ntp=long2ip($new_ntp);
+		$new_ntp=long2ip($new_ntp) or die("Server: Failure at IP conversion!!!");
 		if(!($timesyncd_config_file=file_get_contents("/etc/systemd/timesyncd.conf")))
 			die("Server: Unable to read /etc/systemd/timesyncd.conf !!!");
 		$timesyncd_config_file=explode("\n",$timesyncd_config_file);

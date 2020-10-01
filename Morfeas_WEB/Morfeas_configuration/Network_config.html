@@ -336,8 +336,8 @@ for the JavaScript code in this page.
 			new_config.gate<<=8;
 			new_config.gate+=Number(gateway[i].value);
 		}
-		new_config.ip=new_config.ip>>>0;//convert to unsigned
-		new_config.gate=new_config.gate>>>0;
+		//new_config.ip=new_config.ip>>>0;//convert to unsigned
+		//new_config.gate=new_config.gate>>>0;
 
 		var mask_num=1<<31;
 		for(let i=0; i<new_config.mask-1; i++)
@@ -379,7 +379,7 @@ for the JavaScript code in this page.
 			new_config.ntp<<=8;
 			new_config.ntp+=Number(ntp[i].value);
 		}
-		new_config.ntp=new_config.ntp>>>0;
+		//new_config.ntp=new_config.ntp>>>0;
 		if(!new_config.ntp||new_config.ntp===-1)
 		{
 			alert("Invalid NTP server's IP!!!");
