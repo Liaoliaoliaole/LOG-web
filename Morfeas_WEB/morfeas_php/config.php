@@ -111,7 +111,8 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 			if(strpos($line,'NTP=')===0)
 			{
 				$ntp_ip_str=substr($line,strpos($line,"NTP=")+strlen("NTP="));
-				return ip2long($ntp_ip_str);
+				$ntp_ip_num=ip2long($ntp_ip_str);
+				return (PHP_INT_SIZE == 8)&&($ntp_ip_num>0x7FFFFFFF)?$ntp_ip_num-0x100000000:$ntp_ip_num;
 			}
 		}
 		return null;
