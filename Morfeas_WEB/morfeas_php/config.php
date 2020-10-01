@@ -185,7 +185,8 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				die('Server: IP address is Invalid!!!');
 			$new_ip=long2ip($new_config->ip);
 			$new_mask=$new_config->mask;
-			if(!$new_config->gate||!$new_config->gate === 0xFFFFFFFF)
+			if(!$new_config->gate||!$new_config->gate === 0xFFFFFFFF ||
+			   !($new_config->gate&~$bit_mask)||($new_config->gate|$bit_mask)===0xFFFFFFFF)
 				die('Server: Gateway is Invalid!!!');
 			$new_gate=long2ip($new_config->gate);
 

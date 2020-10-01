@@ -63,7 +63,7 @@ input.global_style{
   </tr>
   <tr>
     <td>NTP IP</td>
-     <td>
+	<td>
 		<input class="global_style" name="ntp">.
 		<input class="global_style" name="ntp">.
 		<input class="global_style" name="ntp">.
@@ -71,10 +71,11 @@ input.global_style{
 		<input type="button" value="Stats" onclick='PopupCenter("../morfeas_php/config.php?COMMAND=timedatectl","","360","270")'>
 	</td>
   </tr>
-  <tr>
-    <td><input id="default" type="button" value="Load Last" onclick="default_config(config)"></td>
-    <td style="text-align: right;"><input id="Save" type="button" value="Set" onclick="Send_config()"></td>
-  </tr>
+ <tr id="can-IFs"></tr>
+ <tr>
+	<td><input id="default" type="button" value="Load Last" onclick="default_config(config)"></td>
+	<td style="text-align: right;"><input id="Save" type="button" value="Set" onclick="Send_config()"></td>
+ </tr>
 </table>
 <script src='../morfeas_ecma/common.js'></script>
 <script>
@@ -104,7 +105,54 @@ for the JavaScript code in this page.
 		static_config[0].style.visibility=visible?"visible":"collapse";
 		static_config[1].style.visibility=visible?"visible":"collapse";
 	}
-
+	function canif_table_constractor(can_ifs)
+	{
+		console.log(can_ifs);
+		if(!can_ifs||!can_ifs.length)
+			return;
+		const options=[125,250,500,1000];
+		const can_ifs_dom=document.getElementById("can-IFs");
+		var tr,td,th,select,option,textnode;
+		//--Make Head--//
+		tr = document.createElement("tr");
+		th = document.createElement("th");
+		th.setAttribute("colspan","2");
+		textnode = document.createTextNode("SDAQNet (CAN-ifs)");
+		th.appendChild(textnode);
+		tr.appendChild(th);
+		can_ifs_dom.appendChild(tr);
+		//--Add BitRates selectors for CAN-ifs--//
+		for(let i=0; i<can_ifs.length;i++)
+		{
+			tr = document.createElement("tr");
+			//Add title, (CAN-if Name)
+			td = document.createElement("td");
+			textnode = document.createTextNode(can_ifs[i].if_Name);
+			td.appendChild(textnode);
+			tr.appendChild(td);
+			//Add Select element with available option bitRates
+			td = document.createElement("td");
+			select = document.createElement("select");
+			select.setAttribute("name","can_bitrate");
+			for(let j=0;j<options.length;j++)
+			{
+				option = document.createElement("option");
+				option.setAttribute("value",String(options[j]));
+				textnode = document.createTextNode(options[j]+" kbps");
+				option.appendChild(textnode);
+				select.appendChild(option);
+			}
+			td.appendChild(select);
+			tr.appendChild(td);
+			can_ifs_dom.appendChild(tr);
+		}
+		//set bitrate of CAN-ifs
+		const selects=document.getElementsByName("can_bitrate");
+		for(let i=0; i<selects.length;i++)
+		{
+			selects[i].value = (can_ifs[i].bitrate)/1000;
+		}
+	}
 	function default_config(_config)
 	{
 		if(!_config)
@@ -132,13 +180,13 @@ for the JavaScript code in this page.
 		}
 		if(_config.hasOwnProperty("CAN_ifs"))
 		{
+			document.getElementById("can-IFs").innerHTML="";
+			let can_ifs_data=[];
 			for(let i=0; i<_config.CAN_ifs.length; i++)
-			{
 				if(_config.CAN_ifs[i].if_Type==="can")
-				{
-					console.log(_config.CAN_ifs[i]);
-				}
-			}
+					can_ifs_data.push(config.CAN_ifs[i]);
+			if(can_ifs_data.length)
+				canif_table_constractor(can_ifs_data);
 		}
 	}
 	function val(inp)
@@ -150,13 +198,13 @@ for the JavaScript code in this page.
 		else if(Number(inp.value)<inp.min)
 			inp.value=inp.min;
 	}
-	//DOM vars
-	var hostname=document.getElementById("hostname"),
-		mode=document.getElementById("mode"),
-		ip=document.getElementsByName("ip"),
-		mask=document.getElementById("mask"),
-	    gateway=document.getElementsByName("gateway"),
-		ntp=document.getElementsByName("ntp");
+	//DOM const
+	const hostname=document.getElementById("hostname"),
+		  mode=document.getElementById("mode"),
+		  ip=document.getElementsByName("ip"),
+		  mask=document.getElementById("mask"),
+		  gateway=document.getElementsByName("gateway"),
+		  ntp=document.getElementsByName("ntp");
 	//Set Limits
 	for(let i=0;i<4;i++)
 	{
@@ -287,11 +335,7 @@ for the JavaScript code in this page.
 		}
 		new_config.ip=new_config.ip>>>0;//convert to unsigned
 		new_config.gate=new_config.gate>>>0;
-		if(!new_config.gate)
-		{
-			alert("Invalid Gateway!!!");
-			return -1;
-		}
+
 		var mask_num=1<<31;
 		for(let i=0; i<new_config.mask-1; i++)
 		{
@@ -302,6 +346,11 @@ for the JavaScript code in this page.
 		  !(0xFF000000 & new_config.ip)||((new_config.ip>>24)&0x000000FF) === 0xFF)
 		{
 			alert("IP address is invalid!!!");
+			return -1;
+		}
+		if(!new_config.gate||!(new_config.gate&~mask_num)||(new_config.gate|mask_num)==-1)
+		{
+			alert("Invalid Gateway!!!");
 			return -1;
 		}
 		if((new_config.ip == config.ip)&&
