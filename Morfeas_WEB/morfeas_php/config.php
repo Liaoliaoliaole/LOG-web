@@ -83,6 +83,8 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 						if($gateway =substr($eth_if[$key+2],strpos($eth_if[$key+2],"gateway")+strlen("gateway ")))
 							$this->gate=ip2long($gateway);
 					}
+					$this->ip=$this->ip<0?-$$this->ip:$this->ip;
+					$this->gate=$this->gate<0?-$this->gate:$this->gate;
 				}
 				else
 					return null;
@@ -333,7 +335,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				}
 				if(property_exists($new_config,"can_ifs"))
 				{
-					
+
 				}
 				header('Content-Type: application/json');
 				echo '{"report":"Okay"}';
