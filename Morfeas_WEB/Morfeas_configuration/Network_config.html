@@ -17,7 +17,7 @@ input.global_style{
 </style>
 </head>
 <body>
-<table style="margin:auto">
+<table style="margin:auto" id="netconf_tb">
   <tr>
     <th colspan="2">Machine Identifier</th>
   </tr>
@@ -107,24 +107,22 @@ for the JavaScript code in this page.
 	}
 	function canif_table_constractor(can_ifs)
 	{
-		console.log(can_ifs);
 		if(!can_ifs||!can_ifs.length)
 			return;
 		const options=[125,250,500,1000];
 		const can_ifs_dom=document.getElementById("can-IFs");
+		const netconf_table=document.getElementById("netconf_tb");
 		var tr,td,th,select,option,textnode;
 		//--Make Head--//
-		tr = document.createElement("tr");
 		th = document.createElement("th");
 		th.setAttribute("colspan","2");
 		textnode = document.createTextNode("SDAQNet (CAN-ifs)");
 		th.appendChild(textnode);
-		tr.appendChild(th);
-		can_ifs_dom.appendChild(tr);
+		can_ifs_dom.appendChild(th);
 		//--Add BitRates selectors for CAN-ifs--//
 		for(let i=0; i<can_ifs.length;i++)
 		{
-			tr = document.createElement("tr");
+			tr = netconf_table.insertRow(can_ifs_dom.rowIndex+i+1);
 			//Add title, (CAN-if Name)
 			td = document.createElement("td");
 			textnode = document.createTextNode(can_ifs[i].if_Name);
@@ -144,14 +142,11 @@ for the JavaScript code in this page.
 			}
 			td.appendChild(select);
 			tr.appendChild(td);
-			can_ifs_dom.appendChild(tr);
 		}
 		//set bitrate of CAN-ifs
 		const selects=document.getElementsByName("can_bitrate");
 		for(let i=0; i<selects.length;i++)
-		{
 			selects[i].value = (can_ifs[i].bitrate)/1000;
-		}
 	}
 	function default_config(_config)
 	{
@@ -180,13 +175,21 @@ for the JavaScript code in this page.
 		}
 		if(_config.hasOwnProperty("CAN_ifs"))
 		{
-			document.getElementById("can-IFs").innerHTML="";
 			let can_ifs_data=[];
 			for(let i=0; i<_config.CAN_ifs.length; i++)
 				if(_config.CAN_ifs[i].if_Type==="can")
 					can_ifs_data.push(config.CAN_ifs[i]);
 			if(can_ifs_data.length)
+			{
+				let can_ifs_dom = document.getElementById("can-IFs");
+				if(can_ifs_dom.innerHTML)
+				{
+					can_ifs_dom.innerHTML="";
+					for(let i=0;i<can_ifs_data.length;i++)
+						document.getElementById("netconf_tb").deleteRow(can_ifs_dom.rowIndex+1);
+				}
 				canif_table_constractor(can_ifs_data);
+			}
 		}
 	}
 	function val(inp)
