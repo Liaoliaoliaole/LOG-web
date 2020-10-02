@@ -233,6 +233,17 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 		$timesyncd_config_file=implode("\n",$timesyncd_config_file);
 		file_put_contents('/etc/systemd/timesyncd.conf',$timesyncd_config_file)or die("Server: Can't write timesyncd.conf!!!");
 	}
+	function new_CANif_config($new_CAN_if)
+	{
+		$CAN_if_config_file = file_get_contents('/etc/network/interfaces.d/'.$new_CAN_if->if_Name)or die("Server: Can't read configuration file for ".$new_CAN_if->if_Name);
+		$CAN_if_config=explode("\n",$CAN_if_config_file);
+		$pre_up_line_comp=explode(" ",$CAN_if_config[2]);
+		$bitrate_key=array_search("bitrate", $pre_up_line_comp)or die("Server: Error Unable to find bitrate_key!!!");
+		$pre_up_line_comp[$bitrate_key+1]=$new_CAN_if->bitrate;
+		$CAN_if_config[2]=implode(" ",$pre_up_line_comp);
+		$CAN_if_config_file=implode("\n",$CAN_if_config);
+		file_put_contents('/etc/network/interfaces.d/'.$new_CAN_if->if_Name,$CAN_if_config_file)or die("Server: Can't write configuration file for ".$new_CAN_if->if_Name);
+	}
 	ob_start("ob_gzhandler");//Enable gzip buffering
 	//Disable caching
 	header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -334,10 +345,17 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				}
 				if(property_exists($new_config,"CAN_ifs"))
 				{
-					foreach($new_config->CAN_ifs as $CAN_if)
+					if(count($new_config->CAN_ifs))
 					{
-						new_ntp($new_config->ntp);
-						print_r($CAN_if);
+						foreach($new_config->CAN_ifs as $CAN_if)
+						{
+							
+							new_CANif_config($CAN_if);
+							$CAN_if_name=$CAN_if->if_Name;$CAN_if_bitrate=$CAN_if->bitrate;
+							exec("sudo ip link set $CAN_if_name down");
+							exec("sudo ip link set $CAN_if_name up type can bitrate $CAN_if_bitrate");
+						}
+						exec('sudo systemctl restart Morfeas_system.service');
 					}
 				}
 				header('Content-Type: application/json');

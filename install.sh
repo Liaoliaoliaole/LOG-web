@@ -4,7 +4,8 @@ mode_install()
 
 	sudo usermod -a -G root,sudo www-data &&
 	sudo chmod g+w /etc/network/interfaces.d \
-	               /etc/systemd/timesyncd.conf \
+	               /etc/network/interfaces.d/*\
+		       /etc/systemd/timesyncd.conf \
 				   /etc/hostname \
 				   /etc/hosts&&
 	sudo service apache2 restart
@@ -22,6 +23,7 @@ mode_uninstall()
 		echo "Remove assdasd"
 	fi
 	sudo chmod g-w /etc/network/interfaces.d \
+		       /etc/network/interfaces.d/*\
 	               /etc/systemd/timesyncd.conf \
 				   /etc/hostname \
 				   /etc/hosts&&
