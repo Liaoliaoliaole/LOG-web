@@ -82,13 +82,23 @@ td.bold{
 		<a href="LICENSE">License: AGPLv3</a>
 	</div>
 	<div style="float:right;"> 
-		<a style="color:white;" onclick='PopupCenter("https://"+window.location.hostname+":4200","","1024","768")'>π</a>
-		<img src="./art/debian.png">
+		<a id="pi" style="visibility:hidden;" onclick='PopupCenter("https://"+window.location.hostname+":4200","","1024","768");this.style.visibility="hidden"'>π</a>
+		<img src="./art/debian.png" alt="Powered by Debian GNU/Linux">
 	</div>
 </footer>
 </body>
 <script src='../morfeas_ecma/common.js'></script>
 <script>
 	comp_check();
+	document.onkeyup = function(key){
+		var pi=document.getElementById("pi");
+		pi.style.visibility="hidden";
+	};
+	document.onkeydown = function(key){
+		var pi=document.getElementById("pi");
+		if(key.keyCode === 17)
+			pi.style.visibility="visible";
+		
+	};
 </script>
 </html>
