@@ -129,8 +129,8 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				$if_details=Array();
 				exec("ip -det link show ".$names[$i], $if_details);
 				$if_details = preg_replace('/\s{2,}/', '', $if_details);
-				if(($ret[$i]->if_Type=explode(' ', $if_details[2])[0])==="can")
-					$ret[$i]->bitrate=explode(' ', $if_details[3])[1];
+				if(explode(' ', $if_details[2])[0]==="can")
+					$ret[$i]->bitrate=(int)explode(' ', $if_details[3])[1];
 				else
 					unset($ret[$i]);
 			}
@@ -334,7 +334,11 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				}
 				if(property_exists($new_config,"CAN_ifs"))
 				{
-					//print_r($new_config->CAN_ifs);
+					foreach($new_config->CAN_ifs as $CAN_if)
+					{
+						new_ntp($new_config->ntp);
+						print_r($CAN_if);
+					}
 				}
 				header('Content-Type: application/json');
 				echo '{"report":"Okay"}';

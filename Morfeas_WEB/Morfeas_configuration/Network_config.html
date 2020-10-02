@@ -176,20 +176,16 @@ for the JavaScript code in this page.
 		}
 		if(_config.hasOwnProperty("CAN_ifs"))
 		{
-			let can_ifs_data=[];
-			for(let i=0; i<_config.CAN_ifs.length; i++)
-				if(_config.CAN_ifs[i].if_Type==="can")
-					can_ifs_data.push(config.CAN_ifs[i]);
-			if(can_ifs_data.length)
+			if(config.CAN_ifs.length)
 			{
 				let can_ifs_dom = document.getElementById("can-IFs");
 				if(can_ifs_dom.innerHTML)
 				{
 					can_ifs_dom.innerHTML="";
-					for(let i=0;i<can_ifs_data.length;i++)
+					for(let i=0;i<config.CAN_ifs.length;i++)
 						document.getElementById("netconf_tb").deleteRow(can_ifs_dom.rowIndex+1);
 				}
-				canif_table_constractor(can_ifs_data);
+				canif_table_constractor(config.CAN_ifs);
 			}
 		}
 	}
@@ -393,19 +389,22 @@ for the JavaScript code in this page.
 	{
 		const CAN_ifs_bitrate = document.getElementsByName("can_ifs_bitrates");
 		const CAN_ifs_names = document.getElementsByName("can_ifs_names");
-		if(!CAN_ifs_names||!CAN_ifs_bitrate)
+		if(!CAN_ifs_names||!CAN_ifs_bitrate||!config.hasOwnProperty("CAN_ifs"))
 		{
 			delete new_config.CAN_ifs;
 			return 0;
 		}
-		for(let i=0; i<CAN_ifs_names.length;i++)
+		for(let i=0,j=0; i<CAN_ifs_names.length;i++)
 		{
-			new_config.CAN_ifs[i]=new Object();
-			new_config.CAN_ifs[i].if_Name=CAN_ifs_names[i].innerHTML;
-			new_config.CAN_ifs[i].if_Type="can";
-			new_config.CAN_ifs[i].bitrate=CAN_ifs_bitrate[i].value*1000;
+			if(config.CAN_ifs[i].bitrate !== CAN_ifs_bitrate[i].value*1000)
+			{
+				new_config.CAN_ifs[j]=new Object();
+				new_config.CAN_ifs[j].if_Name=CAN_ifs_names[i].innerHTML;
+				new_config.CAN_ifs[j].bitrate=CAN_ifs_bitrate[i].value*1000;
+				j++;
+			}
 		}
-		if(new_config.CAN_ifs === config.CAN_ifs)
+		if(!new_config.CAN_ifs.length)
 			delete new_config.CAN_ifs;
 		return 0;
 	}
