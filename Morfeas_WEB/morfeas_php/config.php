@@ -332,7 +332,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				}
 				if(property_exists($new_config,"can_ifs"))
 				{
-
+					print_r($new_config->can_ifs);
 				}
 				header('Content-Type: application/json');
 				echo '{"report":"Okay"}';

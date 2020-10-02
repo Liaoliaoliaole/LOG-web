@@ -125,13 +125,14 @@ for the JavaScript code in this page.
 			tr = netconf_table.insertRow(can_ifs_dom.rowIndex+i+1);
 			//Add title, (CAN-if Name)
 			td = document.createElement("td");
+			td.setAttribute("name","can_ifs_names");
 			textnode = document.createTextNode(can_ifs[i].if_Name);
 			td.appendChild(textnode);
 			tr.appendChild(td);
 			//Add Select element with available option bitRates
 			td = document.createElement("td");
 			select = document.createElement("select");
-			select.setAttribute("name","can_bitrate");
+			select.setAttribute("name","can_ifs_bitrates");
 			for(let j=0;j<options.length;j++)
 			{
 				option = document.createElement("option");
@@ -266,11 +267,12 @@ for the JavaScript code in this page.
 
 	function Send_config()
 	{
-		var new_config={hostname:"",mode:"",ip:0,mask:0,gate:0,ntp:0};
+		var new_config={hostname:"",mode:"",ip:0,mask:0,gate:0,ntp:0,CAN_ifs:[]};
 
 		if(get_new_hostname(new_config)) return;
 		if(get_new_mode(new_config)) return;
 		if(get_new_ntp(new_config)) return;
+		if(get_new_CANifs(new_config)) return;
 		if(!(Object.keys(new_config).length))
 		{
 			alert("Nothing to commit!!!");
@@ -336,8 +338,6 @@ for the JavaScript code in this page.
 			new_config.gate<<=8;
 			new_config.gate+=Number(gateway[i].value);
 		}
-		//new_config.ip=new_config.ip>>>0;//convert to unsigned
-		//new_config.gate=new_config.gate>>>0;
 
 		var mask_num=1<<31;
 		for(let i=0; i<new_config.mask-1; i++)
@@ -379,7 +379,7 @@ for the JavaScript code in this page.
 			new_config.ntp<<=8;
 			new_config.ntp+=Number(ntp[i].value);
 		}
-		//new_config.ntp=new_config.ntp>>>0;
+
 		if(!new_config.ntp||new_config.ntp===-1)
 		{
 			alert("Invalid NTP server's IP!!!");
@@ -388,6 +388,11 @@ for the JavaScript code in this page.
 		if(new_config.ntp === config.ntp)
 			delete new_config.ntp;
 		return 0;
+	}
+	function get_new_CANifs(new_config)
+	{
+		const CAN_ifs_bitrate = document.getElementsByName("can_ifs_bitrates");
+		const CAN_ifs_names = document.getElementsByName("can_ifs_names");
 	}
 //@license-end
 </script>
