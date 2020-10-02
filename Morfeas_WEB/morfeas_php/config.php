@@ -131,8 +131,10 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				$if_details = preg_replace('/\s{2,}/', '', $if_details);
 				if(($ret[$i]->if_Type=explode(' ', $if_details[2])[0])==="can")
 					$ret[$i]->bitrate=explode(' ', $if_details[3])[1];
+				else
+					unset($ret[$i]);
 			}
-			return $ret;
+			return array_values($ret);
 		}
 		else
 			return NULL;
@@ -330,9 +332,9 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					new_ntp($new_config->ntp);
 					exec('sudo systemctl restart systemd-timesyncd.service');
 				}
-				if(property_exists($new_config,"can_ifs"))
+				if(property_exists($new_config,"CAN_ifs"))
 				{
-					print_r($new_config->can_ifs);
+					//print_r($new_config->CAN_ifs);
 				}
 				header('Content-Type: application/json');
 				echo '{"report":"Okay"}';

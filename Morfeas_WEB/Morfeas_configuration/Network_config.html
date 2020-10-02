@@ -145,7 +145,7 @@ for the JavaScript code in this page.
 			tr.appendChild(td);
 		}
 		//set bitrate of CAN-ifs
-		const selects=document.getElementsByName("can_bitrate");
+		const selects=document.getElementsByName("can_ifs_bitrates");
 		for(let i=0; i<selects.length;i++)
 			selects[i].value = (can_ifs[i].bitrate)/1000;
 	}
@@ -240,7 +240,7 @@ for the JavaScript code in this page.
 					if(rx_msg.report)
 					{
 						alert("Okay");
-						location.reload(true);
+						//location.reload(true);
 					}
 				}
 				else
@@ -393,6 +393,21 @@ for the JavaScript code in this page.
 	{
 		const CAN_ifs_bitrate = document.getElementsByName("can_ifs_bitrates");
 		const CAN_ifs_names = document.getElementsByName("can_ifs_names");
+		if(!CAN_ifs_names||!CAN_ifs_bitrate)
+		{
+			delete new_config.CAN_ifs;
+			return 0;
+		}
+		for(let i=0; i<CAN_ifs_names.length;i++)
+		{
+			new_config.CAN_ifs[i]=new Object();
+			new_config.CAN_ifs[i].if_Name=CAN_ifs_names[i].innerHTML;
+			new_config.CAN_ifs[i].if_Type="can";
+			new_config.CAN_ifs[i].bitrate=CAN_ifs_bitrate[i].value*1000;
+		}
+		if(new_config.CAN_ifs === config.CAN_ifs)
+			delete new_config.CAN_ifs;
+		return 0;
 	}
 //@license-end
 </script>
