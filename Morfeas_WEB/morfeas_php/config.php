@@ -312,7 +312,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					return;
 				case 'getCANifs_names':
 					exec("SDAQ_worker -l", $ret_str);
-					header('Content-Type: application/json');
+					header('Content-Type: getCANifs_names/json');
 					echo json_encode($ret_str);
 					return;
 			}
