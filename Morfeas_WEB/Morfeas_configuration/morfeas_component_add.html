@@ -30,8 +30,8 @@
 <table style="margin:auto;text-align:left;margin-bottom:.075in;">
 	<tr>
 		<td>
-		<input type="button" value="Okay" onclick="">
-		<input type="button" value="Cancel" onclick="">
+		<input type="button" value="Okay" onclick="comp_val_and_add()">
+		<input type="button" value="Cancel" onclick="window.close()">
 		</td>
 	</tr>
 </table>
@@ -82,7 +82,7 @@ for the JavaScript code in this page.
 	//Get CAN-IFs names
 	xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getCANifs_names", true);
 	xhttp.send();
-	
+
 	var caller_res = window.opener;
 	var comp_data_table = document.getElementById('comp_add_table_data');
 	function new_comp(sel)
@@ -91,7 +91,7 @@ for the JavaScript code in this page.
 		switch(sel.value)
 		{
 			case "SDAQ_HANDLER":
-				
+
 				break;
 			case "MDAQ_HANDLER":
 			case "IOBOX_HANDLER":
