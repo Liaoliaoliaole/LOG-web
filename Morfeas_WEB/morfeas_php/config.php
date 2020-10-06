@@ -18,6 +18,12 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 */
 	require("../Morfeas_env.php");
 	require("./Supplementary.php");
+	function _ip2long($ip_str)
+	{
+		$ip=ip2long($ip_str) or die("Server: ip2long() failed!!!");
+		$ip=(PHP_INT_SIZE==8&&$ip>0x7FFFFFFF)? $ip-0x100000000 : $ip;//check and convert to signed 
+		return $ip;
+	}
 	function bundle_make()
 	{
 		global $opc_ua_config_dir;
@@ -61,10 +67,10 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				{
 					if(!($pos=strpos($ip_str,'/')))
 					{
-						$this->ip=ip2long($ip_str);
+						$this->ip=_ip2long($ip_str);
 						if($netmask=substr($eth_if[$key+2],strpos($eth_if[$key+2],"netmask")+strlen("netmask ")))
 						{
-							$netmask=ip2long($netmask);
+							$netmask=_ip2long($netmask);
 							$this->mask=0;
 							while($netmask&(1<<31))
 							{
@@ -72,16 +78,16 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 								$netmask<<=1;
 							}
 							if($gateway=substr($eth_if[$key+3],strpos($eth_if[$key+3],"gateway")+strlen("gateway ")))
-							$this->gate=ip2long($gateway);
+							$this->gate=_ip2long($gateway);
 							return 1;
 						}
 					}
 					else
 					{
 						$this->mask=(int)substr($ip_str,$pos+1);
-						$this->ip=ip2long(substr($ip_str,0,$pos));
+						$this->ip=_ip2long(substr($ip_str,0,$pos));
 						if($gateway =substr($eth_if[$key+2],strpos($eth_if[$key+2],"gateway")+strlen("gateway ")))
-							$this->gate=ip2long($gateway);
+							$this->gate=_ip2long($gateway);
 					}
 				}
 				else
@@ -111,7 +117,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 			if(strpos($line,'NTP=')===0)
 			{
 				$ntp_ip_str=substr($line,strpos($line,"NTP=")+strlen("NTP="));
-				return ip2long($ntp_ip_str);
+				return _ip2long($ntp_ip_str);
 			}
 		}
 		return null;
@@ -197,7 +203,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 						"iface $eth_if_name inet static\n".
 						"address $new_ip/$new_mask\n".
 						"gateway $new_gate\n".
-						"dns-nameservers 4.4.4.4\n".
+						"dns-nameservers $new_gate\n".
 						"dns-nameservers 8.8.8.8\n";
 		}
 		file_put_contents("/etc/network/interfaces.d/$eth_if_name",$if_config)or die("Server: Can't create new Network configuration file!!!");

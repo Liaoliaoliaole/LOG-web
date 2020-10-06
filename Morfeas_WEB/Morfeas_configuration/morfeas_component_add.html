@@ -36,6 +36,7 @@
 	</tr>
 </table>
 </body>
+<script src='../morfeas_ecma/common.js'></script>
 <script>
 //@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
 /*
@@ -88,15 +89,87 @@ for the JavaScript code in this page.
 	function new_comp(sel)
 	{
 		comp_data_table.innerHTML = "";
+		if(!sel.index)
+			return;
+		//--Make Head--//
+		let th = document.createElement("th");
+		th.setAttribute("colspan","2");
+		let textnode = document.createTextNode("Component's Properties");
+		th.appendChild(textnode);
+		comp_data_table.appendChild(th);
 		switch(sel.value)
 		{
 			case "SDAQ_HANDLER":
-
+				if(!can_ifs_names)
+					alert("No CAN-IFs found!!!");
+				else
+					canif_table_constractor(comp_data_table, can_ifs_names);
 				break;
 			case "MDAQ_HANDLER":
 			case "IOBOX_HANDLER":
 			case "MTI_HANDLER":
+				modbus_related_table_constractor(comp_data_table);
 				break;
+		}
+	}
+	function canif_table_constractor(_table, _can_ifs_names)
+	{
+		var tr,td,select,option,textnode;
+
+		tr = _table.insertRow();
+		td = document.createElement("td");
+		textnode = document.createTextNode("CAN-IF");
+		td.appendChild(textnode);
+		tr.appendChild(td);
+		td = document.createElement("td");
+		select = document.createElement("select");
+		select.setAttribute("name","can_if");
+		for(let i=0;i<_can_ifs_names.length;i++)
+		{
+			option = document.createElement("option");
+			option.setAttribute("value",_can_ifs_names[i]);
+			textnode = document.createTextNode(_can_ifs_names[i]);
+			option.appendChild(textnode);
+			select.appendChild(option);
+		}
+		td.appendChild(select);
+		tr.appendChild(td);
+	}
+	function modbus_related_table_constractor(_table)
+	{
+		const prop=["DEV_NAME","IPv4_ADDR"];
+		var tr,td,input,textnode;
+		for(let i=0;i<prop.length;i++)
+		{
+			tr = _table.insertRow();
+			td = document.createElement("td");
+			textnode = document.createTextNode(prop[i]+':');
+			td.appendChild(textnode);
+			tr.appendChild(td);
+			td = document.createElement("td");
+			input = document.createElement("input");
+			input.setAttribute("name",prop[i]);
+			input.setAttribute("maxlength","20");
+			input.oninput = function(){this.value = this.value.replace(" ","");};
+			input.onchange = function(){inp_validate(this)};
+			td.appendChild(input);
+			tr.appendChild(td);
+		}
+	}
+	function inp_validate(elem)
+	{
+		if(elem.name === "IPv4_ADDR")
+		{
+			if(!ip_addr_val(elem.value))
+			{
+				elem.value = "";
+				alert("You have entered an invalid IP address!");
+				return;
+			}
+		}
+		else if(elem.name === "DEV_NAME")
+		{
+			
 		}
 	}
 //@license-end
