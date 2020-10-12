@@ -63,6 +63,12 @@ function ip_addr_val(ip_addr)
 	return patt.test(ip_addr)?true:false;
 }
 
+function DEV_NAME_val(DEV_NAME)
+{
+	const patt= new RegExp(/[^[a-zA-Z0-9_-]]*/);
+	return patt.test(DEV_NAME)?false:true;
+}
+
 //Compression function
 function compress(data)
 {

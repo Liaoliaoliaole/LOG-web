@@ -43,7 +43,7 @@ function delete_selected_Morfeas_comp()
 		curr_morfeas_config_xml.removeChild(curr_morfeas_config_xml.childNodes[elem_pos]);
 	}
 	comp_args.innerHTML="";
-	morfeas_comp_list(new_morfeas_config_xml, curr_morfeas_config_xml);
+	morfeas_comp_list(listNodes, new_morfeas_config_xml, curr_morfeas_config_xml);
 }
 //Function that send the new_morfeas_confit to the server
 function save_morfeas_config()
@@ -70,10 +70,9 @@ function get_comp_name(comp)
 		default: return null;
 	}
 }
-function morfeas_comp_list(new_morfeas_components_xml, curr_morfeas_components_xml)
+function morfeas_comp_list(listNode, new_morfeas_components_xml, curr_morfeas_components_xml)
 {
-	var listNode=document.getElementById("Comp_UL"),
-	comp=new_morfeas_components_xml.firstChild;
+	var comp=new_morfeas_components_xml.firstChild;
 	listNode.innerHTML="";
 	for(let i = 0; i<new_morfeas_components_xml.childNodes.length; i++)
 	{
@@ -140,7 +139,12 @@ function morfeas_comp_table(args_table, _newConfigXML_node, _currConfigXML_Node)
 				}
 				else if(_newConfigXML_node.childNodes[i].nodeName === "DEV_NAME")
 				{
-					
+					if(!DEV_NAME_val(this.value))
+					{
+						this.value = _newConfigXML_node.childNodes[i].textContent;
+						alert("DEV_NAME contains illegal characters");
+						return;
+					}
 				}
 				_newConfigXML_node.childNodes[i].textContent = this.value;
 				const list_select = document.getElementsByClassName("caret-down")[0];

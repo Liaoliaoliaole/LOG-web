@@ -100,8 +100,9 @@ for the JavaScript code in this page.
 	Object.freeze(disp_mode);
 
 	var child_wins = new Array();
+	var listNode = document.getElementById("Comp_UL");
 	//Vars for Morfeas_config tab
-	var curr_morfeas_config_xml, new_morfeas_config_xml;
+	var curr_morfeas_config_xml, new_morfeas_config_xml, morfeas_config_xml;
 	var comp_args_table = document.getElementById("comp_args");
 	//Vars for ISOStandards tab
 	var curr_ISOstd_xml;
@@ -123,10 +124,11 @@ for the JavaScript code in this page.
 				{
 					if(curr_tab === disp_mode.cnf)
 					{
-						curr_morfeas_config_xml = this.responseXML.getElementsByTagName("COMPONENTS")[0];
-						new_morfeas_config_xml = (new DOMParser()).parseFromString((new XMLSerializer()).serializeToString(this.responseXML), "application/xml");
+						morfeas_config_xml = this.responseXML;
+						curr_morfeas_config_xml = morfeas_config_xml.getElementsByTagName("COMPONENTS")[0];
+						new_morfeas_config_xml = (new DOMParser()).parseFromString((new XMLSerializer()).serializeToString(morfeas_config_xml), "application/xml");
 						new_morfeas_config_xml = new_morfeas_config_xml.getElementsByTagName("COMPONENTS")[0];
-						morfeas_comp_list(new_morfeas_config_xml, curr_morfeas_config_xml);
+						morfeas_comp_list(listNode, new_morfeas_config_xml, curr_morfeas_config_xml);
 					}
 				}
 				else if(this.getResponseHeader("Content-Type")==="ISOStandard")
