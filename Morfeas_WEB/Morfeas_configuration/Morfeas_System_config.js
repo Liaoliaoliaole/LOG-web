@@ -172,12 +172,12 @@ function morfeas_comp_table(args_table, _newConfigXML_node, _currConfigXML_Node)
 					if(j>=can_ifs_names.length)
 					{
 						this.value = _newConfigXML_node.childNodes[i].textContent;
-						alert("CANBUS_IF doesn't exist!!!");
+						alert("CANBUS_IF:"+this.value+" doesn't exist!!!");
 						return;
 					}
 					if(is_canIF_inuse(this.value, new_morfeas_config_xml))
 					{
-						alert("CAN-IF ("+this.value+") useb dy another handler");
+						alert("CAN-IF ("+this.value+") used by an another handler");
 						this.value = _newConfigXML_node.childNodes[i].textContent;
 						return;
 					}

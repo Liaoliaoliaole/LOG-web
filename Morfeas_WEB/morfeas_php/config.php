@@ -369,18 +369,14 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				return;
 			case "Morfeas_config":
 				$data = decompress($RX_data) or die("Server: Decompressing of Morfeas_config failed");
-				$dom = DOMDocument::loadXML($data) or die("Server: XML Parsing error at Morfeas_config");
-				$dom->formatOutput = true;
-				echo($dom->saveXML());
+				$new_morfeas_config = DOMDocument::loadXML($data) or die("Server: XML Parsing error at Morfeas_config");
+				$local_Morfeas_config = DOMDocument::load($opc_ua_config_dir."Morfeas_config.xml") or die("Server: Failure on reading of Local Morfeas_config.xml");
+				$local_Morfeas_config->formatOutput = true;
+				
+				print_r($local_Morfeas_config->getElementsByTagName("COMPONENTS")[0]);
 
-				/*
-				$imp = new DOMImplementation;
-				$dtd = $imp->createDocumentType('NODESet', '', 'Morfeas.dtd');
-				$dom = $imp->createDocument('', '', $dtd);
-				$dom->encoding = 'UTF-8';
-				$dom->xmlVersion = '1.0';
-				$dom->formatOutput = true;
-				*/
+				//echo $local_Morfeas_config->saveXML();
+				//$local_Morfeas_config->save($opc_ua_config_dir.'Morfeas_config.xml');
 				return;
 			case "ISOstandard":
 				$data = decompress($RX_data) or die("Server: Decompressing of ISOstandard failed");
