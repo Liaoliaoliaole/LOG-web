@@ -40,7 +40,8 @@ function delete_selected_Morfeas_comp()
 	if(new_morfeas_config_xml.childNodes[elem_pos].nodeName === elem_name)
 	{
 		new_morfeas_config_xml.removeChild(new_morfeas_config_xml.childNodes[elem_pos]);
-		curr_morfeas_config_xml.removeChild(curr_morfeas_config_xml.childNodes[elem_pos]);
+		if(curr_morfeas_config_xml.childNodes[elem_pos])
+			curr_morfeas_config_xml.removeChild(curr_morfeas_config_xml.childNodes[elem_pos]);
 	}
 	comp_args.innerHTML="";
 	morfeas_comp_list(listNodes, new_morfeas_config_xml, curr_morfeas_config_xml);
@@ -50,7 +51,9 @@ function save_morfeas_config()
 {
 	xhttp.open("POST", "../morfeas_php/config.php", true);
 	xhttp.setRequestHeader("Content-type", "Morfeas_config");
-	xhttp.send(compress((new XMLSerializer()).serializeToString(new_morfeas_config_xml)));
+	let data = (new XMLSerializer()).serializeToString(new_morfeas_config_xml);
+	//console.log(data);
+	xhttp.send(compress(data));
 }
 //Function to get morfeas component name, return comp_name_id on success, NULL otherwise
 function get_comp_name(comp)
@@ -136,6 +139,12 @@ function morfeas_comp_table(args_table, _newConfigXML_node, _currConfigXML_Node)
 						alert("You have entered an invalid IP address!");
 						return;
 					}
+					if(is_IPv4_addr_inuse(this.value, new_morfeas_config_xml))
+					{
+						alert("IPv4_ADDR ("+this.value+") used on an another handler!!!");
+						this.value = _newConfigXML_node.childNodes[i].textContent;
+						return;
+					}
 				}
 				else if(_newConfigXML_node.childNodes[i].nodeName === "DEV_NAME")
 				{
@@ -143,6 +152,33 @@ function morfeas_comp_table(args_table, _newConfigXML_node, _currConfigXML_Node)
 					{
 						this.value = _newConfigXML_node.childNodes[i].textContent;
 						alert("DEV_NAME contains illegal characters");
+						return;
+					}
+					if(is_DevName_inuse(this.value, new_morfeas_config_xml))
+					{
+						alert("DEV_NAME ("+this.value+") used on an another handler!!!");
+						this.value = _newConfigXML_node.childNodes[i].textContent;
+						return;
+					}
+				}
+				else if(_newConfigXML_node.childNodes[i].nodeName === "CANBUS_IF")
+				{
+					let j;
+					for(j=0;j<can_ifs_names.length;j++)
+					{
+						if(this.value===can_ifs_names[j])
+							break;
+					}
+					if(j>=can_ifs_names.length)
+					{
+						this.value = _newConfigXML_node.childNodes[i].textContent;
+						alert("CANBUS_IF doesn't exist!!!");
+						return;
+					}
+					if(is_canIF_inuse(this.value, new_morfeas_config_xml))
+					{
+						alert("CAN-IF ("+this.value+") useb dy another handler");
+						this.value = _newConfigXML_node.childNodes[i].textContent;
 						return;
 					}
 				}

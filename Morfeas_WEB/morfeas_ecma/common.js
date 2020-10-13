@@ -69,6 +69,52 @@ function DEV_NAME_val(DEV_NAME)
 	return patt.test(DEV_NAME)?false:true;
 }
 
+function is_canIF_inuse(selected_can_if_val, _Morfeas_config_XML)
+{
+	for(let i=0;i<_Morfeas_config_XML.childNodes.length;i++)
+	{
+		let node_under_check=_Morfeas_config_XML.childNodes[i];
+		if(node_under_check.nodeName==="SDAQ_HANDLER")
+			if(node_under_check.childNodes[0].textContent===selected_can_if_val)
+				return true;
+	}
+	return false;
+}
+
+function is_DevName_inuse(selected_DevName_val, _Morfeas_config_XML)
+{
+	for(let i=0;i<_Morfeas_config_XML.childNodes.length;i++)
+	{
+		let node_under_check=_Morfeas_config_XML.childNodes[i];
+		switch(node_under_check.nodeName)
+		{
+			case "MDAQ_HANDLER":
+			case "IOBOX_HANDLER":
+			case "MTI_HANDLER":
+			if(node_under_check.childNodes[0].textContent===selected_DevName_val)
+				return true;
+		}
+	}
+	return false;
+}
+
+function is_IPv4_addr_inuse(selected_IPv4_addr_val, _Morfeas_config_XML)
+{
+	for(let i=0;i<_Morfeas_config_XML.childNodes.length;i++)
+	{
+		let node_under_check=_Morfeas_config_XML.childNodes[i];
+		switch(node_under_check.nodeName)
+		{
+			case "MDAQ_HANDLER":
+			case "IOBOX_HANDLER":
+			case "MTI_HANDLER":
+			if(node_under_check.childNodes[1].textContent===selected_IPv4_addr_val)
+				return true;
+		}
+	}
+	return false;
+}
+
 //Compression function
 function compress(data)
 {

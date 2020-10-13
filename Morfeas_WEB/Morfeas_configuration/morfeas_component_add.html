@@ -58,33 +58,8 @@ for the JavaScript code in this page.
 */
 	"use strict";
 	document.getElementById('comp_type').selectedIndex = 0;
-	var can_ifs_names;
-	//AJAX object for configuration receive and send
-	var xhttp = new XMLHttpRequest();
-	xhttp.timeout = 5000;
-	xhttp.onreadystatechange = function()
-	{
-		if(this.readyState == 4)
-		{
-			if(this.status == 200)
-			{
-				if(this.getResponseHeader("Content-Type")==="getCANifs_names/json")
-					can_ifs_names = JSON.parse(this.responseText);
-				else
-					alert(this.responseText);
-			}
-			else if(this.status == 500)
-				alert("FATAL Error on server!!!");
-		}
-	};
-	xhttp.ontimeout = function(){
-		alert("Client: Communication Error!!!");
-	};
-	//Get CAN-IFs names
-	xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getCANifs_names", true);
-	xhttp.send();
-
 	var caller_res = window.opener;
+	var can_ifs_names = caller_res.can_ifs_names;
 	var comp_data_table = document.getElementById('comp_add_table_data');
 	function new_comp(sel)
 	{
@@ -158,7 +133,7 @@ for the JavaScript code in this page.
 	}
 	function inp_validate(elem)
 	{
-		if(elem.name === "IPv4_ADDR")
+		if(elem.id === "IPv4_ADDR")
 		{
 			if(!ip_addr_val(elem.value))
 			{
@@ -167,7 +142,7 @@ for the JavaScript code in this page.
 				return;
 			}
 		}
-		else if(elem.name === "DEV_NAME")
+		else if(elem.id === "DEV_NAME")
 		{
 			if(!DEV_NAME_val(elem.value))
 			{
@@ -185,7 +160,7 @@ for the JavaScript code in this page.
 		{
 			case "SDAQ_HANDLER":
 				let selected_can_if= document.getElementById("can_if");
-				if(is_canIF_inuse(selected_can_if.value))
+				if(is_canIF_inuse(selected_can_if.value, caller_res.new_morfeas_config_xml))
 				{
 					alert("CAN-IF ("+selected_can_if.value+") useb dy another handler");
 					return;
@@ -211,26 +186,20 @@ for the JavaScript code in this page.
 				let node = caller_res.morfeas_config_xml.createElement("DEV_NAME");
 				let textNode = caller_res.morfeas_config_xml.createTextNode(selected_dev_name.value);
 				node.appendChild(textNode);
-				new_handler.appendChild(CANBUS_IF_node);
+				new_handler.appendChild(node);
+				node = caller_res.morfeas_config_xml.createElement("IPv4_ADDR");
+				textNode = caller_res.morfeas_config_xml.createTextNode(selected_ip_addr.value);
+				node.appendChild(textNode);
+				new_handler.appendChild(node);
 				caller_res.new_morfeas_config_xml.appendChild(new_handler);
 				break;
 			default: return;
 		}
 		caller_res.document.getElementById("comp_args").innerHTML="";
 		caller_res.morfeas_comp_list(caller_res.listNode, caller_res.new_morfeas_config_xml, caller_res.curr_morfeas_config_xml);
-		//window.close();
+		window.close();
 	}
-	function is_canIF_inuse(selected_can_if_val)
-	{
-		for(let i=0;i<caller_res.new_morfeas_config_xml.childNodes.length;i++)
-		{
-			let node_under_check=caller_res.new_morfeas_config_xml.childNodes[i];
-			if(node_under_check.nodeName==="SDAQ_HANDLER")
-				if(node_under_check.childNodes[0].textContent===selected_can_if_val)
-					return true;
-		}
-		return false;
-	}
+
 	function is_modbus_props_used(dev_name_val, ip_addr_val)
 	{
 		for(let i=0;i<caller_res.new_morfeas_config_xml.childNodes.length;i++)

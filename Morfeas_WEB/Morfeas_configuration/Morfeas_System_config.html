@@ -63,10 +63,6 @@
 		</tr>
 	</table>
 </div>
-<footer style="bottom:0;width:99%;">
-  <p>Author: Sam Harry Tzavaras &#169; 12019-12020<br>
-  <a href="../LICENSE">License: AGPL v3</a><br>
-</footer>
 </body>
 <script src='../morfeas_ecma/common.js'></script>
 <script src='./Morfeas_System_config.js'></script>
@@ -100,6 +96,7 @@ for the JavaScript code in this page.
 	Object.freeze(disp_mode);
 
 	var child_wins = new Array();
+	var can_ifs_names;
 	var listNode = document.getElementById("Comp_UL");
 	//Vars for Morfeas_config tab
 	var curr_morfeas_config_xml, new_morfeas_config_xml, morfeas_config_xml;
@@ -112,7 +109,7 @@ for the JavaScript code in this page.
 	document.getElementById('isoSTD_xml_file').value = "";
 	document.getElementById('bundle_file').value = "";
 	//AJAX object for configuration receive and send
-	var config=null, xhttp = new XMLHttpRequest();
+	var xhttp = new XMLHttpRequest();
 	xhttp.timeout = 5000;
 	xhttp.onreadystatechange = function()
 	{
@@ -139,6 +136,8 @@ for the JavaScript code in this page.
 						isoSTD_develop(isoSTD_table, curr_ISOstd_xml);
 					}
 				}
+				else if(this.getResponseHeader("Content-Type")==="getCANifs_names/json")
+					can_ifs_names = JSON.parse(this.responseText);
 				else
 					alert(this.responseText);
 			}
@@ -149,6 +148,12 @@ for the JavaScript code in this page.
 	xhttp.ontimeout = function(){
 		alert("Client: Communication Error!!!");
 	};
+	//get CAN-IFs names
+	if(!can_ifs_names)
+	{
+		xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getCANifs_names", true);
+		xhttp.send();
+	}
 	function disp_sel(mode)
 	{
 		if(mode === curr_tab)
