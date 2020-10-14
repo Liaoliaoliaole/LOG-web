@@ -144,7 +144,10 @@ for the JavaScript code in this page.
 				{
 					let report = JSON.parse(this.responseText);
 					if(report.report)
+					{
+						alert("New Configuration is saved!!!\nMorfeas System restarted!!!");
 						location.reload();
+					}
 				}
 				else
 					alert(this.responseText);
