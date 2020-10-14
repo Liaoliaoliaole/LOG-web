@@ -21,7 +21,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 	function _ip2long($ip_str)
 	{
 		$ip=ip2long($ip_str) or die("Server: ip2long() failed!!!");
-		$ip=(PHP_INT_SIZE==8&&$ip>0x7FFFFFFF)? $ip-0x100000000 : $ip;//check and convert to signed 
+		$ip=(PHP_INT_SIZE==8&&$ip>0x7FFFFFFF)? $ip-0x100000000 : $ip;//check and convert to signed
 		return $ip;
 	}
 	function bundle_make()
@@ -250,6 +250,53 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 		$CAN_if_config_file=implode("\n",$CAN_if_config);
 		file_put_contents('/etc/network/interfaces.d/'.$new_CAN_if->if_Name,$CAN_if_config_file)or die("Server: Can't write configuration file for ".$new_CAN_if->if_Name);
 	}
+	function new_morfeas_config_val($new_morfeas_config)
+	{
+		$opc_ua_server_det=false;
+		$new_morfeas_config=simplexml_import_dom($new_morfeas_config);
+		if($new_morfeas_config->getName()!=="COMPONENTS")
+			return false;
+		foreach ($new_morfeas_config->children() as $comp)
+		{
+			if(!$comp->count())
+				die("Server: Component\"".$comp->getName()."\" have no child nodes");
+			switch($comp->getName())
+			{
+				case "OPC_UA_SERVER":
+					$opc_ua_server_det=true;
+					if($comp->children()[0]->getName()!=='APP_NAME')
+						die("Server: OPC_UA_SERVER->APP_NAME missing");
+					if(!strlen($comp->children()[0]))
+						die("Server: OPC_UA_SERVER->APP_NAME is empty");
+					break;
+				case "SDAQ_HANDLER":
+					if($comp->children()[0]->getName()!=='CANBUS_IF')
+						die("Server: Component\"".$comp->getName()."\" have invalid child nodes");
+					if(!strlen($comp->children()[0]))
+						die("Server: SDAQ_HANDLER->CANBUS_IF is empty");
+					break;
+				case "MDAQ_HANDLER":
+				case "IOBOX_HANDLER":
+				case "MTI_HANDLER":
+					if($comp->children()[0]->getName()!=='DEV_NAME'&&$comp->children()[1]->getName()!=='IPv4_ADDR')
+						die("Server: Component\"".$comp->getName()."\" have invalid child nodes");
+					if(!strlen($comp->children()[0]))
+						die("Server: ".$comp->getName()."->DEV_NAME is empty");
+					if(preg_match("/[^[a-zA-Z0-9_-]]*/", $comp->children()[0]))
+						die("Server: ".$comp->getName()."->DEV_NAME contains invalid characters");
+					if(!strlen($comp->children()[1]))
+						die("Server: ".$comp->getName()."->IPv4_ADDR is empty");
+					if(!filter_var($comp->children()[1], FILTER_VALIDATE_IP))
+						die("Server: ".$comp->getName()."->IPv4_ADDR is not a valid IPv4 address");
+					break;
+				default:
+					return false;
+			}
+		}
+		if(!$opc_ua_server_det)
+			die("Server: \"OPC_UA_SERVER\" component missing");
+		return true;
+	}
 	ob_start("ob_gzhandler");//Enable gzip buffering
 	//Disable caching
 	header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -355,7 +402,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					{
 						foreach($new_config->CAN_ifs as $CAN_if)
 						{
-							
+
 							new_CANif_config($CAN_if);
 							$CAN_if_name=$CAN_if->if_Name;$CAN_if_bitrate=$CAN_if->bitrate;
 							exec("sudo ip link set $CAN_if_name down");
@@ -368,15 +415,24 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				echo '{"report":"Okay"}';
 				return;
 			case "Morfeas_config":
+				$new_morfeas_config = new DOMDocument; $local_Morfeas_config = new DOMDocument;
 				$data = decompress($RX_data) or die("Server: Decompressing of Morfeas_config failed");
-				$new_morfeas_config = DOMDocument::loadXML($data) or die("Server: XML Parsing error at Morfeas_config");
-				$local_Morfeas_config = DOMDocument::load($opc_ua_config_dir."Morfeas_config.xml") or die("Server: Failure on reading of Local Morfeas_config.xml");
+				$new_morfeas_config->loadXML($data) or die("Server: XML Parsing error at Morfeas_config");
+				$new_morfeas_config->formatOutput = true;
+				new_morfeas_config_val($new_morfeas_config) or die("Server: Morfeas_config Validation Error");
+				
+				$local_Morfeas_config->load($opc_ua_config_dir."Morfeas_config.xml") or die("Server: Failure on reading of Local Morfeas_config.xml");
+				$local_Morfeas_config->preserveWhiteSpace = false;
 				$local_Morfeas_config->formatOutput = true;
 				
-				print_r($local_Morfeas_config->getElementsByTagName("COMPONENTS")[0]);
-
-				//echo $local_Morfeas_config->saveXML();
-				//$local_Morfeas_config->save($opc_ua_config_dir.'Morfeas_config.xml');
+				$local_Morfeas_config->documentElement->removeChild($local_Morfeas_config->getElementsByTagName('COMPONENTS')[0]);
+				$new_config=$local_Morfeas_config->importNode($new_morfeas_config->documentElement, true);
+				$local_Morfeas_config->documentElement->appendChild($new_config);
+				$local_Morfeas_config->loadXML($local_Morfeas_config->saveXML());
+				$local_Morfeas_config->save($opc_ua_config_dir.'Morfeas_config.xml') or die('Server: Unable to write Morfeas_config.xml');
+				exec('sudo systemctl restart Morfeas_system.service');
+				header('Content-Type: report/json');
+				echo '{"report":"Okay"}';
 				return;
 			case "ISOstandard":
 				$data = decompress($RX_data) or die("Server: Decompressing of ISOstandard failed");

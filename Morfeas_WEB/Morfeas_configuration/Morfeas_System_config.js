@@ -44,7 +44,7 @@ function delete_selected_Morfeas_comp()
 			curr_morfeas_config_xml.removeChild(curr_morfeas_config_xml.childNodes[elem_pos]);
 	}
 	comp_args.innerHTML="";
-	morfeas_comp_list(listNodes, new_morfeas_config_xml, curr_morfeas_config_xml);
+	morfeas_comp_list(listNodes, new_morfeas_config_xml, curr_morfeas_config_xml, document.getElementById("rem"));
 }
 //Function that send the new_morfeas_confit to the server
 function save_morfeas_config()
@@ -73,10 +73,11 @@ function get_comp_name(comp)
 		default: return null;
 	}
 }
-function morfeas_comp_list(listNode, new_morfeas_components_xml, curr_morfeas_components_xml)
+function morfeas_comp_list(listNode, new_morfeas_components_xml, curr_morfeas_components_xml, indicator)
 {
 	var comp=new_morfeas_components_xml.firstChild;
 	listNode.innerHTML="";
+	indicator.innerHTML="USED:"+new_morfeas_components_xml.childNodes.length+"/"+Morfeas_comp_amount_max;
 	for(let i = 0; i<new_morfeas_components_xml.childNodes.length; i++)
 	{
 	  if(comp.nodeType == Node.ELEMENT_NODE)
@@ -131,6 +132,11 @@ function morfeas_comp_table(args_table, _newConfigXML_node, _currConfigXML_Node)
 			arg_inp.value=_newConfigXML_node.childNodes[i].textContent;
 			arg_inp.onchange = function()
 			{
+				if(!this.value.length)
+				{
+					this.value = _newConfigXML_node.childNodes[i].textContent;
+					return;
+				}
 				if(_newConfigXML_node.childNodes[i].nodeName === "IPv4_ADDR")
 				{
 					if(!ip_addr_val(this.value))

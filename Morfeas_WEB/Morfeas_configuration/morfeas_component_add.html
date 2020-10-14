@@ -154,6 +154,12 @@ for the JavaScript code in this page.
 	}
 	function comp_val_and_add()
 	{
+		if(caller_res.new_morfeas_config_xml.childNodes.length>=Morfeas_comp_amount_max)
+		{
+			alert("Maximum Amount of components reached!!!");
+			window.close();
+			return;
+		}
 		var sel=document.getElementById("comp_type");
 		var new_handler = caller_res.morfeas_config_xml.createElement(sel.value);
 		switch(sel.value)
@@ -196,7 +202,7 @@ for the JavaScript code in this page.
 			default: return;
 		}
 		caller_res.document.getElementById("comp_args").innerHTML="";
-		caller_res.morfeas_comp_list(caller_res.listNode, caller_res.new_morfeas_config_xml, caller_res.curr_morfeas_config_xml);
+		caller_res.morfeas_comp_list(caller_res.listNode, caller_res.new_morfeas_config_xml, caller_res.curr_morfeas_config_xml, caller_res.rem);
 		window.close();
 	}
 

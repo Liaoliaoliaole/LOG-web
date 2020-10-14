@@ -17,6 +17,7 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 for the JavaScript code in this page.
 */
 "use strict";
+const Morfeas_comp_amount_max = 16;
 function comp_check()
 {
 	if(document.documentMode)

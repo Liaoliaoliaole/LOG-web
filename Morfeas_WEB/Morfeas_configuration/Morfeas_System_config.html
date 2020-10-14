@@ -25,9 +25,10 @@
 </div>
 <div name="tab" style="width: 100%; overflow: hidden; display:none"><!--Morfeas system config-->
     <div style="width:30%;float:left;">
+		<b id="rem" style="margin-left:15%"></b>
 		<ul id="Comp_UL"></ul>
 		<div style="margin-left:10%;">
-			<input type="button" value="Add" onclick='child_wins.push(PopupCenter("./morfeas_component_add.html"+"?q="+makeid(),"","600","300"))'>
+			<input type="button" value="Add" onclick='add_comp()'>
 			<input type="button" value="Remove" onclick="delete_selected_Morfeas_comp()">
 			<input type="button" value="Save" onclick="save_morfeas_config()">
 		</div>
@@ -98,6 +99,7 @@ for the JavaScript code in this page.
 	var child_wins = new Array();
 	var can_ifs_names;
 	var listNode = document.getElementById("Comp_UL");
+	var rem=document.getElementById("rem");
 	//Vars for Morfeas_config tab
 	var curr_morfeas_config_xml, new_morfeas_config_xml, morfeas_config_xml;
 	var comp_args_table = document.getElementById("comp_args");
@@ -125,7 +127,7 @@ for the JavaScript code in this page.
 						curr_morfeas_config_xml = morfeas_config_xml.getElementsByTagName("COMPONENTS")[0];
 						new_morfeas_config_xml = (new DOMParser()).parseFromString((new XMLSerializer()).serializeToString(morfeas_config_xml), "application/xml");
 						new_morfeas_config_xml = new_morfeas_config_xml.getElementsByTagName("COMPONENTS")[0];
-						morfeas_comp_list(listNode, new_morfeas_config_xml, curr_morfeas_config_xml);
+						morfeas_comp_list(listNode, new_morfeas_config_xml, curr_morfeas_config_xml, document.getElementById("rem"));
 					}
 				}
 				else if(this.getResponseHeader("Content-Type")==="ISOStandard")
@@ -138,6 +140,12 @@ for the JavaScript code in this page.
 				}
 				else if(this.getResponseHeader("Content-Type")==="getCANifs_names/json")
 					can_ifs_names = JSON.parse(this.responseText);
+				else if(this.getResponseHeader("Content-Type")==="report/json")
+				{
+					let report = JSON.parse(this.responseText);
+					if(report.report)
+						location.reload();
+				}
 				else
 					alert(this.responseText);
 			}
@@ -184,12 +192,21 @@ for the JavaScript code in this page.
 		}
 		curr_tab = mode;
 	}
+	function add_comp()
+	{
+		if(!new_morfeas_config_xml)
+			return;
+		if(new_morfeas_config_xml.childNodes.length<Morfeas_comp_amount_max)
+			child_wins.push(PopupCenter("./morfeas_component_add.html"+"?q="+makeid(),"","600","300"));
+		else
+			alert("Maximum amount of component reached!!!");
+	}
 	function destroy_child_wins()
 	{
 		if(child_wins.length == 0)
 			return;
 		for(let i=0; i<child_wins.length; i++)
-			if(!child_wins[i].closed)	
+			if(!child_wins[i].closed)
 				child_wins[i].close();
 	}
 //@license-end
