@@ -177,8 +177,8 @@ function morfeas_comp_table(args_table, _newConfigXML_node, _currConfigXML_Node)
 					}
 					if(j>=can_ifs_names.length)
 					{
-						this.value = _newConfigXML_node.childNodes[i].textContent;
 						alert("CANBUS_IF:"+this.value+" doesn't exist!!!");
+						this.value = _newConfigXML_node.childNodes[i].textContent;
 						return;
 					}
 					if(is_canIF_inuse(this.value, new_morfeas_config_xml))
