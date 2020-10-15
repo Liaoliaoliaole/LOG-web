@@ -47,8 +47,16 @@ td.bold{
 		<th colspan="4" style="font-weight: bold; font-size: xx-large">Morfeas WEB<br>(<?php echo gethostname();?>)</th>
 	  </tr>
 	  <tr>
-		<td><button type="button" onclick='PopupCenter("/morfeas_SDAQ_web_if/"+"?q="+makeid(),"","1024","768")'>SDAQs<br>Portal</td>
-		<td><button type="button" onclick='PopupCenter("/morfeas_MDAQ_web_if/"+"?q="+makeid(),"","1024","768")'>MDAQs<br>Portal</td>
+		<td><button type="button" onclick='PopupCenter("/morfeas_SDAQ_web_if/"+"?q="+makeid(),"","1024","768")'>
+			<span title="SDAQs Portal">
+				<img src="./art/SDAQ-TC-K-16.png" class="bsize">
+			</span>
+		</td>
+		<td><button type="button" onclick='PopupCenter("/morfeas_MDAQ_web_if/"+"?q="+makeid(),"","1024","768")'>
+			<span title="MDAQs Portal">
+				<img src="./art/MDAQ8.png" class="bsize">
+			</span>
+		</td>
 		<td><button type="button" onclick='PopupCenter("/morfeas_IOBOX_web_if/"+"?q="+makeid(),"","1024","768")'>IOBOXs<br>Portal</td>
 		<td><button type="button" onclick='PopupCenter("/morfeas_MTI_web_if/"+"?q="+makeid(),"","1024","768")'>MTIs<br>Portal</td>
 	  </tr>
