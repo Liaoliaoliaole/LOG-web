@@ -252,17 +252,18 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 	}
 	function new_morfeas_config_val($new_morfeas_config)
 	{
-		$opc_ua_server_det=false;
+		$opc_ua_server_det=false; $comp_ord=0; $pre_comp_ord=0;
 		$new_morfeas_config=simplexml_import_dom($new_morfeas_config);
 		if($new_morfeas_config->getName()!=="COMPONENTS")
 			return false;
 		foreach ($new_morfeas_config->children() as $comp)
 		{
 			if(!$comp->count())
-				die("Server: Component\"".$comp->getName()."\" have no child nodes");
+				die("Server: Component\"".$comp->getName()."\" have no children nodes");
 			switch($comp->getName())
 			{
 				case "OPC_UA_SERVER":
+					$comp_ord=1;
 					$opc_ua_server_det=true;
 					if($comp->children()[0]->getName()!=='APP_NAME')
 						die("Server: OPC_UA_SERVER->APP_NAME missing");
@@ -270,6 +271,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 						die("Server: OPC_UA_SERVER->APP_NAME is empty");
 					break;
 				case "SDAQ_HANDLER":
+					$comp_ord=2;
 					if($comp->children()[0]->getName()!=='CANBUS_IF')
 						die("Server: Component\"".$comp->getName()."\" have invalid child nodes");
 					if(!strlen($comp->children()[0]))
@@ -278,6 +280,12 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				case "MDAQ_HANDLER":
 				case "IOBOX_HANDLER":
 				case "MTI_HANDLER":
+					switch($comp->getName())
+					{
+						case "MDAQ_HANDLER": $comp_ord=3; break;
+						case "IOBOX_HANDLER": $comp_ord=4; break;
+						case "MTI_HANDLER": $comp_ord=5; break;
+					}
 					if($comp->children()[0]->getName()!=='DEV_NAME'&&$comp->children()[1]->getName()!=='IPv4_ADDR')
 						die("Server: Component\"".$comp->getName()."\" have invalid child nodes");
 					if(!strlen($comp->children()[0]))
@@ -292,6 +300,10 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				default:
 					return false;
 			}
+			if($pre_comp_ord<=$comp_ord)
+				$pre_comp_ord=$comp_ord;
+			else
+				die("Server: validation failure \"COMPONENTS\" is not in order!!!");
 		}
 		if(!$opc_ua_server_det)
 			die("Server: \"OPC_UA_SERVER\" component missing");

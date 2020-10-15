@@ -46,13 +46,31 @@ function delete_selected_Morfeas_comp()
 	comp_args.innerHTML="";
 	morfeas_comp_list(listNodes, new_morfeas_config_xml, curr_morfeas_config_xml, document.getElementById("rem"));
 }
+function morfeas_config_ordered(_new_morfeas_config)
+{
+	var ordered_new_morfeas_config = document.implementation.createDocument(null, "COMPONENTS");
+	const comp_order=["OPC_UA_SERVER","SDAQ_HANDLER","MDAQ_HANDLER","IOBOX_HANDLER","MTI_HANDLER"];
+	for(let i=0;i<comp_order.length;i++)
+	{
+		var compsWithType=_new_morfeas_config.getElementsByTagName(comp_order[i]);
+		console.log(compsWithType);
+		if(compsWithType.length)
+			for(let j=0;j<compsWithType.length;j++)
+			{
+				let compsWithType_clone = compsWithType[j].cloneNode(true);
+				ordered_new_morfeas_config.documentElement.appendChild(compsWithType_clone);
+			}
+	}
+	return ordered_new_morfeas_config;
+}
 //Function that send the new_morfeas_confit to the server
 function save_morfeas_config()
 {
+	var config_to_send = morfeas_config_ordered(new_morfeas_config_xml);
 	xhttp.open("POST", "../morfeas_php/config.php", true);
 	xhttp.setRequestHeader("Content-type", "Morfeas_config");
-	let data = (new XMLSerializer()).serializeToString(new_morfeas_config_xml);
-	//console.log(data);
+	let data = (new XMLSerializer()).serializeToString(config_to_send);
+	console.log(data);
 	xhttp.send(compress(data));
 }
 //Function to get morfeas component name, return comp_name_id on success, NULL otherwise
