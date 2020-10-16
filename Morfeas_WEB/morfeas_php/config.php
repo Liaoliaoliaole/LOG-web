@@ -365,14 +365,14 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					$doc = new DOMDocument('1.0');
 					$doc->load($opc_ua_config_dir."Morfeas_config.xml",LIBXML_NOBLANKS) or die("Server: Fail to read Morfeas_config.xml");
 					$doc->formatOutput = false;
-					header('Content-Type: Morfeas_config');
+					header('Content-Type: Morfeas_config/xml');
 					echo $doc->saveXML();
 					return;
 				case 'getISOStandard':
 					$doc = new DOMDocument('1.0');
 					$doc->load($opc_ua_config_dir."ISOstandard.xml",LIBXML_NOBLANKS) or die("Server: Fail to read ISOStandard.xml");
 					$doc->formatOutput = false;
-					header('Content-Type: ISOStandard');
+					header('Content-Type: ISOStandard/xml');
 					echo $doc->saveXML();
 					return;
 				case 'getCANifs_names':

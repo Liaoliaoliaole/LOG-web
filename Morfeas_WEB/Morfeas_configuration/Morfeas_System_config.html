@@ -119,22 +119,28 @@ for the JavaScript code in this page.
 		{
 			if(this.status == 200)
 			{
-				if(this.getResponseHeader("Content-Type")==="Morfeas_config")
+				if(this.getResponseHeader("Content-Type")==="Morfeas_config/xml")
 				{
 					if(curr_tab === disp_mode.cnf)
 					{
-						morfeas_config_xml = this.responseXML;
+						if(!this.responseXML)
+							morfeas_config_xml = (new DOMParser()).parseFromString(this.responseText, "application/xml");
+						else
+							morfeas_config_xml = this.responseXML;
 						curr_morfeas_config_xml = morfeas_config_xml.getElementsByTagName("COMPONENTS")[0];
 						new_morfeas_config_xml = (new DOMParser()).parseFromString((new XMLSerializer()).serializeToString(morfeas_config_xml), "application/xml");
 						new_morfeas_config_xml = new_morfeas_config_xml.getElementsByTagName("COMPONENTS")[0];
 						morfeas_comp_list(listNode, new_morfeas_config_xml, curr_morfeas_config_xml, document.getElementById("rem"));
 					}
 				}
-				else if(this.getResponseHeader("Content-Type")==="ISOStandard")
+				else if(this.getResponseHeader("Content-Type")==="ISOStandard/xml")
 				{
 					if(curr_tab === disp_mode.std)
 					{
-						curr_ISOstd_xml = this.responseXML.getElementsByTagName("points")[0];
+						if(!this.responseXML)
+							curr_ISOstd_xml = (new DOMParser()).parseFromString(this.responseText, "application/xml").getElementsByTagName("points")[0];
+						else
+							curr_ISOstd_xml = this.responseXML.getElementsByTagName("points")[0];
 						isoSTD_develop(isoSTD_table, curr_ISOstd_xml);
 					}
 				}
@@ -211,6 +217,14 @@ for the JavaScript code in this page.
 		for(let i=0; i<child_wins.length; i++)
 			if(!child_wins[i].closed)
 				child_wins[i].close();
+	}
+	window.onbeforeunload = function(){
+		if(new_morfeas_config_xml&&curr_morfeas_config_xml)
+		{
+			if(new_morfeas_config_xml.textContent.localeCompare(curr_morfeas_config_xml.textContent))
+				return "Configuration is Not Saved!!!";
+		}
+		return;
 	}
 //@license-end
 </script>
