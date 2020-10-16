@@ -151,6 +151,7 @@ for the JavaScript code in this page.
 					let report = JSON.parse(this.responseText);
 					if(report.report)
 					{
+						curr_morfeas_config_xml = new_morfeas_config_xml;
 						alert("New Configuration is saved!!!\nMorfeas System restarted!!!");
 						location.reload();
 					}
