@@ -6,6 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
+<link rel="stylesheet" type="text/css" href="SDAQsPortal.css">
 <title>Morfeas SDAQ Portal</title>
 </head>
 <body>
@@ -19,9 +20,7 @@
 				<option value='0'>None</option>
 			</select>
 		</td>
-		<td style="text-align:left;"><input id="download" type="button" value="Reload"
-			onclick="request_mode = mode_enum.SDAQnet_name;">
-		</td>
+		<td id="SDAQnet_stats"><td>
 	  </tr>
 	</table>
 	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;">
@@ -32,14 +31,26 @@
 			<td colspan="4">Status<br><input id="status" style="text-align:center;" type="textbox" size="20" value="Okay" readonly></td>
 		</tr>
 	</table>
-	
-	<table id ="SDAQs" style="margin:auto;text-align:center;"></table>
-	<footer style="position:absolute;bottom:0;width:99%;">
+	<table id ="SDAQs" style="margin:auto;text-align:center;">
+		<tr>
+			<td style="width:20%;vertical-align:top;">
+				<ul id="SDAQs_list"></ul>
+			</td>
+			<td style="width:80%;">
+				 <canvas id="data_plot_canvas" width="600" height="400" style="border:1px solid #000000;"></canvas>
+			</td>
+		<tr>
+	</table>
+	<footer style="bottom:0;width:99%;">
 		<p>Author: Sam Harry Tzavaras &#169; 12019-12020<br>
 		<a href="../LICENSE">License: AGPLv3</a><br>
 	</footer>
 </body>
+<script src="/External_components/Chart.js-2.9.3/Chart.js"></script>
+<script src="/External_components/hammer.js-2.0.8/hammer.js"></script>
+<script src="/External_components/chartjs-plugin-zoom/chartjs-plugin-zoom.js"></script>
 <script src='../morfeas_ecma/common.js'></script>
+<script src='./SDAQsPortal.js'></script>
 <script>
 //@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
 /*
@@ -96,6 +107,19 @@ for the JavaScript code in this page.
 					}
 					break;
 				case mode_enum.SDAQnet_contents:
+					if(this.getResponseHeader("Content-Type")==="application/json")
+					{
+						try
+						{					
+						  var SDAQnet_data = JSON.parse(this.responseText);
+						}
+						catch(e)
+						{
+							document.getElementById("status").value = "Error: " + e.message;
+							break;
+						}
+						data_plot(SDAQnet_data);
+					}
 					break;
 			}
 		}
@@ -108,6 +132,22 @@ for the JavaScript code in this page.
 	//request names of available logstats
 	xhttp.open("GET", "/morfeas_php/morfeas_web_if.php?COMMAND=logstats_names", true);
 	xhttp.send();
+	//timer of getting data
+	setInterval(SDAQ_data_req, 1000);
+	function SDAQ_data_req()
+	{
+		var selector = document.getElementById("SDAQnet_name_sel");
+		if(selector.selectedIndex)
+		{
+			xhttp.open("GET", "/ramdisk/logstat_SDAQs_"+selector.value+".json"+"?q="+makeid(), true);
+			xhttp.send();
+		}
+		else
+		{
+			document.getElementById("SDAQnet_stats").innerHTML="";
+			document.getElementById("SDAQs_list").innerHTML="";
+		}
+	}
 //@license-end
 </script>
 </html>
