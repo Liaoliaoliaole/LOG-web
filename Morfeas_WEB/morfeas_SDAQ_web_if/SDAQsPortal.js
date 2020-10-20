@@ -24,28 +24,29 @@ for the JavaScript code in this page.
 */
 function data_plot(SDAQnet_data)
 {
-	if(!data_plot.prev)
-		data_plot.prev={};
 	var SDAQnet_stats = document.getElementById("SDAQnet_stats");
 	var SDAQs_list = document.getElementById("SDAQs_list");
-	SDAQnet_stats.innerHTML="Det_devs:"+SDAQnet_data.Detected_SDAQs+" Bus_util: "+SDAQnet_data.BUS_Utilization+'%';
+	var time_now = Number((new Date().getTime()/1000).toFixed(0));
+	if(!data_plot.prev)
+		data_plot.prev={};
+	SDAQnet_stats.innerHTML="Det_devs:"+SDAQnet_data.Detected_SDAQs+
+							" Bus_util: "+SDAQnet_data.BUS_Utilization+'%';
 	if(data_plot.prev.amount!=SDAQnet_data.Detected_SDAQs || data_plot.prev.bus!=SDAQnet_data.CANBus_interface || !SDAQs_list.innerHTML)
 	{
 		SDAQs_list.innerHTML="";
 		if(SDAQnet_data.SDAQs_data)
-			SDAQ_dev_list(SDAQs_list, SDAQnet_data.SDAQs_data);
+			SDAQ_dev_list_tree(SDAQs_list, SDAQnet_data.SDAQs_data);
 		data_plot.prev.amount=SDAQnet_data.Detected_SDAQs;
 		data_plot.prev.bus=SDAQnet_data.CANBus_interface;
 	}
 }
-function SDAQ_dev_list(listNode, SDAQs_data)
+function SDAQ_dev_list_tree(listNode, SDAQs_data)
 {
 	for(let i = 0; i<SDAQs_data.length; i++)
 	{
 		let textNode = document.createTextNode(SDAQs_data[i].SDAQ_type+'('+SDAQs_data[i].Address+')'),
 		liNode = document.createElement("LI");
 		liNode.classList.add("caret");
-		//liNode.setAttribute("name", comp.nodeName+"@"+i);
 		liNode.onclick = function()
 		{
 			var others = document.getElementsByClassName("caret-down");
@@ -64,31 +65,15 @@ function SDAQ_dev_list(listNode, SDAQs_data)
 		listNode.appendChild(liNode);
 	}
 }
+/*
 var ctx = document.getElementById('data_plot_canvas').getContext('2d');
 var myChart = new Chart(ctx, {
-    type: 'bar',
+    type: 'line',
     data: {
         labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
         datasets: [{
             label: '# of Votes',
-            data: [12, 19, 3, 5, 2, 3],
-            backgroundColor: [
-                'rgba(255, 99, 132, 0.2)',
-                'rgba(54, 162, 235, 0.2)',
-                'rgba(255, 206, 86, 0.2)',
-                'rgba(75, 192, 192, 0.2)',
-                'rgba(153, 102, 255, 0.2)',
-                'rgba(255, 159, 64, 0.2)'
-            ],
-            borderColor: [
-                'rgba(255, 99, 132, 1)',
-                'rgba(54, 162, 235, 1)',
-                'rgba(255, 206, 86, 1)',
-                'rgba(75, 192, 192, 1)',
-                'rgba(153, 102, 255, 1)',
-                'rgba(255, 159, 64, 1)'
-            ],
-            borderWidth: 1
+            data: [12, 19, 3, 5, 2, 3]
         }]
     },
     options: {
@@ -133,65 +118,13 @@ var myChart = new Chart(ctx, {
 					threshold: 10,
 
 					// Function called while the user is panning
-					onPan: function({chart}) { console.log(`I'm panning!!!`); },
+					onPan: function({chart}) { console.log("I'm panning!!!");},
 					// Function called once panning is completed
-					onPanComplete: function({chart}) { console.log(`I was panned!!!`); }
-				},
-
-				// Container for zoom options
-				zoom: {
-					// Boolean to enable zooming
-					enabled: true,
-
-					// Enable drag-to-zoom behavior
-					drag: true,
-
-					// Drag-to-zoom effect can be customized
-					// drag: {
-					// 	 borderColor: 'rgba(225,225,225,0.3)'
-					// 	 borderWidth: 5,
-					// 	 backgroundColor: 'rgb(225,225,225)',
-					// 	 animationDuration: 0
-					// },
-
-					// Zooming directions. Remove the appropriate direction to disable
-					// Eg. 'y' would only allow zooming in the y direction
-					// A function that is called as the user is zooming and returns the
-					// available directions can also be used:
-					//   mode: function({ chart }) {
-					//     return 'xy';
-					//   },
-					mode: 'xy',
-
-					rangeMin: {
-						// Format of min zoom range depends on scale type
-						x: null,
-						y: null
-					},
-					rangeMax: {
-						// Format of max zoom range depends on scale type
-						x: null,
-						y: null
-					},
-
-					// Speed of zoom via mouse wheel
-					// (percentage of zoom on a wheel event)
-					speed: 0.1,
-
-					// Minimal zoom distance required before actually applying zoom
-					threshold: 2,
-
-					// On category scale, minimal zoom level before actually applying zoom
-					sensitivity: 3,
-
-					// Function called while the user is zooming
-					onZoom: function({chart}) { console.log(`I'm zooming!!!`); },
-					// Function called once zooming is completed
-					onZoomComplete: function({chart}) { console.log(`I was zoomed!!!`); }
+					onPanComplete: function({chart}) { console.log("I was panned!!!");}
 				}
 			}
 		}
     }
 });
-
+*/
 //@license-end
