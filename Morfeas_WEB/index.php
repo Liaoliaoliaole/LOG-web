@@ -48,7 +48,7 @@ td.bold{
 	  </tr>
 	  <tr>
 		<td><button type="button" onclick='PopupCenter("/morfeas_SDAQ_web_if/SDAQsPortal.html"+"?q="+makeid(),"","1024","768")'>SDAQs<br>Portal</td>
-		<td><button type="button" onclick='PopupCenter("/morfeas_MDAQ_web_if/MDAQsPortal.html"+"?q="+makeid(),"","1024","768")'>"MDAQs<br>Portal</td>
+		<td><button type="button" onclick='PopupCenter("/morfeas_MDAQ_web_if/MDAQsPortal.html"+"?q="+makeid(),"","1024","768")'>MDAQs<br>Portal</td>
 		<td><button type="button" onclick='PopupCenter("/morfeas_IOBOX_web_if/"+"?q="+makeid(),"","1024","768")'>IOBOXs<br>Portal</td>
 		<td><button type="button" onclick='PopupCenter("/morfeas_MTI_web_if/"+"?q="+makeid(),"","1024","768")'>MTIs<br>Portal</td>
 	  </tr>

@@ -49,23 +49,28 @@ function SDAQ_dev_list_tree(listNode, SDAQs_data)
 		let textNode = document.createTextNode(SDAQs_data[i].SDAQ_type+'('+SDAQs_data[i].Address+')'),
 		liNode = document.createElement("LI");
 		liNode.classList.add("caret");
-		liNode.onclick = function()
-		{
-			var others = document.getElementsByClassName("caret-down");
-			for(let j = 0; j<others.length; j++)
-			{
-				if(others[j] !== this)
-				{
-					others[j].style.fontWeight = "normal";
-					others[j].classList.value = "caret";
-				}
-			}
-			this.classList.value = "caret-down";
-			this.style.fontWeight = "bold";
-		};
+		liNode.onclick = list_sel_callback;
 		liNode.appendChild(textNode);
+		for(let j=0; j<SDAQs_data[i].Meas.length;j++)
+		{
+			console.log(SDAQs_data[i].Meas[j].Channel);
+		}
 		listNode.appendChild(liNode);
 	}
+}
+function list_sel_callback()
+{
+	var others = document.getElementsByClassName("caret-down");
+	for(let j = 0; j<others.length; j++)
+	{
+		if(others[j] !== this)
+		{
+			others[j].style.fontWeight = "normal";
+			others[j].classList.value = "caret";
+		}
+	}
+	this.classList.value = "caret-down";
+	this.style.fontWeight = "bold";
 }
 /*
 var ctx = document.getElementById('data_plot_canvas').getContext('2d');
