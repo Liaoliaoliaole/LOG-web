@@ -31,6 +31,8 @@ function data_plot(SDAQnet_data)
 		data_plot.prev={};
 	SDAQnet_stats.innerHTML="Det_devs:"+SDAQnet_data.Detected_SDAQs+
 							" Bus_util: "+SDAQnet_data.BUS_Utilization+'%';
+	if(SDAQnet_data.hasOwnProperty('Electrics'))
+		SDAQnet_stats.innerHTML+=" Bus_voltage: "+SDAQnet_data.Electrics.BUS_voltage+"V"+" Bus_Amperage: "+SDAQnet_data.Electrics.BUS_amperage+"A"
 	if(data_plot.prev.amount!=SDAQnet_data.Detected_SDAQs || data_plot.prev.bus!=SDAQnet_data.CANBus_interface || !SDAQs_list.innerHTML)
 	{
 		SDAQs_list.innerHTML="";
