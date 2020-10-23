@@ -470,6 +470,12 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				else
 					die("Server: Bundle does not have valid content");
 				return;
+			case "reboot":
+				exec('sudo reboot');
+				return;
+			case "shutdown":
+				exec('sudo poweroff');
+				return;
 		}
 	}
 	http_response_code(404);

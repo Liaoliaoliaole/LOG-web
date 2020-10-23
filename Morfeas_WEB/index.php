@@ -51,6 +51,11 @@ td.bold{
 		<td><button type="button" onclick='PopupCenter("/morfeas_MDAQ_web_if/MDAQsPortal.html"+"?q="+makeid(),"","1024","768")'>MDAQs<br>Portal</td>
 		<td><button type="button" onclick='PopupCenter("/morfeas_IOBOX_web_if/"+"?q="+makeid(),"","1024","768")'>IOBOXs<br>Portal</td>
 		<td><button type="button" onclick='PopupCenter("/morfeas_MTI_web_if/"+"?q="+makeid(),"","1024","768")'>MTIs<br>Portal</td>
+		<td><button type="button" onclick='reboot()'>
+			<span title="reboot">
+				<img src="./art/reboot.png" class="bsize">
+			</span>
+		</td>
 	  </tr>
 	  <tr>
 		<td><button type="button" onclick='PopupCenter("/ISOChannel_Linker/html/","","1280","1024")'>
@@ -73,6 +78,11 @@ td.bold{
 				<img src="./art/eth.png" class="bsize">
 			</span>
 		</td>
+		<td><button type="button" onclick='shutdown();'>
+			<span title="shutdown">
+				<img src="./art/shutdown.png" class="bsize">
+			</span>
+		</td>
 	  </tr>
 	</table>
 </div>
@@ -89,6 +99,30 @@ td.bold{
 </body>
 <script src='../morfeas_ecma/common.js'></script>
 <script>
+//@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this page.
+
+Copyright (C) 12019-12020  Sam Harry Tzavaras
+
+The JavaScript code in this page is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU AGPL) as published by the Free Software
+Foundation, either version 3 of the License, or any later version.
+The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+@licend  The above is the entire license notice
+for the JavaScript code in this page.
+*/
 	comp_check();
 	document.onkeyup = function(key){
 		var pi=document.getElementById("pi");
@@ -100,5 +134,24 @@ td.bold{
 			pi.style.visibility="visible";
 		
 	};
+	
+	function shutdown()
+	{
+		var xhttp = new XMLHttpRequest();
+		xhttp.open("POST", "../morfeas_php/config.php", true);
+		xhttp.setRequestHeader("Content-type", "shutdown");
+		xhttp.send();
+		alert("Shudown executed. Close all windows!!!");
+	}
+
+	function reboot()
+	{
+		var xhttp = new XMLHttpRequest();
+		xhttp.open("POST", "../morfeas_php/config.php", true);
+		xhttp.setRequestHeader("Content-type", "reboot");
+		xhttp.send();
+		alert("Reboot executed. Refresh all windows!!!");
+	}	
+//@license-end
 </script>
 </html>

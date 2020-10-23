@@ -28,7 +28,7 @@
 			<th colspan="5" style="font-size: 200%;">SDAQs WEB Portal</th>
 		</tr>
 		<tr>
-			<td colspan="4">Status<br><input id="status" style="text-align:center;" type="textbox" size="20" value="Okay" readonly></td>
+			<td colspan="4">Status<br><input id="status" style="text-align:center;" type="textbox" size="20" value="Init" readonly></td>
 		</tr>
 	</table>
 	<table id ="SDAQs" style="margin:auto;width:90%;">
@@ -38,8 +38,8 @@
 			</td>
 			<td style="width:60%">
 				 <canvas id="data_plot_canvas" width="600" height="400" style="border:1px solid #000000;"></canvas>
+				 <textarea id="SDAQ_data_stats" style="resize:none;" rows="5" cols="72" readonly></textarea>
 			</td>
-		<tr>
 	</table>
 	<footer style="bottom:0;width:99%;">
 		<p>Author: Sam Harry Tzavaras &#169; 12019-12020<br>
@@ -82,6 +82,7 @@ for the JavaScript code in this page.
 		SDAQnet_name: 0,
 		SDAQnet_contents: 1
 	};
+	var data_req=false;
 	var request_mode = mode_enum.SDAQnet_name;
 	//AJAX response handler
 	var xhttp = new XMLHttpRequest();
@@ -91,6 +92,7 @@ for the JavaScript code in this page.
 		if (this.readyState == 4 && this.status == 200)
 		{
 			document.getElementById("status").value = "Okay";
+			data_req=false;
 			switch(request_mode)
 			{
 				case mode_enum.SDAQnet_name:
@@ -127,7 +129,8 @@ for the JavaScript code in this page.
 			document.getElementById("status").value = "Not found return";
 	};
 	xhttp.ontimeout = function(){
-	  document.getElementById("status").value = "Timeout Error";
+	  document.getElementById("status").value = "Connection Timeout";
+	  data_req=false;
 	};
 	//request names of available logstats
 	xhttp.open("GET", "/morfeas_php/morfeas_web_if.php?COMMAND=logstats_names", true);
@@ -136,16 +139,20 @@ for the JavaScript code in this page.
 	setInterval(SDAQ_data_req, 1000);
 	function SDAQ_data_req()
 	{
-		var selector = document.getElementById("SDAQnet_name_sel");
-		if(selector.selectedIndex)
+		if(!data_req)
 		{
-			xhttp.open("GET", "/ramdisk/logstat_SDAQs_"+selector.value+".json"+"?q="+makeid(), true);
-			xhttp.send();
-		}
-		else
-		{
-			document.getElementById("SDAQnet_stats").innerHTML="";
-			document.getElementById("SDAQs_list").innerHTML="";
+			var selector = document.getElementById("SDAQnet_name_sel");
+			if(selector.selectedIndex)
+			{
+				xhttp.open("GET", "/ramdisk/logstat_SDAQs_"+selector.value+".json"+"?q="+makeid(), true);
+				xhttp.send();
+				data_req = true;
+			}
+			else
+			{
+				document.getElementById("SDAQnet_stats").innerHTML="";
+				document.getElementById("SDAQs_list").innerHTML="";
+			}
 		}
 	}
 //@license-end
