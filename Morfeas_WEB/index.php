@@ -39,18 +39,18 @@ td.bold{
 <div class="content">
 	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:7in;">
 	  <tr>
-		<th colspan="4" style="font-weight: bold; font-size: xx-large">
+		<th colspan="5" style="font-weight: bold; font-size: xx-large">
 			<img src="./art/Morfeas_logo_yellow.png" width="100" height="100">
 		</th>
 	  </tr>
 	  <tr>
-		<th colspan="4" style="font-weight: bold; font-size: xx-large">Morfeas WEB<br>(<?php echo gethostname();?>)</th>
+		<th colspan="5" style="font-weight: bold; font-size: xx-large">Morfeas WEB<br>(<?php echo gethostname();?>)</th>
 	  </tr>
 	  <tr>
 		<td><button type="button" onclick='PopupCenter("/morfeas_SDAQ_web_if/SDAQsPortal.html"+"?q="+makeid(),"","1024","768")'>SDAQs<br>Portal</td>
 		<td><button type="button" onclick='PopupCenter("/morfeas_MDAQ_web_if/MDAQsPortal.html"+"?q="+makeid(),"","1024","768")'>MDAQs<br>Portal</td>
-		<td><button type="button" onclick='PopupCenter("/morfeas_IOBOX_web_if/"+"?q="+makeid(),"","1024","768")'>IOBOXs<br>Portal</td>
-		<td><button type="button" onclick='PopupCenter("/morfeas_MTI_web_if/"+"?q="+makeid(),"","1024","768")'>MTIs<br>Portal</td>
+		<td><button type="button" onclick='PopupCenter("/morfeas_IOBOX_web_if/IOBOXsPortal.html"+"?q="+makeid(),"","1024","768")'>IOBOXs<br>Portal</td>
+		<td><button type="button" onclick='PopupCenter("/morfeas_MTI_web_if/MTIsPortal.html"+"?q="+makeid(),"","1024","768")'>MTIs<br>Portal</td>
 		<td><button type="button" onclick='reboot()'>
 			<span title="reboot">
 				<img src="./art/reboot.png" class="bsize">
@@ -141,7 +141,7 @@ for the JavaScript code in this page.
 		xhttp.open("POST", "../morfeas_php/config.php", true);
 		xhttp.setRequestHeader("Content-type", "shutdown");
 		xhttp.send();
-		alert("Shudown executed. Close all windows!!!");
+		alert("Shudown executed. Close all related windows!!!");
 	}
 
 	function reboot()
@@ -150,7 +150,6 @@ for the JavaScript code in this page.
 		xhttp.open("POST", "../morfeas_php/config.php", true);
 		xhttp.setRequestHeader("Content-type", "reboot");
 		xhttp.send();
-		alert("Reboot executed. Refresh all windows!!!");
 	}	
 //@license-end
 </script>

@@ -24,6 +24,62 @@ for the JavaScript code in this page.
 */
 function data_plot(SDAQnet_data)
 {
+	var Data = {
+		labels: [],
+		datasets: [{
+					  label: "Acceleration",
+					  fill: false,
+					  lineTension: 0.2,
+					  borderColor: "rgba(75,192,192,1)",
+					  borderDashOffset: 0.0,
+					  pointBorderWidth: 0,
+					  pointHoverRadius: 0,
+					  pointHoverBorderWidth: 0,
+					  pointRadius: 0,
+					  pointHitRadius: 0,
+					  data: []
+				  }]
+		};
+        var options = {
+			  animation: false,
+			  maintainAspectRatio: true,
+              responsive: true,
+              tooltips:{
+			  enabled:false
+			  },
+			  scales: {
+                  xAxes: [{
+					 scaleLabel: {
+                          display: false,
+						  labelString: 'Time (msec)'
+                      },
+					 gridLines: {
+						display: true,
+						drawBorder : true
+					  },
+					  ticks: {
+						drawTicks: false,
+					    beginAtZero : true,
+						autoSkip : false
+					  }
+                      
+                  }],
+                  yAxes: [{
+                      display: true,
+                      type: 'linear',
+                      scaleLabel: {
+                          display: true,
+                          labelString: 'Acceleration (g)'
+                      },
+					  ticks: {
+					  max: 500,
+					  min: -500,
+					}
+                  }]
+              }
+          };
+	
+	
 	var SDAQnet_stats = document.getElementById("SDAQnet_stats");
 	var SDAQs_list = document.getElementById("SDAQs_list");
 	var time_now = Number((new Date().getTime()/1000).toFixed(0));
@@ -35,11 +91,17 @@ function data_plot(SDAQnet_data)
 		SDAQnet_stats.innerHTML+=" Bus_voltage: "+SDAQnet_data.Electrics.BUS_voltage+"V"+" Bus_Amperage: "+SDAQnet_data.Electrics.BUS_amperage+"A"
 	if(data_plot.prev.amount!=SDAQnet_data.Detected_SDAQs || data_plot.prev.bus!=SDAQnet_data.CANBus_interface || !SDAQs_list.innerHTML)
 	{
+		var SDAQ_Data_Chart = new Chart.Line("data_plot_canvas");
 		SDAQs_list.innerHTML="";
 		if(SDAQnet_data.SDAQs_data)
 			SDAQ_dev_list_tree(SDAQs_list, SDAQnet_data.SDAQs_data);
 		data_plot.prev.amount=SDAQnet_data.Detected_SDAQs;
 		data_plot.prev.bus=SDAQnet_data.CANBus_interface;
+	}
+	var sel_sdaq=document.getElementsByClassName("caret-down");
+	if(sel_sdaq.length)
+	{
+		console.log(sel_sdaq); 
 	}
 }
 function SDAQ_dev_list_tree(listNode, SDAQs_data)
@@ -51,10 +113,12 @@ function SDAQ_dev_list_tree(listNode, SDAQs_data)
 		liNode.classList.add("caret");
 		liNode.onclick = list_sel_callback;
 		liNode.appendChild(textNode);
+		/*
 		for(let j=0; j<SDAQs_data[i].Meas.length;j++)
 		{
 			console.log(SDAQs_data[i].Meas[j].Channel);
 		}
+		*/
 		listNode.appendChild(liNode);
 	}
 }
@@ -72,66 +136,4 @@ function list_sel_callback()
 	this.classList.value = "caret-down";
 	this.style.fontWeight = "bold";
 }
-/*
-var ctx = document.getElementById('data_plot_canvas').getContext('2d');
-var myChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
-        datasets: [{
-            label: '# of Votes',
-            data: [12, 19, 3, 5, 2, 3]
-        }]
-    },
-    options: {
-        scales: {
-            yAxes: [{
-                ticks: {
-                    beginAtZero: true
-                }
-            }]
-        },
-		plugins: {
-			zoom: {
-				// Container for pan options
-				pan: {
-					// Boolean to enable panning
-					enabled: true,
-
-					// Panning directions. Remove the appropriate direction to disable
-					// Eg. 'y' would only allow panning in the y direction
-					// A function that is called as the user is panning and returns the
-					// available directions can also be used:
-					//   mode: function({ chart }) {
-					//     return 'xy';
-					//   },
-					mode: 'xy',
-
-					rangeMin: {
-						// Format of min pan range depends on scale type
-						x: null,
-						y: null
-					},
-					rangeMax: {
-						// Format of max pan range depends on scale type
-						x: null,
-						y: null
-					},
-
-					// On category scale, factor of pan velocity
-					speed: 20,
-
-					// Minimal pan distance required before actually applying pan
-					threshold: 10,
-
-					// Function called while the user is panning
-					onPan: function({chart}) { console.log("I'm panning!!!");},
-					// Function called once panning is completed
-					onPanComplete: function({chart}) { console.log("I was panned!!!");}
-				}
-			}
-		}
-    }
-});
-*/
 //@license-end
