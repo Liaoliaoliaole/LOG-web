@@ -309,7 +309,9 @@ function morfeas_logstat_commonizer(logstats)
 					{
 						for(let k=0; k<logstats.logstat_contents[i].SDAQs_data[j].Meas.length; k++)
 						{
-							if(!(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Channel_status_val))
+							if(!(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Channel_status_val)||
+								(logstats.logstat_contents[i].SDAQs_data[j].SDAQ_type === "Pseudo_SDAQ")||
+								(logstats.logstat_contents[i].SDAQs_data[j].SDAQ_type === "SDAQ-TC-16"))
 							{
 								data_table[data_table_index].sensors.push(new sensor
 								(

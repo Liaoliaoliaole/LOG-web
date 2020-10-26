@@ -62,7 +62,7 @@ function data_plot(SDAQnet_data)
 					    beginAtZero : true,
 						autoSkip : false
 					  }
-                      
+
                   }],
                   yAxes: [{
                       display: true,
@@ -78,11 +78,9 @@ function data_plot(SDAQnet_data)
                   }]
               }
           };
-	
-	
+
 	var SDAQnet_stats = document.getElementById("SDAQnet_stats");
 	var SDAQs_list = document.getElementById("SDAQs_list");
-	var time_now = Number((new Date().getTime()/1000).toFixed(0));
 	if(!data_plot.prev)
 		data_plot.prev={};
 	SDAQnet_stats.innerHTML="Det_devs:"+SDAQnet_data.Detected_SDAQs+
@@ -91,7 +89,7 @@ function data_plot(SDAQnet_data)
 		SDAQnet_stats.innerHTML+=" Bus_voltage: "+SDAQnet_data.Electrics.BUS_voltage+"V"+" Bus_Amperage: "+SDAQnet_data.Electrics.BUS_amperage+"A"
 	if(data_plot.prev.amount!=SDAQnet_data.Detected_SDAQs || data_plot.prev.bus!=SDAQnet_data.CANBus_interface || !SDAQs_list.innerHTML)
 	{
-		var SDAQ_Data_Chart = new Chart.Line("data_plot_canvas");
+		//var SDAQ_Data_Chart = new Chart.Line("data_plot_canvas");
 		SDAQs_list.innerHTML="";
 		if(SDAQnet_data.SDAQs_data)
 			SDAQ_dev_list_tree(SDAQs_list, SDAQnet_data.SDAQs_data);
@@ -101,11 +99,13 @@ function data_plot(SDAQnet_data)
 	var sel_sdaq=document.getElementsByClassName("caret-down");
 	if(sel_sdaq.length)
 	{
-		console.log(sel_sdaq); 
+		//console.log(sel_sdaq);
 	}
 }
 function SDAQ_dev_list_tree(listNode, SDAQs_data)
 {
+	if(!SDAQs_data)
+		return;
 	for(let i = 0; i<SDAQs_data.length; i++)
 	{
 		let textNode = document.createTextNode(SDAQs_data[i].SDAQ_type+'('+SDAQs_data[i].Address+')'),
@@ -113,12 +113,10 @@ function SDAQ_dev_list_tree(listNode, SDAQs_data)
 		liNode.classList.add("caret");
 		liNode.onclick = list_sel_callback;
 		liNode.appendChild(textNode);
-		/*
 		for(let j=0; j<SDAQs_data[i].Meas.length;j++)
 		{
 			console.log(SDAQs_data[i].Meas[j].Channel);
 		}
-		*/
 		listNode.appendChild(liNode);
 	}
 }
