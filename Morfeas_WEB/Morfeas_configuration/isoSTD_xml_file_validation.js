@@ -24,6 +24,8 @@ function isoSTD_xml_file_val(selected_files)
 	const ISOSTD_NODE_MAX_LENGTH=20;
 
 	reader.onload = function(){
+		var t0 = performance.now()
+		
 		var xml_inp = this.result;
 		xml_inp = xml_inp.replace(/>[ \s\r\n]*</g,"><");
 		var removed_elements = new Array();
@@ -47,7 +49,23 @@ function isoSTD_xml_file_val(selected_files)
 			return;
 		}
 		let isoSTD_points = _isoSTD_xml.firstChild.firstChild;
-		for(let i=0; i<isoSTD_points.childElementCount; i++)//Check for nodes with errors
+		//Check for duplicate Nodes
+		for(let i=0; i<isoSTD_points.childElementCount-1; i++)
+		{
+			let check_node = isoSTD_points.childNodes[i];
+			for(let j=i+1; j<isoSTD_points.childElementCount-1; j++)
+			{
+				let _select_node = isoSTD_points.childNodes[j];
+				if(check_node.nodeName === _select_node.nodeName)
+				{
+					alert("Node \""+isoSTD_points.childNodes[i].nodeName+"\" found multiple times");
+					isoSTD_xml_str = ""; selected_files.value="";
+					return;
+				}
+			}
+		}
+		//Check for nodes with errors
+		for(let i=0; i<isoSTD_points.childElementCount; i++)
 		{
 			let rem_elem_obj = new Object();
 			let gtbd_node = isoSTD_points.childNodes[i];
@@ -131,22 +149,8 @@ function isoSTD_xml_file_val(selected_files)
 				}
 			}
 		}
-		//Check for duplicate Nodes
-		for(let i=0; i<isoSTD_points.childElementCount-1; i++)
-		{
-			let check_node = isoSTD_points.childNodes[i];
-			for(let j=i+1; j<isoSTD_points.childElementCount-1; j++)
-			{
-				let _select_node = isoSTD_points.childNodes[j];
-				if(check_node.nodeName === _select_node.nodeName)
-				{
-					alert("Node \""+isoSTD_points.childNodes[i].nodeName+"\" found multiple times");
-					isoSTD_xml_str = ""; selected_files.value="";
-					return;
-				}
-			}
-		}
-		isoSTD_xml_str = compress((new XMLSerializer()).serializeToString(_isoSTD_xml));
+		isoSTD_xml_str = (new XMLSerializer()).serializeToString(_isoSTD_xml);
+		isoSTD_xml_str = compress(isoSTD_xml_str);
 		if(removed_elements.length)//Report removed nodes, if any
 		{
 			let report_win = PopupCenter("about:blank", "", 500, 300);
@@ -156,6 +160,9 @@ function isoSTD_xml_file_val(selected_files)
 			generateTable(table, removed_elements);
 			report_win.document.write("<div style=\"text-align:center;\"><b>The following Node(s) has been removed</b></div><br>"+table.outerHTML);
 		}
+		
+		var t1 = performance.now()
+		console.log("Validation Took " + (t1 - t0) + " milliseconds.")
 	};
 	reader.readAsText(selected_files.files[0]);
 }

@@ -126,6 +126,7 @@ function compress(data)
 	var i, _index, index,
 		checksum=0,
 		dictOffset=0,
+		dictionary_limit=1000,
 		dictionary=[],
 		word="",
 		result="";
@@ -154,6 +155,7 @@ function compress(data)
 		result += word;
 	result = String.fromCharCode(dictOffset) + result + String.fromCharCode(checksum&0xFF);
 	console.log("Compression Ratio:"+Math.round((((1-result.length/data.length)) + Number.EPSILON)*100)+"%");
+	console.log(dictionary.length)
 	return result;
 }
 
