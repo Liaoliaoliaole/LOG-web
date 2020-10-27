@@ -434,7 +434,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				new_morfeas_config_val($new_morfeas_config) or die("Server: Morfeas_config Validation Error");
 				
 				$local_Morfeas_config->load($opc_ua_config_dir."Morfeas_config.xml") or die("Server: Failure on reading of Local Morfeas_config.xml");
-				$local_Morfeas_config->preserveWhiteSpace = false;
+				$local_Morfeas_config->preserveWhiteSpace = true;
 				$local_Morfeas_config->formatOutput = true;
 				
 				$local_Morfeas_config->documentElement->removeChild($local_Morfeas_config->getElementsByTagName('COMPONENTS')[0]);

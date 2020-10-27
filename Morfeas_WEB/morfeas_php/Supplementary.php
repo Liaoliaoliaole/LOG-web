@@ -28,6 +28,7 @@ function decompress($data)
 
 	$data = preg_split('/(?<!^)(?!$)/u', $data);
 	$dictOffset = mb_ord($data[0]);
+	$dictionary_limit=4096-$dictOffset;
 	$RX_Checksum = mb_ord($data[count($data)-1]);
 
 	for($i=1; $i<count($data)-1; $i++)
@@ -50,7 +51,8 @@ function decompress($data)
 			else
 				die("Server: Fatal error at decompression!!!");
 		}
-		$dictionary[] = $new_dict_entry;
+		if(count($dictionary) < $dictionary_limit)
+			$dictionary[] = $new_dict_entry;
 		$result .= $new_dict_entry->data;
 		$Cal_Checksum ^= $new_dict_entry->num;
 	}

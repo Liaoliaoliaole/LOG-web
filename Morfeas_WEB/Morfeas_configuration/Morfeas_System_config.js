@@ -267,8 +267,10 @@ function isoSTD_upload()
 		fileSelector.value = "";
 		curr_ISOstd_xml="";//element from ISOStandards tab
 	}
-	else
+	else if(!fileList.length)
 		alert("No ISOStandard XML file is selected");
+	else
+		alert("Validation in progress");
 }
 function isoSTD_download()
 {
