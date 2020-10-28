@@ -331,9 +331,9 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					header('Content-Length: '.strlen($bundle_content));
 					echo $bundle_content;
 					return;
-				case 'getISOStandard_file':
-					$ISO_STD_cont=file_get_contents($opc_ua_config_dir."ISOstandard.xml") or Die("Unable to read ISOStandard.xml");
-					$ISO_STD_name='ISOStandard_'.gethostname().'_'.date("Y_d_m_G_i_s");
+				case 'getISOstandard_file':
+					$ISO_STD_cont=file_get_contents($opc_ua_config_dir."ISOstandard.xml") or Die("Unable to read ISOstandard.xml");
+					$ISO_STD_name='ISOstandard_'.gethostname().'_'.date("Y_d_m_G_i_s");
 					header('Content-Description: File Transfer');
 					header('Content-Type: Mordeas_bundle');
 					header("Content-Disposition: attachment; filename=\"$ISO_STD_name.xml\"");
@@ -368,11 +368,11 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					header('Content-Type: Morfeas_config/xml');
 					echo $doc->saveXML();
 					return;
-				case 'getISOStandard':
+				case 'getISOstandard':
 					$doc = new DOMDocument('1.0');
-					$doc->load($opc_ua_config_dir."ISOstandard.xml",LIBXML_NOBLANKS) or die("Server: Fail to read ISOStandard.xml");
+					$doc->load($opc_ua_config_dir."ISOstandard.xml",LIBXML_NOBLANKS) or die("Server: Fail to read ISOstandard.xml");
 					$doc->formatOutput = false;
-					header('Content-Type: ISOStandard/xml');
+					header('Content-Type: ISOstandard/xml');
 					echo $doc->saveXML();
 					return;
 				case 'getCANifs_names':
@@ -451,7 +451,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 				$dom = DOMDocument::loadXML($data) or die("Server: XML Parsing error at ISOstandard");
 				$dom->formatOutput = true;
 				$dom->save($opc_ua_config_dir."ISOstandard.xml") or Die("Server: Unable to Write ISOstandard.xml");
-				echo "Server: New ISOStandard XML saved";
+				echo "Server: New ISOstandard XML saved";
 				return;
 			case "Morfeas_bundle":
 				$data = gzdecode($RX_data) or die("Server: Decompressing of Bundle failed");

@@ -225,7 +225,7 @@ function morfeas_comp_table(args_table, _newConfigXML_node, _currConfigXML_Node)
 		}
 	}
 }
-		//--- Functions for ISOStandards tab ---//
+		//--- Functions for ISOstandards tab ---//
 //Function that develop ISOstandard table
 function isoSTD_develop(table, ISOstd_xml)
 {
@@ -254,7 +254,7 @@ var isoSTD_xml_str;
 //Init of FileReader object
 const reader = new FileReader();
 reader.onerror = function(){alert("File Read Error!!!");};
-//Function for up/download ISOStandards
+//Function for up/download ISOstandards
 function isoSTD_upload()
 {
 	const fileSelector = document.getElementById('isoSTD_xml_file');
@@ -265,16 +265,16 @@ function isoSTD_upload()
 		xhttp.setRequestHeader("Content-type", "ISOstandard");
 		xhttp.send(isoSTD_xml_str);
 		fileSelector.value = "";
-		curr_ISOstd_xml="";//element from ISOStandards tab
+		curr_ISOstd_xml="";//element from ISOstandards tab
 	}
 	else if(!fileList.length)
-		alert("No ISOStandard XML file is selected");
+		alert("No ISOstandard XML file is selected");
 	else
 		alert("Validation in progress");
 }
 function isoSTD_download()
 {
-	window.open("../morfeas_php/config.php"+"?COMMAND=getISOStandard_file", '_self');
+	window.open("../morfeas_php/config.php"+"?COMMAND=getISOstandard_file", '_self');
 }
 //Functions for up/download a Morfeas Bundle
 function bundle_upload()

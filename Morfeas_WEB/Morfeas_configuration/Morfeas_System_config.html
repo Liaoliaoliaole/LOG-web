@@ -18,7 +18,7 @@
 	  </tr>
 	  <tr>
 		<td><input type="button" value="Morfeas system" onclick="disp_sel(disp_mode.cnf)"></td>
-		<td><input type="button" value="ISOStandards" onclick="disp_sel(disp_mode.std)"></td>
+		<td><input type="button" value="ISOstandards" onclick="disp_sel(disp_mode.std)"></td>
 		<td><input type="button" value="Up/DownLoad" onclick="disp_sel(disp_mode.ud)"></td>
 	  </tr>
 	</table>
@@ -37,12 +37,12 @@
 		<table id="comp_args"></table>
 	</div>
 </div>
-<div name="tab" style="width:100%; overflow:hidden; display:none"><!--ISOStandards-->
+<div name="tab" style="width:100%; overflow:hidden; display:none"><!--ISOstandards-->
 	<table id="ISO_std_table" style="margin:auto;text-align:left;margin-bottom:.075in;"></table>
 </div>
 <div name="tab" style="width:100%; overflow:hidden; display:none"><!--Up/DownLoad-->
 	<table style="margin:auto;text-align:left;margin-bottom:.075in;">
-		<th>ISOStandard Up/DownLoad</th>
+		<th>ISOstandard Up/DownLoad</th>
 		<tr>
 			<td>
 				<input type="file" id="isoSTD_xml_file" accept=".xml" onchange="isoSTD_xml_file_val(this)">
@@ -109,7 +109,7 @@ for the JavaScript code in this page.
 	//Vars for Morfeas_config tab
 	var curr_morfeas_config_xml, new_morfeas_config_xml, morfeas_config_xml;
 	var comp_args_table = document.getElementById("comp_args");
-	//Vars for ISOStandards tab
+	//Vars for ISOstandards tab
 	var curr_ISOstd_xml;
 	var isoSTD_table=document.getElementById("ISO_std_table");
 
@@ -139,7 +139,7 @@ for the JavaScript code in this page.
 						morfeas_comp_list(listNode, new_morfeas_config_xml, curr_morfeas_config_xml, document.getElementById("rem"));
 					}
 				}
-				else if(this.getResponseHeader("Content-Type")==="ISOStandard/xml")
+				else if(this.getResponseHeader("Content-Type")==="ISOstandard/xml")
 				{
 					if(curr_tab === disp_mode.std)
 					{
@@ -197,7 +197,7 @@ for the JavaScript code in this page.
 			case disp_mode.std:
 				if(!curr_ISOstd_xml)
 				{
-					xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getISOStandard", true);
+					xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getISOstandard", true);
 					xhttp.send();
 				}
 				tabs[disp_mode.std].style.display="block";
