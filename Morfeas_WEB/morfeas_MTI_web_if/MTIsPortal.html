@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
+<!--link rel="stylesheet" type="text/css" href="/Morfeas_configuration/Morfeas_System_config.css"-->
+<title>Morfeas MTI Portal</title>
+</head>
+<body>
+	<table id ="loggers" style="margin:left;">
+	  <tr>
+		<td colspan="4"><code id="Logger_terminal"></code></td>
+	  </tr>
+	  <tr>
+		<td style="text-align:right;">MTI's Device Name:
+			<select id="MTIDev_name_sel" onchange="name_selector(this)">
+				<option value='0'>None</option>
+			</select>
+		</td>
+	  </tr>
+	</table>
+	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;">
+		<tr>
+			<th colspan="5" style="font-size: 200%;">MTI WEB Portal</th>
+		</tr>
+		<tr>
+			<td colspan="4"><input id="status" style="text-align:center;" type="textbox" size="25" value="No selected device" readonly></td>
+		</tr>
+	</table>
+	<table id ="main_menu" style="margin:auto;text-align:center;margin-bottom:.075in;width:3in;display:none">
+		<tr>
+			<th colspan="3" style="font-size: 120%;">Main Menu</th>
+		</tr>
+		<tr>
+			<td><input type="button" value="Mode/Status" onclick='Show_hide(screen_enum.MTI_status_tab)'></td>
+			<td><input type="button" value="Telemetries" onclick='Show_hide(screen_enum.Telemetries_tab)'></td>
+			<td><input type="button" value="Graph" onclick='Show_hide(screen_enum.Graph_tab)'></td> 
+		</tr>
+	</table>
+	<div id ="MTI_status_tab" style="margin:auto; display:none;">
+		<table id="MTI_status" style="margin:auto;text-align:center;display:none">
+			<tr>
+				<th colspan="6" style="font-size: 100%;">MTI Status</th>
+			</tr>
+			<tr>
+				<td>Device name:</td><td name="MTI_status_cells"></td>
+				<td>IPv4 Address:</td><td name="MTI_status_cells"></td>
+				<td>CPU temp(°C):</td><td name="MTI_status_cells"></td>
+				<td>Device name:</td><td name="MTI_status_cells"></td>
+				<td>Device name:</td><td name="MTI_status_cells"></td>
+				<td>Device name:</td><td name="MTI_status_cells"></td>
+			</tr>
+		</table>
+	</div>
+	<div id ="Telemetries_tab" style="margin:auto;text-align:center;display:none;">
+		<table id="Telemetries_table" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;"></table>
+	</div>
+	<div id ="Graph_tab" style="margin:auto;text-align:center;display:none;">
+		<canvas  id="Plot_Chart" height="120">No canvas Support</canvas>
+	</div>
+	<footer style="bottom:0;width:99%;">
+		<p>Author: Sam Harry Tzavaras &#169; 12019-12020<br>
+		<a href="../LICENSE">License: AGPLv3</a><br>
+	</footer>
+</body>
+<script src="/External_components/Chart.js-2.9.3/Chart.js"></script>
+<script src="/External_components/hammer.js-2.0.8/hammer.js"></script>
+<script src="/External_components/chartjs-plugin-zoom/chartjs-plugin-zoom.js"></script>
+<script src='../morfeas_ecma/common.js'></script>
+<script src='./MTIsPortal.js'></script>
+<script>
+//@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this page.
+
+Copyright (C) 12019-12020  Sam Harry Tzavaras
+
+The JavaScript code in this page is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU AGPL) as published by the Free Software
+Foundation, either version 3 of the License, or any later version.
+The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+@licend  The above is the entire license notice
+for the JavaScript code in this page.
+*/
+	"use strict";
+	comp_check();
+	var mode_enum = {
+		MTIDev_name: 0,
+		MTIDev_contents: 1
+	};
+	var screen_enum = {
+	  MTI_status_tab: 1,
+	  Telemetries_tab: 2,
+	  Graph_tab: 3
+	};
+	var data_req=false;
+	var request_mode = mode_enum.MTIDev_name;
+	var MTI_data;
+	//AJAX response handler
+	var xhttp = new XMLHttpRequest();
+	xhttp.timeout = 2000;
+	xhttp.onreadystatechange = function()
+	{
+		if (this.readyState == 4 && this.status == 200)
+		{
+			switch(request_mode)
+			{
+				case mode_enum.MTIDev_name:
+					var resp = JSON.parse(this.responseText);
+					var selector = document.getElementById("MTIDev_name_sel");
+					for(var i=0; i<resp.logstats_names.length; i++)
+					{
+						if(resp.logstats_names[i].includes("MTI"))
+						{
+							var opt = document.createElement("option");
+							opt.text = resp.logstats_names[i].slice(12, resp.logstats_names[i].indexOf("."));
+							selector.add(opt);
+						}
+					}
+					break;
+				case mode_enum.MTIDev_contents:
+					var status_box=document.getElementById("status");
+					if(this.getResponseHeader("Content-Type")==="application/json")
+					{
+						try{
+						  MTI_data = JSON.parse(this.responseText);
+						}
+						catch(e){
+							status_box.value = "Error: " + e.message;
+							break;
+						}
+						status_box.value=MTI_data.Connection_status;
+						var MTI_status=document.getElementById("MTI_status");
+						var Telemetries_table=document.getElementById("Telemetries_table");
+						if(MTI_data.Connection_status==="Okay")
+						{
+							MTI_status.style.display="table";
+							MTI_status_dev(MTI_data, MTI_status);
+							if(MTI_data.Tele_data.length)
+							{
+								Telemetries_table.style.display="table";
+								//MTI_tele_dev(MTI_data, MTI_status);
+							}
+							else
+							{
+								Telemetries_table.style.display="none";
+								Telemetries_table.innerHTML="";
+							}
+						}
+						else
+						{
+							MTI_status.style.display="none";
+							Telemetries_table.style.display="none"
+							Telemetries_table.innerHTML="";
+						}
+					}
+					break;
+			}
+			data_req=false;
+		}
+		else if(this.status == 404)
+			document.getElementById("status").value = "Data Not found";
+	};
+	xhttp.ontimeout = function(){
+	  document.getElementById("status").value = "Connection Timeout";
+	  data_req=false;
+	};
+	//request names of available logstats
+	xhttp.open("GET", "/morfeas_php/morfeas_web_if.php?COMMAND=logstats_names", true);
+	xhttp.send();
+	//timer of getting data
+	setInterval(MTI_data_req, 1000);
+	function MTI_data_req()
+	{
+		if(!data_req)
+		{
+			var selector = document.getElementById("MTIDev_name_sel");
+			if(selector.selectedIndex)
+			{
+				xhttp.open("GET", "/ramdisk/logstat_MTI_"+selector.value+".json"+"?q="+makeid(), true);
+				xhttp.send();
+				data_req = true;
+			}
+			else
+			{
+				MTI_status.style.display="none";
+				Telemetries_table.style.display="none"
+				Telemetries_table.innerHTML="";
+			}
+		}
+	}
+	function name_selector(sel)
+	{
+		var main_menu=document.getElementById("main_menu");
+		if(sel.selectedIndex)
+		{
+			main_menu.style.display="table";	
+			request_mode=mode_enum.MTIDev_contents;
+		}
+		else
+		{
+			main_menu.style.display="none";	
+			request_mode=mode_enum.MTIDev_name;
+			Show_hide(null); 
+		}
+	}
+	function Show_hide(log_set) 
+	{
+		document.getElementById("MTI_status_tab").style.display="none";
+		document.getElementById("Telemetries_tab").style.display="none";
+		document.getElementById("Graph_tab").style.display="none";
+		switch(log_set)
+		{
+			case screen_enum.MTI_status_tab:
+				document.getElementById("MTI_status_tab").style.display="inline";
+				break;
+			case screen_enum.Telemetries_tab:
+				document.getElementById("Telemetries_tab").style.display="inline";
+				break;
+			case screen_enum.Graph_tab:
+				document.getElementById("Graph_tab").style.display="inline";
+				break;
+		}
+	}
+//@license-end
+</script>
+</html>
