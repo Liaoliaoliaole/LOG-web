@@ -13,6 +13,13 @@ img.bsize{
 	width:35px;
 	height:40px;
 }
+.led{
+	float:left;
+    width:12px;
+    height:12px;
+    background-color:#00e657;
+    border-radius:50%;
+}
 </style>
 </head>
 <body>
@@ -48,28 +55,35 @@ img.bsize{
 			<th colspan="3" style="font-size: 120%;">Main Menu</th>
 		</tr>
 		<tr>
-			<td><input type="button" value="Mode/Status" onclick='Show_hide(screen_enum.MTI_status_tab)'></td>
-			<td><input type="button" value="Telemetries" onclick='Show_hide(screen_enum.Telemetries_tab)'></td>
-			<td><input type="button" value="Graph" onclick='Show_hide(screen_enum.Graph_tab)'></td> 
+			<td><input type="button" value="RF Devices" onclick='Show_hide(screen_enum.Telemetries_tab)'></td>
+			<td><input type="button" value="State" onclick='Show_hide(screen_enum.MTI_status_tab)'></td>
+			<td><input type="button" value="Graph" onclick='Show_hide(screen_enum.Graph_tab)'></td>
 		</tr>
 	</table>
-	<div id ="MTI_status_tab" style="margin:auto; display:none;">
-		<table id="MTI_status" style="margin:auto;text-align:center;display:none">
-			<tr>
-				<th colspan="6" style="font-size: 100%;">MTI Status</th>
-			</tr>
-			<tr>
-				<td>Device name:</td><td name="MTI_status_cells"></td>
-				<td>IPv4 Address:</td><td name="MTI_status_cells"></td>
-				<td>CPU temp(°C):</td><td name="MTI_status_cells"></td>
-				<td>Device name:</td><td name="MTI_status_cells"></td>
-				<td>Device name:</td><td name="MTI_status_cells"></td>
-				<td>Device name:</td><td name="MTI_status_cells"></td>
-			</tr>
-		</table>
-	</div>
 	<div id ="Telemetries_tab" style="margin:auto;text-align:center;display:none;">
 		<table id="Telemetries_table" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;"></table>
+	</div>
+	<div id ="MTI_status_tab" style="margin:auto;display:none;">
+		<table id="MTI_status" style="margin:auto;text-align:center;display:none">
+			<tr>
+				<th>IPv4 Address</th><th>CPU temp(°C)</th><th>Battery mode</th><th>Voltage(V)</th><th>Capacity(%)</th>
+			</tr>
+			<tr>
+				<td name="stat"></td><td name="stat"></td><td name="stat"></td><td name="stat"></td><td name="stat"></td>
+			</tr>
+			<tr>
+				<th>PWM Gen Clk</th><th>PWM CH1</th><th>PWM CH2</th><th>PWM CH3</th><th>PWM CH4</th>
+			</tr>
+			<tr>
+				<td name="stat"></td><td name="stat"></td><td name="stat"></td><td name="stat"></td><td name="stat"></td>
+			</tr>
+			<tr>
+				<th>Buttons_state:</th>
+				<td id="PB1" class="led"></td>
+				<td id="PB2" class="led"></td>
+				<td id="PB3" class="led"></td>
+			</tr>
+		</table>
 	</div>
 	<div id ="Graph_tab" style="margin:auto;text-align:center;display:none;">
 		<canvas  id="Plot_Chart" height="120">No canvas Support</canvas>
@@ -120,9 +134,11 @@ for the JavaScript code in this page.
 	  Telemetries_tab: 2,
 	  Graph_tab: 3
 	};
+	//Init of Elements
+	document.getElementById("status").value="No selected device";
 	//global variables for elements
 	var batt_and_rssid = document.getElementsByName("batt_and_rssid");
-	
+
 	var data_req=false;
 	var request_mode = mode_enum.MTIDev_name;
 	var MTI_data;
@@ -229,19 +245,20 @@ for the JavaScript code in this page.
 		var main_menu=document.getElementById("main_menu");
 		if(sel.selectedIndex)
 		{
-			main_menu.style.display="table";	
+			main_menu.style.display="table";
 			request_mode=mode_enum.MTIDev_contents;
 		}
 		else
 		{
+			document.getElementById("status").value="No selected device";
 			for(let i=0;i<batt_and_rssid.length;i++)
 				batt_and_rssid[i].style.display="none"
-			main_menu.style.display="none";	
+			main_menu.style.display="none";
 			request_mode=mode_enum.MTIDev_name;
-			Show_hide(null); 
+			Show_hide(null);
 		}
 	}
-	function Show_hide(log_set) 
+	function Show_hide(log_set)
 	{
 		document.getElementById("MTI_status_tab").style.display="none";
 		document.getElementById("Telemetries_tab").style.display="none";

@@ -24,9 +24,22 @@ for the JavaScript code in this page.
 */
 function MTI_status_tab_update(MTI_data, MTI_status_table)
 {
-	//console.log(MTI_data);
-	//let row = MTI_status_table.insertRow().insertCell().appendChild(document.createTextNode("sdsdf"));
-
+	var data_cells_new_values=[];
+	
+	data_cells_new_values.push(MTI_data.IPv4_address);
+	data_cells_new_values.push(MTI_data.MTI_status.MTI_CPU_temp);
+	data_cells_new_values.push(MTI_data.MTI_status.MTI_charge_status);
+	data_cells_new_values.push(MTI_data.MTI_status.MTI_batt_volt);
+	data_cells_new_values.push(MTI_data.MTI_status.MTI_batt_capacity);
+	data_cells_new_values.push((MTI_data.MTI_status.PWM_gen_out_freq/1000)+"Kc");
+	for(let i=0; i<MTI_data.MTI_status.PWM_CHs_outDuty.length;i++)	
+		data_cells_new_values.push(MTI_data.MTI_status.PWM_CHs_outDuty[i]+"%");
+	var data_cells = document.getElementsByName("stat");
+	for(let i=0; i<data_cells_new_values.length&&i<data_cells.length;i++)
+		data_cells[i].innerHTML=data_cells_new_values[i];
+	document.getElementById('PB1').style.backgroundColor=MTI_data.MTI_status.MTI_buttons_state.PB1?'#00e657':'#000000';
+	document.getElementById('PB2').style.backgroundColor=MTI_data.MTI_status.MTI_buttons_state.PB2?'#00e657':'#000000';
+	document.getElementById('PB3').style.backgroundColor=MTI_data.MTI_status.MTI_buttons_state.PB3?'#00e657':'#000000';
 }
 function MTI_status_bar_update(MTI_data)
 {
