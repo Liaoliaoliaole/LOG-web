@@ -22,10 +22,83 @@ through which recipients can access the Corresponding Source.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-function MTI_status_dev(MTI_data, MTI_status_table)
+function MTI_status_tab_update(MTI_data, MTI_status_table)
 {
 	//console.log(MTI_data);
 	//let row = MTI_status_table.insertRow().insertCell().appendChild(document.createTextNode("sdsdf"));
+
+}
+function MTI_status_bar_update(MTI_data)
+{
+	const batt_icons_path = "./MTI_art/batt_icons/batt";
+	const rssid_icons_path = "./MTI_art/RSSID_icons/rssid";
+	var batt=document.getElementById("batt");
+	var batt_icon=document.getElementById("batt_icon");
+	var rssid=document.getElementById("rssid");
+	var rssid_icon=document.getElementById("rssid_icon");
+	//Battery status update
+	if(MTI_data.MTI_status.MTI_charge_status === "Discharging")
+	{
+		batt.title=MTI_data.MTI_status.MTI_batt_capacity+"%";
+		if(MTI_data.MTI_status.MTI_batt_capacity==100)
+			batt_icon.src=batt_icons_path+"_100.svg";
+		else if(MTI_data.MTI_status.MTI_batt_capacity>=80&&
+				MTI_data.MTI_status.MTI_batt_capacity<100)
+					batt_icon.src=batt_icons_path+"_80.svg";
+		else if(MTI_data.MTI_status.MTI_batt_capacity>=60&&
+				MTI_data.MTI_status.MTI_batt_capacity<80)
+					batt_icon.src=batt_icons_path+"_60.svg";
+		else if(MTI_data.MTI_status.MTI_batt_capacity>=40&&
+				MTI_data.MTI_status.MTI_batt_capacity<60)
+					batt_icon.src=batt_icons_path+"_40.svg";
+		else if(MTI_data.MTI_status.MTI_batt_capacity>=20&&
+				MTI_data.MTI_status.MTI_batt_capacity<40)
+					batt_icon.src=batt_icons_path+"_20.svg";
+		else if(MTI_data.MTI_status.MTI_batt_capacity>=0&&
+				MTI_data.MTI_status.MTI_batt_capacity<20)
+					batt_icon.src=batt_icons_path+".svg";
+	}
+	else if(MTI_data.MTI_status.MTI_charge_status === "Charging")
+	{
+		batt.title="Charging";
+		batt_icon.src=batt_icons_path+"_charge.svg";
+	}
+	else if(MTI_data.MTI_status.MTI_charge_status === "Full")
+	{
+		batt.title="Full";
+		batt_icon.src=batt_icons_path+"_full.svg";
+	}
+	//RSSID status update
+	switch(MTI_data.MTI_status.Tele_Device_type)
+	{
+		case "":
+		case "Disabled":
+			rssid.title="TRX OFF";
+			rssid_icon.src=rssid_icons_path+"_off.svg";
+			break;
+		case "RMSW/MUX":
+			rssid.title="TX mode";
+			rssid_icon.src=rssid_icons_path+"_100.svg";
+			break;
+		case "TC16":
+		case "TC8":
+		case "QUAD":
+		case "TC4":
+			rssid.title="RX "+MTI_data.Tele_data.RX_Success_Ratio+"%";
+			if(MTI_data.Tele_data.RX_Success_Ratio>=0&&
+			   MTI_data.Tele_data.RX_Success_Ratio<20)
+			   rssid_icon.src=rssid_icons_path+"_20.svg";
+			else if(MTI_data.Tele_data.RX_Success_Ratio>=20&&
+					MTI_data.Tele_data.RX_Success_Ratio<50)
+						rssid_icon.src=rssid_icons_path+"_50.svg";
+			else if(MTI_data.Tele_data.RX_Success_Ratio>=50&&
+					MTI_data.Tele_data.RX_Success_Ratio<75)
+						rssid_icon.src=rssid_icons_path+"_75.svg";
+			else if(MTI_data.Tele_data.RX_Success_Ratio>=75&&
+					MTI_data.Tele_data.RX_Success_Ratio<=100)
+						rssid_icon.src=rssid_icons_path+"_100.svg";
+			break;
+	}
 
 }
 //@license-end

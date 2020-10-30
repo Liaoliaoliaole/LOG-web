@@ -8,6 +8,12 @@
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
 <!--link rel="stylesheet" type="text/css" href="/Morfeas_configuration/Morfeas_System_config.css"-->
 <title>Morfeas MTI Portal</title>
+<style>
+img.bsize{
+	width:35px;
+	height:40px;
+}
+</style>
 </head>
 <body>
 	<table id ="loggers" style="margin:left;">
@@ -15,10 +21,17 @@
 		<td colspan="4"><code id="Logger_terminal"></code></td>
 	  </tr>
 	  <tr>
-		<td style="text-align:right;">MTI's Device Name:
+		<td style="text-align:left;width:100%">
+			MTI's Device Name:
 			<select id="MTIDev_name_sel" onchange="name_selector(this)">
 				<option value='0'>None</option>
 			</select>
+		</td>
+		<td name="batt_and_rssid" style="display:none">
+			<span id="rssid"><img id="rssid_icon" class="bsize"></img></span>
+		</td>
+		<td name="batt_and_rssid" style="display:none">
+			<span id="batt"><img id="batt_icon" class="bsize"></img></span>
 		</td>
 	  </tr>
 	</table>
@@ -107,6 +120,9 @@ for the JavaScript code in this page.
 	  Telemetries_tab: 2,
 	  Graph_tab: 3
 	};
+	//global variables for elements
+	var batt_and_rssid = document.getElementsByName("batt_and_rssid");
+	
 	var data_req=false;
 	var request_mode = mode_enum.MTIDev_name;
 	var MTI_data;
@@ -149,8 +165,11 @@ for the JavaScript code in this page.
 						if(MTI_data.Connection_status==="Okay")
 						{
 							MTI_status.style.display="table";
-							MTI_status_dev(MTI_data, MTI_status);
-							if(MTI_data.Tele_data.length)
+							MTI_status_tab_update(MTI_data, MTI_status);
+							MTI_status_bar_update(MTI_data);
+							for(let i=0;i<batt_and_rssid.length;i++)
+								batt_and_rssid[i].style.display="table-cell";
+							if(MTI_data.hasOwnProperty('Tele_data')&&MTI_data.Tele_data.length)
 							{
 								Telemetries_table.style.display="table";
 								//MTI_tele_dev(MTI_data, MTI_status);
@@ -163,6 +182,8 @@ for the JavaScript code in this page.
 						}
 						else
 						{
+							for(let i=0;i<batt_and_rssid.length;i++)
+								batt_and_rssid[i].style.display="none"
 							MTI_status.style.display="none";
 							Telemetries_table.style.display="none"
 							Telemetries_table.innerHTML="";
@@ -213,6 +234,8 @@ for the JavaScript code in this page.
 		}
 		else
 		{
+			for(let i=0;i<batt_and_rssid.length;i++)
+				batt_and_rssid[i].style.display="none"
 			main_menu.style.display="none";	
 			request_mode=mode_enum.MTIDev_name;
 			Show_hide(null); 
