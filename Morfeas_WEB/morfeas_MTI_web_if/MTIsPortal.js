@@ -91,16 +91,18 @@ function MTI_status_bar_update(MTI_data)
 			break;
 		case "RMSW/MUX":
 			rssid.title="TX mode";
-			rssid_icon.src=rssid_icons_path+"_100.svg";
+			rssid_icon.src=rssid_icons_path+"_tx.svg";
 			break;
 		case "TC16":
 		case "TC8":
 		case "QUAD":
 		case "TC4":
 			rssid.title="RX "+MTI_data.Tele_data.RX_Success_Ratio+"%";
-			if(MTI_data.Tele_data.RX_Success_Ratio>=0&&
-			   MTI_data.Tele_data.RX_Success_Ratio<20)
-			   rssid_icon.src=rssid_icons_path+"_20.svg";
+			if(MTI_data.Tele_data.RX_Success_Ratio==0)
+				rssid_icon.src=rssid_icons_path+"_0.svg";
+			else if(MTI_data.Tele_data.RX_Success_Ratio>0&&
+					MTI_data.Tele_data.RX_Success_Ratio<20)
+						rssid_icon.src=rssid_icons_path+"_20.svg";
 			else if(MTI_data.Tele_data.RX_Success_Ratio>=20&&
 					MTI_data.Tele_data.RX_Success_Ratio<50)
 						rssid_icon.src=rssid_icons_path+"_50.svg";
@@ -112,6 +114,90 @@ function MTI_status_bar_update(MTI_data)
 						rssid_icon.src=rssid_icons_path+"_100.svg";
 			break;
 	}
-
+}
+function radio_mode_init(MTI_data)
+{
+	var radio_mode=document.getElementById("radio_mode"),
+		radio_channel=document.getElementById("radio_channel");
+	radio_mode.value=MTI_data.MTI_status.Tele_Device_type;
+	radio_channel.value=MTI_data.MTI_status.Radio_CH;
+	switch(radio_mode.value)
+	{
+		case "TC16":
+		case "TC8":
+		case "TC4":
+			document.getElementById("StV").value=MTI_data.Tele_data.Samples_toValid;
+			document.getElementById("StF").value=MTI_data.Tele_data.samples_toInvalid;
+			break;
+		case "QUAD":
+			break;
+		case "RMSW/MUX":
+			document.getElementById("G_SW").checked=MTI_data.MTI_status.MTI_Global_state.Global_ON_OFF;
+			document.getElementById("G_SL").checked=MTI_data.MTI_status.MTI_Global_state.Global_Sleep;
+			break;
+	}
+	radio_mode_show_hide_extra(radio_mode);
+}
+function radio_mode_show_hide_extra(sel)
+{
+	var RMSWs_extra=document.getElementById("RMSWs_extra"),
+		TC_tele_extra=document.getElementById("TC_tele_extra"),
+		QUAD_tele_extra=document.getElementById("QUAD_tele_extra");
+	RMSWs_extra.style.display="none";
+	TC_tele_extra.style.display="none";
+	QUAD_tele_extra.style.display="none";
+	document.getElementById("radio_channel").disabled=false;
+	switch(sel.value)
+	{
+		case "TC16":
+		case "TC8":
+		case "TC4":
+			TC_tele_extra.style.display="table-row";
+			break;
+		case "QUAD":
+			QUAD_tele_extra.style.display="table-row";
+			break;
+		case "RMSW/MUX":
+			RMSWs_extra.style.display="table-row";
+			document.getElementById("radio_channel").disabled=true;
+			break;
+	}
+}
+function send_new_MTI_config()
+{
+	var msg_contents={};
+	var radio_mode=document.getElementById("radio_mode"),
+		radio_channel=document.getElementById("radio_channel");
+	msg_contents.new_mode=radio_mode.value;
+	msg_contents.new_RF_CH=parseInt(radio_channel.value);
+	switch(radio_mode.value)
+	{
+		case "TC16":
+		case "TC8":
+		case "TC4":
+			msg_contents.StV=parseInt(document.getElementById("StV").value);
+			msg_contents.StF=parseInt(document.getElementById("StF").value);
+			break;
+		case "RMSW/MUX":
+			msg_contents.new_RF_CH=0;
+			msg_contents.G_SW=document.getElementById("G_SW").checked;
+			msg_contents.G_SL=document.getElementById("G_SL").checked;
+			break;
+	}
+	send_to_dbus_proxy(msg_contents,'new_MTI_config');
+}
+function send_to_dbus_proxy(contents, dbus_methode)
+{
+	if(!contents || !dbus_methode || typeof dbus_methode!='string')
+		return;
+	var dbus_proxy_arg={handler_type:"MTI"};
+	dbus_proxy_arg.dev_name=document.getElementById("MTIDev_name_sel").value;
+	dbus_proxy_arg.method=dbus_methode;
+	dbus_proxy_arg.contents=contents;
+	xhttp.open("POST", "/morfeas_php/morfeas_dbus_proxy.php", true);
+	xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	console.log("arg="+JSON.stringify(dbus_proxy_arg));
+	xhttp.send("arg="+JSON.stringify(dbus_proxy_arg));
+	data_req = true;
 }
 //@license-end

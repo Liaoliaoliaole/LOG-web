@@ -24,7 +24,7 @@ function shutdown()
 	if($requestType == "GET")
 		echo 'GET request not supported!!!';
 	else if(!$ans)
-		echo 'Morfeas_DBUS_proxy: Exit with Error';
+		echo ' Morfeas_DBUS_proxy: Exit with Error';
 }
 
 ob_start("ob_gzhandler");//Enable gzip buffering
@@ -32,7 +32,7 @@ ob_start("ob_gzhandler");//Enable gzip buffering
 header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
 header('Expires: 0');
-
+header('Content-Type: report/text');
 register_shutdown_function('shutdown');
 
 if($requestType == "POST")
@@ -46,12 +46,11 @@ if($requestType == "POST")
 	if(property_exists($arg, "handler_type") && property_exists($arg, "dev_name") && property_exists($arg, "method") && property_exists($arg, "contents"))
 	{
 		$dbus = new Dbus(Dbus::BUS_SYSTEM, false);
-		//$dbus->waitLoop(1);
 		$Bus_name = "org.freedesktop.Morfeas.".$arg->handler_type .".".$arg->dev_name;
 		$Interface = "Morfeas.".$arg->handler_type .".".$arg->dev_name;
 		$proxy = $dbus->createProxy($Bus_name, "/", $Interface);
 		$contents_str = str_replace("\"", "\\\"", json_encode($arg->contents));
-		eval("\$ans= \$proxy->". $arg->method ."(\"".$contents_str."\");");
+		eval('$ans= $proxy->'.$arg->method.'("'.$contents_str.'");');
 		echo $ans;
 	}
 	else

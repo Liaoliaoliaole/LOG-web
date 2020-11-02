@@ -47,7 +47,7 @@ img.bsize{
 			<th colspan="5" style="font-size: 200%;">MTI WEB Portal</th>
 		</tr>
 		<tr>
-			<td colspan="4"><input id="status" style="text-align:center;" type="textbox" size="25" value="No selected device" readonly></td>
+			<td colspan="4"><input id="status" style="text-align:center;" type="textbox" size="45" value="No selected device" readonly></td>
 		</tr>
 	</table>
 	<table id ="main_menu" style="margin:auto;text-align:center;margin-bottom:.075in;width:3in;display:none">
@@ -61,6 +61,42 @@ img.bsize{
 		</tr>
 	</table>
 	<div id ="Telemetries_tab" style="margin:auto;text-align:center;display:none;">
+		<table id="radio" style="margin:auto;text-align:center;margin-bottom:.075in;width:4.5in;">
+			<tr>
+				<td>
+					Radio mode:
+					<select id="radio_mode" onchange="radio_mode_show_hide_extra(this)">
+						<option value="Disabled">Disabled</option>
+						<option value="TC16">TC16</option>
+						<option value="TC8">TC8</option>
+						<option value="TC4">TC4</option>
+						<option value="QUAD">QUAD</option>
+						<option value="RMSW/MUX">RMSW/MUX</option>
+					</select>
+					@RF Channel:
+					<input type="number" id="radio_channel" size="4" value="0" min="0" max="126" step="2">
+					<input type="button" value="Set" onclick="send_new_MTI_config()">
+				<td>
+			</tr>
+			<tr id="RMSWs_extra" style="display:none">
+				<td>
+					<input type="checkbox" id="G_SW" name="G_SW">
+					<label for="G_SW"> Global ON/OFF mode</label>
+					<input type="checkbox" id="G_SL" name="G_SL">
+					<label for="G_SL"> Global Sleep mode</label>
+				</td>
+			</tr>
+			<tr id="TC_tele_extra" style="display:none">
+				<td>
+					<label for="StV"> Samples to: Set valid</label>
+					<input type="number" id="StV" name="StV" value="0" size="4" min="0" max="254">
+					<label for="StF"> Reset valid</label>
+					<input type="number" id="StF" name="StF" value="0" size="4" min="0" max="254">
+				</td>
+			</tr>
+			<tr id="QUAD_tele_extra" style="display:none">
+			</tr>
+		</table>
 		<table id="Telemetries_table" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;"></table>
 	</div>
 	<div id ="MTI_status_tab" style="margin:auto;display:none;">
@@ -139,7 +175,7 @@ for the JavaScript code in this page.
 	//global variables for elements
 	var batt_and_rssid = document.getElementsByName("batt_and_rssid");
 
-	var data_req=false;
+	var data_req=false, radio_mode_inited=false;
 	var request_mode = mode_enum.MTIDev_name;
 	var MTI_data;
 	//AJAX response handler
@@ -175,7 +211,6 @@ for the JavaScript code in this page.
 							status_box.value = "Error: " + e.message;
 							break;
 						}
-						status_box.value=MTI_data.Connection_status;
 						var MTI_status=document.getElementById("MTI_status");
 						var Telemetries_table=document.getElementById("Telemetries_table");
 						if(MTI_data.Connection_status==="Okay")
@@ -185,6 +220,11 @@ for the JavaScript code in this page.
 							MTI_status_bar_update(MTI_data);
 							for(let i=0;i<batt_and_rssid.length;i++)
 								batt_and_rssid[i].style.display="table-cell";
+							if(!radio_mode_inited)
+							{
+								radio_mode_inited=true;
+								radio_mode_init(MTI_data);
+							}
 							if(MTI_data.hasOwnProperty('Tele_data')&&MTI_data.Tele_data.length)
 							{
 								Telemetries_table.style.display="table";
@@ -198,12 +238,18 @@ for the JavaScript code in this page.
 						}
 						else
 						{
+							status_box.value=MTI_data.Connection_status;
 							for(let i=0;i<batt_and_rssid.length;i++)
 								batt_and_rssid[i].style.display="none"
 							MTI_status.style.display="none";
 							Telemetries_table.style.display="none"
 							Telemetries_table.innerHTML="";
 						}
+					}
+					else if(this.getResponseHeader("Content-Type")==="report/text")
+					{
+						status_box.value=this.responseText;
+						console.log(this.responseText);
 					}
 					break;
 			}
@@ -247,6 +293,7 @@ for the JavaScript code in this page.
 		{
 			main_menu.style.display="table";
 			request_mode=mode_enum.MTIDev_contents;
+			document.getElementById("status").value="Okay";
 		}
 		else
 		{
@@ -269,6 +316,7 @@ for the JavaScript code in this page.
 				document.getElementById("MTI_status_tab").style.display="inline";
 				break;
 			case screen_enum.Telemetries_tab:
+				radio_mode_inited=false;
 				document.getElementById("Telemetries_tab").style.display="inline";
 				break;
 			case screen_enum.Graph_tab:
