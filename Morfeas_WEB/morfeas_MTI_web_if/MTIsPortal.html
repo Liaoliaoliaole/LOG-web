@@ -73,31 +73,39 @@ img.bsize{
 						<option value="QUAD">QUAD</option>
 						<option value="RMSW/MUX">RMSW/MUX</option>
 					</select>
-					@RF Channel:
-					<input type="number" id="radio_channel" size="4" value="0" min="0" max="126" step="2">
-					<input type="button" value="Set" onclick="send_new_MTI_config()">
+				</td>
 				<td>
+					RF Channel:
+					<input type="number" id="radio_channel" size="4" value="0" min="0" max="126" step="2">
+				</td>
+				<td>
+					<input type="button" value="Set" onclick="send_new_MTI_config()">
+				</td>
 			</tr>
 			<tr id="RMSWs_extra" style="display:none">
 				<td>
 					<input type="checkbox" id="G_SW" name="G_SW">
 					<label for="G_SW"> Global ON/OFF mode</label>
+				</td>
+				<td>
 					<input type="checkbox" id="G_SL" name="G_SL">
 					<label for="G_SL"> Global Sleep mode</label>
 				</td>
 			</tr>
 			<tr id="TC_tele_extra" style="display:none">
 				<td>
-					<label for="StV"> Samples to: Set valid</label>
+					<label for="StV">Samples to: Set valid</label>
 					<input type="number" id="StV" name="StV" value="0" size="4" min="0" max="254">
-					<label for="StF"> Reset valid</label>
+				</td>
+				<td>
+					<label for="StF">Reset valid</label>
 					<input type="number" id="StF" name="StF" value="0" size="4" min="0" max="254">
 				</td>
 			</tr>
 			<tr id="QUAD_tele_extra" style="display:none">
 			</tr>
 		</table>
-		<table id="Telemetries_table" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;"></table>
+		<div id="Telemetries_table" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;"></div>
 	</div>
 	<div id ="MTI_status_tab" style="margin:auto;display:none;">
 		<table id="MTI_status" style="margin:auto;text-align:center;display:none">
@@ -227,7 +235,7 @@ for the JavaScript code in this page.
 							}
 							if(MTI_data.hasOwnProperty('Tele_data')&&MTI_data.Tele_data.length)
 							{
-								Telemetries_table.style.display="table";
+								Telemetries_table.style.display="flex";
 								//MTI_tele_dev(MTI_data, MTI_status);
 							}
 							else

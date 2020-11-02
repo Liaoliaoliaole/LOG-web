@@ -8,13 +8,16 @@
 <div class="modal-body">
     <div class="form-group row">
         <label for="iso" class="col-sm-3 col-form-label col-form-label-sm form-label"></label>
-        <div class="col-sm-8">
+        <div class="col-sm-6">
             <ng-select #isoSelect id="isoSelect"
                 placeholder="{{selectedIsoStandard.iso_code ? '' : 'Select an ISO code'}}" [items]="isoStandards"
                 [(ngModel)]="dropdownIsoStandard" bindLabel="iso_code" [multiple]="false" (change)="onSelectIsoCode()"
                 (search)="onSearch($event)" (close)="onClose()">
             </ng-select>
         </div>
+		<div style="position:absolute;bottom:77%;left:80%">
+			<select id="postfix"></select>
+		</div>
     </div>
     <div class="form-group row">
         <label for="unit" class="col-sm-3 col-form-label col-form-label-sm form-label">Unit</label>

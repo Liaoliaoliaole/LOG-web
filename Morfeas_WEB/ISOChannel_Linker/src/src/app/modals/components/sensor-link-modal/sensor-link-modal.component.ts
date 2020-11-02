@@ -31,7 +31,19 @@ export class SensorLinkModalComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.data = this.state.options.data;
+    
+	var postfix = document.getElementById("postfix") as HTMLSelectElement;
+	var option = document.createElement("option");
+	option.text = "N/A";
+	postfix.add(option);
+	for(let i=1;i<=20;i++)
+	{
+		option = document.createElement("option");
+		option.text = i.toString();
+		postfix.add(option);
+	}
+	
+	this.data = this.state.options.data;
     this.selectedIsoStandard.attributes.unit = this.data.unit;
 
     this.canbusService.getIsoCodesByUnit(this.data.unit).subscribe(result => {
@@ -90,7 +102,7 @@ export class SensorLinkModalComponent implements OnInit {
     if (this.error.length > 0) {
       return;
     }
-
+		console.log(this.selectedIsoStandard);
     if (this.data.unlinked) {
       this.state.modal.close({
         isoStandard: this.selectedIsoStandard,
