@@ -11,12 +11,12 @@
         <div class="col-sm-6">
             <ng-select #isoSelect id="isoSelect"
                 placeholder="{{selectedIsoStandard.iso_code ? '' : 'Select an ISO code'}}" [items]="isoStandards"
-                [(ngModel)]="dropdownIsoStandard" bindLabel="iso_code" [multiple]="false" (change)="onSelectIsoCode()"
+                [(ngModel)]="dropdownIsoStandard" bindLabel="iso_code" [multiple]="false" (change)="onSelectIsoCode();validate_postfix();"
                 (search)="onSearch($event)" (close)="onClose()">
             </ng-select>
         </div>
 		<div style="position:absolute;bottom:77%;left:80%">
-			<select id="postfix"></select>
+			<select id="postfix" (change)="validate_postfix()"></select>
 		</div>
     </div>
     <div class="form-group row">
@@ -52,7 +52,8 @@
 <div class="modal-footer">
     <button type="button" class="btn btn-modal link" [attr.disabled]="!(selectedIsoStandard?.iso_code&&
 																		selectedIsoStandard?.attributes.unit&&
-																		selectedIsoStandard?.attributes.description)?true:null"
+																		selectedIsoStandard?.attributes.description&&
+																		!error)?true:null"
         (click)="link()">Submit</button>
     <button type="button" class="btn btn-modal unlink" (click)="unlink()" [hidden]="data.unlinked">Unlink</button>
     <button type="button" class="btn btn-secondary btn-modal" (click)="dismiss()">Cancel</button>

@@ -177,10 +177,11 @@ export class SensorLinkModalComponent implements OnInit {
     if (this.searchTerm.length > 20) {
       this.error += 'ISO Code must be less or equal to 20 characters \n';
     }
-    if (this.data.configuredIsoCodes.some(code => code === this.searchTerm)) {
+    if(this.data.configuredIsoCodes.some(code => code === this.searchTerm)) 
+	{
       this.error += 'ISO Code must not be a duplicate ';
     }
-
+	
     if (this.error === '' && this.selectedIsoStandard) {
       this.selectedIsoStandard.iso_code = this.searchTerm;
     }
@@ -195,4 +196,20 @@ export class SensorLinkModalComponent implements OnInit {
       }
     }, 0);
   }
+	
+	validate_postfix()
+	{
+		var postfix = document.getElementById("postfix") as HTMLSelectElement;
+		if(!postfix.selectedIndex)
+			return;
+		this.error = '';
+		var iso_code_for_check = this.selectedIsoStandard.iso_code+'_'+postfix.value;
+		for(var i=0;i<this.data.configuredIsoCodes.length;i++)
+		{
+			if(this.data.configuredIsoCodes[i]===iso_code_for_check)
+				break;
+		}
+		if(i<this.data.configuredIsoCodes.length)
+			this.error += 'ISO Code "'+this.selectedIsoStandard.iso_code+'" for cyl '+postfix.value+' is already in use\n';
+	}
 }
