@@ -117,7 +117,7 @@ function is_IPv4_addr_inuse(selected_IPv4_addr_val, _Morfeas_config_XML)
 }
 
 //Compression function
-function compress(data)
+function compress(data, debug_info)
 {	
 	if(typeof(data)!=="string")
 		return null;
@@ -156,13 +156,14 @@ function compress(data)
 	if(word !== "")
 		result += word;
 	result = String.fromCharCode(dictOffset) + String.fromCharCode(dictionary_size)+ result + String.fromCharCode(checksum&0xFF);
-	/*
-	var tack = performance.now()
-	console.log("Compression took " + (tack - tick) + " milliseconds.");
-	let data_length = (new TextEncoder().encode(data)).length;
-	let res_length = (new TextEncoder().encode(result)).length;
-	console.log("Compression Ratio:"+Math.round((((1-res_length/data_length)) + Number.EPSILON)*100)+"%");
-	*/
+	if(debug_info)
+	{
+		var tack = performance.now()
+		console.log("Compression took " + (tack - tick) + " milliseconds.");
+		let data_length = (new TextEncoder().encode(data)).length;
+		let res_length = (new TextEncoder().encode(result)).length;
+		console.log("Compression Ratio:"+Math.round((((1-res_length/data_length)) + Number.EPSILON)*100)+"%");
+	}
 	return result;
 }
 

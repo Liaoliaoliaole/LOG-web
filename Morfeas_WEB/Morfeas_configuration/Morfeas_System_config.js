@@ -71,7 +71,7 @@ function save_morfeas_config()
 	xhttp.setRequestHeader("Content-type", "Morfeas_config");
 	let data = (new XMLSerializer()).serializeToString(config_to_send);
 	console.log(data);
-	xhttp.send(compress(data));
+	xhttp.send(compress(data, true));
 }
 //Function to get morfeas component name, return comp_name_id on success, NULL otherwise
 function get_comp_name(comp)
