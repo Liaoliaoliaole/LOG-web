@@ -61,7 +61,7 @@ img.bsize{
 		</tr>
 	</table>
 	<div id ="Telemetries_tab" style="margin:auto;text-align:center;display:none;">
-		<table id="radio" style="margin:auto;text-align:center;margin-bottom:.075in;width:4.5in;">
+		<table id="radio" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;">
 			<tr>
 				<td>
 					Radio mode:
@@ -76,7 +76,7 @@ img.bsize{
 				</td>
 				<td>
 					RF Channel:
-					<input type="number" id="radio_channel" size="4" value="0" min="0" max="126" step="2">
+					<input type="number" id="radio_channel" size="4" min="0" max="126" step="2" onchange="val_RFCH(this)">
 				</td>
 				<td>
 					<input type="button" value="Set" onclick="send_new_MTI_config()">
@@ -102,7 +102,18 @@ img.bsize{
 					<input type="number" id="StF" name="StF" value="0" size="4" min="0" max="254">
 				</td>
 			</tr>
-			<tr id="QUAD_tele_extra" style="display:none">
+			<tr id="QUAD_tele_extra" style="align-content:right;display:none">
+				<td>
+					<label for="PWM_1"><b>PWM 1:</b></label>
+					<meter id="PWM_1" name="PWM_meters" max="100"></meter><b name="PWM_text"></b>
+				</td>
+				<td>
+					<label for="PWM_2"><b>PWM 2:</b></label>
+					<meter id="PWM_2" name="PWM_meters" max="100"></meter><b name="PWM_text"></b>
+				</td>
+				<td>
+					<button type="button" onclick='PopupCenter("./Gens_config/Gens_config.html"+"?q="+makeid(),"","800","600")'>Gens Config</button>
+				</td>
 			</tr>
 		</table>
 		<div id="Telemetries_table" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;"></div>
@@ -117,6 +128,12 @@ img.bsize{
 			</tr>
 			<tr>
 				<th>PWM Gen Clk</th><th>PWM CH1</th><th>PWM CH2</th><th>PWM CH3</th><th>PWM CH4</th>
+			</tr>
+			<tr>
+				<td name="stat"></td><td name="stat"></td><td name="stat"></td><td name="stat"></td><td name="stat"></td>
+			</tr>
+			<tr>
+				<th>Telemetry mode</th><th>RF Channel</th><th>Modem Speed</th><th>RSSID(%)</th><th>Active(s) RX(s)</th>
 			</tr>
 			<tr>
 				<td name="stat"></td><td name="stat"></td><td name="stat"></td><td name="stat"></td><td name="stat"></td>
@@ -233,16 +250,10 @@ for the JavaScript code in this page.
 								radio_mode_inited=true;
 								radio_mode_init(MTI_data);
 							}
-							if(MTI_data.hasOwnProperty('Tele_data')&&MTI_data.Tele_data.length)
-							{
-								Telemetries_table.style.display="flex";
-								//MTI_tele_dev(MTI_data, MTI_status);
-							}
+							if(MTI_data.hasOwnProperty('Tele_data'))
+								MTI_tele_dev(MTI_data);
 							else
-							{
-								Telemetries_table.style.display="none";
 								Telemetries_table.innerHTML="";
-							}
 						}
 						else
 						{
@@ -252,7 +263,6 @@ for the JavaScript code in this page.
 							document.getElementById("Telemetries_tab").style.display="none";
 							document.getElementById("Graph_tab").style.display="none";
 							MTI_status.style.display="none";
-							Telemetries_table.style.display="none"
 							Telemetries_table.innerHTML="";
 						}
 						status_box.value='Connection Status: '+MTI_data.Connection_status;
@@ -289,7 +299,6 @@ for the JavaScript code in this page.
 			else
 			{
 				MTI_status.style.display="none";
-				Telemetries_table.style.display="none"
 				Telemetries_table.innerHTML="";
 			}
 		}

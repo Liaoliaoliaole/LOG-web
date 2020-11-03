@@ -144,7 +144,7 @@ export class SensorLinkModalComponent implements OnInit {
 
     if (this.selectedIsoStandard.iso_code) {
       this.searchTerm = this.selectedIsoStandard.iso_code;
-
+	  /*
       const temp = Object.assign([], this.filteredIsoStandards);
 
       temp.splice(
@@ -158,7 +158,8 @@ export class SensorLinkModalComponent implements OnInit {
       });
 
       this.isoStandards = temp;
-    }
+	  */
+	}
   }
 
   onSearch(event: any) {

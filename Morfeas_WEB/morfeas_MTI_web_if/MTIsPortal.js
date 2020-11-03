@@ -34,12 +34,44 @@ function MTI_status_tab_update(MTI_data, MTI_status_table)
 	data_cells_new_values.push((MTI_data.MTI_status.PWM_gen_out_freq/1000)+"Kc");
 	for(let i=0; i<MTI_data.MTI_status.PWM_CHs_outDuty.length;i++)	
 		data_cells_new_values.push(MTI_data.MTI_status.PWM_CHs_outDuty[i]+"%");
+	data_cells_new_values.push(MTI_data.MTI_status.Tele_Device_type);
+	data_cells_new_values.push(MTI_data.MTI_status.Radio_CH);
+	data_cells_new_values.push(MTI_data.MTI_status.Modem_data_rate);
+	if(MTI_data.MTI_status.Tele_Device_type=="Disabled")
+	{		
+		data_cells_new_values.push('Radio OFF');
+		data_cells_new_values.push('N/A');
+	}
+	else if(MTI_data.MTI_status.Tele_Device_type=="RMSW/MUX")
+	{
+		data_cells_new_values.push('TRX Mode');
+		data_cells_new_values.push('Both');
+	}
+	else
+	{
+		data_cells_new_values.push(MTI_data.Tele_data.RX_Success_Ratio);
+		switch(MTI_data.Tele_data.RX_Status)
+		{
+			default: data_cells_new_values.push('None'); break;
+			case 1: data_cells_new_values.push('RX_1'); break;
+			case 2: data_cells_new_values.push('RX_2'); break;
+			case 3: data_cells_new_values.push('Both'); break;
+		}
+	}
 	var data_cells = document.getElementsByName("stat");
 	for(let i=0; i<data_cells_new_values.length&&i<data_cells.length;i++)
 		data_cells[i].innerHTML=data_cells_new_values[i];
 	document.getElementById('PB1').style.backgroundColor=MTI_data.MTI_status.MTI_buttons_state.PB1?'#00e657':'#000000';
 	document.getElementById('PB2').style.backgroundColor=MTI_data.MTI_status.MTI_buttons_state.PB2?'#00e657':'#000000';
 	document.getElementById('PB3').style.backgroundColor=MTI_data.MTI_status.MTI_buttons_state.PB3?'#00e657':'#000000';
+	
+	var pwm_meters=document.getElementsByName("PWM_meters");
+	var pwm_text=document.getElementsByName("PWM_text");
+	for(let i=0;i<pwm_meters.length;i++)
+	{
+		pwm_meters[i].value=MTI_data.MTI_status.PWM_CHs_outDuty[i];
+		pwm_text[i].innerHTML=MTI_data.MTI_status.PWM_CHs_outDuty[i]+"%";
+	}
 }
 function MTI_status_bar_update(MTI_data)
 {
@@ -114,6 +146,18 @@ function MTI_status_bar_update(MTI_data)
 						rssid_icon.src=rssid_icons_path+"_100.svg";
 			break;
 	}
+}
+function val_RFCH(elem)
+{
+	var min=parseInt(elem.min),
+		max=parseInt(elem.max),
+		val=parseInt(elem.value);
+	if(val<min)
+		elem.value=elem.min;
+	else if(val>max)
+		elem.value=elem.max;
+	else if(val%2)
+		elem.value-=1;
 }
 function radio_mode_init(MTI_data)
 {
@@ -198,5 +242,21 @@ function send_to_dbus_proxy(contents, dbus_methode)
 	xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	xhttp.send("arg="+JSON.stringify(dbus_proxy_arg));
 	data_req = true;
+}
+function MTI_tele_dev(MTI_data)
+{
+	//console.log(MTI_data);
+	var tele_table = document.getElementById("Telemetries_table");
+	switch(MTI_data.MTI_status.Tele_Device_type)
+	{
+		case "TC4":
+		case "TC8":
+		case "TC16":
+			break;
+		case "QUAD":
+			break;
+		case "RMSW/MUX":
+			break;
+	}
 }
 //@license-end
