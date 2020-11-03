@@ -16,6 +16,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+require("./Supplementary.php");
 $requestType = $_SERVER['REQUEST_METHOD'];
 $ans;
 function shutdown()
@@ -42,7 +43,8 @@ if($requestType == "POST")
 		echo "Morfeas_DBUS_proxy: No Argument";
 		exit();
 	} 
-	$arg = json_decode($_POST["arg"], false) or die("Morfeas_DBUS_proxy: Parsing of request's argument Failed");
+	$arg = decompress($_POST["arg"]) or die("Morfeas_DBUS_proxy: Decompressing of arguments Failed");
+	$arg = json_decode($arg, false) or die("Morfeas_DBUS_proxy: Parsing of request's argument Failed");
 	if(property_exists($arg, "handler_type") && property_exists($arg, "dev_name") && property_exists($arg, "method") && property_exists($arg, "contents"))
 	{
 		$dbus = new Dbus(Dbus::BUS_SYSTEM, false);

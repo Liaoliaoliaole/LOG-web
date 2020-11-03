@@ -28,10 +28,10 @@ function decompress($data)
 
 	$data = preg_split('/(?<!^)(?!$)/u', $data);
 	$dictOffset = mb_ord($data[0]);
-	$dictionary_limit=4096-$dictOffset;
+	$dictionary_limit=mb_ord($data[1])+$dictOffset;
 	$RX_Checksum = mb_ord($data[count($data)-1]);
 
-	for($i=1; $i<count($data)-1; $i++)
+	for($i=2; $i<count($data)-1; $i++)
 	{
 		$new_dict_entry = new stdClass();
 		if(($code=mb_ord($data[$i]))<$dictOffset)

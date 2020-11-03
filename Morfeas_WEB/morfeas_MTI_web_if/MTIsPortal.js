@@ -240,7 +240,7 @@ function send_to_dbus_proxy(contents, dbus_methode)
 	dbus_proxy_arg.contents=contents;
 	xhttp.open("POST", "/morfeas_php/morfeas_dbus_proxy.php", true);
 	xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-	xhttp.send("arg="+JSON.stringify(dbus_proxy_arg));
+	xhttp.send("arg="+compress(JSON.stringify(dbus_proxy_arg)));
 	data_req = true;
 }
 function MTI_tele_dev(MTI_data)
