@@ -102,7 +102,9 @@ export class SensorLinkModalComponent implements OnInit {
     if (this.error.length > 0) {
       return;
     }
-		console.log(this.selectedIsoStandard);
+	var postfix = document.getElementById("postfix") as HTMLSelectElement; 
+	if(postfix.selectedIndex)
+		this.selectedIsoStandard.iso_code += '_'+postfix.value;
     if (this.data.unlinked) {
       this.state.modal.close({
         isoStandard: this.selectedIsoStandard,
