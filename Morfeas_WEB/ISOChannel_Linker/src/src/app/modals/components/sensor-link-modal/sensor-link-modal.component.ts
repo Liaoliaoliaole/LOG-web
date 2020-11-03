@@ -103,9 +103,12 @@ export class SensorLinkModalComponent implements OnInit {
       return;
     }
 	var postfix = document.getElementById("postfix") as HTMLSelectElement; 
-	if(postfix.selectedIndex)
+	if(postfix.selectedIndex && !this.selectedIsoStandard.attributes.description.includes(' cyl '))
+	{
 		this.selectedIsoStandard.iso_code += '_'+postfix.value;
-    if (this.data.unlinked) {
+		this.selectedIsoStandard.attributes.description += ' cyl '+postfix.value;
+	}
+	if (this.data.unlinked) {
       this.state.modal.close({
         isoStandard: this.selectedIsoStandard,
         action: SensorLinkModalSubmitAction.Add
