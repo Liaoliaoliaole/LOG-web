@@ -86,11 +86,11 @@ function MTI_status_bar_update(MTI_data)
 	{
 		case "":
 		case "Disabled":
-			rssid.title="TRX OFF";
+			rssid.title="Radio OFF";
 			rssid_icon.src=rssid_icons_path+"_off.svg";
 			break;
 		case "RMSW/MUX":
-			rssid.title="TX mode";
+			rssid.title="TRX mode";
 			rssid_icon.src=rssid_icons_path+"_tx.svg";
 			break;
 		case "TC16":
@@ -196,7 +196,6 @@ function send_to_dbus_proxy(contents, dbus_methode)
 	dbus_proxy_arg.contents=contents;
 	xhttp.open("POST", "/morfeas_php/morfeas_dbus_proxy.php", true);
 	xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-	console.log("arg="+JSON.stringify(dbus_proxy_arg));
 	xhttp.send("arg="+JSON.stringify(dbus_proxy_arg));
 	data_req = true;
 }

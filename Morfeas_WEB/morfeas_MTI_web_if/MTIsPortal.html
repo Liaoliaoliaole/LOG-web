@@ -47,7 +47,7 @@ img.bsize{
 			<th colspan="5" style="font-size: 200%;">MTI WEB Portal</th>
 		</tr>
 		<tr>
-			<td colspan="4"><input id="status" style="text-align:center;" type="textbox" size="45" value="No selected device" readonly></td>
+			<td colspan="4"><input id="status" style="text-align:center;" type="textbox" size="45" readonly></td>
 		</tr>
 	</table>
 	<table id ="main_menu" style="margin:auto;text-align:center;margin-bottom:.075in;width:3in;display:none">
@@ -179,7 +179,7 @@ for the JavaScript code in this page.
 	  Graph_tab: 3
 	};
 	//Init of Elements
-	document.getElementById("status").value="No selected device";
+	document.getElementById("status").value="Select a device";
 	//global variables for elements
 	var batt_and_rssid = document.getElementsByName("batt_and_rssid");
 
@@ -216,7 +216,7 @@ for the JavaScript code in this page.
 						  MTI_data = JSON.parse(this.responseText);
 						}
 						catch(e){
-							status_box.value = "Error: " + e.message;
+							//status_box.value = "Error: " + e.message;
 							break;
 						}
 						var MTI_status=document.getElementById("MTI_status");
@@ -246,19 +246,19 @@ for the JavaScript code in this page.
 						}
 						else
 						{
-							status_box.value=MTI_data.Connection_status;
 							for(let i=0;i<batt_and_rssid.length;i++)
 								batt_and_rssid[i].style.display="none"
+							document.getElementById("MTI_status_tab").style.display="none";
+							document.getElementById("Telemetries_tab").style.display="none";
+							document.getElementById("Graph_tab").style.display="none";
 							MTI_status.style.display="none";
 							Telemetries_table.style.display="none"
 							Telemetries_table.innerHTML="";
 						}
+						status_box.value='Connection Status: '+MTI_data.Connection_status;
 					}
 					else if(this.getResponseHeader("Content-Type")==="report/text")
-					{
 						status_box.value=this.responseText;
-						console.log(this.responseText);
-					}
 					break;
 			}
 			data_req=false;
@@ -305,7 +305,7 @@ for the JavaScript code in this page.
 		}
 		else
 		{
-			document.getElementById("status").value="No selected device";
+			document.getElementById("status").value="Select a device";
 			for(let i=0;i<batt_and_rssid.length;i++)
 				batt_and_rssid[i].style.display="none"
 			main_menu.style.display="none";

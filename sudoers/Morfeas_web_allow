@@ -4,7 +4,7 @@ Cmnd_Alias ALLOW_PASSWORDLESS = /sbin/ip,\
                                 /bin/systemctl restart systemd-timesyncd.service,\
                                 /bin/systemctl restart Morfeas_system.service,\
                                 /bin/hostname,\
-                                /usr/sbin/poweroff,\
+                                /sbin/poweroff,\
                                 /sbin/reboot
 
 www-data ALL = (ALL) NOPASSWD: ALLOW_PASSWORDLESS
