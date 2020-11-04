@@ -61,7 +61,7 @@ img.bsize{
 		</tr>
 	</table>
 	<div id ="Telemetries_tab" style="margin:auto;text-align:center;display:none;">
-		<table id="radio" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;">
+		<table id="radio" style="margin:auto;text-align:center;margin-bottom:.1in;width:5in;border:1px solid black;">
 			<tr>
 				<td>
 					Radio mode:
@@ -116,7 +116,27 @@ img.bsize{
 				</td>
 			</tr>
 		</table>
-		<div id="Telemetries_table" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;"></div>
+		<div id="TC" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;display:none">
+		</div>
+		<div id="QUAD" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;display:none">
+			<table style="margin:auto;text-align:center;border:1px solid black;">
+				<th colspan="4"> Quadrature Telemetry <b id="Quad_valid_data" class="led"></b><th>
+				<tr>
+					<th>CH1_Value:</th>
+					<td><input name="QUAD_CHs" size="12" readonly></td>
+					<th>CH1_CNT:</th>
+					<td><input name="QUAD_CNTs" size="12" readonly></td>
+				</tr>
+				<tr>
+					<th>CH2_Value:</th>
+					<td><input name="QUAD_CHs" size="12" readonly></td>
+					<th>CH2_CNT:</th>
+					<td><input name="QUAD_CNTs" size="12" readonly></td>
+				</tr>
+			</table>
+		</div>
+		<div id="RMSW/MUX" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;display:none">
+		</div>
 	</div>
 	<div id ="MTI_status_tab" style="margin:auto;display:none;">
 		<table id="MTI_status" style="margin:auto;text-align:center;display:none">
@@ -133,7 +153,7 @@ img.bsize{
 				<td name="stat"></td><td name="stat"></td><td name="stat"></td><td name="stat"></td><td name="stat"></td>
 			</tr>
 			<tr>
-				<th>Telemetry mode</th><th>RF Channel</th><th>Modem Speed</th><th>RSSID(%)</th><th>Active(s) RX(s)</th>
+				<th>Telemetry mode</th><th>RF Channel</th><th>Modem Speed</th><th>RSSID</th><th>Active RX(s)</th>
 			</tr>
 			<tr>
 				<td name="stat"></td><td name="stat"></td><td name="stat"></td><td name="stat"></td><td name="stat"></td>
@@ -237,9 +257,9 @@ for the JavaScript code in this page.
 							break;
 						}
 						var MTI_status=document.getElementById("MTI_status");
-						var Telemetries_table=document.getElementById("Telemetries_table");
 						if(MTI_data.Connection_status==="Okay")
 						{
+							status_box.style.color='black';
 							MTI_status.style.display="table";
 							MTI_status_tab_update(MTI_data, MTI_status);
 							MTI_status_bar_update(MTI_data);
@@ -250,34 +270,38 @@ for the JavaScript code in this page.
 								radio_mode_inited=true;
 								radio_mode_init(MTI_data);
 							}
-							if(MTI_data.hasOwnProperty('Tele_data'))
-								MTI_tele_dev(MTI_data);
-							else
-								Telemetries_table.innerHTML="";
+							MTI_tele_dev(MTI_data);
 						}
 						else
 						{
+							status_box.style.color='blue';
 							for(let i=0;i<batt_and_rssid.length;i++)
 								batt_and_rssid[i].style.display="none"
 							document.getElementById("MTI_status_tab").style.display="none";
 							document.getElementById("Telemetries_tab").style.display="none";
 							document.getElementById("Graph_tab").style.display="none";
 							MTI_status.style.display="none";
-							Telemetries_table.innerHTML="";
 						}
-						status_box.value='Connection Status: '+MTI_data.Connection_status;
+						status_box.value='Connection: '+MTI_data.Connection_status;
 					}
 					else if(this.getResponseHeader("Content-Type")==="report/text")
+					{
 						status_box.value=this.responseText;
+						status_box.style.color=!this.responseText.includes('Success')?'red':'green';
+					}
 					break;
 			}
 			data_req=false;
 		}
 		else if(this.status == 404)
-			document.getElementById("status").value = "Data Not found";
+		{
+			status_box.value = "Data Not found";
+			status_box.style.color='red';
+		}
 	};
 	xhttp.ontimeout = function(){
 	  document.getElementById("status").value = "Connection Timeout";
+	  document.getElementById("status").style.color='blue';
 	  data_req=false;
 	};
 	//request names of available logstats
@@ -299,7 +323,7 @@ for the JavaScript code in this page.
 			else
 			{
 				MTI_status.style.display="none";
-				Telemetries_table.innerHTML="";
+				
 			}
 		}
 	}
@@ -310,7 +334,6 @@ for the JavaScript code in this page.
 		{
 			main_menu.style.display="table";
 			request_mode=mode_enum.MTIDev_contents;
-			document.getElementById("status").value="Okay";
 		}
 		else
 		{

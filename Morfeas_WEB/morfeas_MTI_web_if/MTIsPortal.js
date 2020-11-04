@@ -49,7 +49,7 @@ function MTI_status_tab_update(MTI_data, MTI_status_table)
 	}
 	else
 	{
-		data_cells_new_values.push(MTI_data.Tele_data.RX_Success_Ratio);
+		data_cells_new_values.push(MTI_data.Tele_data.RX_Success_Ratio+'%');
 		switch(MTI_data.Tele_data.RX_Status)
 		{
 			default: data_cells_new_values.push('None'); break;
@@ -245,17 +245,36 @@ function send_to_dbus_proxy(contents, dbus_methode)
 }
 function MTI_tele_dev(MTI_data)
 {
-	//console.log(MTI_data);
-	var tele_table = document.getElementById("Telemetries_table");
+	var tc=document.getElementById("TC"),
+		quad=document.getElementById("QUAD"),
+		rmsw_mux=document.getElementById("RMSW/MUX");
+	tc.style.display='none';
+	quad.style.display='none';
+	rmsw_mux.style.display='none';
 	switch(MTI_data.MTI_status.Tele_Device_type)
-	{
+	{			
 		case "TC4":
+			tc4.style.display='flex';
+			break;
 		case "TC8":
+			tc8.style.display='flex';
+			break;
 		case "TC16":
+			tc16.style.display='flex';
 			break;
 		case "QUAD":
+			quad.style.display='flex';
+			let QUAD_CHs=document.getElementsByName("QUAD_CHs"),
+				QUAD_CNTs=document.getElementsByName("QUAD_CNTs");
+			document.getElementById("Quad_valid_data").style.backgroundColor=MTI_data.Tele_data.IsValid?"green":"red";
+			for(let i=0;i<QUAD_CHs.length;i++)
+			{
+				QUAD_CHs[i].value=MTI_data.Tele_data.CHs[i].toString();
+				QUAD_CNTs[i].value=MTI_data.Tele_data.CNTs[i].toString();
+			}
 			break;
 		case "RMSW/MUX":
+			rmsw_mux.style.display='flex';
 			break;
 	}
 }
