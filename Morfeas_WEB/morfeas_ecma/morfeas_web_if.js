@@ -308,7 +308,7 @@ function morfeas_logstat_commonizer(logstats)
 					{
 						for(let k=0; k<logstats.logstat_contents[i].SDAQs_data[j].Meas.length; k++)
 						{
-							var error_str;
+							let error_str='';
 							if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Out_of_Range)
 								error_str='Out of Range';
 							else if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.No_Sensor)
