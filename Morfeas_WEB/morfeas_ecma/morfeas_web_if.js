@@ -86,7 +86,7 @@ function morfeas_logstat_commonizer(logstats)
 		this.type = type === undefined ? null : type;
 		this.avgMeasurement = avgMeasurement === undefined ? null : avgMeasurement;
 		this.Is_meas_valid = Is_meas_valid === undefined ? null : Is_meas_valid;
-		this.Error_explanation = Error_explanation === undefined ? 'Undefined' : Error_explanation
+		this.Error_explanation = Error_explanation === undefined ? 'Undefined' : Error_explanation;
 	}
 
 	function connection(name, value, unit)
