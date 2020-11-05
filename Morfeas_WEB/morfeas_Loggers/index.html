@@ -215,6 +215,7 @@ for the JavaScript code in this page.
 			if(selected_logger.selectedIndex)
 			{
 				xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + selected_logger.value + "?q="+makeid(), true);
+				xhttp.overrideMimeType("text/html");
 				xhttp.send();
 			}
 			else
