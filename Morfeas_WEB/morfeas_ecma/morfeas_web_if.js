@@ -313,6 +313,8 @@ function morfeas_logstat_commonizer(logstats)
 								error_str='Out of Range';
 							else if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.No_Sensor)
 								error_str='No sensor';
+							else if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Over_Range)
+								error_str='Over Range';
 							data_table[data_table_index].sensors.push(new sensor
 							(
 								"SDAQ",
