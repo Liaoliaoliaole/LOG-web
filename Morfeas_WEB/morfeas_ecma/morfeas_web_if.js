@@ -74,7 +74,8 @@ function morfeas_logstat_commonizer(logstats)
 				calibrationDate,
 				calibrationPeriod,
 				avgMeasurement,
-				Is_meas_valid)
+				Is_meas_valid,
+				Error_explanation)
 	{
 		this.deviceUserIdentifier = deviceUserIdentifier === undefined ? null : deviceUserIdentifier;
 		this.sensorUserId = sensorUserId === undefined ? null : sensorUserId;
@@ -85,6 +86,7 @@ function morfeas_logstat_commonizer(logstats)
 		this.type = type === undefined ? null : type;
 		this.avgMeasurement = avgMeasurement === undefined ? null : avgMeasurement;
 		this.Is_meas_valid = Is_meas_valid === undefined ? null : Is_meas_valid;
+		this.Error_explanation = Error_explanation === undefined ? 'Undefined' : Error_explanation
 	}
 
 	function connection(name, value, unit)
@@ -140,19 +142,17 @@ function morfeas_logstat_commonizer(logstats)
 					{
 						for(let k=1; k<=3; k++)//limit to 3]
 						{
-							if(eval("logstats.logstat_contents[i].MDAQ_Channels[j].Warnings.Is_Value"+k+"_valid"))
-							{
-								data_table[data_table_index].sensors.push(new sensor
-								(
-									"MDAQ",
-									logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
-									"CH"+norm(logstats.logstat_contents[i].MDAQ_Channels[j].Channel,2)+".Val"+k,
-									logstats.logstat_contents[i].Identifier+'.'+"CH"+logstats.logstat_contents[i].MDAQ_Channels[j].Channel+".Val"+k,
-									null,null,null,
-									eval("logstats.logstat_contents[i].MDAQ_Channels[j].Values.Value"+k),
-									eval("logstats.logstat_contents[i].MDAQ_Channels[j].Warnings.Is_Value"+k+"_valid")
-								));
-							}
+							data_table[data_table_index].sensors.push(new sensor
+							(
+								"MDAQ",
+								logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
+								"CH"+norm(logstats.logstat_contents[i].MDAQ_Channels[j].Channel,2)+".Val"+k,
+								logstats.logstat_contents[i].Identifier+'.'+"CH"+logstats.logstat_contents[i].MDAQ_Channels[j].Channel+".Val"+k,
+								null,null,null,
+								eval("logstats.logstat_contents[i].MDAQ_Channels[j].Values.Value"+k),
+								eval("logstats.logstat_contents[i].MDAQ_Channels[j].Warnings.Is_Value"+k+"_valid"),
+								eval("logstats.logstat_contents[i].MDAQ_Channels[j].Warnings.Is_Value"+k+"_valid")?'':'No sensor'
+							));
 						}
 					}
 				}
@@ -200,17 +200,17 @@ function morfeas_logstat_commonizer(logstats)
 						}
 						for(let j=0; j<lim; j++)
 						{
-							if(logstats.logstat_contents[i].Tele_data.CHs[j] !=="No sensor")
-								data_table[data_table_index].sensors.push(new sensor
-								(
-									"MTI",
-									logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
-									logstats.logstat_contents[i].MTI_status.Tele_Device_type+".CH"+(j+1),
-									logstats.logstat_contents[i].Identifier+"."+logstats.logstat_contents[i].MTI_status.Tele_Device_type+"."+"CH"+(j+1),
-									lim!==2?"°C":"",null,null,
-									logstats.logstat_contents[i].Tele_data.CHs[j],
-									logstats.logstat_contents[i].Tele_data.IsValid
-								));
+							data_table[data_table_index].sensors.push(new sensor
+							(
+								"MTI",
+								logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
+								logstats.logstat_contents[i].MTI_status.Tele_Device_type+".CH"+(j+1),
+								logstats.logstat_contents[i].Identifier+"."+logstats.logstat_contents[i].MTI_status.Tele_Device_type+"."+"CH"+(j+1),
+								lim!==2?"°C":"",null,null,
+								logstats.logstat_contents[i].Tele_data.CHs[j],
+								logstats.logstat_contents[i].Tele_data.IsValid,
+								!logstats.logstat_contents[i].Tele_data.RX_Success_Ratio?'Disconnected':'No sensor'
+							));
 						}
 					}
 					else if(logstats.logstat_contents[i].MTI_status.Tele_Device_type === "RMSW/MUX")
@@ -221,19 +221,18 @@ function morfeas_logstat_commonizer(logstats)
 							{
 								for(let k=0; k<4; k++)
 								{
-									if(logstats.logstat_contents[i].Tele_data[j].CHs_meas[k] !== "No sensor")
-									{
-										data_table[data_table_index].sensors.push(new sensor
-										(
-											"MTI",
-											logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
-											logstats.logstat_contents[i].Tele_data[j].Dev_type+"(ID:"+logstats.logstat_contents[i].Tele_data[j].Dev_ID+").CH"+(k+1),
-											logstats.logstat_contents[i].Identifier+".ID:"+logstats.logstat_contents[i].Tele_data[j].Dev_ID+"."+"CH"+(k+1),
-											"°C",null,null,
-											logstats.logstat_contents[i].Tele_data[j].CHs_meas[k],
-											true
-										));
-									}
+									data_table[data_table_index].sensors.push(new sensor
+									(
+										"MTI",
+										logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
+										logstats.logstat_contents[i].Tele_data[j].Dev_type+"(ID:"+logstats.logstat_contents[i].Tele_data[j].Dev_ID+").CH"+(k+1),
+										logstats.logstat_contents[i].Identifier+".ID:"+logstats.logstat_contents[i].Tele_data[j].Dev_ID+"."+"CH"+(k+1),
+										"°C",null,null,
+										logstats.logstat_contents[i].Tele_data[j].CHs_meas[k] !== "No sensor"?
+											logstats.logstat_contents[i].Tele_data[j].CHs_meas[k]:null,
+										logstats.logstat_contents[i].Tele_data[j].CHs_meas[k] !== "No sensor",
+										logstats.logstat_contents[i].Tele_data[j].CHs_meas[k] !== "No sensor"?'No Errors':"No sensor"
+									));
 								}
 							}
 						}
@@ -309,23 +308,24 @@ function morfeas_logstat_commonizer(logstats)
 					{
 						for(let k=0; k<logstats.logstat_contents[i].SDAQs_data[j].Meas.length; k++)
 						{
-							if(!(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Channel_status_val)||
-								(logstats.logstat_contents[i].SDAQs_data[j].SDAQ_type === "Pseudo_SDAQ")||
-								(logstats.logstat_contents[i].SDAQs_data[j].SDAQ_type === "SDAQ-TC-16"))
-							{
-								data_table[data_table_index].sensors.push(new sensor
-								(
-									"SDAQ",
-									logstats.logstat_contents[i].SDAQs_data[j].SDAQ_type,
-									"ADDR:"+norm(logstats.logstat_contents[i].SDAQs_data[j].Address,2)+".CH"+norm(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,2),
-									logstats.logstat_contents[i].SDAQs_data[j].Serial_number+".CH"+logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,
-									logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Unit,
-									logstats.logstat_contents[i].SDAQs_data[j].Calibration_Data[k].Calibration_date_UNIX,
-									logstats.logstat_contents[i].SDAQs_data[j].Calibration_Data[k].Calibration_period,
-									logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Meas_avg,
-									!(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Channel_status_val)
-								));
-							}
+							var error_str;
+							if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Out_of_Range)
+								error_str='Out of Range';
+							else if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.No_Sensor)
+								error_str='No sensor';
+							data_table[data_table_index].sensors.push(new sensor
+							(
+								"SDAQ",
+								logstats.logstat_contents[i].SDAQs_data[j].SDAQ_type,
+								"ADDR:"+norm(logstats.logstat_contents[i].SDAQs_data[j].Address,2)+".CH"+norm(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,2),
+								logstats.logstat_contents[i].SDAQs_data[j].Serial_number+".CH"+logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,
+								logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Unit,
+								logstats.logstat_contents[i].SDAQs_data[j].Calibration_Data[k].Calibration_date_UNIX,
+								logstats.logstat_contents[i].SDAQs_data[j].Calibration_Data[k].Calibration_period,
+								logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Meas_avg,
+								!(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Channel_status_val),
+								error_str
+							));
 						}
 					}
 				}
