@@ -25,20 +25,20 @@ for the JavaScript code in this page.
 function MTI_status_tab_update(MTI_data, MTI_status_table)
 {
 	var data_cells_new_values=[];
-	
+
 	data_cells_new_values.push(MTI_data.IPv4_address);
 	data_cells_new_values.push(MTI_data.MTI_status.MTI_CPU_temp);
 	data_cells_new_values.push(MTI_data.MTI_status.MTI_charge_status);
 	data_cells_new_values.push(MTI_data.MTI_status.MTI_batt_volt);
 	data_cells_new_values.push(MTI_data.MTI_status.MTI_batt_capacity);
 	data_cells_new_values.push((MTI_data.MTI_status.PWM_gen_out_freq/1000)+"Kc");
-	for(let i=0; i<MTI_data.MTI_status.PWM_CHs_outDuty.length;i++)	
+	for(let i=0; i<MTI_data.MTI_status.PWM_CHs_outDuty.length;i++)
 		data_cells_new_values.push(MTI_data.MTI_status.PWM_CHs_outDuty[i]+"%");
 	data_cells_new_values.push(MTI_data.MTI_status.Tele_Device_type);
 	data_cells_new_values.push(MTI_data.MTI_status.Radio_CH);
 	data_cells_new_values.push(MTI_data.MTI_status.Modem_data_rate);
 	if(MTI_data.MTI_status.Tele_Device_type=="Disabled")
-	{		
+	{
 		data_cells_new_values.push('Radio OFF');
 		data_cells_new_values.push('N/A');
 	}
@@ -64,7 +64,7 @@ function MTI_status_tab_update(MTI_data, MTI_status_table)
 	document.getElementById('PB1').style.backgroundColor=MTI_data.MTI_status.MTI_buttons_state.PB1?'#00e657':'#000000';
 	document.getElementById('PB2').style.backgroundColor=MTI_data.MTI_status.MTI_buttons_state.PB2?'#00e657':'#000000';
 	document.getElementById('PB3').style.backgroundColor=MTI_data.MTI_status.MTI_buttons_state.PB3?'#00e657':'#000000';
-	
+
 	var pwm_meters=document.getElementsByName("PWM_meters");
 	var pwm_text=document.getElementsByName("PWM_text");
 	for(let i=0;i<pwm_meters.length;i++)
@@ -84,7 +84,7 @@ function MTI_status_bar_update(MTI_data)
 	//Battery status update
 	if(MTI_data.MTI_status.MTI_charge_status === "Discharging")
 	{
-		batt.title=MTI_data.MTI_status.MTI_batt_capacity+"%";
+		batt.title=MTI_data.MTI_status.MTI_batt_capacity.toFixed(0)+"%";
 		if(MTI_data.MTI_status.MTI_batt_capacity==100)
 			batt_icon.src=batt_icons_path+"_100.svg";
 		else if(MTI_data.MTI_status.MTI_batt_capacity>=80&&
@@ -252,19 +252,69 @@ function MTI_tele_dev(MTI_data)
 	quad.style.display='none';
 	rmsw_mux.style.display='none';
 	switch(MTI_data.MTI_status.Tele_Device_type)
-	{			
+	{
 		case "TC4":
-			tc4.style.display='flex';
-			break;
 		case "TC8":
-			tc8.style.display='flex';
-			break;
 		case "TC16":
-			tc16.style.display='flex';
+			tc.style.display='flex';
+			var CHs_lim, refs=[];
+			switch(MTI_data.MTI_status.Tele_Device_type)
+			{
+				case "TC4":
+					CHs_lim=4;
+					refs[0]=MTI_data.Tele_data.CHs_refs[0];
+					refs[1]=MTI_data.Tele_data.CHs_refs[0];
+					refs[2]=MTI_data.Tele_data.CHs_refs[1];
+					refs[3]=MTI_data.Tele_data.CHs_refs[1];
+					break;
+				case "TC8":
+					CHs_lim=8;
+					refs=MTI_data.Tele_data.CHs_refs;
+					break;
+				case "TC16":
+					CHs_lim=16;
+					refs=null;
+					break;
+			}
+			tc.innerHTML='';
+			var TC_tele_table = document.createElement('table');
+			TC_tele_table.style.margin='auto';
+			TC_tele_table.style.textalign='center';
+			TC_tele_table.style.border='1px solid black';
+			TC_tele_table.style.width='80%';
+			if(MTI_data.Tele_data.IsValid)
+			{
+				let Title_row=TC_tele_table.insertRow();
+				Title_row.insertCell().innerHTML = '<b>Meas</b>';
+				if(refs)
+					Title_row.insertCell().innerHTML = '<b>Refs</b>';
+				for(let i=0;i<CHs_lim;i++)
+				{
+					let channel_row=TC_tele_table.insertRow();
+					let meas_cell=channel_row.insertCell(0);
+					meas_cell.innerHTML='CH_'+(i+1)+': ';
+					if(typeof(MTI_data.Tele_data.CHs[i])==='number')
+						meas_cell.innerHTML+=MTI_data.Tele_data.CHs[i].toPrecision(5)+'°C';
+					else if(typeof(MTI_data.Tele_data.CHs[i])==='string')
+						meas_cell.innerHTML+=MTI_data.Tele_data.CHs[i];
+					if(refs)
+					{
+						let ref_cell=channel_row.insertCell(1);
+						ref_cell.innerHTML='CH_'+(i+1)+'_Ref: ';
+						ref_cell.innerHTML+=refs[i].toPrecision(5)+'°C';
+					}
+				}
+			}
+			else
+			{
+				let meas_cell=TC_tele_table.insertRow();
+				meas_cell.innerHTML='<b>Telemetry Disconnected</b>';
+			}
+			tc.appendChild(TC_tele_table);
 			break;
 		case "QUAD":
 			quad.style.display='flex';
-			let QUAD_CHs=document.getElementsByName("QUAD_CHs"),
+			var QUAD_CHs=document.getElementsByName("QUAD_CHs"),
 				QUAD_CNTs=document.getElementsByName("QUAD_CNTs");
 			document.getElementById("Quad_valid_data").style.backgroundColor=MTI_data.Tele_data.IsValid?"green":"red";
 			for(let i=0;i<QUAD_CHs.length;i++)
