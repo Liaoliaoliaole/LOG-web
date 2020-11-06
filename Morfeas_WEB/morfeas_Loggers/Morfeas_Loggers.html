@@ -140,13 +140,18 @@ for the JavaScript code in this page.
 								document.getElementById("status").value = "Sensors";
 								var sensors_table = document.createElement("TABLE");
 								sensors_table.style="margin:auto;margin-bottom:.075in;width:6in;";
+								let header_row=sensors_table.createTHead().insertRow();
+								header_row.insertCell().innerHTML = "<b>Type</b>";
+								header_row.insertCell().innerHTML = "<b>Name/property</b>";
+								header_row.insertCell().innerHTML = "<b>Anchor_link</b>";
+								header_row.insertCell().innerHTML = "<b>Meas/Error</b>";
 								for(let i=0; i<logstat.length; i++)
 								{
 									if(logstat[i].sensors)
 									{
 										for(let j=0; j<logstat[i].sensors.length; j++)
 										{		
-											var last_row = sensors_table.insertRow();
+											let last_row = sensors_table.insertRow();
 											last_row.insertCell().innerHTML = logstat[i].sensors[j].type;
 											last_row.insertCell().innerHTML = logstat[i].sensors[j].deviceUserIdentifier;
 											last_row.insertCell().innerHTML = logstat[i].sensors[j].sensorUserId;
@@ -174,11 +179,11 @@ for the JavaScript code in this page.
 										details_table.createTHead().innerHTML = logstat[i].if_name;
 										for(let j=0; j<logstat[i].connections.length; j++)
 										{		
-											var last_row = details_table.insertRow();
+											let last_row = details_table.insertRow();
 											last_row.insertCell().innerHTML = logstat[i].connections[j].name;
 											if(logstat[i].connections[j].name.includes("UNIX"))
 											{
-												var date_conv = new Date();
+												let date_conv = new Date();
 												date_conv.setTime(logstat[i].connections[j].value*1000)
 												last_row.insertCell().innerHTML = date_conv.getFullYear()+"/"+
 																				  (date_conv.getMonth()+1)+"/"+ 
