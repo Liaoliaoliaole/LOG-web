@@ -86,7 +86,7 @@ function morfeas_logstat_commonizer(logstats)
 		this.type = type === undefined ? null : type;
 		this.avgMeasurement = avgMeasurement === undefined ? null : avgMeasurement;
 		this.Is_meas_valid = Is_meas_valid === undefined ? null : Is_meas_valid;
-		this.Error_explanation = Error_explanation === undefined ? 'Undefined' : Error_explanation;
+		this.Error_explanation = Error_explanation === undefined ? 'Undefined' : Error_explanation
 	}
 
 	function connection(name, value, unit)
@@ -308,13 +308,18 @@ function morfeas_logstat_commonizer(logstats)
 					{
 						for(let k=0; k<logstats.logstat_contents[i].SDAQs_data[j].Meas.length; k++)
 						{
-							let error_str='';
-							if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Out_of_Range)
-								error_str='Out of Range';
-							else if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.No_Sensor)
-								error_str='No sensor';
-							else if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Over_Range)
-								error_str='Over Range';
+							let error_str='No error';
+							if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Channel_status_val)
+							{
+								if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Out_of_Range)
+									error_str='Out of Range';
+								else if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.No_Sensor)
+									error_str='No sensor';
+								else if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Over_Range)
+									error_str='Over Range';
+								else
+									error_str='Unclassified';
+							}
 							data_table[data_table_index].sensors.push(new sensor
 							(
 								"SDAQ",

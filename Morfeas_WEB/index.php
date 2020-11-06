@@ -63,7 +63,7 @@ td.bold{
 				<img src="./art/anchor.png" class="bsize">
 			</span>
 		</td>
-		<td><button type="button" onclick='PopupCenter("/morfeas_Loggers/"+"?q="+makeid(),"","1024","768")'>
+		<td><button type="button" onclick='PopupCenter("/morfeas_Loggers/Morfeas_Loggers.html"+"?q="+makeid(),"","1024","768")'>
 			<span title="System Loggers">
 				<img src="./art/logger.svg" class="bsize">
 			</span>
