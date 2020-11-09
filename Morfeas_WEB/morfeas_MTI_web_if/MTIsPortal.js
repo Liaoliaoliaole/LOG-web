@@ -308,7 +308,7 @@ function MTI_tele_dev(MTI_data)
 			else
 			{
 				let meas_cell=TC_tele_table.insertRow();
-				meas_cell.innerHTML='<b>Telemetry Disconnected</b>';
+				meas_cell.innerHTML='<b>Invalid Data</b>';
 			}
 			tc.appendChild(TC_tele_table);
 			break;
@@ -325,6 +325,28 @@ function MTI_tele_dev(MTI_data)
 			break;
 		case "RMSW/MUX":
 			rmsw_mux.style.display='flex';
+			let global_ctrl=document.getElementById('Global_ctrl');
+			if(MTI_data.MTI_status.MTI_Global_state.Global_ON_OFF||MTI_data.MTI_status.MTI_Global_state.Global_Sleep)
+			{
+				if(!global_ctrl)
+				{
+					global_ctrl = document.createElement('table');
+					global_ctrl.style.margin='auto';
+					global_ctrl.style.textalign='center';
+					global_ctrl.style.border='1px solid black';
+					global_ctrl.style.width='80%';
+					global_ctrl.id='Global_ctrl';
+					let global_ctrl_row=global_ctrl.insertRow();
+					global_ctrl_row.insertCell();
+					
+					rmsw_mux.appendChild(global_ctrl);
+				}
+			}
+			else
+			{
+				if(global_ctrl)
+					global_ctrl.remove();
+			}
 			break;
 	}
 }
