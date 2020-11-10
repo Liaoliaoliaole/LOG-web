@@ -55,23 +55,23 @@ img.bsize{
 			<th colspan="3" style="font-size: 120%;">Main Menu</th>
 		</tr>
 		<tr>
-			<td><input type="button" value="RF Devices" onclick='Show_hide(screen_enum.Telemetries_tab)'></td>
+			<td><input type="button" value="RF Devices" onclick='Show_hide(screen_enum.RF_DEVs)'></td>
 			<td><input type="button" value="State" onclick='Show_hide(screen_enum.MTI_status_tab)'></td>
 			<td><input type="button" value="Graph" onclick='Show_hide(screen_enum.Graph_tab)'></td>
 		</tr>
 	</table>
-	<div id ="Telemetries_tab" style="margin:auto;text-align:center;display:none;">
+	<div id ="RF_DEVs" style="margin:auto;display:none;">
 		<table id="radio" style="margin:auto;text-align:center;margin-bottom:.1in;width:5in;border:1px solid black;">
 			<tr>
 				<td>
 					Radio mode:
 					<select id="radio_mode" onchange="radio_mode_show_hide_extra(this)">
-						<option value="Disabled">Disabled</option>
-						<option value="TC16">TC16</option>
-						<option value="TC8">TC8</option>
-						<option value="TC4">TC4</option>
-						<option value="QUAD">QUAD</option>
-						<option value="RMSW/MUX">RMSW/MUX</option>
+						<option>Disabled</option>
+						<option>TC16</option>
+						<option>TC8</option>
+						<option>TC4</option>
+						<option>QUAD</option>
+						<option>RMSW/MUX</option>
 					</select>
 				</td>
 				<td>
@@ -82,17 +82,13 @@ img.bsize{
 					<input type="button" value="Set" onclick="send_new_MTI_config()">
 				</td>
 			</tr>
-			<tr id="RMSWs_extra" style="display:none">
+			<tr id="RMSWs_extra" style="margin:auto;display:none">
 				<td>
 					<input type="checkbox" id="G_SW" name="G_SW">
-					<label for="G_SW"> Global ON/OFF mode</label>
-				</td>
-				<td>
-					<input type="checkbox" id="G_SL" name="G_SL">
-					<label for="G_SL"> Global Sleep mode</label>
+					<label for="G_SW"> Global ON/OFF Control</label>
 				</td>
 			</tr>
-			<tr id="TC_tele_extra" style="display:none">
+			<tr id="TC_tele_extra" style="margin:auto;display:none">
 				<td>
 					<label for="StV">Samples to: Set valid</label>
 					<input type="number" id="StV" name="StV" value="0" size="4" min="0" max="254">
@@ -102,7 +98,7 @@ img.bsize{
 					<input type="number" id="StF" name="StF" value="0" size="4" min="0" max="254">
 				</td>
 			</tr>
-			<tr id="QUAD_tele_extra" style="align-content:right;display:none">
+			<tr id="QUAD_tele_extra" style="margin:auto;align-content:right;display:none">
 				<td>
 					<label for="PWM_1"><b>PWM 1:</b></label>
 					<meter id="PWM_1" name="PWM_meters" max="100"></meter><b name="PWM_text"></b>
@@ -116,13 +112,7 @@ img.bsize{
 				</td>
 			</tr>
 		</table>
-		<div id="TC" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;display:none">
-			<!--<table style="margin:auto;text-align:center;border:1px solid black;">
-				<th id="TC_head" colspan="16"> Temperature Telemetry <b id="TC_valid_data" class="led"></b><th>
-				<tr id="TC_CHs_meas"></tr>
-				<tr id="TC_REFs_meas"></tr>
-			</table>-->
-		</div>
+		<div id="TC" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;display:none"></div>
 		<div id="QUAD" style="margin:auto;text-align:center;margin-bottom:.1in;width:5in;display:none">
 			<table style="margin:auto;text-align:center;border:1px solid black;">
 				<th colspan="4"> Quadrature Telemetry <b id="Quad_valid_data" class="led"></b><th>
@@ -217,7 +207,7 @@ for the JavaScript code in this page.
 	};
 	var screen_enum = {
 	  MTI_status_tab: 1,
-	  Telemetries_tab: 2,
+	  RF_DEVs: 2,
 	  Graph_tab: 3
 	};
 	//Init of Elements
@@ -227,7 +217,6 @@ for the JavaScript code in this page.
 
 	var data_req=false, radio_mode_inited=false;
 	var request_mode = mode_enum.MTIDev_name;
-	var MTI_data;
 	//AJAX response handler
 	var xhttp = new XMLHttpRequest();
 	xhttp.timeout = 2000;
@@ -235,6 +224,7 @@ for the JavaScript code in this page.
 	{
 		if (this.readyState == 4 && this.status == 200)
 		{
+			var MTI_data;
 			switch(request_mode)
 			{
 				case mode_enum.MTIDev_name:
@@ -283,7 +273,7 @@ for the JavaScript code in this page.
 							for(let i=0;i<batt_and_rssid.length;i++)
 								batt_and_rssid[i].style.display="none"
 							document.getElementById("MTI_status_tab").style.display="none";
-							document.getElementById("Telemetries_tab").style.display="none";
+							document.getElementById("RF_DEVs").style.display="none";
 							document.getElementById("Graph_tab").style.display="none";
 							MTI_status.style.display="none";
 						}
@@ -300,12 +290,12 @@ for the JavaScript code in this page.
 		}
 		else if(this.status == 404)
 		{
-			status_box.value = "Data Not found";
+			status_box.value = "Error 404: Data Not found";
 			status_box.style.color='red';
 		}
 	};
 	xhttp.ontimeout = function(){
-	  document.getElementById("status").value = "Connection Timeout";
+	  document.getElementById("status").value = "Connection to server: Timeout Error";
 	  document.getElementById("status").style.color='blue';
 	  data_req=false;
 	};
@@ -328,7 +318,8 @@ for the JavaScript code in this page.
 			else
 			{
 				MTI_status.style.display="none";
-				
+				if(document.getElementById('RMSWs_MUXs_data'))
+					document.getElementById('RMSWs_MUXs_data').remove();
 			}
 		}
 	}
@@ -353,16 +344,16 @@ for the JavaScript code in this page.
 	function Show_hide(log_set)
 	{
 		document.getElementById("MTI_status_tab").style.display="none";
-		document.getElementById("Telemetries_tab").style.display="none";
+		document.getElementById("RF_DEVs").style.display="none";
 		document.getElementById("Graph_tab").style.display="none";
 		switch(log_set)
 		{
 			case screen_enum.MTI_status_tab:
 				document.getElementById("MTI_status_tab").style.display="inline";
 				break;
-			case screen_enum.Telemetries_tab:
+			case screen_enum.RF_DEVs:
 				radio_mode_inited=false;
-				document.getElementById("Telemetries_tab").style.display="inline";
+				document.getElementById("RF_DEVs").style.display="inline";
 				break;
 			case screen_enum.Graph_tab:
 				document.getElementById("Graph_tab").style.display="inline";

@@ -177,7 +177,6 @@ function radio_mode_init(MTI_data)
 			break;
 		case "RMSW/MUX":
 			document.getElementById("G_SW").checked=MTI_data.MTI_status.MTI_Global_state.Global_ON_OFF;
-			document.getElementById("G_SL").checked=MTI_data.MTI_status.MTI_Global_state.Global_Sleep;
 			break;
 	}
 	radio_mode_show_hide_extra(radio_mode);
@@ -225,10 +224,17 @@ function send_new_MTI_config()
 		case "RMSW/MUX":
 			msg_contents.new_RF_CH=0;
 			msg_contents.G_SW=document.getElementById("G_SW").checked;
-			msg_contents.G_SL=document.getElementById("G_SL").checked;
+			msg_contents.G_SL=false;
 			break;
 	}
 	send_to_dbus_proxy(msg_contents,'new_MTI_config');
+}
+function Global_switch(new_status)
+{
+	var msg_contents={};
+	msg_contents.G_P_state=new_status;
+	msg_contents.G_S_state=0;
+	send_to_dbus_proxy(msg_contents,'MTI_Global_SWs');
 }
 function send_to_dbus_proxy(contents, dbus_methode)
 {
@@ -326,7 +332,7 @@ function MTI_tele_dev(MTI_data)
 		case "RMSW/MUX":
 			rmsw_mux.style.display='flex';
 			let global_ctrl=document.getElementById('Global_ctrl');
-			if(MTI_data.MTI_status.MTI_Global_state.Global_ON_OFF||MTI_data.MTI_status.MTI_Global_state.Global_Sleep)
+			if(MTI_data.MTI_status.MTI_Global_state.Global_ON_OFF)
 			{
 				if(!global_ctrl)
 				{
@@ -334,20 +340,133 @@ function MTI_tele_dev(MTI_data)
 					global_ctrl.style.margin='auto';
 					global_ctrl.style.textalign='center';
 					global_ctrl.style.border='1px solid black';
-					global_ctrl.style.width='80%';
+					global_ctrl.style.width='50%';
 					global_ctrl.id='Global_ctrl';
-					let global_ctrl_row=global_ctrl.insertRow();
-					global_ctrl_row.insertCell();
-					
-					rmsw_mux.appendChild(global_ctrl);
+					//Insert Title
+					let row=global_ctrl.insertRow(),cell=row.insertCell();
+					cell.innerHTML='<b>Global ON/OFF:</b>';
+					//Add "Global ON" button
+					cell=row.insertCell()
+					let GL_button = document.createElement('button');
+					GL_button.onclick=function(){Global_switch(true)};
+					GL_button.appendChild(document.createTextNode("ON"));
+					cell.appendChild(GL_button);
+					//Add status indicator
+					cell=row.insertCell();
+					let Global_status=document.createElement('div');
+					Global_status.id='GL_ON_OFF_Status';
+					Global_status.className='led';
+					cell.appendChild(Global_status);
+					//Add "Global OFF" button
+					cell=row.insertCell();
+					GL_button = document.createElement('button');
+					GL_button.onclick=function(){Global_switch(false)};
+					GL_button.appendChild(document.createTextNode("OFF"));
+					cell.appendChild(GL_button);
+					//Append global_ctrl to rmsw_mux division
+					rmsw_mux.insertBefore(global_ctrl, rmsw_mux.childNodes[0]); 
 				}
+				document.getElementById('GL_ON_OFF_Status').style.backgroundColor=MTI_data.MTI_status.MTI_Global_state.Global_Power_state?'green':'red';
 			}
-			else
+			else if(global_ctrl)
+				global_ctrl.remove();
+			let RMSWs_MUXs_data_div = document.getElementById('RMSWs_MUXs_data');
+			if(MTI_data.Tele_data.length)
 			{
-				if(global_ctrl)
-					global_ctrl.remove();
+				if(RMSWs_MUXs_data_div)
+					update_RMSWs_MUXs_data(MTI_data.Tele_data);
+				else
+					create_RMSWs_MUXs_data_div(MTI_data, rmsw_mux);
 			}
+			else if(RMSWs_MUXs_data_div)
+				RMSWs_MUXs_data_div.remove();
 			break;
 	}
 }
+function populate_MUX_table(Tele_data, MUX_table)
+{
+	let row=MUX_table.insertRow();
+	row.insertCell().innerHTML='Dev_Type';
+	row.insertCell().innerHTML='Dev_ID';
+	row.insertCell().innerHTML='Last_RX';
+	row.insertCell().innerHTML='Dev_temp';
+	row.insertCell().innerHTML='Supply_Voltage';
+	row=MUX_table.insertRow();
+	for(let i=0;i<5;i++)
+	{
+		let datacell=row.insertCell();
+		datacell.setAttribute('name',Tele_data.Dev_type+'_'+Tele_data.Dev_ID+'_data');
+	}
+}
+function populate_RMSW_table(Tele_data, RMSW_table)
+{
+
+}
+function populate_MiniRMSW_table(Tele_data, Mini_RMSW_table)
+{
+
+}
+function create_RMSWs_MUXs_data_div(MTI_data, rmsw_mux_div)
+{
+	let RMSWs_MUXs_data_div = document.getElementById('RMSWs_MUXs_data');
+	if(!MTI_data.Tele_data.length||!rmsw_mux_div)
+		return;
+	if(!RMSWs_MUXs_data_div)
+	{
+		RMSWs_MUXs_data_div=document.createElement('div');
+		RMSWs_MUXs_data_div.style.margin='auto';
+		RMSWs_MUXs_data_div.style.textalign='center';
+		RMSWs_MUXs_data_div.id='RMSWs_MUXs_data';
+		rmsw_mux_div.appendChild(RMSWs_MUXs_data_div);
+	}
+	for(let i=0;i<MTI_data.Tele_data.length;i++)
+	{
+		switch(MTI_data.Tele_data[i].Dev_type)
+		{
+			case 'MUX':
+			case 'RMSW':
+			case 'Mini_RMSW':
+				if(document.getElementById(MTI_data.Tele_data[i].Dev_type+'_'+MTI_data.Tele_data[i].Dev_ID))
+					break;
+				var new_RMSW_MUX_data_table=document.createElement('table');
+				new_RMSW_MUX_data_table.id=MTI_data.Tele_data[i].Dev_type+'_'+MTI_data.Tele_data[i].Dev_ID;
+				new_RMSW_MUX_data_table.style.margin='auto';
+				new_RMSW_MUX_data_table.style.textalign='center';
+				new_RMSW_MUX_data_table.style.border='1px solid black';
+				RMSWs_MUXs_data_div.appendChild(new_RMSW_MUX_data_table);
+				switch(MTI_data.Tele_data[i].Dev_type)
+				{
+					case 'MUX': populate_MUX_table(MTI_data.Tele_data[i], new_RMSW_MUX_data_table); break;
+					case 'RMSW': populate_RMSW_table(MTI_data.Tele_data[i], new_RMSW_MUX_data_table); break;
+					case 'Mini_RMSW': populate_MiniRMSW_table(MTI_data.Tele_data[i], new_RMSW_MUX_data_table); break;
+				}
+				break;
+		}
+	}
+}
+function update_RMSWs_MUXs_data(Tele_data)
+{
+	var html_tele_data;
+	for(let i=0;i<Tele_data.length;i++)
+	{
+		switch(Tele_data[i].Dev_type)
+		{
+			case 'MUX':
+				if((html_tele_data=document.getElementsByName(Tele_data[i].Dev_type+'_'+Tele_data[i].Dev_ID+'_data')))
+				{
+					html_tele_data[0].innerHTML=Tele_data[i].Dev_type;
+					html_tele_data[1].innerHTML=Tele_data[i].Dev_ID;
+					html_tele_data[2].innerHTML=Tele_data[i].Time_from_last_msg;
+					html_tele_data[3].innerHTML=Tele_data[i].Dev_temp;
+					html_tele_data[4].innerHTML=Tele_data[i].Supply_volt;
+				}
+				break;
+			case 'RMSW':
+				break;
+			case 'Mini_RMSW':
+				break;
+		}
+	}
+}
+
 //@license-end
