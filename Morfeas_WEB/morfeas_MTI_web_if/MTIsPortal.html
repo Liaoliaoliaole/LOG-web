@@ -87,6 +87,18 @@ img.bsize{
 					<input type="checkbox" id="G_SW" name="G_SW">
 					<label for="G_SW"> Global ON/OFF Control</label>
 				</td>
+				<td name='Global_SW'>
+					<b>Global ON/OFF SW:</b>
+				</td>
+				<td name='Global_SW'>
+					<input type="button" value='ON' onclick='Global_switch(true)'>
+				</td>
+				<td name='Global_SW'>
+					<b id='G_SW_value' class='led'></b>
+				</td>
+				<td name='Global_SW'>
+					<input type="button" value='OFF' onclick='Global_switch(false)'>
+				</td>
 			</tr>
 			<tr id="TC_tele_extra" style="margin:auto;display:none">
 				<td>
@@ -130,7 +142,7 @@ img.bsize{
 				</tr>
 			</table>
 		</div>
-		<div id="RMSW/MUX" style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;display:none">
+		<div id="RMSW/MUX" style="margin:auto;text-align:center;margin-bottom:.075in;display:none">
 		</div>
 	</div>
 	<div id ="MTI_status_tab" style="margin:auto;display:none;">
