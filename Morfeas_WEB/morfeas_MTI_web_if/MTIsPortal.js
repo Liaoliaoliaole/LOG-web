@@ -238,10 +238,18 @@ function Global_switch(new_status)
 }
 function MUX_Sel(sw_name, new_state, mem_pos)
 {
-	
 	var msg_contents={};
 	msg_contents.mem_pos=mem_pos;
 	msg_contents.tele_type='MUX';
+	msg_contents.sw_name=sw_name;
+	msg_contents.new_state=new_state;
+	send_to_dbus_proxy(msg_contents,'ctrl_tele_SWs');
+}
+function RMSW_ctrl(sw_name, new_state, mem_pos, tele_type)
+{
+	var msg_contents={};
+	msg_contents.mem_pos=mem_pos;
+	msg_contents.tele_type=tele_type;
 	msg_contents.sw_name=sw_name;
 	msg_contents.new_state=new_state;
 	send_to_dbus_proxy(msg_contents,'ctrl_tele_SWs');
@@ -394,25 +402,96 @@ function populate_RMSW_MUX_table(Tele_data, MUX_table)
 				let ch_cell=row.insertCell();
 				let elem=document.createElement('button');
 				elem.innerHTML='A';
-				elem.onclick=function(){MUX_Sel('Sel_'+i, 0,  parseInt(MUX_table.rows[1].cells[MUX_table.rows[1].cells.length-1].innerHTML))};
+				elem.onclick=function(){MUX_Sel('Sel_'+i, false,  parseInt(MUX_table.rows[1].cells[MUX_table.rows[1].cells.length-1].innerHTML))};
 				ch_cell.appendChild(elem);
 				elem=document.createElement('button');
 				elem.innerHTML='B';
-				elem.onclick=function(){MUX_Sel('Sel_'+i, 1, parseInt(MUX_table.rows[1].cells[MUX_table.rows[1].cells.length-1].innerHTML))};
+				elem.onclick=function(){MUX_Sel('Sel_'+i, true, parseInt(MUX_table.rows[1].cells[MUX_table.rows[1].cells.length-1].innerHTML))};
 				ch_cell.appendChild(elem);
 			}
 			break;
 		case 'RMSW':
 			row=MUX_table.insertRow();
+			row.insertCell().innerHTML='<b>CH1_Volt</b>';
+			row.insertCell().innerHTML='<b>CH1_Curr</b>';
+			row.insertCell().innerHTML='<b>CH2_Volt</b>';
+			row.insertCell().innerHTML='<b>CH2_Curr</b>';
+			row=MUX_table.insertRow();
+			for(let i=1;i<=4;i++)
+			{
+				let meas_cell=row.insertCell();
+				meas_cell.setAttribute('name',Tele_data.Dev_type+'_'+Tele_data.Dev_ID+'_meas');
+			}
+			row=MUX_table.insertRow();
 			row.setAttribute('name','GL_check');
-			row.insertCell().innerHTML='<b>Main Switch</b>';
-			row.insertCell().innerHTML='<b>Switch CH1</b>';
-			row.insertCell().innerHTML='<b>Switch CH2</b>';
+			let ctrl_cells_name=['<b>Main:</b>','<b>CH1:</b>','<b>CH2:</b>'],
+				ctrl_sw_name=['Main_SW','SW_1','SW_2'];
+			for(let i=0;i<ctrl_cells_name.length;i++)
+			{
+				let sw=row.insertCell();
+				sw.innerHTML=ctrl_cells_name[i];
+				sw.colSpan='2';
+				let elem=document.createElement('button');
+				elem.innerHTML='ON';
+				elem.onclick=function(){RMSW_ctrl(ctrl_sw_name[i], 
+												  true, 
+												  parseInt(MUX_table.rows[1].cells[MUX_table.rows[1].cells.length-1].innerHTML), 
+												  'RMSW')};
+				let led=document.createElement('dev');
+				led.className='led';
+				led.setAttribute('name', Tele_data.Dev_type+'_'+Tele_data.Dev_ID+'_ind');
+				elem.appendChild(led);
+				sw.appendChild(elem);
+				elem=document.createElement('button');
+				elem.innerHTML='OFF';
+				elem.onclick=function(){RMSW_ctrl(ctrl_sw_name[i], 
+												  false, 
+												  parseInt(MUX_table.rows[1].cells[MUX_table.rows[1].cells.length-1].innerHTML), 
+												  'RMSW')};
+				led=document.createElement('dev');
+				led.className='led';
+				led.setAttribute('name', Tele_data.Dev_type+'_'+Tele_data.Dev_ID+'_ind');
+				elem.appendChild(led);
+				sw.appendChild(elem);
+			}
 			break;
 		case 'Mini_RMSW':
 			row=MUX_table.insertRow();
+			for(let i=1;i<=4;i++)
+				row.insertCell().innerHTML='<b>TC_CH'+i+'</b>';
+			row=MUX_table.insertRow();
+			for(let i=1;i<=4;i++)
+			{
+				let meas_cell=row.insertCell();
+				meas_cell.setAttribute('name',Tele_data.Dev_type+'_'+Tele_data.Dev_ID+'_meas');
+			}
+			row=MUX_table.insertRow();
 			row.setAttribute('name','GL_check');
-			row.insertCell().innerHTML='<b>Main SW</b>';
+			let Main_sw=row.insertCell();
+			Main_sw.innerHTML='<b>Main:</b>';
+			Main_sw.colSpan='2';
+			let elem=document.createElement('button');
+			elem.innerHTML='ON';
+			elem.onclick=function(){RMSW_ctrl('Main_SW', 
+											  true, 
+											  parseInt(MUX_table.rows[1].cells[MUX_table.rows[1].cells.length-1].innerHTML), 
+											  'Mini_RMSW')};
+			let led=document.createElement('dev');
+			led.className='led';
+			led.setAttribute('name', Tele_data.Dev_type+'_'+Tele_data.Dev_ID+'_main_sw');
+			elem.appendChild(led);
+			Main_sw.appendChild(elem);
+			elem=document.createElement('button');
+			elem.innerHTML='OFF';
+			elem.onclick=function(){RMSW_ctrl('Main_SW', 
+											  false, 
+											  parseInt(MUX_table.rows[1].cells[MUX_table.rows[1].cells.length-1].innerHTML), 
+											  'Mini_RMSW')};
+			led=document.createElement('dev');
+			led.className='led';
+			led.setAttribute('name', Tele_data.Dev_type+'_'+Tele_data.Dev_ID+'_main_sw');
+			elem.appendChild(led);
+			Main_sw.appendChild(elem);
 			break;
 	}
 }
@@ -491,8 +570,30 @@ function update_RMSWs_MUXs_data(MTI_data)
 						html_MUX_data[j].innerHTML='<b>CH'+(j+1)+':'+eval('MTI_data.Tele_data['+i+'].Controls.CH'+(j+1))+'</b>';
 					break;
 				case 'RMSW':
+					let html_RMSW_data = document.getElementsByName(MTI_data.Tele_data[i].Dev_type+'_'+MTI_data.Tele_data[i].Dev_ID+'_meas');
+					for(let j=0; j<html_RMSW_data.length; j++)
+						html_RMSW_data[j].innerHTML=MTI_data.Tele_data[i].CHs_meas[j]+(j%2?'A':'V');
+					let html_RMSW_ind = document.getElementsByName(MTI_data.Tele_data[i].Dev_type+'_'+MTI_data.Tele_data[i].Dev_ID+'_ind');
+					if(html_RMSW_ind.length)
+					{
+						html_RMSW_ind[0].style.backgroundColor=MTI_data.Tele_data[i].Controls.Main?'Chartreuse':'DarkGreen';
+						html_RMSW_ind[1].style.backgroundColor=MTI_data.Tele_data[i].Controls.Main?'DarkGreen':'Chartreuse';
+						html_RMSW_ind[2].style.backgroundColor=MTI_data.Tele_data[i].Controls.CH1?'Chartreuse':'DarkGreen';
+						html_RMSW_ind[3].style.backgroundColor=MTI_data.Tele_data[i].Controls.CH1?'DarkGreen':'Chartreuse';
+						html_RMSW_ind[4].style.backgroundColor=MTI_data.Tele_data[i].Controls.CH2?'Chartreuse':'DarkGreen';
+						html_RMSW_ind[5].style.backgroundColor=MTI_data.Tele_data[i].Controls.CH2?'DarkGreen':'Chartreuse';
+					}
 					break;
 				case 'Mini_RMSW':
+					let html_Mini_RMSW_data = document.getElementsByName(MTI_data.Tele_data[i].Dev_type+'_'+MTI_data.Tele_data[i].Dev_ID+'_meas');
+					for(let j=0; j<html_Mini_RMSW_data.length; j++)
+						html_Mini_RMSW_data[j].innerHTML=MTI_data.Tele_data[i].CHs_meas[j]+(typeof(MTI_data.Tele_data[i].CHs_meas[j])=='number'?'°C':'');
+					let html_main_sw_ind = document.getElementsByName(MTI_data.Tele_data[i].Dev_type+'_'+MTI_data.Tele_data[i].Dev_ID+'_main_sw');
+					if(html_main_sw_ind.length)
+					{
+						html_main_sw_ind[0].style.backgroundColor=MTI_data.Tele_data[i].Controls.Main?'Chartreuse':'DarkGreen';
+						html_main_sw_ind[1].style.backgroundColor=MTI_data.Tele_data[i].Controls.Main?'DarkGreen':'Chartreuse';
+					}
 					break;
 			}
 		}
