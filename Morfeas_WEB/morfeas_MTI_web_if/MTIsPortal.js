@@ -275,6 +275,11 @@ function MTI_tele_dev(MTI_data)
 	tc.style.display='none';
 	quad.style.display='none';
 	rmsw_mux.style.display='none';
+	if(MTI_data.MTI_status.Tele_Device_type!="QUAD")
+	{
+		if(gen_popup_win&&!gen_popup_win.closed)
+				gen_popup_win.close();
+	}
 	switch(MTI_data.MTI_status.Tele_Device_type)
 	{
 		case "TC4":

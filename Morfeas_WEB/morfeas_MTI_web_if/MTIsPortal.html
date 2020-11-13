@@ -386,6 +386,11 @@ for the JavaScript code in this page.
 		else
 			gen_popup_win.focus();
 	}
+	window.onbeforeunload=function()
+	{
+		if(gen_popup_win&&!gen_popup_win.closed)
+			gen_popup_win.close();
+	};
 //@license-end
 </script>
 </html>
