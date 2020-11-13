@@ -612,5 +612,4 @@ function update_RMSWs_MUXs_data(MTI_data)
 		}
 	}
 }
-
 //@license-end

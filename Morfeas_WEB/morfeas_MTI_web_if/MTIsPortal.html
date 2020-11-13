@@ -120,7 +120,7 @@ img.bsize{
 					<meter id="PWM_2" name="PWM_meters" max="100"></meter><b name="PWM_text"></b>
 				</td>
 				<td>
-					<button type="button" onclick='PopupCenter("./Gens_config/Gens_config.html"+"?q="+makeid(),"","800","600")'>Gens Config</button>
+					<button type="button" onclick='gen_config_popup();'>Gens Config</button>
 				</td>
 			</tr>
 		</table>
@@ -229,6 +229,7 @@ for the JavaScript code in this page.
 
 	var data_req=false, radio_mode_inited=false;
 	var request_mode = mode_enum.MTIDev_name;
+	var gen_popup_win;
 	//AJAX response handler
 	var xhttp = new XMLHttpRequest();
 	xhttp.timeout = 2000;
@@ -333,6 +334,12 @@ for the JavaScript code in this page.
 				if(document.getElementById('RMSWs_MUXs_data'))
 					document.getElementById('RMSWs_MUXs_data').remove();
 			}
+			if(MTI_data_req.prev_sel_index && MTI_data_req.prev_sel_index!=selector.selectedIndex)
+			{
+				if(gen_popup_win && !gen_popup_win.closed)
+					gen_popup_win.close();
+			}
+			MTI_data_req.prev_sel_index=selector.selectedIndex;
 		}
 	}
 	function name_selector(sel)
@@ -371,6 +378,13 @@ for the JavaScript code in this page.
 				document.getElementById("Graph_tab").style.display="inline";
 				break;
 		}
+	}
+	function gen_config_popup()
+	{
+		if(!gen_popup_win||gen_popup_win.closed)
+			gen_popup_win=PopupCenter("./Gens_config/Gens_config.html"+"?q="+makeid(),"","800","600");
+		else
+			gen_popup_win.focus();
 	}
 //@license-end
 </script>
