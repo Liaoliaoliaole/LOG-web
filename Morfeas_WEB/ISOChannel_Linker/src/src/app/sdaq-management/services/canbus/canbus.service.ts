@@ -20,15 +20,16 @@ export class CanbusService {
     const url = environment.API_ROOT + '?COMMAND=logstats';
     return this.http.get<Logstat[]>(url);
   }
-
+  /*
   getIsoCodesByUnit(unit: string): Observable<IsoStandard[]> {
-    const url = environment.API_ROOT + '?COMMAND=get_iso_codes_by_unit';
-    let params = new HttpParams();
-    if (unit && unit !== '-') {
-      params = new HttpParams().set('unit', unit);
-    }
-    return this.http.get<IsoStandard[]>(url, { params });
+		const url = environment.API_ROOT + '?COMMAND=get_iso_codes_by_unit';
+		let params = new HttpParams();
+		if (unit && unit !== '-') {
+		  params = new HttpParams().set('unit', unit);
+		}
+		return this.http.get<IsoStandard[]>(url, { params });
   }
+  */
 
   getOpcUaConfigs(): Observable<OpcUaConfigModel[]> {
     const url = environment.API_ROOT + '?COMMAND=opcua_config';

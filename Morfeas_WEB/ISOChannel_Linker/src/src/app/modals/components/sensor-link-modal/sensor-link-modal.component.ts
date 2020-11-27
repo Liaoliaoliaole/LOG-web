@@ -4,6 +4,7 @@ import { Component, OnInit, ViewChild, TemplateRef } from '@angular/core';
 import { CanbusService } from 'src/app/sdaq-management/services/canbus/canbus.service';
 import { IsoStandard } from 'src/app/sdaq-management/models/iso-standard-model';
 import { SensorLinkModalInitiateModel, SensorLinkModalSubmitAction } from 'src/app/sdaq-management/models/sensor-link-modal-model';
+declare const iso_standard: any;
 
 @Component({
   selector: 'app-modal-sensor-link',
@@ -45,37 +46,37 @@ export class SensorLinkModalComponent implements OnInit {
 	
 	this.data = this.state.options.data;
     this.selectedIsoStandard.attributes.unit = this.data.unit;
+	
+    var result = iso_standard.get_isostandard_by_unit(this.data.unit);
+	if(result)
+	{
+		if(this.data.configuredIsoCodes && this.data.configuredIsoCodes.length > 0) 
+		{
 
-    this.canbusService.getIsoCodesByUnit(this.data.unit).subscribe(result => {
-      if (
-        this.data.configuredIsoCodes &&
-        this.data.configuredIsoCodes.length > 0
-      ) {
+			// this.data['configuredIsoCodes'] cannot be used directly in line 37 because there's
+			// another 'this' which belongs to the filter scope.
+			const configuredIsoCodes = this.data.configuredIsoCodes;
 
-        // this.data['configuredIsoCodes'] cannot be used directly in line 37 because there's
-        // another 'this' which belongs to the filter scope.
-        const configuredIsoCodes = this.data.configuredIsoCodes;
+			if (this.data.existingIsoStandard) 
+			{
+			  //console.log(this.isoSelect);
+			  this.selectedIsoStandard = this.data.existingIsoStandard;
+			  //this.isoSelect.searchInput.nativeElement.value = (' ' + this.selectedIsoStandard.iso_code).slice(1);
+			}
 
-        if (this.data.existingIsoStandard) {
+			// remove configured ISO codes from the dropdown
+			result = result.filter(
+			  obj => configuredIsoCodes.indexOf(obj.iso_code) < 0
+			);
+		}
+		this.filteredIsoStandards = Object.assign([], result);
 
-          this.selectedIsoStandard = this.data.existingIsoStandard;
-          this.isoSelect.searchInput.nativeElement.value = (' ' + this.selectedIsoStandard.iso_code).slice(1);
+		result.forEach(code => { code.iso_code = code.iso_code + ' | ' + code.attributes.description; });
 
-        }
-
-        // remove configured ISO codes from the dropdown
-        result = result.filter(
-          obj => configuredIsoCodes.indexOf(obj.iso_code) < 0
-        );
-      }
-      this.filteredIsoStandards = Object.assign([], result);
-
-      result.forEach(code => { code.iso_code = code.iso_code + ' | ' + code.attributes.description; });
-
-      this.isoStandards = result;
-	  this.selectedIsoStandard.attributes.min = "0";
-	  this.selectedIsoStandard.attributes.max = "0";
-    });
+		this.isoStandards = result;
+		this.selectedIsoStandard.attributes.min = "0";
+		this.selectedIsoStandard.attributes.max = "0";
+    }
 	
   }
 

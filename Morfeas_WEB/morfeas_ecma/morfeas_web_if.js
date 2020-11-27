@@ -343,4 +343,90 @@ function morfeas_logstat_commonizer(logstats)
 	}
 	return data_table;
 }
+
+var iso_standard = {
+	iso_standard_xml : new Object(),
+	request_isostandard : function()
+	{
+		var xhttp = new XMLHttpRequest();
+		xhttp.timeout = 5000;
+		xhttp.onreadystatechange = (function(iso_standard_xml){
+			return function()
+			{
+				if(this.readyState == 4)
+				{
+					if(this.status == 200)
+					{
+						if(this.getResponseHeader("Content-Type")==="ISOstandard/xml")
+						{
+							if(!this.responseXML)
+								iso_standard_xml.xml_data = (new DOMParser()).parseFromString(this.responseText, "application/xml").getElementsByTagName("points")[0];
+							else
+								iso_standard_xml.xml_data = this.responseXML.getElementsByTagName("points")[0];
+						}
+						else
+							alert(this.responseText);
+					}
+					else if(this.status == 500)
+						alert("FATAL Error on server!!!");
+				}
+			};
+		})(this.iso_standard_xml);
+		xhttp.ontimeout = function(){
+			alert("Client: Communication Error!!!");
+		};
+		xhttp.open("GET", "/morfeas_php/config.php"+"?COMMAND=getISOstandard", true);
+		xhttp.send();
+	},
+	get_isostandard_by_unit : function(unit)
+	{
+		//console.log(unit);
+		//console.log(this.iso_standard_xml.xml_data);
+		if(this.iso_standard_xml.xml_data)
+		{
+			let ret = [], xml=this.iso_standard_xml.xml_data;
+			for(let i=0; i<xml.children.length; i++)
+			{
+				if(!unit || unit === xml.children[i].children[1].textContent)
+				{
+					let elem = new Object({iso_code:"",attributes:{description:"",unit:"",max:"",min:""}});
+					elem.iso_code=xml.children[i].nodeName;
+					elem.attributes.description=xml.children[i].children[0].textContent;
+					elem.attributes.unit=xml.children[i].children[1].textContent;
+					elem.attributes.max=xml.children[i].children[2].textContent;
+					elem.attributes.min=xml.children[i].children[3].textContent;
+					ret.push(elem);
+				}
+			}
+			return ret;
+		}
+		return;
+	}
+};
+
+/*
+	case "get_iso_codes_by_unit":
+		header('Content-Type: application/json');
+		file_exists($opc_ua_config_dir."ISOstandard.xml") or die("{}");
+		$ISOstandars_xml = simplexml_load_file($opc_ua_config_dir."ISOstandard.xml");
+		$ISOstandars_xml_to_client = array();
+		$i=0;
+		foreach($ISOstandars_xml->points->children() as $point)
+		{
+			$iso_code = $point->getName();
+			$attributes = $point;
+			if(array_key_exists("unit", $_GET))
+			{
+				if($point->unit != $_GET["unit"])
+					continue;
+			}
+			$ISOstandars_xml_to_client[$i] = new stdClass();
+			$ISOstandars_xml_to_client[$i]->iso_code = $iso_code;
+			$ISOstandars_xml_to_client[$i]->attributes = $attributes;
+			$i++;
+		}
+		echo json_encode($ISOstandars_xml_to_client);
+		break;
+*/
+
 //@license-end

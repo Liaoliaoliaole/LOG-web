@@ -90,28 +90,6 @@ if($requestType == "GET")
 				}
 				echo json_encode($OPCUA_Config_xml_to_client);
 				break;
-			case "get_iso_codes_by_unit":
-				header('Content-Type: application/json');
-				file_exists($opc_ua_config_dir."ISOstandard.xml") or die("{}");
-				$ISOstandars_xml = simplexml_load_file($opc_ua_config_dir."ISOstandard.xml");
-				$ISOstandars_xml_to_client = array();
-				$i=0;
-				foreach($ISOstandars_xml->points->children() as $point)
-				{
-					$iso_code = $point->getName();
-					$attributes = $point;
-					if(array_key_exists("unit", $_GET))
-					{
-						if($point->unit != $_GET["unit"])
-							continue;
-					}
-					$ISOstandars_xml_to_client[$i] = new stdClass();
-					$ISOstandars_xml_to_client[$i]->iso_code = $iso_code;
-					$ISOstandars_xml_to_client[$i]->attributes = $attributes;
-					$i++;
-				}
-				echo json_encode($ISOstandars_xml_to_client);
-				break;
 			default:
 				echo "?";
 		}
