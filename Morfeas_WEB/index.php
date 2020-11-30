@@ -31,7 +31,7 @@ td.bold{
 <body>
 <span style="margin:auto; float:right;">
 	<a style="cursor:pointer;color:blue;"
-	onclick='PopupCenter("/Help_and_manuals/Help/"+"?q="+makeid(),"","1480","800")'
+	onclick='PopupCenter("/Docs/build-doc/"+"?q="+makeid(),"","1480","800")'
 	onMouseOver="this.style.color='red'"
 	onMouseOut="this.style.color='blue'">Morfeas-WEB Docs</a>
 </span>

@@ -74,8 +74,8 @@ export class SensorLinkModalComponent implements OnInit {
 		result.forEach(code => { code.iso_code = code.iso_code + ' | ' + code.attributes.description; });
 
 		this.isoStandards = result;
-		this.selectedIsoStandard.attributes.min = "0";
-		this.selectedIsoStandard.attributes.max = "0";
+		//this.selectedIsoStandard.attributes.min = "0";
+		//this.selectedIsoStandard.attributes.max = "0";
     }
 	
   }
