@@ -1,0 +1,29 @@
+\section{Installation}
+For compilation and usage of this project the following dependencies required.\\
+* [Morfeas\_core] - The core of the Morfeas project.\\
+* [Apache2] - The Apache WEB server.\\
+* [PHP] - The PHP scripting language.\\
+* [libapache2-mod-php] - The PHP module for the Apache 2 webserver.\\
+* [php-dev] - Collection of Headers and other PHP needed for compiling additional modules.\\
+* [php-xml] -  A class written in php to create, edit, modify and read XML documents.\\
+* [php-mbstring] - PHP module for manipulation of Multibyte String (UNICODE, etc).\\
+
+The compilation and installation procedure for the dependencies and submodules is described at the README.md file that located at the root of the source.
+
+The ``Morfeas\_WEB" directory that is located under the root contains all the files of the project, and can be used as it is as source of the Apache.
+At directory ``apache\_site\_conf" can be found a template for the Apache configuration of the Morfeas WEB page.
+Also the Morfeas WEB need to have root access in some programs, this done by the ``Morfeas\_web\_allow" file that is located under the sudoers directory.
+This is done by copy this file at the ``/etc/sudoers.d" directory.
+
+The Morfeas WEB need to have read access at the configuration files of the Morfeas Core an to know where they are located. The information of the location givven to the
+Morfeas WEB by the ``Morfeas\_env.php" file, this need to be constructed and initialized by the user, the ``Morfeas\_env.php.template" can be use for this.\\
+The configuration files of the Morfeas Core need to be configured with write access to the group users
+and also the ``www-data" user to be in the group of the local user where run the Morfeas System.\\
+The Morfeas WEB expect to find the following files at the Morfeas Core's configuration directory:
+\begin{itemize}
+	\item Morfeas.dtd - The validation standard file.
+	\item Morfeas\_config.xml - Configuration file for the Morfeas System.
+	\item OPC\_UA\_Config.xml - Morfeas\_opc\_ua ISO channels object's configuration file.
+	\item ISOstandard.xml - File that contains standards for ISO channels.
+\end{itemize}
+Also the exported Logstat files of the Morfeas Core has to be located in a tempfs mounted under ``/mnt/ramdisk".

@@ -1,5 +1,5 @@
 # Documentation of Morfeas-Core
-This directory contains the source for the Documentation of the Morfeas Project. The source is written in LaTex.
+This directory contains the source for the Documentation of the Morfeas WEB Project. The source is written in LaTex.
 
 ### Requirements
 For compilation of this project the following dependencies required.

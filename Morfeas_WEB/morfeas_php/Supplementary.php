@@ -1,6 +1,6 @@
 <?php
 /*
-File: Supplementary.php PHP Script for decompression via LZ77 algorithm
+File: Supplementary.php PHP Script for decompression
 Copyright (C) 12019-12020  Sam harry Tzavaras
 
 	This program is free software: you can redistribute it and/or modify
