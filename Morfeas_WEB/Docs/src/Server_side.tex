@@ -1,7 +1,62 @@
 \section{Server Side}
 At the server side the Morfeas WEB have some PHP scripts that handle requests from the client. This scripts runs via the PHP engine that executed as module of the Apache WEB server.
-The PHP scripts located under the ``Morfeas\_php" directory. 
+The PHP scripts located under the ``Morfeas\_php" directory.
 
-At the following subsections the operation for etch file will be explained. 
+At the following subsections the operation for etch file will be explained.
 
-\subsection{}
+\subsection{Morfeas\_Web\_if.php}
+The PHP script file Morfeas\_Web\_if.php contains the functionality to provide the Logstat files at the client request and to receive ISO Channels configuration objects.
+The script can be called as ``./morfeas\_php/Morfeas\_Web\_if.php" and accept ``GET" and ``POST" requests.
+\subsubsection{GET request}
+In every call with ``GET"" request the Morfeas\_Web\_if.php script expecting an argument ``COMMAND" with value the one of the allowed commands.
+At the table~\ref{table:Morfeas_Web_if} will present the allowed commands for the Morfeas\_Web\_if.php script.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|c|}
+ \hline
+ \textbf{Commands} & \textbf{Description} & \textbf{Content type}\\
+ \hline
+ logstats & Return all logstat combined & JSON \\
+ logstats\_names & Return the filenames of the available logstat & JSON \\
+ loggers & Return the filenames of the logger (Morfeas component)& JSON \\
+ opcua\_config & Return the current ISO Channel configuration & JSON\\
+ \hline
+\end{tabular}
+\caption{GET request values for argument ``COMMAND"}
+\label{table:Morfeas_Web_if}
+\end{table}
+
+In case that an invalid value sent to the script, the response will be a question mark ``?".
+If the calling made without the argument ``COMMAND" then the return will be ``HTTP ERROR 404".
+
+\subsubsection{POST request}
+The ``Morfeas\_Web\_if.php" script is also accept a ``POST" request in order to accept new configuration for the ISO Channel of the OPC-UA.
+The contents for this kind of request is a JSON object with tag name ``data" and contain an array with the configuration for each ISO Channel.
+Every position of the array contains a JSON object with the configuration for each of the ISO channel. The structure for the argument of the POST request
+presented at listing~\ref{lst:Morfeas_Web_if}.
+
+\begin{lstlisting}[frame=single,caption=Example for argument of POST request for Morfeas\_Web\_if.php,label=lst:Morfeas_Web_if]
+{"data":
+  [
+   {
+      "ISOChannel":"Name of the ISO Channel",
+      "IF_type":"MDAQ"|"SDAQ"|"IOBOX"|"MTI",
+      "Anchor":"The anchored physical input with the current ISO Channel",
+      "Description":"Description of the ISO Channel",
+      "Max":"Minimum input value",
+      "Min":"maximum input value",
+      "Unit":"Unit of measurements (Not needed for SDAQ IF_type)"
+   },
+    ...
+  ]
+}
+\end{lstlisting}
+\newpage
+\subsection{config.php}
+The config.php is a PHP script part of the Morfeas WEB where is responsible for each configuration of the computer and the Morfeas System. Like Morfeas\_Web\_if.php
+the config.php accept ``GET" and ``POST" HTTP requests, at the following subsection the functionality and data the can be exchange via this script will be explained in details.
+
+\subsubsection{GET}
+
+\subsubsection{POST}
