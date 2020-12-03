@@ -15,7 +15,7 @@ At the table~\ref{table:Morfeas_Web_if} will present the allowed commands for th
 \centering
 \begin{tabular}{|l|c|c|}
  \hline
- \textbf{Commands} & \textbf{Description} & \textbf{Content type}\\
+ \textbf{Command} & \textbf{Description} & \textbf{Content type}\\
  \hline
  logstats & Return all logstat combined & JSON \\
  logstats\_names & Return the filenames of the available logstat & JSON \\
@@ -52,11 +52,63 @@ presented at listing~\ref{lst:Morfeas_Web_if}.
   ]
 }
 \end{lstlisting}
+
+In every success the ``Morfeas\_Web\_if.php" return a JSON object with a report, otherwise return a string with the error that cause it to fail.
+
 \newpage
 \subsection{config.php}
-The config.php is a PHP script part of the Morfeas WEB where is responsible for each configuration of the computer and the Morfeas System. Like Morfeas\_Web\_if.php
-the config.php accept ``GET" and ``POST" HTTP requests, at the following subsection the functionality and data the can be exchange via this script will be explained in details.
+The ``config.php" is a PHP script part of the Morfeas WEB where is responsible for each configuration of the computer and the Morfeas System. It's can called from ``./morfeas\_php/config.php",
+and accept ``GET" and ``POST" HTTP requests. At the following subsection the functionality and data the can be exchange via this script will be explained in details.
 
-\subsubsection{GET}
+\subsubsection{GET request}
+For accept a ``GET" request the ``config.php" is required to received the request with the argument ``COMMAND" that have a specific value that explain the request that the client want.
+At the table~\ref{table:GET_config} derived a list with the allowed values and descriptions for the functionality of each one.
 
-\subsubsection{POST}
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|c|}
+ \hline
+ \textbf{Command} & \textbf{Description} & \textbf{Content type}\\
+ \hline
+ getbundle & Return a .mbl file with wholly Morfeas System configuration & File \\
+ getISOstandard\_file & Make a force download of current ISOStandard file & File \\
+ getCurConfig & Return the current Internet and NTP configuration& JSON \\
+ timedatectl & Return the output of timedatectl & HTML \\
+ getMorfeasConfig & Return the current Morfeas system configuration & XML \\
+ getISOstandard & Return an instance of the current ISOStandard file & XML \\
+ getCANifs\_names & Return the available CANBus interfaces & JSON \\
+ \hline
+\end{tabular}
+\caption{GET request values for argument ``COMMAND"}
+\label{table:GET_config}
+\end{table}
+
+In case that the value of argument ``COMMAND" is not valid or if the argument is missing the script will return ``HTTP ERROR 404".
+
+\subsubsection{POST request}
+
+The ``config.php" script accept also POST HTTP requests that caries out configurations for the computer and the Morfeas System.
+The script steering the functionality according to the ``CONTENT\_TYPE" of the HTTP message that the client sent to the server.
+The data that contained in the POST request message must be compressed with the internally implemented ``compress" function.
+At table~\ref{table:POST_config} will be present all the allowed set values for the ``CONTENT\_TYPE" of a POST request.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|c|}
+ \hline
+ \textbf{Content type} & \textbf{Description} & \textbf{Contents Data}\\
+ \hline
+ net\_conf & Request with new INET, CAN and/or NTP configuration & JSON \\
+ Morfeas\_config & Request with new configuration for Morfeas system & XML\\
+ ISOstandard &  Request with new ISOStandard &  XML\\
+ Morfeas\_bundle*** & Request with a restoring bundle &  mbl \\
+ reboot & Request for computer reboot & Void \\
+ shutdown & Request for computer power off & Void \\
+ \hline
+\end{tabular}
+\caption{Content types for POST request}
+\label{table:POST_config}
+\end{table}
+
+*** Post request with ``Morfeas\_bundle" as Content type does not required any compression on data.
+
