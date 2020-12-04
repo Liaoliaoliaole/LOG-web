@@ -118,10 +118,10 @@ function is_IPv4_addr_inuse(selected_IPv4_addr_val, _Morfeas_config_XML)
 
 //Compression function
 function compress(data, debug_info)
-{	
+{
 	if(typeof(data)!=="string")
 		return null;
-	
+
 	let tick=performance.now();
 	const dictionary_size=4096;
 	var i, _index, index,

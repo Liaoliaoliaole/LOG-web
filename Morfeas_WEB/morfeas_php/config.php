@@ -326,7 +326,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					$bundle_content=bundle_make();
 					$bundle_name=gethostname().'_'.date("Y_d_m_G_i_s");
 					header('Content-Description: File Transfer');
-					header('Content-Type: Mordeas_bundle');
+					header('Content-Type: Morfeas_bundle');
 					header("Content-Disposition: attachment; filename=\"$bundle_name.mbl\"");
 					header('Content-Length: '.strlen($bundle_content));
 					echo $bundle_content;
@@ -335,7 +335,7 @@ Copyright (C) 12019-12020  Sam harry Tzavaras
 					$ISO_STD_cont=file_get_contents($opc_ua_config_dir."ISOstandard.xml") or Die("Unable to read ISOstandard.xml");
 					$ISO_STD_name='ISOstandard_'.gethostname().'_'.date("Y_d_m_G_i_s");
 					header('Content-Description: File Transfer');
-					header('Content-Type: Mordeas_bundle');
+					header('Content-Type: Morfeas_bundle');
 					header("Content-Disposition: attachment; filename=\"$ISO_STD_name.xml\"");
 					header('Content-Length: '.strlen($ISO_STD_cont));
 					echo $ISO_STD_cont;

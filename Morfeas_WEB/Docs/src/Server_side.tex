@@ -98,17 +98,83 @@ At table~\ref{table:POST_config} will be present all the allowed set values for 
  \hline
  \textbf{Content type} & \textbf{Description} & \textbf{Contents Data}\\
  \hline
- net\_conf & Request with new INET, CAN and/or NTP configuration & JSON \\
+ net\_conf & Request with new config for Hostname, INET, CAN, NTP & JSON \\
  Morfeas\_config & Request with new configuration for Morfeas system & XML\\
  ISOstandard &  Request with new ISOStandard &  XML\\
- Morfeas\_bundle*** & Request with a restoring bundle &  mbl \\
- reboot & Request for computer reboot & Void \\
- shutdown & Request for computer power off & Void \\
+ Morfeas\_bundle*** & Request with a restoring bundle file & MBL \\
+ reboot & Request for computer reboot & VOID \\
+ shutdown & Request for computer power off & VOID \\
  \hline
 \end{tabular}
 \caption{Content types for POST request}
 \label{table:POST_config}
 \end{table}
+\par*** Post request with ``Morfeas\_bundle" as Content type does not required any compression on data.
+\newpage
+The contain structure of a ``net\_config" type request present at listing~\ref{lst:net_config}.
+\begin{lstlisting}[frame=single,caption=Structure of contents for POST request with ``contents\_type:net\_config",label=lst:net_config]
+{
+  "hostname":"Computer's Hostname",
+  "mode":"DHCP"|"Static",//Internet configuration
+  "ip":###,"mask":#,"gate":###, <- Used if mode == "Static"
+  "ntp":###,//IPv4 of NTP server
+  "CAN_ifs"://Only if CANBus adapters are available
+    [
+     {
+       "if_Name":"Name of CANBus interface",
+       "bitrate":#//In bits per second
+     },
+     ....
+    ]
+}
+\end{lstlisting}
 
-*** Post request with ``Morfeas\_bundle" as Content type does not required any compression on data.
+***The variables that present settings that will not be configured can be excluded from the object.\\
+\#Every variable that representing IPv4 stored as integer number that present the 32 bit's of the IPv4 address in big-endian form.\\
+eg. The IPv4 \textbf{``100.45.78.10"} will represent by $\mathbf{(1680690698)_d}$.\\
+
+The data contents of a POST request with with contents\_type:``Morfeas\_config" is send in XML format that follow the standard of the Morfeas System.
+More information for this at reference guide of the Morfeas Core project.
+
+The data contents of a POST request with with contents\_type:``ISOstandard" is also send in XML format, an example of the structure for this derived at listing~\ref{lst:ISOStandard}.\\
+Every child node of node ``points" is present an ISOStandard, then name tag of each is the name that will used as ISOChannel. The children of every ISOStandard must be four in total
+with tags \textbf{description, unit, max, min} in this order. The content of every child represent each name tag.
+
+\begin{lstlisting}[frame=single,caption=Structure of contents for POST request with ``contents\_type:ISOstandard",label=lst:ISOStandard]
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+  <points>
+    <ISOStandard_name_tag>
+      <description>Description of ISOStandard</description>
+      <unit>Default Unit</unit>
+      <max>Maximum value</max>
+      <min>Minumum value</min>
+    </ISOStandard_name_tag>
+    ....
+  </points>
+</root>
+\end{lstlisting}
+
+Post request with contents\_type:Morfeas\_bundle used to upload and reconfigure the Morfeas System and the ISOChannel of the Morfeas OPC-UA server on a previous state.
+The contents of this request type is a binary .mbl file. Also this request does not required any compression of the contents.\\
+
+The last two request ``reboot" and ``shutdown" used in order to reboot and shutdown the computer respectively.\\
+
+The return of the script in success will be a JSON report for ``net\_conf" and ``Morfeas\_config" contents\_type and a human readable string for ``ISOstandard", ``Morfeas\_bundle".
+In case of failure the script will answer with a human readable string with the error that cause it to fail, or with an ``HTML ERROR 404" in case that the contents\_type is unknown.
+
+\subsection{Morfeas\_dbus\_proxy.php}
+The Morfeas\_dbus\_proxy.php is a PHP script part of the Morfeas WEB project that made to act as a proxy between the WEB and the Morfeas components that have D-BUS functionality.
+THis script can be called from ``./morfeas\_php/Morfeas\_dbus\_proxy.php" and accepting only POST requests. The POST request which is send to this script must contain an argument ``arg"
+with value a JSON object (example~\ref{lst:dbus_proxy}) that will give to the script the information of to which Morfeas component the data will go,
+the type of the device that will be handled, the D-BUS method that will be called and the contents of the D-BUS message.
+
+\begin{lstlisting}[frame=single,caption=Structure of contents for POST request for Morfeas\_dbus\_proxy.php,label=lst:dbus_proxy]
+{
+  "handler_type":"Morfeas Handler component",
+  "dev_name":"Device name",
+  "method":"D-BUS method",
+  "contents":{"Object with the data that will send to handler"}
+}
+\end{lstlisting}
 
