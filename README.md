@@ -39,5 +39,8 @@ Add `extension=dbus` at the extensions section of php.ini file for apache. Usual
 $ sudo chmod +x ./install.sh
 $ ./install.sh
 ```
+##Documentation
+The documentation of the project located at [Morfeas_WEV_Docs](./docs/Morfeas_WEB_Docs).
+
 # License
 The subproject license under [AGPLv3](./Morfeas_WEB/LICENSE) or later
