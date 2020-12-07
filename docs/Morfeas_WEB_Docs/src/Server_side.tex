@@ -19,7 +19,7 @@ At the table~\ref{table:Morfeas_Web_if} will present the allowed commands for th
  \hline
  logstats & Return all logstat combined & JSON \\
  logstats\_names & Return the filenames of the available logstat & JSON \\
- loggers & Return the filenames of the logger (Morfeas component)& JSON \\
+ loggers & Return the filenames of the Morfeas component logger & JSON \\
  opcua\_config & Return the current ISO Channel configuration & JSON\\
  \hline
 \end{tabular}
@@ -27,13 +27,12 @@ At the table~\ref{table:Morfeas_Web_if} will present the allowed commands for th
 \label{table:Morfeas_Web_if}
 \end{table}
 
-In case that an invalid value sent to the script, the response will be a question mark ``?".
-If the calling made without the argument ``COMMAND" then the return will be ``HTTP ERROR 404".
+If the GET request made without the argument ``COMMAND" or with an unknown value in to it, the return will be ``HTTP ERROR 404".
 
 \subsubsection{POST request}
-The ``Morfeas\_Web\_if.php" script is also accept a ``POST" request in order to accept new configuration for the ISO Channel of the OPC-UA.
-The contents for this kind of request is a JSON object with tag name ``data" and contain an array with the configuration for each ISO Channel.
-Every position of the array contains a JSON object with the configuration for each of the ISO channel. The structure for the argument of the POST request
+The ``Morfeas\_Web\_if.php" script is also accept ``POST" requests in order of new configurations for the ISO Channel object of the OPC-UA.
+The contents for this kind of request is a JSON object with tag name ``data" where contains an array with the configuration for each ISO Channel.
+Every element of the array contain a JSON object with the configuration for each particular ISO channel. The structure for the argument for this POST request
 presented at listing~\ref{lst:Morfeas_Web_if}.
 
 \begin{lstlisting}[frame=single,caption=Example for argument of POST request for Morfeas\_Web\_if.php,label=lst:Morfeas_Web_if]
@@ -130,7 +129,7 @@ The contain structure of a ``net\_config" type request present at listing~\ref{l
 \end{lstlisting}
 
 ***The variables that present settings that will not be configured can be excluded from the object.\\
-\#Every variable that representing IPv4 stored as integer number that present the 32 bit's of the IPv4 address in big-endian form.\\
+\#Every variable that representing IPv4 stored as signed integer number that presenting the 32 bit's of the IPv4 address in big-endian form.\\
 eg. The IPv4 \textbf{``100.45.78.10"} will represent by $\mathbf{(1680690698)_d}$.\\
 
 The data contents of a POST request with with contents\_type:``Morfeas\_config" is send in XML format that follow the standard of the Morfeas System.
@@ -171,7 +170,7 @@ the type of the device that will be handled, the D-BUS method that will be calle
 
 \begin{lstlisting}[frame=single,caption=Structure of contents for POST request for Morfeas\_dbus\_proxy.php,label=lst:dbus_proxy]
 {
-  "handler_type":"Morfeas Handler component",
+  "handler_type":"Morfeas Handler component's name",
   "dev_name":"Device name",
   "method":"D-BUS method",
   "contents":{"Object with the data that will send to handler"}

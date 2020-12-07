@@ -53,7 +53,7 @@ if($requestType == "GET")
 					header('Content-Type: application/json');
 					echo json_encode($logstats_combined);
 				}
-				break;
+				return;
 			case "logstats_names":
 				if($logstats = array_diff(scandir($ramdisk_path), array('..', '.', 'Morfeas_Loggers')))
 				{
@@ -67,7 +67,7 @@ if($requestType == "GET")
 					header('Content-Type: application/json');
 					echo json_encode($logstats_combined);
 				}
-				break;
+				return;
 			case "loggers":
 				if($loggers = array_diff(scandir($ramdisk_path . "Morfeas_Loggers"), array('..', '.')))
 				{
@@ -77,7 +77,7 @@ if($requestType == "GET")
 						header('Content-Type: application/json');
 						echo json_encode($loggers_names);
 				}
-				break;
+				return;
 			case "opcua_config":
 				header('Content-Type: application/json');
 				$OPCUA_Config_xml = simplexml_load_file($opc_ua_config_dir."OPC_UA_Config.xml") or die("{}");
@@ -89,11 +89,8 @@ if($requestType == "GET")
 					$i++;
 				}
 				echo json_encode($OPCUA_Config_xml_to_client);
-				break;
-			default:
-				echo "?";
+				return;
 		}
-		return;
 	}
 }
 else if($requestType == "POST")

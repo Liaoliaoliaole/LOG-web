@@ -380,8 +380,6 @@ var iso_standard = {
 	},
 	get_isostandard_by_unit : function(unit)
 	{
-		//console.log(unit);
-		//console.log(this.iso_standard_xml.xml_data);
 		if(this.iso_standard_xml.xml_data)
 		{
 			let ret = [], xml=this.iso_standard_xml.xml_data;
@@ -403,30 +401,4 @@ var iso_standard = {
 		return;
 	}
 };
-
-/*
-	case "get_iso_codes_by_unit":
-		header('Content-Type: application/json');
-		file_exists($opc_ua_config_dir."ISOstandard.xml") or die("{}");
-		$ISOstandars_xml = simplexml_load_file($opc_ua_config_dir."ISOstandard.xml");
-		$ISOstandars_xml_to_client = array();
-		$i=0;
-		foreach($ISOstandars_xml->points->children() as $point)
-		{
-			$iso_code = $point->getName();
-			$attributes = $point;
-			if(array_key_exists("unit", $_GET))
-			{
-				if($point->unit != $_GET["unit"])
-					continue;
-			}
-			$ISOstandars_xml_to_client[$i] = new stdClass();
-			$ISOstandars_xml_to_client[$i]->iso_code = $iso_code;
-			$ISOstandars_xml_to_client[$i]->attributes = $attributes;
-			$i++;
-		}
-		echo json_encode($ISOstandars_xml_to_client);
-		break;
-*/
-
 //@license-end
