@@ -22,6 +22,7 @@ ob_start("ob_gzhandler");//Enable gzip buffering
 header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
 header('Expires: 0');
+header('Content-Type: report/text');
 
 $requestType = $_SERVER['REQUEST_METHOD'];
 if($requestType == "GET")
@@ -37,17 +38,20 @@ if($requestType == "GET")
 			echo implode("\n",$output);
 		}
 		else
-		{
-			header('Content-Type: report/text');
-			echo "Error: $output[0]";
-		}
-		return;
+			die("Error: $output[0]");
 	}
 }
 else if($requestType == "POST")
 {
 	$RX_data = file_get_contents('php://input');
 	$SDAQ_cal_data = decompress($RX_data) or die("Error: Decompressing of SDAQ\'s Calibration XML data");
+	switch($_SERVER["CONTENT_TYPE"])
+	{
+		case 'CalibrationDate/JSON':
+			$cal_date=json_decode($SDAQ_cal_data) or die("Error: Failed to decode JSON");
+			
+		case 'CalibrationPoint/JSON':
+	}
 }
 http_response_code(404);
 ?>
