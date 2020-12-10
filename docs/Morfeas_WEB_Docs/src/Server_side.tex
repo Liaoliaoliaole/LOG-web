@@ -1,8 +1,12 @@
 \section{Server Side}
 At the server side the Morfeas WEB have some PHP scripts that handle requests from the client. This scripts runs via the PHP engine that executed as module of the Apache WEB server.
-The PHP scripts located under the ``Morfeas\_php" directory.
+The PHP scripts located under the ``Morfeas\_php" directory. Also the outputs (Loggers, Logstats) of the Morfeas components exported at local directory ``/mnt/ramdisk/" where is 
+linked as source directory to Apache and can be access from alias ``./ramdisk". At this aliased directory the exported Logstat for all the Morfeas components can be found and at
+subdirectory ``Morfeas\_Loggers" the Loggers of the components.\\
+The Logstats are exported every second in JSON format and contains the current state of the device(s) that are handled by a Morfeas component. The Logger of a component is 
+a text file in human readable format and contains the chronological reports of the component.     
 
-At the following subsections the operation for etch file will be explained.
+At the following subsections are attributed to the PHP scripts of the Morfeas WEB.
 
 \subsection{Morfeas\_Web\_if.php}
 The PHP script file Morfeas\_Web\_if.php contains the functionality to provide the Logstat files at the client request and to receive ISO Channels configuration objects.
@@ -36,8 +40,7 @@ Every element of the array contain a JSON object with the configuration for each
 presented at listing~\ref{lst:Morfeas_Web_if}.
 
 \begin{lstlisting}[frame=single,caption=Example for argument of POST request for Morfeas\_Web\_if.php,label=lst:Morfeas_Web_if]
-{"data":
-  [
+{"data":[
    {
       "ISOChannel":"Name of the ISO Channel",
       "IF_type":"MDAQ"|"SDAQ"|"IOBOX"|"MTI",
@@ -46,15 +49,13 @@ presented at listing~\ref{lst:Morfeas_Web_if}.
       "Max":"Minimum input value",
       "Min":"maximum input value",
       "Unit":"Unit of measurements (Not needed for SDAQ IF_type)"
-   },
-    ...
-  ]
+   },...
+ ]
 }
 \end{lstlisting}
 
 In every success the ``Morfeas\_Web\_if.php" return a JSON object with a report, otherwise return a string with the error that cause it to fail.
 
-\newpage
 \subsection{config.php}
 The ``config.php" is a PHP script part of the Morfeas WEB where is responsible for each configuration of the computer and the Morfeas System. It's can called from ``./morfeas\_php/config.php",
 and accept ``GET" and ``POST" HTTP requests. At the following subsection the functionality and data the can be exchange via this script will be explained in details.
@@ -177,3 +178,4 @@ the type of the device that will be handled, the D-BUS method that will be calle
 }
 \end{lstlisting}
 
+\subsection{Morfeas\_SDAQnet\_proxy.php}
