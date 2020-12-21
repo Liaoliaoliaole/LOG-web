@@ -1,10 +1,10 @@
 \section{Server Side}
 At the server side the Morfeas WEB have some PHP scripts that handle requests from the client. This scripts runs via the PHP engine that executed as module of the Apache WEB server.
-The PHP scripts located under the ``Morfeas\_php" directory. Also the outputs (Loggers, Logstats) of the Morfeas components exported at local directory ``/mnt/ramdisk/" where is 
+The PHP scripts located under the ``Morfeas\_php" directory. Also the outputs (Loggers, Logstats) of the Morfeas components exported at local directory ``/mnt/ramdisk/" where is
 linked as source directory to Apache and can be access from alias ``./ramdisk". At this aliased directory the exported Logstat for all the Morfeas components can be found and at
 subdirectory ``Morfeas\_Loggers" the Loggers of the components.\\
-The Logstats are exported every second in JSON format and contains the current state of the device(s) that are handled by a Morfeas component. The Logger of a component is 
-a text file in human readable format and contains the chronological reports of the component.     
+The Logstats are exported every second in JSON format and contains the current state of the device(s) that are handled by a Morfeas component. The Logger of a component is
+a text file in human readable format and contains the chronological reports of the component.
 
 At the following subsections are attributed to the PHP scripts of the Morfeas WEB.
 
@@ -165,7 +165,7 @@ In case of failure the script will answer with a human readable string with the 
 
 \subsection{Morfeas\_dbus\_proxy.php}
 The Morfeas\_dbus\_proxy.php is a PHP script part of the Morfeas WEB project that made to act as a proxy between the WEB and the Morfeas components that have D-BUS functionality.
-THis script can be called from ``./morfeas\_php/Morfeas\_dbus\_proxy.php" and accepting only POST requests. The POST request which is send to this script must contain an argument ``arg"
+This script can be called from ``./morfeas\_php/Morfeas\_dbus\_proxy.php" and accepting only POST requests. The POST request which is send to this script must contain an argument ``arg"
 with value a JSON object (example~\ref{lst:dbus_proxy}) that will give to the script the information of to which Morfeas component the data will go,
 the type of the device that will be handled, the D-BUS method that will be called and the contents of the D-BUS message.
 
@@ -179,3 +179,56 @@ the type of the device that will be handled, the D-BUS method that will be calle
 \end{lstlisting}
 
 \subsection{Morfeas\_SDAQnet\_proxy.php}
+The Morfeas\_SDAQnet\_proxy.php is a PHP script part of the Morfeas WEB project that act as proxy between the WEB and the SDAQ device that exist on a SDAQnet.
+It's accepting POST and GET requests. At the following subsections the functionality for each type of request and the data that exchanged will be described in details.
+
+\subsubsection{GET request}
+The GET requests for this script requires two arguments (``SDAQnet" and ``SDAQaddr"). By this, will specified the name of the SDAQnet port and the current address of the SDAQ device that the request
+is related. When the Morfeas\_SDAQnet\_proxy.php receive successfully this argument will attempt to get the calibration information of the SDAQ with the requested address that located on the requested SDAQnet.
+If the device is available and answer at the request the script will forward the calibration data to the caller. 
+The return of the script on success will be an XML object that caring out the calibration information of the device, an example of this shown at listing~\ref{lst:SDAQ_calib_info}. 
+However, in case that some error occurred at the communication, the script will return a human readable message with the description of the failure.
+Also, in case that this script called without the two required arguments, it will respond with ``HTTP ERROR 404".
+
+\newpage
+\begin{lstlisting}[frame=single,caption=Return of a GET request for Morfeas\_SDAQnet\_proxy.php,label=lst:SDAQ_calib_info]
+<?xml version="1.0" encoding="UTF-8"?>
+<SDAQ>
+  <SDAQ_info>
+    <SerialNumber>1</SerialNumber>
+    <Type>Pseudo_SDAQ</Type>
+    <Firmware_Rev>0</Firmware_Rev>
+    <Hardware_Rev>0</Hardware_Rev>
+    <Available_Channels>1</Available_Channels>
+    <Samplerate>10</Samplerate>
+    <Max_num_of_cal_points>16</Max_num_of_cal_points>
+  </SDAQ_info>
+  <Calibration_Data>
+    <CH1>
+      <Calibration_date>2020/05/11</Calibration_date>
+      <Calibration_Period>10</Calibration_Period>
+      <Used_Points>1</Used_Points>
+      <Unit>um</Unit>
+      <Points>
+        <Point_0>
+          <Measure>100</Measure>
+          <Reference>100</Reference>
+          <Offset>0</Offset>
+          <Gain>1</Gain>
+          <C2>0</C2>
+          <C3>0</C3>
+        </Point_0>
+		...
+        <Point_15>
+          <Measure>0</Measure>
+          <Reference>0</Reference>
+          <Offset>0</Offset>
+          <Gain>0</Gain>
+          <C2>0</C2>
+          <C3>0</C3>
+        </Point_1>
+      </Points>
+    </CH1>
+  </Calibration_Data>
+</SDAQ>
+\end{lstlisting}

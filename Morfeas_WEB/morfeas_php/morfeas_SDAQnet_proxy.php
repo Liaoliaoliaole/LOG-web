@@ -35,7 +35,7 @@ if($requestType == "GET")
 		if(!$retval)
 		{
 			header('Content-Type: Morfeas_SDAQ_calibration_data/xml');
-			echo implode("\n",$output);
+			die(implode("\n",$output));
 		}
 		else
 			die("Error: $output[0]");
@@ -43,14 +43,19 @@ if($requestType == "GET")
 }
 else if($requestType == "POST")
 {
-	$RX_data = file_get_contents('php://input');
-	$SDAQ_cal_data = decompress($RX_data) or die("Error: Decompressing of SDAQ\'s Calibration XML data");
-	switch($_SERVER["CONTENT_TYPE"])
+	$SDAQ_cal_data = file_get_contents('php://input');
+	$SDAQ_cal_data = decompress($SDAQ_cal_data) or die("Error: Decompressing of SDAQ\'s Calibration data!!!");
+	$SDAQ_cal_data = json_decode($SDAQ_cal_data) or die("Error: JSON_Decode of SDAQ\'s Calibration data!!!");
+	if(property_exists($SDAQ_cal_data, 'SDAQnet')&&property_exists($SDAQ_cal_data, 'SDAQaddr')&&property_exists($SDAQ_cal_data, 'XMLcontent'))
 	{
-		case 'CalibrationDate/JSON':
-			$cal_date=json_decode($SDAQ_cal_data) or die("Error: Failed to decode JSON");
-			
-		case 'CalibrationPoint/JSON':
+		$SDAQ_net=$SDAQ_cal_data->SDAQnet;
+		$SDAQ_addr=$SDAQ_cal_data->SDAQaddr;
+		$SDAQ_xml_data=$SDAQ_cal_data->XMLcontent;
+		exec("echo '$SDAQ_xml_data' | SDAQ_worker $SDAQ_net setinfo $SDAQ_addr -sf-.xml 2>&1", $output, $retval);
+		if(!$retval)
+			die("Calibration wrote successfully @SDAQ:$SDAQ_addr");
+		else
+			die(implode("\n",$output));
 	}
 }
 http_response_code(404);
