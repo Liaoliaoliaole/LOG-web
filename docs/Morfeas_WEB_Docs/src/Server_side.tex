@@ -180,15 +180,17 @@ the type of the device that will be handled, the D-BUS method that will be calle
 
 \subsection{Morfeas\_SDAQnet\_proxy.php}
 The Morfeas\_SDAQnet\_proxy.php is a PHP script part of the Morfeas WEB project that act as proxy between the WEB and the SDAQ device that exist on a SDAQnet.
-It's accepting POST and GET requests. At the following subsections the functionality for each type of request and the data that exchanged will be described in details.
+It's accepting POST and GET requests and make transaction of calibration data between a SDAQ and the WEB. 
+At the following subsections the functionality for each type of request and the data that exchanged will be described in details.
 
 \subsubsection{GET request}
 The GET requests for this script requires two arguments (``SDAQnet" and ``SDAQaddr"). By this, will specified the name of the SDAQnet port and the current address of the SDAQ device that the request
 is related. When the Morfeas\_SDAQnet\_proxy.php receive successfully this argument will attempt to get the calibration information of the SDAQ with the requested address that located on the requested SDAQnet.
-If the device is available and answer at the request the script will forward the calibration data to the caller. 
+If the device is available and answer at the request the script will forward the calibration data to the caller.
 The return of the script on success will be an XML object that caring out the calibration information of the device, an example of this shown at listing~\ref{lst:SDAQ_calib_info}. 
-However, in case that some error occurred at the communication, the script will return a human readable message with the description of the failure.
-Also, in case that this script called without the two required arguments, it will respond with ``HTTP ERROR 404".
+However, in case that some error occurred at the communication, the script will return a human readable message with the description of the failure. 
+In case that this script is called without the two required arguments, it will respond with ``HTTP ERROR 404".
+
 
 \newpage
 \begin{lstlisting}[frame=single,caption=Return of a GET request for Morfeas\_SDAQnet\_proxy.php,label=lst:SDAQ_calib_info]
