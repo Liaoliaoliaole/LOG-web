@@ -1,7 +1,7 @@
 <?php
 /*
 File: morfeas_SDAQnet_proxy.php PHP Script for the Morfeas_Web. Part of Morfeas_project.
-Copyright (C) 12020-12021  Sam harry Tzavaras
+Copyright (C) 12019-12021  Sam harry Tzavaras
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as

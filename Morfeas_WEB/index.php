@@ -88,7 +88,7 @@ td.bold{
 </div>
 <footer id="footer">
 	<div style="float:left;"> 
-		Author: Sam Harry Tzavaras &#169; 12019-12020<br>
+		Author: Sam Harry Tzavaras &#169; 12019-12021<br>
 		<a href="LICENSE">License: AGPLv3</a>
 	</div>
 	<div style="float:right;"> 
@@ -104,7 +104,7 @@ td.bold{
 @licstart  The following is the entire license notice for the
 JavaScript code in this page.
 
-Copyright (C) 12019-12020  Sam Harry Tzavaras
+Copyright (C) 12019-12021  Sam Harry Tzavaras
 
 The JavaScript code in this page is free software: you can
 redistribute it and/or modify it under the terms of the GNU
