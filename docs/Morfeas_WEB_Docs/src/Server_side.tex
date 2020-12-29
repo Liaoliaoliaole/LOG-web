@@ -171,7 +171,7 @@ the type of the device that will be handled, the D-BUS method that will be calle
 
 \begin{lstlisting}[frame=single,caption=Structure of contents for POST request for Morfeas\_dbus\_proxy.php,label=lst:dbus_proxy]
 {
-  "handler_type":"Morfeas Handler component's name",
+  "handler_type":"Morfeas Handler component name",
   "dev_name":"Device name",
   "method":"D-BUS method",
   "contents":{"Object with the data that will send to handler"}
@@ -214,10 +214,10 @@ Also, if the script called without the two required arguments it will respond wi
   </SDAQ_info>
   <Calibration_Data>
     <CH1>
-      <Calibration_date>2020/05/11</Calibration_date>
-      <Calibration_Period>10</Calibration_Period>
-      <Used_Points>1</Used_Points>
-      <Unit>um</Unit>
+      <Calibration_date>yyyy/mm/dd</Calibration_date>
+      <Calibration_Period>#</Calibration_Period>
+      <Used_Points>#</Used_Points>
+      <Unit>"Physical Unit of channel"</Unit>
       <Points>
         <Point_0>
           <Measure>#.#</Measure>
@@ -238,9 +238,9 @@ Also, if the script called without the two required arguments it will respond wi
         </Point_1>
       </Points>
     </CH1>
-    <CH(CHnnn)>
+    <CHnnn>
     ...
-    </CH(CHnnn)>
+    </CHnnn>
   </Calibration_Data>
 </SDAQ>
 \end{lstlisting}
