@@ -40,6 +40,17 @@ if($requestType == "GET")
 		else
 			die("Error: $output[0]");
 	}
+	else if(array_key_exists("UNITs", $_GET))
+	{
+		exec("SDAQ_psim -u 2>&1", $output, $retval);
+		if(!$retval)
+		{
+			header('Content-Type: Morfeas_SDAQ_units/json');
+			die(implode("\n",$output));
+		}
+		else
+			die("Error: $output[0]");
+	}
 }
 else if($requestType == "POST")
 {

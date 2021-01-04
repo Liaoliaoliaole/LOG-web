@@ -184,23 +184,35 @@ It's can be called from ``./morfeas\_php/morfeas\_SDAQnet\_proxy.php" and accept
 The main purpose of usage of this script is to transact calibration data between SDAQs and WEB.
 At the following subsections the functionality for each type of request and the data that exchanged will be described in details.\\
 
-The Morfeas\_SDAQnet\_proxy.php using internally the functionality of the SDAQ\_worker. So it's necessary the SDAQ\_worker project to be installed.
+The Morfeas\_SDAQnet\_proxy.php using internally the functionality of SDAQ\_psim and SDAQ\_worker. So it's necessary the SDAQ\_worker project to be compiled and installed.
 
 \subsubsection{GET request}
-The GET requests for this script requires two arguments (``SDAQnet"\&``SDAQaddr").
-By this, will be specified the name of the SDAQnet port and the current address of the SDAQ device that the request is related.
+The GET requests for this script can be called with two sets of arguments: ``UNITs" or (``SDAQnet" \& ``SDAQaddr").
+
+Calling for argument ``UNITs" done without any value and get as return a JSON object that contains an integer with the base offset and
+a table with the unit's strings (listing~\ref{lst:SDAQ_units}). The ``Content-Type" field for a success call is ``Morfeas\_SDAQ\_units/json".
+On failure the script return a human readable message with the error that occurred, the ``Content-Type" on this case shall be ``report/text".
+
+Calling with arguments ``SDAQnet"\&``SDAQaddr" needs values on each argument, the specific name of the SDAQnet port and the current address of the SDAQ device that the request related.
 When the Morfeas\_SDAQnet\_proxy.php receive successfully this arguments will attempt to get the calibration information of the specified SDAQ.
 If the device is available and answer at the request the script will forward the calibration data to the caller.
 The return of the script on success will identified from the ``Content-Type" field of the http header where will have value of ``Morfeas\_SDAQ\_calibration\_data/xml",
 and the contents will be a XML object that will caring out all the calibration information of the device (example shown at listing~\ref{lst:SDAQ_calib_info}).
 In case that some error occurred at the communication the script will return a human readable message with the description of the failure,
 in this case the ``Content-Type" field will be ``report/text".
-Also, if the script called without the two required arguments it will respond with ``HTTP ERROR 404".
+
+If the script called without any of the required arguments it shall respond with ``HTTP ERROR 404".
 
 \subsubsection{POST request}
 
 \newpage
-\begin{lstlisting}[frame=single,caption=Return of a GET request for Morfeas\_SDAQnet\_proxy.php,label=lst:SDAQ_calib_info]
+\begin{lstlisting}[frame=single,caption=Return of call with argument ``UNITs",label=lst:SDAQ_units]
+{
+  "Base_offset": ##, //Unit_code of first unit after Base units region.
+  "SDAQ_UNITs": [...] //Table with strings of specific units.
+}
+\end{lstlisting}
+\begin{lstlisting}[frame=single,caption=Return of call with arguments ``SDAQnet"\&``SDAQaddr",label=lst:SDAQ_calib_info]
 <?xml version="1.0" encoding="UTF-8"?>
 <SDAQ>
   <SDAQ_info>
