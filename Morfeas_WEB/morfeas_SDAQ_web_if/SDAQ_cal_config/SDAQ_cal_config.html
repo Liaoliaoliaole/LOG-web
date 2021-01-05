@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
+<link rel="stylesheet" type="text/css" href="/Morfeas_configuration/Morfeas_System_config.css">
+<title>Morfeas SDAQ Portal</title>
+</head>
+<body>
+	Status:<input id="status" style="text-align:center;" type="textbox" size="20" value="Init" readonly>
+	<footer style="bottom:0;width:99%;">
+		<p>Author: Sam Harry Tzavaras &#169; 12019-12021<br>
+		<a href="../LICENSE">License: AGPLv3</a><br>
+	</footer>
+</body>
+<script src='../../morfeas_ecma/common.js'></script>
+<script src='./SDAQ_cal_config.js'></script>
+<script>
+//@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this page.
+
+Copyright (C) 12019-12021  Sam Harry Tzavaras
+
+The JavaScript code in this page is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU AGPL) as published by the Free Software
+Foundation, either version 3 of the License, or any later version.
+The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+@licend  The above is the entire license notice
+for the JavaScript code in this page.
+*/
+	"use strict";
+	document.getElementById("status").value = "Init";
+	var SDAQ_units, SDAQ_cal_data, SDAQnet=getUrlParam("SDAQnet"), SDAQaddr=getUrlParam("SDAQaddr");
+	if(!SDAQnet||!SDAQaddr)
+	{
+		alert("Parameters of GET request missing!!!!");
+		window.close();
+	}
+	//AJAX response handler
+	var SDAQ_units_xhttp = new XMLHttpRequest(), SDAQ_cal_xml_xhttp = new XMLHttpRequest();
+	SDAQ_units_xhttp.timeout = 2000; SDAQ_cal_xml_xhttp.timeout = SDAQ_units_xhttp.timeout;
+	SDAQ_units_xhttp.onreadystatechange = xhttp_onreadystatechange; SDAQ_cal_xml_xhttp.onreadystatechange = xhttp_onreadystatechange;
+	SDAQ_units_xhttp.ontimeout = xhttp_timeout; SDAQ_cal_xml_xhttp.ontimeout = xhttp_timeout;
+
+	function xhttp_timeout()
+	{
+	  document.getElementById("status").value = "Connection Timeout";
+	  data_req=false;
+	};
+	function xhttp_onreadystatechange()
+	{
+		if (this.readyState == 4 && this.status == 200)
+		{
+			switch(this.getResponseHeader("Content-Type"))
+			{
+				case "Morfeas_SDAQ_units/json":
+					try
+					{
+					  SDAQ_units = JSON.parse(this.responseText);
+					}
+					catch(e)
+					{
+						document.getElementById("status").value = "Error: " + e.message;
+						break;
+					}
+					console.log(SDAQ_units);
+					break;
+				case "Morfeas_SDAQ_calibration_data/xml":
+					if(!this.responseXML)
+					{
+						try
+						{
+						  SDAQ_cal_data = (new DOMParser()).parseFromString(this.responseText, "application/xml");
+						}
+						catch(e)
+						{
+							document.getElementById("status").value = "Error: " + e.message;
+							break;
+						}
+					}
+					else
+						SDAQ_cal_data = this.responseXML;
+					SDAQ_cal_data = SDAQ_cal_XML2obj(SDAQ_cal_data);
+					document.getElementById("status").value = "Okay";
+					console.log(SDAQ_cal_data);
+					console.log(new_SDAQ_cal_for_post(SDAQnet, SDAQaddr, SDAQ_cal_data))
+					break;
+				case "report/text":
+					alert(this.responseText);
+					break;
+				default:
+					document.getElementById("status").value = this.responseText;
+			}
+		}
+		else if(this.status == 404)
+			document.getElementById("status").value = "Not found return";
+	};
+	//request the available units
+	SDAQ_units_xhttp.open("GET", "/morfeas_php/morfeas_SDAQnet_proxy.php?UNITs");
+	SDAQ_units_xhttp.send();
+	//request SDAQ cal data
+	SDAQ_cal_xml_xhttp.open("GET", "/morfeas_php/morfeas_SDAQnet_proxy.php?SDAQnet="+SDAQnet+"&SDAQaddr="+SDAQaddr);
+	SDAQ_cal_xml_xhttp.send();
+
+
+//@license-end
+</script>
+</html>
