@@ -53,15 +53,11 @@ for the JavaScript code in this page.
 	}
 	//AJAX response handler
 	var SDAQ_units_xhttp = new XMLHttpRequest(), SDAQ_cal_xml_xhttp = new XMLHttpRequest();
-	SDAQ_units_xhttp.timeout = 2000; SDAQ_cal_xml_xhttp.timeout = SDAQ_units_xhttp.timeout;
+	SDAQ_units_xhttp.timeout = 5000; SDAQ_cal_xml_xhttp.timeout = SDAQ_units_xhttp.timeout;
 	SDAQ_units_xhttp.onreadystatechange = xhttp_onreadystatechange; SDAQ_cal_xml_xhttp.onreadystatechange = xhttp_onreadystatechange;
 	SDAQ_units_xhttp.ontimeout = xhttp_timeout; SDAQ_cal_xml_xhttp.ontimeout = xhttp_timeout;
 
-	function xhttp_timeout()
-	{
-	  document.getElementById("status").value = "Connection Timeout";
-	  data_req=false;
-	};
+	function xhttp_timeout(){document.getElementById("status").value = "Connection Timeout";};
 	function xhttp_onreadystatechange()
 	{
 		if (this.readyState == 4 && this.status == 200)
@@ -78,7 +74,8 @@ for the JavaScript code in this page.
 						document.getElementById("status").value = "Error: " + e.message;
 						break;
 					}
-					console.log(SDAQ_units);
+					SDAQ_units = SDAQ_units.SDAQ_UNITs
+					//console.log(SDAQ_units);
 					break;
 				case "Morfeas_SDAQ_calibration_data/xml":
 					if(!this.responseXML)
@@ -98,7 +95,20 @@ for the JavaScript code in this page.
 					SDAQ_cal_data = SDAQ_cal_XML2obj(SDAQ_cal_data);
 					document.getElementById("status").value = "Okay";
 					console.log(SDAQ_cal_data);
-					console.log(new_SDAQ_cal_for_post(SDAQnet, SDAQaddr, SDAQ_cal_data))
+					//Load some example data
+					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Unit=SDAQ_units[0];
+					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Calibration_date = new Date("2050/3/20");
+					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Calibration_period = 20;
+					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Used_Points = 1;
+					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Points.Point_0.Measure = 100.4;
+					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Points.Point_0.Reference = 99.6;
+					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Points.Point_0.Offset = 50;
+					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Points.Point_0.Gain = 60.5;
+					
+					//Post new cal table
+					SDAQ_cal_xml_xhttp.open("POST", "/morfeas_php/morfeas_SDAQnet_proxy.php");
+					SDAQ_cal_xml_xhttp.send(compress(new_SDAQ_cal_for_post(SDAQnet, SDAQaddr, SDAQ_cal_data, SDAQ_units)));
+					//console.log()
 					break;
 				case "report/text":
 					alert(this.responseText);

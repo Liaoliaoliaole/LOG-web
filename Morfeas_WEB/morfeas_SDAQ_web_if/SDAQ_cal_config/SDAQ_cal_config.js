@@ -25,7 +25,7 @@ for the JavaScript code in this page.
 "use strict";
 function getUrlParam(parameter)
 {
-    function getUrlVars() 
+    function getUrlVars()
 	{
 		var vars = {};
 		var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
@@ -51,9 +51,9 @@ function SDAQ_cal_XML2obj(SDAQ_cal_xml)
 			if(name==="Calibration_date")
 			{
 				if(value==="2000/00/00")//Compare with uncalibrated date value
-					val = '-';
+					val = new Date();
 				else
-					val=new Date(Date.parse(value));
+					val = new Date(Date.parse(value));
 			}
 			else
 				val = isNaN(value)?value:parseFloat(value);//Check if value is number and if convert it to float.
@@ -74,15 +74,77 @@ function SDAQ_cal_XML2obj(SDAQ_cal_xml)
 	return data;
 }
 
-function new_SDAQ_cal_for_post(SDAQnet_name, SDAQ_addr, SDAQ_cal_data)
+function new_SDAQ_cal_for_post(SDAQnet_name, SDAQ_addr, SDAQ_cal_data, units_std_array)
 {
-	if(!SDAQnet_name || !SDAQ_addr || !SDAQ_cal_data)
+	if(!SDAQnet_name || !SDAQ_addr || !SDAQ_cal_data || !units_std_array)
 		return;
-	var ret = {}, SDAQ_xmlDoc = document.implementation.createDocument(null, "SDAQ");
+	var ret = {}, SDAQ_xmlDoc = new DOMParser().parseFromString('<?xml version="1.0" encoding="utf-8"?><SDAQ/>', "application/xml");
+	let SDAQ_info = SDAQ_xmlDoc.childNodes[SDAQ_xmlDoc.childNodes.length-1].appendChild(SDAQ_xmlDoc.createElement("SDAQ_info"));
+	let Calibration_Data = SDAQ_xmlDoc.childNodes[SDAQ_xmlDoc.childNodes.length-1].appendChild(SDAQ_xmlDoc.createElement("Calibration_Data"));
 
+	//Add Calibration_Data to SDAQ_xmlDoc
+	for(let SDAQ_CHn in SDAQ_cal_data.SDAQ.Calibration_Data)
+	{
+		let new_CH_node = SDAQ_xmlDoc.createElement(SDAQ_CHn);
+		if(SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Calibration_date instanceof Date &&
+		   units_std_array.indexOf(SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Unit)>=0)
+		{
+			let Cal_period = SDAQ_xmlDoc.createElement("Calibration_Period"),
+				Used_Points = SDAQ_xmlDoc.createElement("Used_Points"),
+				Unit = SDAQ_xmlDoc.createElement("Unit"),
+				Cal_date = SDAQ_xmlDoc.createElement("Calibration_date"),
+				Points = SDAQ_xmlDoc.createElement("Points");
+
+			Cal_period.appendChild(SDAQ_xmlDoc.createTextNode(SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Calibration_Period));
+			Used_Points.appendChild(SDAQ_xmlDoc.createTextNode(SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Used_Points));
+			Unit.appendChild(SDAQ_xmlDoc.createTextNode(SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Unit));
+			Cal_date.appendChild(SDAQ_xmlDoc.createTextNode( SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Calibration_date.getFullYear() + '/' +
+														    (SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Calibration_date.getMonth()+1) + '/' +
+															 SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Calibration_date.getDate()));
+			//Check USer points and add that amount
+			if(SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Used_Points)
+			{
+				let c=0;
+				for(let Point_n in SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Points)
+				{
+					if(c++<SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Used_Points)
+					{
+						let Point_n_node = SDAQ_xmlDoc.createElement(Point_n);
+						for(let Point_n_data in SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Points[Point_n])
+						{
+							let new_node = SDAQ_xmlDoc.createElement(Point_n_data);
+							new_node.appendChild(SDAQ_xmlDoc.createTextNode(SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Points[Point_n][Point_n_data]))
+							Point_n_node.appendChild(new_node);
+						}
+						Points.appendChild(Point_n_node);
+					}
+					else
+						break;
+				}
+			}
+			new_CH_node.appendChild(Cal_period);
+			new_CH_node.appendChild(Used_Points);
+			new_CH_node.appendChild(Unit);
+			new_CH_node.appendChild(Cal_date);
+			new_CH_node.appendChild(Points);
+		}
+		else
+			continue;
+		Calibration_Data.appendChild(new_CH_node);
+	}
+	if(!Calibration_Data.childElementCount)
+		return;
+	//Add SDAQ_info to SDAQ_xmlDoc
+	for(let SDAQ_info_prop in SDAQ_cal_data.SDAQ.SDAQ_info)
+	{
+		let new_node = SDAQ_xmlDoc.createElement(SDAQ_info_prop);
+		new_node.appendChild(SDAQ_xmlDoc.createTextNode(SDAQ_cal_data.SDAQ.SDAQ_info[SDAQ_info_prop]))
+		SDAQ_info.appendChild(new_node);
+	}
 	ret["SDAQnet"] = SDAQnet_name;
 	ret["SDAQaddr"] = SDAQ_addr;
 	ret["XMLcontent"] = new XMLSerializer().serializeToString(SDAQ_xmlDoc);
-	return ret;
+	//return ret
+	return JSON.stringify(ret);
 }
 //@license-end

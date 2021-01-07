@@ -163,6 +163,7 @@ function compress(data, debug_info)
 		let data_length = (new TextEncoder().encode(data)).length;
 		let res_length = (new TextEncoder().encode(result)).length;
 		console.log("Compression Ratio:"+Math.round((((1-res_length/data_length)) + Number.EPSILON)*100)+"%");
+		console.log("Dictionary Size:"+dictionary.length);
 	}
 	return result;
 }
