@@ -222,7 +222,7 @@ If the script called without any of the required arguments it shall respond with
     <Hardware_Rev>#</Hardware_Rev>
     <Available_Channels>#CHnnn</Available_Channels>
     <Samplerate>10</Samplerate>
-    <Max_num_of_cal_points>#Nnnn</Max_num_of_cal_points>
+    <Max_num_of_cal_points>#Nnn</Max_num_of_cal_points>
   </SDAQ_info>
   <Calibration_Data>
     <CH1>
@@ -240,14 +240,9 @@ If the script called without any of the required arguments it shall respond with
           <C3>#.#</C3>
         </Point_0>
         ...
-        <Point_(Nnnn-1)>
-          <Measure>#.#</Measure>
-          <Reference>#.#</Reference>
-          <Offset>#.#</Offset>
-          <Gain>#.#</Gain>
-          <C2>#.#</C2>
-          <C3>#.#</C3>
-        </Point_1>
+        <Point_(Nnn-1)>
+          ...
+        </Point_(Nnn-1)>
       </Points>
     </CH1>
     <CHnnn>

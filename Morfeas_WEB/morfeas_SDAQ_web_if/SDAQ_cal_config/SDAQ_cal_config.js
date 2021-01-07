@@ -51,7 +51,7 @@ function SDAQ_cal_XML2obj(SDAQ_cal_xml)
 			if(name==="Calibration_date")
 			{
 				if(value==="2000/00/00")//Compare with uncalibrated date value
-					val = new Date();
+					val = new Date(); //Set Calibration_date to Today
 				else
 					val = new Date(Date.parse(value));
 			}

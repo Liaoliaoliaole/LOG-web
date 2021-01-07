@@ -45,7 +45,7 @@ for the JavaScript code in this page.
 */
 	"use strict";
 	document.getElementById("status").value = "Init";
-	var SDAQ_units, SDAQ_cal_data, SDAQnet=getUrlParam("SDAQnet"), SDAQaddr=getUrlParam("SDAQaddr");
+	var SDAQ_units, SDAQ_cal_data, SDAQ_cal_data_curr, SDAQnet=getUrlParam("SDAQnet"), SDAQaddr=getUrlParam("SDAQaddr");
 	if(!SDAQnet||!SDAQaddr)
 	{
 		alert("Parameters of GET request missing!!!!");
@@ -94,12 +94,15 @@ for the JavaScript code in this page.
 						SDAQ_cal_data = this.responseXML;
 					SDAQ_cal_data = SDAQ_cal_XML2obj(SDAQ_cal_data);
 					document.getElementById("status").value = "Okay";
+					SDAQ_cal_data_curr = JSON.parse(JSON.stringify(SDAQ_cal_data));
+					
 					console.log(SDAQ_cal_data);
+					console.log(SDAQ_cal_data_curr);
 					//Load some example data
 					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Unit="°C";
 					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Calibration_date = new Date("2050/3/20");
 					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Calibration_period = 20;
-					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Used_Points = 1;
+					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Used_Points = 0;
 					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Points.Point_0.Measure = 100.4;
 					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Points.Point_0.Reference = 99.6;
 					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Points.Point_0.Offset = 50;
