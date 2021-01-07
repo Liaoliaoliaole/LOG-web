@@ -96,7 +96,7 @@ for the JavaScript code in this page.
 					document.getElementById("status").value = "Okay";
 					console.log(SDAQ_cal_data);
 					//Load some example data
-					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Unit=SDAQ_units[0];
+					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Unit="°C";
 					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Calibration_date = new Date("2050/3/20");
 					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Calibration_period = 20;
 					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Used_Points = 1;
@@ -107,7 +107,9 @@ for the JavaScript code in this page.
 					
 					//Post new cal table
 					SDAQ_cal_xml_xhttp.open("POST", "/morfeas_php/morfeas_SDAQnet_proxy.php");
-					SDAQ_cal_xml_xhttp.send(compress(new_SDAQ_cal_for_post(SDAQnet, SDAQaddr, SDAQ_cal_data, SDAQ_units)));
+					let ret = new_SDAQ_cal_for_post(SDAQnet, SDAQaddr, SDAQ_cal_data, SDAQ_units);
+					console.log(ret);
+					SDAQ_cal_xml_xhttp.send(compress(ret));
 					//console.log()
 					break;
 				case "report/text":
