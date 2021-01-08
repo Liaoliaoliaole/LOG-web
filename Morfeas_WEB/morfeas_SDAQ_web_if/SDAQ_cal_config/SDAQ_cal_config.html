@@ -11,6 +11,20 @@
 </head>
 <body>
 	Status:<input id="status" style="text-align:center;" type="textbox" size="20" value="Init" readonly>
+	<table id="SDAQ_info_tbl"></table>
+	<label for="CHs">CH:</label><select id="CHs" name="CHs" onchange="CH_sel(this)"></select>
+	<div id="SDAQ_calibration_tables" style="display:none">
+		<table>
+			<tr>
+				<td><label for="Cal_date">Calibration Date:</label><input type="date" id="Cal_date" name="Cal_date" max="2255-12-31" min="2000-01-01" onchange="cal_date_reg(this)"></td>
+				<td><label for="period">Re-Calibration Period (Months):</label><input type="number" id="period" name="period" max="255" min="0" onchange="cal_period_reg(this)"></td>
+				<td><label for="units">CH's Unit:</label><select id="units" name="units" onchange="cal_unit_reg(this)"></td>
+				<td><label for="points">Used Points:</label><input type="number" id="points" name="points" min="0" onchange="cal_used_points_reg(this)"></td>
+			</tr>
+		</table>
+		<table id="SDAQ_cal_points_tbl"></table>
+		<button type="button">Save</button>
+	</div>
 	<footer style="bottom:0;width:99%;">
 		<p>Author: Sam Harry Tzavaras &#169; 12019-12021<br>
 		<a href="../LICENSE">License: AGPLv3</a><br>
@@ -65,25 +79,26 @@ for the JavaScript code in this page.
 			switch(this.getResponseHeader("Content-Type"))
 			{
 				case "Morfeas_SDAQ_units/json":
-					try
-					{
-					  SDAQ_units = JSON.parse(this.responseText);
-					}
-					catch(e)
-					{
+					try{SDAQ_units = JSON.parse(this.responseText);}
+					catch(e){
 						document.getElementById("status").value = "Error: " + e.message;
 						break;
 					}
 					SDAQ_units = SDAQ_units.SDAQ_UNITs
-					//console.log(SDAQ_units);
+					let units_sel = document.getElementById("units");
+					while (units_sel.options.length)//remove all options from units (select)
+						units_sel.remove(0);
+					for(let i=0; i<SDAQ_units.length; i++)//populate options to units (select)
+					{
+						let new_opt = document.createElement("option");
+						new_opt.text = SDAQ_units[i];
+						units_sel.options.add(new_opt);
+					}
 					break;
 				case "Morfeas_SDAQ_calibration_data/xml":
 					if(!this.responseXML)
 					{
-						try
-						{
-						  SDAQ_cal_data = (new DOMParser()).parseFromString(this.responseText, "application/xml");
-						}
+						try{SDAQ_cal_data = (new DOMParser()).parseFromString(this.responseText, "application/xml");}
 						catch(e)
 						{
 							document.getElementById("status").value = "Error: " + e.message;
@@ -95,8 +110,23 @@ for the JavaScript code in this page.
 					SDAQ_cal_data = SDAQ_cal_XML2obj(SDAQ_cal_data);
 					document.getElementById("status").value = "Okay";
 					SDAQ_cal_data_curr = JSON.parse(JSON.stringify(SDAQ_cal_data));
-					
+					popu_SDAQ_info_tbl(SDAQ_cal_data);
+					let CHs = document.getElementById("CHs");
+					while (CHs.options.length)//remove all options from CHs (select)
+						CHs.remove(0);
+					//Add '-' option
+					let new_opt = document.createElement("option");
+					new_opt.text = '-';
+					CHs.options.add(new_opt);
+					for(let i=1; i<=SDAQ_cal_data.SDAQ.SDAQ_info.Available_Channels; i++)//populate options to CHs (select)
+					{
+						let new_opt = document.createElement("option");
+						new_opt.text = i;
+						CHs.options.add(new_opt);
+					}
+
 					console.log(SDAQ_cal_data);
+					/*
 					console.log(SDAQ_cal_data_curr);
 					//Load some example data
 					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Unit="°C";
@@ -107,13 +137,13 @@ for the JavaScript code in this page.
 					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Points.Point_0.Reference = 99.6;
 					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Points.Point_0.Offset = 50;
 					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Points.Point_0.Gain = 60.5;
-					
+
 					//Post new cal table
 					SDAQ_cal_xml_xhttp.open("POST", "/morfeas_php/morfeas_SDAQnet_proxy.php");
 					let ret = new_SDAQ_cal_for_post(SDAQnet, SDAQaddr, SDAQ_cal_data, SDAQ_units);
 					console.log(ret);
 					SDAQ_cal_xml_xhttp.send(compress(ret));
-					//console.log()
+					*/
 					break;
 				case "report/text":
 					alert(this.responseText);
@@ -132,7 +162,83 @@ for the JavaScript code in this page.
 	SDAQ_cal_xml_xhttp.open("GET", "/morfeas_php/morfeas_SDAQnet_proxy.php?SDAQnet="+SDAQnet+"&SDAQaddr="+SDAQaddr);
 	SDAQ_cal_xml_xhttp.send();
 
+	function popu_SDAQ_info_tbl(SDAQ_cal_data)
+	{
+		var SDAQ_info_tbl = document.getElementById("SDAQ_info_tbl");
+		function add_tbl_line(name, value)
+		{
+			let new_row = SDAQ_info_tbl.insertRow();
+			new_row.insertCell().appendChild(document.createTextNode(name+':'));
+			new_row.insertCell().appendChild(document.createTextNode(value));
+		};
+		if(!SDAQ_cal_data || !SDAQ_cal_data.SDAQ.SDAQ_info)
+			return;
+		for(let SDAQ_info in SDAQ_cal_data.SDAQ.SDAQ_info)
+			add_tbl_line(SDAQ_info, SDAQ_cal_data.SDAQ.SDAQ_info[SDAQ_info]);
+	}
 
+	function popu_SDAQ_CH_points(CH_num)
+	{
+		var SDAQ_cal_points_tbl = document.getElementById("SDAQ_cal_points_tbl"),
+			Cal_date = document.getElementById("Cal_date"),
+			period = document.getElementById("period"),
+			units = document.getElementById("units"),
+			points = document.getElementById("points");
+		points.max = SDAQ_cal_data.SDAQ.SDAQ_info.Max_num_of_cal_points;
+		points.value = SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Used_Points;
+		units.selectedIndex = SDAQ_units.indexOf(SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Unit);
+		period.value = SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Calibration_Period;
+		Cal_date.value = SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Calibration_date.getFullYear()+'-'+
+						 pad((SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Calibration_date.getMonth()+1),2)+'-'+
+						 pad(SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Calibration_date.getDate(),2);
+	}
+
+	function cal_date_reg(inp)
+	{
+		var CH_sel_val = document.getElementById("CHs").value;
+		if(inp.value)
+			SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_sel_val].Calibration_date = new Date(inp.value);
+		else
+		{
+			let today = new Date();
+			inp.value = today.getFullYear()+'-'+
+						pad((today.getMonth()+1),2)+'-'+
+						pad(today.getDate(),2);
+		}
+	}
+    function cal_period_reg(inp)
+	{
+		var CH_sel_val = document.getElementById("CHs").value;
+		if(inp.value)
+			SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_sel_val].Calibration_Period = parseInt(inp.value);
+	}
+	function cal_unit_reg(inp)
+	{
+		var CH_sel_val = document.getElementById("CHs").value;
+		if(inp.value)
+			SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_sel_val].Unit = inp.value;
+	}
+	function cal_used_points_reg(inp)
+	{
+		var CH_sel_val = document.getElementById("CHs").value;
+		if(inp.value)
+			SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_sel_val].Used_Points = parseInt(inp.value);
+	}
+	function CH_sel(inp)
+	{
+		var SDAQ_calibration_tables = document.getElementById("SDAQ_calibration_tables"),
+			SDAQ_cal_points_tbl = document.getElementById("SDAQ_cal_points_tbl");
+		if(inp.value !== '-')
+		{
+			popu_SDAQ_CH_points(parseInt(inp.value));
+			SDAQ_calibration_tables.style.display='inline';
+		}
+		else
+		{
+			SDAQ_cal_points_tbl.innerHTML="";
+			SDAQ_calibration_tables.style.display='none';
+		}
+	}
 //@license-end
 </script>
 </html>

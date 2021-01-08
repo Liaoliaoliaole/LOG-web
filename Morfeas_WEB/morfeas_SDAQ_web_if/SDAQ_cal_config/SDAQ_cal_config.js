@@ -147,4 +147,9 @@ function new_SDAQ_cal_for_post(SDAQnet_name, SDAQ_addr, SDAQ_cal_data, units_std
 	//return ret
 	return JSON.stringify(ret);
 }
+function pad(str, max)//from number-pad-zero.js
+{
+	str = str.toString();
+	return str.length < max ? pad("0" + str, max) : str;
+}
 //@license-end
