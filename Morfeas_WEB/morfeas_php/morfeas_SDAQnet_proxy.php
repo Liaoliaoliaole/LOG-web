@@ -55,8 +55,8 @@ if($requestType == "GET")
 else if($requestType == "POST")
 {
 	$SDAQ_cal_data = file_get_contents('php://input');
-	$SDAQ_cal_data = decompress($SDAQ_cal_data) or die("Error: Decompressing of SDAQ\'s Calibration data!!!");
-	$SDAQ_cal_data = json_decode($SDAQ_cal_data) or die("Error: JSON_Decode of SDAQ\'s Calibration data!!!");
+	$SDAQ_cal_data = decompress($SDAQ_cal_data) or die("Error: Decompressing of SDAQ's Calibration data!!!");
+	$SDAQ_cal_data = json_decode($SDAQ_cal_data) or die("Error: JSON_Decode of SDAQ's Calibration data!!!");
 	if(property_exists($SDAQ_cal_data, 'SDAQnet')&&property_exists($SDAQ_cal_data, 'SDAQaddr')&&property_exists($SDAQ_cal_data, 'XMLcontent'))
 	{
 		$SDAQ_net=$SDAQ_cal_data->SDAQnet;

@@ -16,14 +16,14 @@
 	<div id="SDAQ_calibration_tables" style="display:none">
 		<table>
 			<tr>
-				<td><label for="Cal_date">Calibration Date:</label><input type="date" id="Cal_date" name="Cal_date" max="2255-12-31" min="2000-01-01" onchange="cal_date_reg(this)"></td>
+				<td><label for="Cal_date">Calibration Date:</label><input type="date" id="Cal_date" name="Cal_date" max="2255-12-31" min="2000-01-01" oninput="cal_date_reg(this)"></td>
 				<td><label for="period">Re-Calibration Period (Months):</label><input type="number" id="period" name="period" max="255" min="0" onchange="cal_period_reg(this)"></td>
 				<td><label for="units">CH's Unit:</label><select id="units" name="units" onchange="cal_unit_reg(this)"></td>
 				<td><label for="points">Used Points:</label><input type="number" id="points" name="points" min="0" onchange="cal_used_points_reg(this)"></td>
 			</tr>
 		</table>
 		<table id="SDAQ_cal_points_tbl"></table>
-		<button type="button">Save</button>
+		<button type="button" onclick="save()">Save</button>
 	</div>
 	<footer style="bottom:0;width:99%;">
 		<p>Author: Sam Harry Tzavaras &#169; 12019-12021<br>
@@ -112,41 +112,24 @@ for the JavaScript code in this page.
 					SDAQ_cal_data_curr = JSON.parse(JSON.stringify(SDAQ_cal_data));
 					popu_SDAQ_info_tbl(SDAQ_cal_data);
 					let CHs = document.getElementById("CHs");
-					while (CHs.options.length)//remove all options from CHs (select)
+					while (CHs.options.length)//Remove all options from CHs (select)
 						CHs.remove(0);
 					//Add '-' option
 					let new_opt = document.createElement("option");
 					new_opt.text = '-';
 					CHs.options.add(new_opt);
-					for(let i=1; i<=SDAQ_cal_data.SDAQ.SDAQ_info.Available_Channels; i++)//populate options to CHs (select)
+					for(let i=1; i<=SDAQ_cal_data.SDAQ.SDAQ_info.Available_Channels; i++)//Populate options to CHs (select)
 					{
 						let new_opt = document.createElement("option");
 						new_opt.text = i;
 						CHs.options.add(new_opt);
 					}
-
-					console.log(SDAQ_cal_data);
-					/*
-					console.log(SDAQ_cal_data_curr);
-					//Load some example data
-					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Unit="°C";
-					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Calibration_date = new Date("2050/3/20");
-					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Calibration_period = 20;
-					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Used_Points = 0;
-					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Points.Point_0.Measure = 100.4;
-					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Points.Point_0.Reference = 99.6;
-					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Points.Point_0.Offset = 50;
-					SDAQ_cal_data.SDAQ.Calibration_Data.CH1.Points.Point_0.Gain = 60.5;
-
-					//Post new cal table
-					SDAQ_cal_xml_xhttp.open("POST", "/morfeas_php/morfeas_SDAQnet_proxy.php");
-					let ret = new_SDAQ_cal_for_post(SDAQnet, SDAQaddr, SDAQ_cal_data, SDAQ_units);
-					console.log(ret);
-					SDAQ_cal_xml_xhttp.send(compress(ret));
-					*/
+					//console.log(SDAQ_cal_data);
 					break;
 				case "report/text":
 					alert(this.responseText);
+					if(this.responseText === "Server: Calibration table written with success at SDAQ with ADDR:"+SDAQaddr)
+						SDAQ_cal_data_curr = JSON.parse(JSON.stringify(SDAQ_cal_data));
 					break;
 				default:
 					document.getElementById("status").value = this.responseText;
@@ -191,8 +174,45 @@ for the JavaScript code in this page.
 		Cal_date.value = SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Calibration_date.getFullYear()+'-'+
 						 pad((SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Calibration_date.getMonth()+1),2)+'-'+
 						 pad(SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Calibration_date.getDate(),2);
+		//Build and populate SDAQ_cal_points_tbl
+		SDAQ_cal_points_tbl.innerHTML="";//Clean table.
+		//Add table's headers
+		let th = document.createElement("th"), text = document.createTextNode("Point_#");
+		th.appendChild(text);
+		SDAQ_cal_points_tbl.appendChild(th);
+		for(let SDAQ_point_type_name in SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Points.Point_0)
+		{
+			let th = document.createElement("th");
+			let text = document.createTextNode(SDAQ_point_type_name);
+			th.appendChild(text);
+			SDAQ_cal_points_tbl.appendChild(th);
+		}
+		//Add points
+		let i=0;
+		for(let SDAQ_point_name in SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Points)
+		{
+			let new_point_row = SDAQ_cal_points_tbl.insertRow();
+			new_point_row.insertCell().appendChild(document.createTextNode(SDAQ_point_name));
+			for(let SDAQ_point_type in SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Points[SDAQ_point_name])
+			{
+				let cell = new_point_row.insertCell();
+				var point_elem_inp = document.createElement("INPUT");
+				point_elem_inp.setAttribute("type", "text");
+				point_elem_inp.onchange = function()
+				{
+					let point_type_val;
+					if(!isNaN(point_type_val = parseFloat(this.value)))
+						SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Points[SDAQ_point_name][SDAQ_point_type] = point_type_val;
+					this.value = SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Points[SDAQ_point_name][SDAQ_point_type];
+				};
+				if(i>=SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Used_Points)
+					point_elem_inp.disabled = true;
+				point_elem_inp.value = SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Points[SDAQ_point_name][SDAQ_point_type];
+				cell.appendChild(point_elem_inp);
+			}
+			i++;
+		}
 	}
-
 	function cal_date_reg(inp)
 	{
 		var CH_sel_val = document.getElementById("CHs").value;
@@ -206,23 +226,41 @@ for the JavaScript code in this page.
 						pad(today.getDate(),2);
 		}
 	}
-    function cal_period_reg(inp)
-	{
-		var CH_sel_val = document.getElementById("CHs").value;
-		if(inp.value)
-			SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_sel_val].Calibration_Period = parseInt(inp.value);
-	}
 	function cal_unit_reg(inp)
 	{
 		var CH_sel_val = document.getElementById("CHs").value;
 		if(inp.value)
 			SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_sel_val].Unit = inp.value;
 	}
-	function cal_used_points_reg(inp)
+	function cal_period_reg(inp)
 	{
 		var CH_sel_val = document.getElementById("CHs").value;
-		if(inp.value)
-			SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_sel_val].Used_Points = parseInt(inp.value);
+		let _min = parseInt(inp.min), _max = parseInt(inp.max);
+
+		if(inp.value>_max || inp.value<_min || isNaN(parseInt(inp.value)))
+			inp.value = SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_sel_val].Calibration_Period;
+		else
+			SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_sel_val].Calibration_Period = parseInt(inp.value);
+	}
+	function cal_used_points_reg(inp)
+	{
+		var CH_sel_val = document.getElementById("CHs").value,
+			SDAQ_cal_points_tbl = document.getElementById("SDAQ_cal_points_tbl");
+		let _min = parseInt(inp.min), _max = parseInt(inp.max), val = parseInt(inp.value);
+
+		if(val>_max || val<_min || isNaN(parseInt(inp.value)))
+			inp.value = SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_sel_val].Used_Points;
+		else
+		{
+			SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_sel_val].Used_Points = val;
+			for(let i=0; i<SDAQ_cal_data.SDAQ.SDAQ_info.Max_num_of_cal_points; i++)
+			{
+				let tbl_line = SDAQ_cal_points_tbl.childNodes[7].childNodes[i],
+					dis_val = i<val? false:true;
+				for(let j=1; j<tbl_line.childElementCount; j++)
+					tbl_line.childNodes[j].firstChild.disabled = dis_val;
+			}
+		}
 	}
 	function CH_sel(inp)
 	{
@@ -238,6 +276,18 @@ for the JavaScript code in this page.
 			SDAQ_cal_points_tbl.innerHTML="";
 			SDAQ_calibration_tables.style.display='none';
 		}
+	}
+	function save()
+	{
+		let post_new_SDAQ_cal = new_SDAQ_cal_for_post(SDAQnet, SDAQaddr, SDAQ_cal_data, SDAQ_units);
+		if(!post_new_SDAQ_cal)
+		{
+			alert("Nothing to commit");
+			return;
+		}
+		//Post new cal table
+		SDAQ_cal_xml_xhttp.open("POST", "/morfeas_php/morfeas_SDAQnet_proxy.php");
+		SDAQ_cal_xml_xhttp.send(compress(post_new_SDAQ_cal, true));
 	}
 //@license-end
 </script>

@@ -3,7 +3,7 @@
 @licstart  The following is the entire license notice for the
 JavaScript code in this page.
 
-Copyright (C) 12019-12020  Sam Harry Tzavaras
+Copyright (C) 12019-12021  Sam Harry Tzavaras
 
 The JavaScript code in this page is free software: you can
 redistribute it and/or modify it under the terms of the GNU
@@ -73,6 +73,24 @@ function SDAQ_cal_XML2obj(SDAQ_cal_xml)
 	}
 	return data;
 }
+
+/*function SDAQ_cal_data_diff(SDAQ_cal_data_new, SDAQ_cal_data_current)
+{
+	if(!SDAQ_cal_data_new || !SDAQ_cal_data_current)
+		return;
+	let ret = JSON.parse(JSON.stringify(SDAQ_cal_data_new));
+
+	for(let SDAQ_CH_n in SDAQ_cal_data_new.SDAQ.Calibration_Data)
+	{
+		let _new = new String(JSON.stringify(SDAQ_cal_data_new.SDAQ.Calibration_Data[SDAQ_CH_n])),
+			_curr = new String(JSON.stringify(SDAQ_cal_data_current.SDAQ.Calibration_Data[SDAQ_CH_n]));
+		if(_new === _curr)
+			delete ret.SDAQ.Calibration_Data[SDAQ_CH_n];
+	}
+	if(!Object.getOwnPropertyNames(ret.SDAQ.Calibration_Data).length)
+		return;
+	return ret;
+}*/
 
 function new_SDAQ_cal_for_post(SDAQnet_name, SDAQ_addr, SDAQ_cal_data, units_std_array)
 {
