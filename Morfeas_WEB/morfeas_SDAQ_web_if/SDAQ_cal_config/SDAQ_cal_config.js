@@ -45,20 +45,8 @@ function SDAQ_cal_XML2obj(SDAQ_cal_xml)
 	//Append, value to data.name
 	function Add_to_data(name, value)
 	{
-		if(!data[name])//Check for duplicate
-		{
-			let val;
-			if(name==="Calibration_date")
-			{
-				if(value==="2000/00/00")//Compare with uncalibrated date value
-					val = new Date(); //Set Calibration_date to Today
-				else
-					val = new Date(Date.parse(value));
-			}
-			else
-				val = isNaN(value)?value:parseFloat(value);//Check if value is number and if convert it to float.
-			data[name] = val;
-		}
+		if(!data[name])//Check for already exist, avoid duplicate entries
+			data[name] = isNaN(value)?value:parseFloat(value);//Check if value is number and if convert it to float.
 	};
 	//Scan child elements and add them to data
 	for(let i=0, cur_node; cur_node = SDAQ_cal_xml.childNodes[i]; i++)
@@ -74,7 +62,7 @@ function SDAQ_cal_XML2obj(SDAQ_cal_xml)
 	return data;
 }
 
-/*function SDAQ_cal_data_diff(SDAQ_cal_data_new, SDAQ_cal_data_current)
+function SDAQ_cal_data_diff(SDAQ_cal_data_new, SDAQ_cal_data_current)
 {
 	if(!SDAQ_cal_data_new || !SDAQ_cal_data_current)
 		return;
@@ -82,19 +70,19 @@ function SDAQ_cal_XML2obj(SDAQ_cal_xml)
 
 	for(let SDAQ_CH_n in SDAQ_cal_data_new.SDAQ.Calibration_Data)
 	{
-		let _new = new String(JSON.stringify(SDAQ_cal_data_new.SDAQ.Calibration_Data[SDAQ_CH_n])),
-			_curr = new String(JSON.stringify(SDAQ_cal_data_current.SDAQ.Calibration_Data[SDAQ_CH_n]));
-		if(_new === _curr)
+		let _new = JSON.stringify(SDAQ_cal_data_new.SDAQ.Calibration_Data[SDAQ_CH_n]),
+			_cur = JSON.stringify(SDAQ_cal_data_current.SDAQ.Calibration_Data[SDAQ_CH_n]);
+		if(_new === _cur)
 			delete ret.SDAQ.Calibration_Data[SDAQ_CH_n];
 	}
 	if(!Object.getOwnPropertyNames(ret.SDAQ.Calibration_Data).length)
 		return;
 	return ret;
-}*/
+}
 
-function new_SDAQ_cal_for_post(SDAQnet_name, SDAQ_addr, SDAQ_cal_data, units_std_array)
+function new_SDAQ_cal_for_post(SDAQnet_name, SDAQ_addr, SDAQ_cal_data)
 {
-	if(!SDAQnet_name || !SDAQ_addr || !SDAQ_cal_data || !units_std_array)
+	if(!SDAQnet_name || !SDAQ_addr || !SDAQ_cal_data)
 		return;
 	var ret = {}, SDAQ_xmlDoc = new DOMParser().parseFromString('<?xml version="1.0" encoding="utf-8"?><SDAQ/>', "application/xml");
 	let SDAQ_info = SDAQ_xmlDoc.childNodes[SDAQ_xmlDoc.childNodes.length-1].appendChild(SDAQ_xmlDoc.createElement("SDAQ_info"));
@@ -104,8 +92,7 @@ function new_SDAQ_cal_for_post(SDAQnet_name, SDAQ_addr, SDAQ_cal_data, units_std
 	for(let SDAQ_CHn in SDAQ_cal_data.SDAQ.Calibration_Data)
 	{
 		let new_CH_node = SDAQ_xmlDoc.createElement(SDAQ_CHn);
-		if(SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Calibration_date instanceof Date &&
-		   units_std_array.indexOf(SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Unit)>=0)
+		if(SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Unit)
 		{
 			let Cal_period = SDAQ_xmlDoc.createElement("Calibration_Period"),
 				Used_Points = SDAQ_xmlDoc.createElement("Used_Points"),
@@ -116,9 +103,7 @@ function new_SDAQ_cal_for_post(SDAQnet_name, SDAQ_addr, SDAQ_cal_data, units_std
 			Cal_period.appendChild(SDAQ_xmlDoc.createTextNode(SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Calibration_Period));
 			Used_Points.appendChild(SDAQ_xmlDoc.createTextNode(SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Used_Points));
 			Unit.appendChild(SDAQ_xmlDoc.createTextNode(SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Unit));
-			Cal_date.appendChild(SDAQ_xmlDoc.createTextNode( SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Calibration_date.getFullYear() + '/' +
-														    (SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Calibration_date.getMonth()+1) + '/' +
-															 SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Calibration_date.getDate()));
+			Cal_date.appendChild(SDAQ_xmlDoc.createTextNode(SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Calibration_date));
 			//Check USer points and add that amount
 			if(SDAQ_cal_data.SDAQ.Calibration_Data[SDAQ_CHn].Used_Points)
 			{
@@ -162,7 +147,6 @@ function new_SDAQ_cal_for_post(SDAQnet_name, SDAQ_addr, SDAQ_cal_data, units_std
 	ret["SDAQnet"] = SDAQnet_name;
 	ret["SDAQaddr"] = SDAQ_addr;
 	ret["XMLcontent"] = new XMLSerializer().serializeToString(SDAQ_xmlDoc);
-	//return ret
 	return JSON.stringify(ret);
 }
 function pad(str, max)//from number-pad-zero.js
