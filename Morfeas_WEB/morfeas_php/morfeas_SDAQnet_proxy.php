@@ -62,7 +62,7 @@ else if($requestType == "POST")
 		$SDAQ_net=$SDAQ_cal_data->SDAQnet;
 		$SDAQ_addr=$SDAQ_cal_data->SDAQaddr;
 		$SDAQ_xml_data=$SDAQ_cal_data->XMLcontent;
-		exec("echo '$SDAQ_xml_data' | SDAQ_worker $SDAQ_net setinfo $SDAQ_addr -sf-.xml 2>&1", $output, $retval);
+		exec("echo '$SDAQ_xml_data' | SDAQ_worker $SDAQ_net setinfo $SDAQ_addr -vsf-.xml 2>&1", $output, $retval);
 		if(!$retval)
 			die("Server: Calibration table written with success at SDAQ with ADDR:$SDAQ_addr");
 		else
