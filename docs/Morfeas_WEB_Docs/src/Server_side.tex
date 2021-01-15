@@ -177,7 +177,7 @@ the type of the device that will be handled, the D-BUS method that will be calle
   "contents":{"Object with the data that will send to handler"}
 }
 \end{lstlisting}
-
+%\newpage
 \subsection{Morfeas\_SDAQnet\_proxy.php}
 The Morfeas\_SDAQnet\_proxy.php is a PHP script part of the Morfeas WEB project that act as proxy between the WEB and the SDAQ device that exist on a SDAQnet.
 It's can be called from ``./morfeas\_php/morfeas\_SDAQnet\_proxy.php" and accepting POST and GET requests.
@@ -204,8 +204,11 @@ in this case the ``Content-Type" field will be ``report/text".
 If the script called without any of the required arguments it shall respond with ``HTTP ERROR 404".
 
 \subsubsection{POST request}
+The POST request of Morfeas\_SDAQnet\_proxy.php script work in conjunction with the GET request that have called with arguments ``SDAQnet" \& ``SDAQaddr".
+The POST request for this script required the payload contents to be JSON in a string form that have been structured as shown at listing~\ref{lst:post_struct}. 
+The property "XMLcontent" shall contain the modified version of the calibration XML as described at~\ref{subsubsec:post_xml_contents}.
+The payload must be compress before it's send to the server.
 
-\newpage
 \begin{lstlisting}[frame=single,caption=Return of call with argument ``UNITs",label=lst:SDAQ_units]
 {
   "Base_offset": ##, //Unit_code of first unit after Base units region.
@@ -251,3 +254,22 @@ If the script called without any of the required arguments it shall respond with
   </Calibration_Data>
 </SDAQ>
 \end{lstlisting}
+\begin{lstlisting}[frame=single,caption=Structure of Data for Post request",label=lst:post_struct]
+"{
+  "SDAQnet": "String with SDAQnet name",
+  "SDAQaddr": ##, //Current Address of SDAQ.
+  "XMLcontent": "String with SDAQ calibration configuration xml"
+}"
+\end{lstlisting}
+\newpage
+\subsubsection{``XMLcontent" parameter for POST request}
+\label{subsubsec:post_xml_contents}
+The property XMLcontent of the JSON object for the POST request contain a string with the modified version of the calibration xml for the SDAQ under configuration.
+This must follow the same structure like the return of a GET request called with arguments ``SDAQnet" \& ``SDAQaddr" as in listing~\ref{lst:SDAQ_calib_info}.
+However the following changes are applied:
+\begin{itemize}
+	\item The node ``SDAQ\_info" must contains the same sub-nodes and contains as have been received.  
+	\item The node ``Calibration\_Data" must contain \textbf{only} the channels that will configured.
+	\item Each channel node must contain ``Calibration\_date"", ``Calibration\_Period", ``Used\_Points", ``Unit" and ``Points".
+	\item In case that the ``Used\_Points" have zero value the ``Points" must exist and be empty.
+\end{itemize}
