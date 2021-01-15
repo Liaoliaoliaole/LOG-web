@@ -177,7 +177,7 @@ the type of the device that will be handled, the D-BUS method that will be calle
   "contents":{"Object with the data that will send to handler"}
 }
 \end{lstlisting}
-%\newpage
+
 \subsection{Morfeas\_SDAQnet\_proxy.php}
 The Morfeas\_SDAQnet\_proxy.php is a PHP script part of the Morfeas WEB project that act as proxy between the WEB and the SDAQ device that exist on a SDAQnet.
 It's can be called from ``./morfeas\_php/morfeas\_SDAQnet\_proxy.php" and accepting POST and GET requests.
@@ -208,7 +208,7 @@ The POST request of Morfeas\_SDAQnet\_proxy.php script work in conjunction with 
 The POST request for this script required the payload contents to be JSON in a string form that have been structured as shown at listing~\ref{lst:post_struct}.
 The property "XMLcontent" shall contain the modified version of the calibration XML as described at~\ref{subsubsec:post_xml_contents}.
 The payload must be compress before it's send to the server.
-
+\newpage
 \begin{lstlisting}[frame=single,caption=Return of call with argument ``UNITs",label=lst:SDAQ_units]
 {
   "Base_offset": ##, //Unit_code of first unit after Base units region.
