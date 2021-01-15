@@ -16,10 +16,22 @@
 	<div id="SDAQ_calibration_tables" style="display:none">
 		<table>
 			<tr>
-				<td><label for="Cal_date">Calibration Date:</label><input type="date" id="Cal_date" name="Cal_date" max="2255-12-31" min="2000-01-01" oninput="cal_date_reg(this)"></td>
-				<td><label for="period">Re-Calibration Period (Months):</label><input type="number" id="period" name="period" max="255" min="0" onchange="cal_period_reg(this)"></td>
-				<td><label for="unit">CH's Unit:</label><select id="unit" name="unit" onchange="cal_unit_reg(this)"></td>
-				<td><label for="points">Used Points:</label><input type="number" id="points" name="points" min="0" onchange="cal_used_points_reg(this)"></td>
+				<td>
+					<label for="Cal_date">Calibration Date:</label>
+					<input type="date" id="Cal_date" name="Cal_date" max="2255-12-31" min="2000-01-01" oninput="cal_date_reg(this)">
+				</td>
+				<td>
+					<label for="period">Re-Calibration Period (Months):</label>
+					<input type="number" id="period" name="period" max="255" min="0" size="3" onchange="cal_period_reg(this)">
+				</td>
+				<td>
+					<label for="unit">CH's Unit:</label>
+					<select id="unit" name="unit" onchange="cal_unit_reg(this)">
+				</td>
+				<td>
+					<label for="points">Used Points:</label>
+					<input type="number" id="points" name="points" min="0" size="2" onchange="cal_used_points_reg(this)">
+				</td>
 			</tr>
 		</table>
 		<table id="SDAQ_cal_points_tbl"></table>
