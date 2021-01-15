@@ -10,7 +10,7 @@
 <title>Morfeas SDAQ Portal</title>
 </head>
 <body>
-	Status:<input id="status" style="text-align:center;" type="textbox" size="20" value="Init" readonly>
+	Status:<input id="status" style="text-align:center;" type="textbox" size="50" value="Init" readonly>
 	<table id="SDAQ_info_tbl"></table>
 	<label for="CHs">CH:</label><select id="CHs" name="CHs" onchange="CH_sel(this)"></select>
 	<div id="SDAQ_calibration_tables" style="display:none">
@@ -129,8 +129,11 @@ for the JavaScript code in this page.
 				case "report/text":
 					alert(this.responseText);
 					if(this.responseText === "Server: Calibration table written with success at SDAQ with ADDR:"+SDAQaddr)
+					{
+						document.getElementById("status").value = "Okay";
 						SDAQ_cal_data_curr = JSON.parse(JSON.stringify(SDAQ_cal_data));
-					break;
+						break;
+					}
 				default:
 					document.getElementById("status").value = this.responseText;
 			}
@@ -209,6 +212,7 @@ for the JavaScript code in this page.
 				let cell = new_point_row.insertCell();
 				var point_elem_inp = document.createElement("INPUT");
 				point_elem_inp.setAttribute("type", "text");
+				point_elem_inp.setAttribute("size", "10");
 				point_elem_inp.onchange = function()
 				{
 					let point_type_val;
