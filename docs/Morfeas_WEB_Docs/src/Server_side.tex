@@ -184,7 +184,8 @@ It's can be called from ``./morfeas\_php/morfeas\_SDAQnet\_proxy.php" and accept
 The main purpose of usage of this script is to transact calibration data between SDAQs and WEB.
 At the following subsections the functionality for each type of request and the data that exchanged will be described in details.\\
 
-The Morfeas\_SDAQnet\_proxy.php using internally the functionality of SDAQ\_psim and SDAQ\_worker. So it's necessary the SDAQ\_worker project to be compiled and installed.
+The Morfeas\_SDAQnet\_proxy.php using internally the functionality of SDAQ\_psim and SDAQ\_worker.
+So it's necessary the SDAQ\_worker project to be properly compiled and installed.
 
 \subsubsection{GET request}
 The GET requests for this script can be called with two sets of arguments: ``UNITs" or (``SDAQnet" \& ``SDAQaddr").
@@ -207,7 +208,8 @@ If the script called without any of the required arguments it shall respond with
 The POST request of Morfeas\_SDAQnet\_proxy.php script work in conjunction with the GET request that have called with arguments ``SDAQnet" \& ``SDAQaddr".
 The POST request for this script required the payload contents to be JSON in a string form that have been structured as shown at listing~\ref{lst:post_struct}.
 The property "XMLcontent" shall contain the modified version of the calibration XML as described at~\ref{subsubsec:post_xml_contents}.
-The payload must be compress before it's send to the server.
+The payload must be compress before it's send to the server.\\
+If the POST request called without payload ``HTTP ERROR 404" will return, or if the payload is invalid an error message shall return.
 \newpage
 \begin{lstlisting}[frame=single,caption=Return of call with argument ``UNITs",label=lst:SDAQ_units]
 {
