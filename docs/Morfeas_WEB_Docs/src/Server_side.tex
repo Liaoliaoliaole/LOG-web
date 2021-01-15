@@ -205,7 +205,7 @@ If the script called without any of the required arguments it shall respond with
 
 \subsubsection{POST request}
 The POST request of Morfeas\_SDAQnet\_proxy.php script work in conjunction with the GET request that have called with arguments ``SDAQnet" \& ``SDAQaddr".
-The POST request for this script required the payload contents to be JSON in a string form that have been structured as shown at listing~\ref{lst:post_struct}. 
+The POST request for this script required the payload contents to be JSON in a string form that have been structured as shown at listing~\ref{lst:post_struct}.
 The property "XMLcontent" shall contain the modified version of the calibration XML as described at~\ref{subsubsec:post_xml_contents}.
 The payload must be compress before it's send to the server.
 
@@ -268,8 +268,22 @@ The property XMLcontent of the JSON object for the POST request contain a string
 This must follow the same structure like the return of a GET request called with arguments ``SDAQnet" \& ``SDAQaddr" as in listing~\ref{lst:SDAQ_calib_info}.
 However the following changes are applied:
 \begin{itemize}
-	\item The node ``SDAQ\_info" must contains the same sub-nodes and contains as have been received.  
-	\item The node ``Calibration\_Data" must contain \textbf{only} the channels that will configured.
-	\item Each channel node must contain ``Calibration\_date"", ``Calibration\_Period", ``Used\_Points", ``Unit" and ``Points".
-	\item In case that the ``Used\_Points" have zero value the ``Points" must exist and be empty.
+	\item The node ``SDAQ\_info" must contains the same sub-nodes and contains as have been received.
+	\item The node ``Calibration\_Data" must contain \textbf{only} the channels(CH\_\#) nodes that will configured.
+	\item The CH\_\# contain ``Calibration\_date", ``Calibration\_Period", ``Used\_Points", ``Unit" and ``Points".
+		\begin{itemize}
+			\item Node ``Points" contains sub-nodes ``$Point\_(N_{nn})$" with $nn$ ranged $0..\text{Used\_Points}-1$.
+			\begin{itemize}
+				\item Each ``$Point\_(N_{nn})$" contain:
+				\begin{enumerate}
+					\item ``Measure" (Raw measured value)
+					\item ``Reference" (Calibrated measure value)
+					\item ``Offset" (Point's calibration range Offset)
+					\item ``Gain" (Range gain)
+					\item ``C2" (Range $x^2$ factor)
+					\item ``C3" (Range $x^3$ factor)
+				\end{enumerate}
+			\end{itemize}
+			\item In case that the ``Used\_Points" have zero value the ``Points" must exist and be empty.
+		\end{itemize}
 \end{itemize}
