@@ -43,14 +43,9 @@ if ($requestType == "POST") {
             echo json_encode($errorReport);
             return;
         }
+        $upToDate = false;
         if ((strpos($output, 'Updating') !== false) == false) {
-            $response = [
-                'shell_output' => $output,
-                'errors' => false
-            ];
-            $response['message'] = 'Already up to date.';
-            echo json_encode($response);
-            return;
+            $upToDate = true;
         }
         $makeOutput = shell_exec('cd pecl-dbus 2>&1
         phpize 2>&1
@@ -64,7 +59,12 @@ if ($requestType == "POST") {
             echo json_encode($errorReport);
             return;
         }
+        $message = 'Update completed.';
+        if ($upToDate) {
+            $message = "Update completed.\n\nEverything was already up to date, but installations were still made."; 
+        }
         $response = [
+            'message' => $message,
             'shell_output' => $fullOutput,
             'errors' => false
         ];
@@ -94,10 +94,9 @@ if ($requestType == "POST") {
             echo json_encode($errorReport);
             return;
         }
+        $upToDate = false;
         if ((strpos($updateOutput, 'Updating') !== false) == false) {
-            $errorReport = ['shell_output' => $updateOutput, 'errors' => false, 'message' => "Already up to date."];
-            echo json_encode($errorReport);
-            return;
+            $upToDate = true;
         }
         $updateCommand = '
         cd /opt/Morfeas_project/Morfeas_core
@@ -136,9 +135,13 @@ if ($requestType == "POST") {
         $systemRestart = shell_exec(
             'sudo systemctl restart Morfeas_system.service 2>&1'
         );
+        $message = 'Update completed. Restarting Morfeas system.';
+        if ($upToDate) {
+            $message = "Update completed. Restarting Morfeas system.\n\nEverything was already up to date, but installations were still made.";
+        }
         $response = [
             'errors' => false,
-            'message' => 'Update completed. Restarting Morfeas system.',
+            'message' => $message,
             'shell_output' => $fullOutput
         ];
         echo json_encode($response);
