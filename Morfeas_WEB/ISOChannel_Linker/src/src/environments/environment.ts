@@ -6,6 +6,7 @@ export const environment = {
   production: false,
   ROOT: 'http://localhost:5000',
   API_ROOT: 'http://localhost:5000/api',
+  UPDATE_ROOT: 'http://localhost:5000/api',
 };
 
 /*

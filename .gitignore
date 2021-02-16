@@ -36,3 +36,4 @@ __pycache__/
 .vscode/
 morfeas/config.json
 
+package-lock.json
