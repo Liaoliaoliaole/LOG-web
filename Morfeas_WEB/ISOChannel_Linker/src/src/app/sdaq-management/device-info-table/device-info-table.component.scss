@@ -66,7 +66,6 @@ ag-grid-angular {
     line-height: 12px;
     box-shadow: 0 2px 5px 0 rgba(0,0,0,.16),0 2px 10px 0 rgba(0,0,0,.12);
     align-self: center;
-    height: 60px;
 }
 
 .save {
@@ -95,4 +94,75 @@ ag-grid-angular {
     color:#000 !important;
     background-color: white !important;
     border-color:white !important;
+}
+
+.lds-ellipsis {
+    display: inline-block;
+    position: relative;
+    width: 6px;
+    height: 6px;
+    bottom: 34px;
+    left: -35px;
+}
+
+.lds-ellipsis div {
+    position: absolute;
+    top: 33px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #fff;
+    animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+
+.lds-ellipsis div:nth-child(1) {
+    left: 8px;
+    animation: lds-ellipsis1 0.6s infinite;
+}
+
+.lds-ellipsis div:nth-child(2) {
+    left: 8px;
+    animation: lds-ellipsis2 0.6s infinite;
+}
+
+.lds-ellipsis div:nth-child(3) {
+    left: 32px;
+    animation: lds-ellipsis2 0.6s infinite;
+}
+
+.lds-ellipsis div:nth-child(4) {
+    left: 56px;
+    animation: lds-ellipsis3 0.6s infinite;
+}
+
+@keyframes lds-ellipsis1 {
+0% {
+    transform: scale(0);
+}
+100% {
+    transform: scale(1);
+}
+}
+
+@keyframes lds-ellipsis3 {
+0% {
+    transform: scale(1);
+}
+100% {
+    transform: scale(0);
+}
+}
+
+@keyframes lds-ellipsis2 {
+0% {
+    transform: translate(0, 0);
+}
+100% {
+    transform: translate(24px, 0);
+}
+}
+
+.toggle-update-buttons {
+    margin-right: 15px;
+    cursor: pointer;
 }

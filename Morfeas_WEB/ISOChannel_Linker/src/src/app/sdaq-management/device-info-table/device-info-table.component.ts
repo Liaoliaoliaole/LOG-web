@@ -7,6 +7,7 @@ import {
   CellEvent
 } from '@ag-grid-community/all-modules';
 import { CanbusService } from '../services/canbus/canbus.service';
+import { UpdateService } from './services/update.service';
 import { Logstat } from '../models/can-model';
 import { TableColumn, FilterEvent } from '../device-table-sidebar/device-table-sidebar.component';
 import { OpcUaConfigModel } from '../models/opcua-config-model';
@@ -70,11 +71,11 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
     { headerName: 'Description', field: 'description', editable: true },
     { headerName: 'Connection', field: 'deviceId' },
     { headerName: 'Sensor', field: 'sensorUserId' },
-    { headerName: 'Type', field: 'type' },
-    { headerName: 'Unit', field: 'channelUnit' },
-    { headerName: 'Min Value', field: 'minValue', editable: true },
-    { headerName: 'Max Value', field: 'maxValue', editable: true },
-    { headerName: 'Avg Measurement', field: 'avgMeasurement' },
+    { headerName: 'Type', field: 'type', width: 100 },
+    { headerName: 'Unit', field: 'channelUnit', width: 100 },
+    { headerName: 'Min Value', field: 'minValue', editable: true, width: 125 },
+    { headerName: 'Max Value', field: 'maxValue', editable: true, width: 125 },
+    { headerName: 'Avg Measurement', field: 'avgMeasurement', width: 170 },
     {
       headerName: 'Calibration Date', field: 'calibrationDate', cellRenderer: (params: CellEvent) => {
 
@@ -163,6 +164,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   constructor(
     private readonly canbusService: CanbusService,
     private readonly modalService: ModalService,
+    private readonly updateService: UpdateService,
     private readonly toastr: ToastrService,
     private readonly datePipe: DatePipe
   ) { }
@@ -594,6 +596,32 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
 */
   clearFilters() {
     this.gridOptions.api.setFilterModel(null);
+  }
+  isUpdatingCore = false;
+  updateMorfeasCore() {
+    alert('Updating Morfeas Core. This can take several minutes to complete.');
+    this.isUpdatingCore = true;
+    this.updateService.sendUpdateRequestForCore()
+      .subscribe(response => {
+        this.isUpdatingCore = false;
+        alert(response.message);
+        console.log(response.shell_output);
+      });
+  }
+  isUpdatingWeb = false;
+  updateMorfeasWeb() {
+    alert('Updating Morfeas Web. This can take few minutes.');
+    this.isUpdatingWeb = true;
+    this.updateService.sendUpdateRequestForWeb()
+      .subscribe(response => {
+        this.isUpdatingWeb = false;
+        alert(response.message);
+        console.log(response.shell_output);
+      });
+  }
+  updateButtonsVisible = false;
+  toggleUpdateButtons() {
+    this.updateButtonsVisible = !this.updateButtonsVisible
   }
 
   allComponents() {
