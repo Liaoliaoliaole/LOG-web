@@ -58,16 +58,28 @@ else if($requestType == "POST")
 	{
 		$SDAQ_cal_data = decompress($SDAQ_cal_data) or die("Error: Decompressing of SDAQ's Calibration data!!!");
 		$SDAQ_cal_data = json_decode($SDAQ_cal_data) or die("Error: JSON_Decode of SDAQ's Calibration data!!!");
-		if(property_exists($SDAQ_cal_data, 'SDAQnet')&&property_exists($SDAQ_cal_data, 'SDAQaddr')&&property_exists($SDAQ_cal_data, 'XMLcontent'))
+		if(property_exists($SDAQ_cal_data, 'SDAQnet')&&property_exists($SDAQ_cal_data, 'SDAQaddr'))
 		{
 			$SDAQ_net=$SDAQ_cal_data->SDAQnet;
 			$SDAQ_addr=$SDAQ_cal_data->SDAQaddr;
-			$SDAQ_xml_data=$SDAQ_cal_data->XMLcontent;
-			exec("echo '$SDAQ_xml_data' | SDAQ_worker $SDAQ_net setinfo $SDAQ_addr -vsf-.xml 2>&1", $output, $retval);
-			if(!$retval)
-				die("Server: Calibration table written with success at SDAQ with ADDR:$SDAQ_addr");
-			else
-				die(implode("\n",$output));
+			if(property_exists($SDAQ_cal_data, 'XMLcontent'))
+			{
+				$SDAQ_xml_data=$SDAQ_cal_data->XMLcontent;
+				exec("echo '$SDAQ_xml_data' | SDAQ_worker $SDAQ_net setinfo $SDAQ_addr -vsf-.xml 2>&1", $output, $retval);
+				if(!$retval)
+					die("Server: Calibration table written with success at SDAQ with ADDR:$SDAQ_addr");
+				else
+					die(implode("\n",$output));
+			}
+			else if(property_exists($SDAQ_cal_data, 'SDAQ_firmware_HEX'))
+			{
+				$SDAQ_firmware_HEX=$SDAQ_cal_data->SDAQ_firmware_HEX;
+				exec("echo '$SDAQ_firmware_HEX' | SDAQ_prog $SDAQ_net $SDAQ_addr -si 2>&1", $output, $retval);
+				if(!$retval)
+					die("Server: Success firmware update for SDAQ with ADDR:$SDAQ_addr");
+				else
+					die(implode("\n",$output));
+			}
 		}
 	}
 }
