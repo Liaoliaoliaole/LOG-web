@@ -23,20 +23,6 @@ through which recipients can access the Corresponding Source.
 for the JavaScript code in this page.
 */
 "use strict";
-function getUrlParam(parameter)
-{
-    function getUrlVars()
-	{
-		var vars = {};
-		var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
-			vars[key] = value;
-		});
-		return vars;
-	}
-    if(window.location.href.indexOf(parameter) > -1)
-        return getUrlVars()[parameter];
-}
-
 function SDAQ_cal_XML2obj(SDAQ_cal_xml)
 {
 	if(!SDAQ_cal_xml)

@@ -27,6 +27,20 @@ function comp_check()
 	}
 }
 
+function getUrlParam(parameter)
+{
+    function getUrlVars()
+	{
+		var vars = {};
+		var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+			vars[key] = value;
+		});
+		return vars;
+	}
+    if(window.location.href.indexOf(parameter) > -1)
+        return getUrlVars()[parameter];
+}
+
 function PopupCenter(url, title, w, h)
 {
 	// Fixes dual-screen position
@@ -162,6 +176,8 @@ function compress(data, debug_info)
 		console.log("Compression took " + (tack - tick) + " milliseconds.");
 		let data_length = (new TextEncoder().encode(data)).length;
 		let res_length = (new TextEncoder().encode(result)).length;
+		console.log("Data_size:"+data_length);
+		console.log("Compress_Data_size:"+res_length);
 		console.log("Compression Ratio:"+Math.round((((1-res_length/data_length)) + Number.EPSILON)*100)+"%");
 		console.log("Dictionary Size:"+dictionary.length);
 	}

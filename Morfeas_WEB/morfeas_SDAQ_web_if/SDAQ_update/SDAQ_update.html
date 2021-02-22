@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
+<title>Morfeas SDAQ Firmware Update</title>
+</head>
+	<input type="file" id="SDAQ_fw_upload" accept=".hex">
+	<input type="button" value="Upload" onclick="SDAQ_fw_upload(SDAQnet, SDAQaddr)">
+<body>
+</body>
+<script src='../../morfeas_ecma/common.js'></script>
+<script src='./SDAQ_update.js'></script>
+<script>
+//@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this page.
+
+Copyright (C) 12020-12021  Sam Harry Tzavaras
+
+The JavaScript code in this page is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU AGPL) as published by the Free Software
+Foundation, either version 3 of the License, or any later version.
+The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+@licend  The above is the entire license notice
+for the JavaScript code in this page.
+*/
+	document.getElementById('SDAQ_fw_upload').value = "";
+	var SDAQnet = getUrlParam("SDAQnet"),
+		SDAQaddr = getUrlParam("SDAQaddr");
+	if(!SDAQnet || !SDAQaddr)
+		window.close('','_parent','');
+
+	//AJAX response handler
+	var xhttp = new XMLHttpRequest();
+	xhttp.timeout = 10000;
+	xhttp.onreadystatechange = xhttp_onreadystatechange;
+	xhttp.ontimeout = function()
+	{
+		alert("Connection Timeout");
+	};
+	function xhttp_onreadystatechange()
+	{
+		if (this.readyState == 4 && this.status == 200)
+		{
+			if(this.getResponseHeader("Content-Type") === "report/text")
+			{
+				alert(this.responseText);
+				if(this.responseText === "Server: Success firmware update for SDAQ with ADDR:"+SDAQaddr)
+					window.close('','_parent','');
+			}
+		}
+		else if(this.status == 404)
+			alert("Not found return");
+	};
+//@license-end
+</script>
+</html>
