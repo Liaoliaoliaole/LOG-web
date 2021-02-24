@@ -314,8 +314,12 @@ for the JavaScript code in this page.
 	}
 	function save(Channel)
 	{
-		console.log(Channel);
 		let post_new_SDAQ_cal = SDAQ_cal_data_diff(SDAQ_cal_data, SDAQ_cal_data_curr);
+		if(Channel && post_new_SDAQ_cal)
+		{
+			console.log(Channel);
+			console.log(post_new_SDAQ_cal);
+		}
 		post_new_SDAQ_cal = new_SDAQ_cal_for_post(SDAQnet, SDAQaddr, post_new_SDAQ_cal);
 		if(!post_new_SDAQ_cal)
 		{
@@ -324,7 +328,7 @@ for the JavaScript code in this page.
 		}
 		//Post new cal table
 		SDAQ_cal_xml_xhttp.open("POST", "/morfeas_php/morfeas_SDAQnet_proxy.php");
-		SDAQ_cal_xml_xhttp.send(compress(post_new_SDAQ_cal));
+		//SDAQ_cal_xml_xhttp.send(compress(post_new_SDAQ_cal));
 	}
 //@license-end
 </script>
