@@ -34,8 +34,12 @@
 			</tr>
 		</table>
 		<table id="SDAQ_cal_points_tbl"></table>
-		<button type="button" onclick="save(document.getElementById('CHs').value)">Save</button>
-		<button type="button" onclick="save()">Save All</button>
+		<!--<span title="Save current channel's calibration">
+			<button type="button" onclick="save(document.getElementById('CHs').value)">Save</button>
+		</span>-->
+		<span title="Save calibration of all channels">
+			<button type="button" onclick="save()">Save All</button>
+		</span>
 	</div>
 	<footer style="bottom:0;width:99%;">
 		<p>Author: Sam Harry Tzavaras &#169; 12019-12021<br>
@@ -317,8 +321,9 @@ for the JavaScript code in this page.
 		let post_new_SDAQ_cal = SDAQ_cal_data_diff(SDAQ_cal_data, SDAQ_cal_data_curr);
 		if(Channel && post_new_SDAQ_cal)
 		{
-			console.log(Channel);
-			console.log(post_new_SDAQ_cal);
+			for(let SDAQ_CHn in post_new_SDAQ_cal.SDAQ.Calibration_Data)
+				if(SDAQ_CHn !== "CH"+Channel)
+					delete post_new_SDAQ_cal.SDAQ.Calibration_Data[SDAQ_CHn];
 		}
 		post_new_SDAQ_cal = new_SDAQ_cal_for_post(SDAQnet, SDAQaddr, post_new_SDAQ_cal);
 		if(!post_new_SDAQ_cal)
@@ -328,7 +333,7 @@ for the JavaScript code in this page.
 		}
 		//Post new cal table
 		SDAQ_cal_xml_xhttp.open("POST", "/morfeas_php/morfeas_SDAQnet_proxy.php");
-		//SDAQ_cal_xml_xhttp.send(compress(post_new_SDAQ_cal));
+		SDAQ_cal_xml_xhttp.send(compress(post_new_SDAQ_cal));
 	}
 //@license-end
 </script>
