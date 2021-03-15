@@ -51,21 +51,17 @@ td.bold{
 		<td><button type="button" onclick='PopupCenter("/morfeas_MDAQ_web_if/MDAQsPortal.html"+"?q="+makeid(),"","1024","768")'>MDAQs<br>Portal</td>
 		<td><button type="button" onclick='PopupCenter("/morfeas_IOBOX_web_if/IOBOXsPortal.html"+"?q="+makeid(),"","1024","768")'>IOBOXs<br>Portal</td>
 		<td><button type="button" onclick='PopupCenter("/morfeas_MTI_web_if/MTIsPortal.html"+"?q="+makeid(),"","1024","768")'>MTIs<br>Portal</td>
-		<td><button type="button" onclick='reboot()'>
-			<span title="reboot">
-				<img src="./art/reboot.png" class="bsize">
-			</span>
-		</td>
+		<td><button type="button" onclick='PopupCenter("/morfeas_NOX_web_if/NOXsPortal.html"+"?q="+makeid(),"","1024","768")'>NOXs<br>Portal</td>
 	  </tr>
 	  <tr>
-		<td><button type="button" onclick='PopupCenter("/ISOChannel_Linker/html/","","1280","1024")'>
-			<span title="ISOChannel Linker">
-				<img src="./art/anchor.png" class="bsize">
-			</span>
-		</td>
 		<td><button type="button" onclick='PopupCenter("/morfeas_Loggers/Morfeas_Loggers.html"+"?q="+makeid(),"","1024","768")'>
 			<span title="System Loggers">
 				<img src="./art/logger.svg" class="bsize">
+			</span>
+		</td>
+		<td><button type="button" onclick='PopupCenter("/ISOChannel_Linker/html/","","1280","1024")'>
+			<span title="ISOChannel Linker">
+				<img src="./art/anchor.png" class="bsize">
 			</span>
 		</td>
 		<td><button type="button" onclick='PopupCenter("/Morfeas_configuration/Morfeas_System_config.html"+"?q="+makeid(),"","1024","768")'>
@@ -76,6 +72,11 @@ td.bold{
 		<td><button type="button" onclick='PopupCenter("/Morfeas_configuration/Network_config.html"+"?q="+makeid(),"","550","350")'>
 			<span title="Network Configuration">
 				<img src="./art/eth.png" class="bsize">
+			</span>
+		</td>
+		<td><button type="button" onclick='reboot()'>
+			<span title="reboot">
+				<img src="./art/reboot.png" class="bsize">
 			</span>
 		</td>
 		<td><button type="button" onclick='shutdown();'>

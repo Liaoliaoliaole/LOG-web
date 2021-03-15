@@ -208,7 +208,7 @@ function morfeas_logstat_commonizer(logstats)
 								logstats.logstat_contents[i].Identifier+"."+logstats.logstat_contents[i].MTI_status.Tele_Device_type+"."+"CH"+(j+1),
 								lim!==2?"°C":"",null,null,
 								logstats.logstat_contents[i].Tele_data.CHs[j],
-								logstats.logstat_contents[i].Tele_data.IsValid,
+								logstats.logstat_contents[i].Tele_data.IsValid && typeof(logstats.logstat_contents[i].Tele_data.CHs[j])=='number',
 								!logstats.logstat_contents[i].Tele_data.RX_Success_Ratio?'Disconnected':'No sensor'
 							));
 						}
@@ -261,19 +261,17 @@ function morfeas_logstat_commonizer(logstats)
 						{
 							for(let k=1; k<=16; k++)//limit to 16], max amount of channels on a telemetry.
 							{
-								if(eval("logstats.logstat_contents[i].RX"+j+".CH"+k) !== "No sensor")
-								{
-									data_table[data_table_index].sensors.push(new sensor
-									(
-										"IOBOX",
-										logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
-										"RX"+j+".CH"+norm(k,2),
-										logstats.logstat_contents[i].Identifier+".RX"+j+".CH"+k,
-										"°C",null,null,
-										eval("logstats.logstat_contents[i].RX"+j+".CH"+k),
-										true
-									));
-								}
+								data_table[data_table_index].sensors.push(new sensor
+								(
+									"IOBOX",
+									logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
+									"RX"+j+".CH"+norm(k,2),
+									logstats.logstat_contents[i].Identifier+".RX"+j+".CH"+k,
+									"°C",null,null,
+									eval("logstats.logstat_contents[i].RX"+j+".CH"+k),
+									eval("logstats.logstat_contents[i].RX"+j+".CH"+k) !== "No sensor",
+									eval("logstats.logstat_contents[i].RX"+j+".CH"+k) !== "No sensor" ? undefined : "No sensor"
+								));
 							}
 						}
 					}
