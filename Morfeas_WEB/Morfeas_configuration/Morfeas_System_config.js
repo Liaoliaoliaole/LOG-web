@@ -49,7 +49,7 @@ function delete_selected_Morfeas_comp()
 function morfeas_config_ordered(_new_morfeas_config)
 {
 	var ordered_new_morfeas_config = document.implementation.createDocument(null, "COMPONENTS");
-	const comp_order=["OPC_UA_SERVER","SDAQ_HANDLER","MDAQ_HANDLER","IOBOX_HANDLER","MTI_HANDLER"];
+	const comp_order=["OPC_UA_SERVER","SDAQ_HANDLER","MDAQ_HANDLER","IOBOX_HANDLER","MTI_HANDLER","NOX_HANDLER"];
 	for(let i=0;i<comp_order.length;i++)
 	{
 		var compsWithType=_new_morfeas_config.getElementsByTagName(comp_order[i]);
@@ -83,6 +83,7 @@ function get_comp_name(comp)
 		case "OPC_UA_SERVER":
 			return "OPC-UA SERVER";
 		case "SDAQ_HANDLER":
+		case "NOX_HANDLER":
 			return comp.nodeName.replace("_HANDLER","")+" ("+comp.getElementsByTagName("CANBUS_IF")[0].textContent+")";
 		case "MDAQ_HANDLER":
 		case "IOBOX_HANDLER":

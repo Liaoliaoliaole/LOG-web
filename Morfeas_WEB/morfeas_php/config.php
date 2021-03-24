@@ -271,11 +271,16 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 						die("Server: OPC_UA_SERVER->APP_NAME is empty");
 					break;
 				case "SDAQ_HANDLER":
-					$comp_ord=2;
+				case "NOX_HANDLER":
+					switch($comp->getName())
+					{
+						case "SDAQ_HANDLER": $comp_ord=2; break;
+						case "NOX_HANDLER": $comp_ord=6; break;
+					}
 					if($comp->children()[0]->getName()!=='CANBUS_IF')
 						die("Server: Component\"".$comp->getName()."\" have invalid child nodes");
 					if(!strlen($comp->children()[0]))
-						die("Server: SDAQ_HANDLER->CANBUS_IF is empty");
+						die("Server: ".$comp->getName()."->CANBUS_IF is empty");
 					break;
 				case "MDAQ_HANDLER":
 				case "IOBOX_HANDLER":

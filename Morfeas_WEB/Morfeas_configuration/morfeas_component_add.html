@@ -22,6 +22,7 @@
 				<option value="MDAQ_HANDLER">MDAQ</option>
 				<option value="IOBOX_HANDLER">IO-BOX</option>
 				<option value="MTI_HANDLER">MTI</option>
+				<option value="NOX_HANDLER">NOX</option>
 			</select>
 		</td>
 	</tr>
@@ -74,6 +75,7 @@ for the JavaScript code in this page.
 		comp_data_table.appendChild(th);
 		switch(sel.value)
 		{
+			case "NOX_HANDLER":
 			case "SDAQ_HANDLER":
 				if(!can_ifs_names)
 					alert("No CAN-IFs found!!!");
@@ -164,6 +166,7 @@ for the JavaScript code in this page.
 		var new_handler = caller_res.morfeas_config_xml.createElement(sel.value);
 		switch(sel.value)
 		{
+			case "NOX_HANDLER":
 			case "SDAQ_HANDLER":
 				let selected_can_if= document.getElementById("can_if");
 				if(is_canIF_inuse(selected_can_if.value, caller_res.new_morfeas_config_xml))

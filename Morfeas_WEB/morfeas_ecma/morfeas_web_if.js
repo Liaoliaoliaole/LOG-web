@@ -279,6 +279,75 @@ function morfeas_logstat_commonizer(logstats)
 				else
 					data_table[data_table_index].sensors = [];
 			}
+			else if(logstats.logstats_names[i].includes("logstat_NOXs"))//Morfeas_NOX_if handlers
+			{
+				data_table[data_table_index] = new table_data_entry();
+				//Load IF_name and build_date
+				data_table[data_table_index].if_name = "NOX ("+logstats.logstat_contents[i].CANBus_interface+")";
+				data_table[data_table_index].logstat_build_date_UNIX = logstats.logstat_contents[i].logstat_build_date_UNIX;
+				//Load Device's status
+				data_table[data_table_index].connections.push(new connection("BUS_Utilization", logstats.logstat_contents[i].BUS_Utilization.toFixed(1), "%"));
+				let det_NOx = 0;
+				for(let j=0; j<logstats.logstat_contents[i].NOx_sensors.length; j++)
+					if(Object.entries(logstats.logstat_contents[i].NOx_sensors[j]).length)
+						det_NOx++;
+				data_table[data_table_index].connections.push(new connection("Detected_UniNOx", det_NOx));
+				if(logstats.logstat_contents[i].Electrics)
+				{
+					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_last_calibration_UNIX",
+																				  logstats.logstat_contents[i].Electrics.Last_calibration_UNIX));
+					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_outVoltage",
+																				  logstats.logstat_contents[i].Electrics.BUS_voltage.toFixed(2), "V"));
+					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_outAmperage",
+																				  logstats.logstat_contents[i].Electrics.BUS_amperage.toFixed(2), "A"));
+					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_ShuntTemp",
+																				  logstats.logstat_contents[i].Electrics.BUS_Shunt_Res_temp.toFixed(2), "°C"));
+				}
+				//Load Device's sensors
+				if(det_NOx)
+				{
+					for(let j=0; j<logstats.logstat_contents[i].NOx_sensors.length; j++)
+					{
+						if(!Object.entries(logstats.logstat_contents[i].NOx_sensors[j]).length)
+							continue;
+						let error_str = "No Error";
+						if(!logstats.logstat_contents[i].NOx_sensors[j].status.is_NOx_value_valid ||
+						   !logstats.logstat_contents[i].NOx_sensors[j].status.is_O2_value_valid)
+						{
+							if(logstats.logstat_contents[i].NOx_sensors[j].errors.heater !== "No error")
+								error_str = logstats.logstat_contents[i].NOx_sensors[j].errors.heater;
+							else if(logstats.logstat_contents[i].NOx_sensors[j].errors.NOx !== "No error")
+								error_str = logstats.logstat_contents[i].NOx_sensors[j].errors.NOx;
+							else if(logstats.logstat_contents[i].NOx_sensors[j].errors.O2 !== "No error")
+								error_str = logstats.logstat_contents[i].NOx_sensors[j].errors.O2;
+							else
+								error_str = logstats.logstat_contents[i].NOx_sensors[j].status.heater_mode_state;
+						}
+						data_table[data_table_index].sensors.push(new sensor(
+							"NOX",
+							"UniNOx(Addr:"+j+")",
+							logstats.logstat_contents[i].CANBus_interface.toUpperCase()+"."+j+".NOx",
+							logstats.logstat_contents[i].CANBus_interface+".addr_"+j+".NOx",
+							"ppm", null, null,
+							logstats.logstat_contents[i].NOx_sensors[j].NOx_value_avg,
+							logstats.logstat_contents[i].NOx_sensors[j].status.is_NOx_value_valid,
+							error_str
+						));
+						data_table[data_table_index].sensors.push(new sensor(
+							"NOX",
+							"UniNOx(Addr:"+j+")",
+							logstats.logstat_contents[i].CANBus_interface.toUpperCase()+"."+j+".O2",
+							logstats.logstat_contents[i].CANBus_interface+".addr_"+j+".O2",
+							"%", null, null,
+							logstats.logstat_contents[i].NOx_sensors[j].O2_value_avg,
+							logstats.logstat_contents[i].NOx_sensors[j].status.is_O2_value_valid,
+							error_str
+						));
+					}
+				}
+				else
+					data_table[data_table_index].sensors = [];
+			}
 			else if(logstats.logstats_names[i].includes("logstat_SDAQs"))//Morfeas_SDAQ_if handlers
 			{
 				data_table[data_table_index] = new table_data_entry();
@@ -286,7 +355,7 @@ function morfeas_logstat_commonizer(logstats)
 				data_table[data_table_index].if_name = "SDAQs ("+logstats.logstat_contents[i].CANBus_interface+")";
 				data_table[data_table_index].logstat_build_date_UNIX = logstats.logstat_contents[i].logstat_build_date_UNIX;
 				//Load Device's status
-				data_table[data_table_index].connections.push(new connection("BUS_Utilization", logstats.logstat_contents[i].BUS_Utilization, "%"));
+				data_table[data_table_index].connections.push(new connection("BUS_Utilization", logstats.logstat_contents[i].BUS_Utilization.toFixed(1), "%"));
 				data_table[data_table_index].connections.push(new connection("Detected_SDAQs", logstats.logstat_contents[i].Detected_SDAQs));
 				if(logstats.logstat_contents[i].Electrics)
 				{
