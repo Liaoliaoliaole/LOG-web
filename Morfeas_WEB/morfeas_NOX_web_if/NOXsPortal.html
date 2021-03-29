@@ -35,10 +35,9 @@ input{
 		</td>
 		<td>
 			UniNOx Addr:
-			<select onchange="Sensor_select(this)">
-			  <option value="0"selected>No logging</option>
-			  <option value="Sensor1">0</option>
-			  <option value="Sensor2">1</option>
+			<select id="sel_addr" onchange="Addr_select(this)">
+			  <option value="0">0</option>
+			  <option value="1">1</option>
 			</select>
 		</td>
 		<td>Graph Controls:</td>
@@ -71,30 +70,34 @@ input{
 </div>
 <table id="Current_data"style="width:100%;text-align:center;">
   <tr>
-    <th colspan="6">Current Sensor's Data</th>
+    <th colspan="4">UniNOx's Data</th>
   </tr>
   <tr>
-    <td style="color: green;">NOx value:<br><input id="NOX"readonly></td>
-	<td>Power supply status:<br><input id="Supply_status"readonly></td>
-	<td>Heater temperature status:<br><input id="Heater_status"readonly></td>
-	<td>NOx Valid:<br><input id="NOX_valid"readonly></td>
-	<td>O2 Valid:<br><input id="O2_valid"readonly></td>
+    <td style="color: green;">NOx average:<br><input id="NOX"readonly></td>
+	<td style="color: blue;">O2 average:<br><input id="O2"readonly></td>
 	<td>Heater Mode:<br><input id="Heater_mode"readonly></td>
+	<td id="power_off_tl">Auto PowerOFF (sec):<br>
+		<input id="power_off" readonly>
+		<button type="button" onclick="Heater_code=1;">Set
+	</td>
   </tr>
   <tr>
-    <td style="color: blue;">O2 value:<br><input id="O2"readonly></td>
+
 	<td>Heater Error:<br><input id="Heater_error"readonly></td>
 	<td>NOx Error:<br><input id="NOx_error"readonly></td>
 	<td>O2 Error:<br><input id="O2_error"readonly></td>
-	<td><button type="button" onclick="Heater_code=1;">Heater ON</td>
-	<td><button type="button" onclick="Heater_code=2;">Heater OFF</td>
+	<td>
+		<b>Heater:  </b>
+		<button type="button" onclick="Heater_code=1;">ON
+		<button type="button" onclick="Heater_code=2;">OFF
+	</td>
   </tr>
   <tr>
 	<td style="width:100%;text-align:left;"colspan="6"><br>Last Status:  <input id="status_tab"size="42"style="text-align:left;"readonly value="No logger selected"></td>
   </tr>
 </table>
 <footer style="bottom:0;width:99%;">
-	<p>Author: Sam Harry Tzavaras &#169; 12019-12021<br>
+	<p>Author: Sam Harry Tzavaras &#169; 12021-12022<br>
 	<a href="../LICENSE">License: AGPLv3</a><br>
 </footer>
 </body>
@@ -133,6 +136,7 @@ for the JavaScript code in this page.
 		NOX_CAN_if: 0,
 		NOX_contents: 1
 	};
+	document.getElementById("sel_addr").selectedIndex = 0;
 	var data_req=false, request_mode = mode_enum.NOX_CAN_if;
 	const Heater_code_enum = Object.freeze({"Notset":0, "ON":1, "OFF":2}),Buffer_size=3600/0.05; //roughly 1hr on buffer
 	var csv; //export csv file
@@ -140,7 +144,6 @@ for the JavaScript code in this page.
 	var data = []; //rolling data buffer
 	var Heater_code=Heater_code_enum.Notset;
 	var wsUri = "ws://"+window.location.hostname+":8080";
-	var Sensor_req;
 	var timer;
 	var websocket;
 	var pause_or_play=1; //1 for play, 0 for pause
@@ -154,7 +157,7 @@ for the JavaScript code in this page.
 			axis: 'y2'
 		  }
 		},
-		title :"",
+		title :"UniNOx:0",
 		ylabel: "NOX(ppm)",
 		y2label: "O2 (%)",
 		legend: "never",
@@ -185,6 +188,13 @@ for the JavaScript code in this page.
 	};
 	function init_graph()
 	{
+		document.getElementById("NOX").value="";
+		document.getElementById("Heater_mode").value="";
+		document.getElementById("O2").value="";
+		document.getElementById("power_off").value="";
+		document.getElementById("Heater_error").value="";
+		document.getElementById("NOx_error").value="";
+		document.getElementById("O2_error").value="";
 		data=[];
 		x = new Date();  // current time
 		y1=NaN;
@@ -220,7 +230,6 @@ for the JavaScript code in this page.
 		websocket.onmessage = function(evt) { onMessage(evt) };
 		websocket.onerror = function(evt) { onError(evt) };
 	}
-
 	function onOpen(evt)
 	{
 		//writeToScreen("CONNECTED");
@@ -228,14 +237,11 @@ for the JavaScript code in this page.
 		init_graph();
 		timer = setTimeout(function(){timer=setInterval(function(){doSend(Sensor_req);},100)}, 1000);
 	}
-
-
 	function onClose(evt)
 	{
 		clearInterval(timer);
 		document.getElementById("status_tab").value = evt.reason;
 	}
-
 	function onMessage(evt)
 	{
 		if(evt.data.search("Data:")>=0)
@@ -269,12 +275,10 @@ for the JavaScript code in this page.
 			document.getElementById("status_tab").value = evt.data;
 		}
 	}
-
 	function onError(evt)
 	{
 		document.getElementById("status_tab").value = 'ERROR:' + evt.reason;
 	}
-
 	function doSend(message)
 	{
 		if(websocket.readyState===WebSocket.OPEN)
@@ -287,67 +291,48 @@ for the JavaScript code in this page.
 			Heater_code = Heater_code_enum.Notset;
 	}
 */
-	function Sensor_select(item)
+	function Addr_select(item)
 	{
-		selected=item.options[item.selectedIndex].value;
-		if(selected !== "0")
-		{
-			Sensor_req=selected;
-			graph_options.title="Graph for Sensor #" + item.selectedIndex;
-			init_graph();
-			if(websocket == null)
-				init_websocket();
-		}
-		else
-		{
-			websocket.close(1000,"Client: Connection closed");
-			websocket = null;
-
-		}
+		graph_options.title="UniNOx:" + item.selectedIndex;
+		init_graph();
 	}
 
-	function fill_data(msg)
+	function fill_data(data)
 	{
-		const Supply_status_denum=["Undervoltage","Ok!!!","Error","Not initialized"];
-		const Heater_status_denum=["Not at Temperature","Ok!!!","Error","Not initialized"];
-		const Valid_denum=["Not valid","Valid","Error","Not initialized"];
-		const Heater_mode_denum=["Auto","Slope 3->4","Slope 1->2","Pre-Heating","Heater is OFF"];
+		let sel_addr = document.getElementById("sel_addr").value;
 		//Grab DOM input elements
-		var NOX = document.getElementById("NOX");
-		var Supply_status = document.getElementById("Supply_status");
-		var Heater_status = document.getElementById("Heater_status");
-		var NOX_valid = document.getElementById("NOX_valid");
-		var O2_valid = document.getElementById("O2_valid");
-		var Heater_mode = document.getElementById("Heater_mode");
-		var O2 = document.getElementById("O2");
-		var Heater_error = document.getElementById("Heater_error");
-		var NOx_error = document.getElementById("NOx_error");
-		var O2_error = document.getElementById("O2_error");
+		let NOX = document.getElementById("NOX"),
+		Heater_mode = document.getElementById("Heater_mode"),
+		O2 = document.getElementById("O2"),
+		Heater_error = document.getElementById("Heater_error"),
+		NOx_error = document.getElementById("NOx_error"),
+		O2_error = document.getElementById("O2_error"),
+		auto_poff = document.getElementById("power_off");
 
-		//load values from msg
-		NOX.value=msg[3]+" (ppm)";
-		O2.value=msg[4]+" (%)";
-		Supply_status.value=Supply_status_denum[msg[5]];
-		Heater_status.value=Heater_status_denum[msg[6]];
-		NOX_valid.value=Valid_denum[msg[7]];
-		O2_valid.value=Valid_denum[msg[8]];
-		if(msg[2]==0)
-			Heater_mode.value=Heater_mode_denum[4];
-		else
-			Heater_mode.value=Heater_mode_denum[msg[9]];
-		Heater_error.value = Error_decoder(msg[10]);
-		NOx_error.value = Error_decoder(msg[11]);
-		O2_error.value = Error_decoder(msg[12]);
-	}
-	function Error_decoder(error)
-	{
-		switch(error)
+		if(!data.NOx_sensors[sel_addr].status.meas_state)
 		{
-			case "31": return "No Error"; break;
-			case "05": return "Open Wire"; break;
-			case "03": return "Short Wire"; break;
-			default : return "Unknown Error";
+			NOX.value = "Not measuring";
+			O2.value = NOX.value;
+			auto_poff.value = data.Auto_SW_OFF_value;
+			auto_poff.readOnly = false;
 		}
+		else
+		{
+			auto_poff.readOnly = true;
+			auto_poff.value = data.Auto_SW_OFF_cnt;
+			if(data.NOx_sensors[sel_addr].status.is_NOx_value_valid && data.NOx_sensors[sel_addr].NOx_value_avg)
+				NOX.value = data.NOx_sensors[sel_addr].NOx_value_avg.toFixed(3)+" (ppm)";
+			else
+				NOX.value = "Not Valid";
+			if(data.NOx_sensors[sel_addr].status.is_O2_value_valid && data.NOx_sensors[sel_addr].O2_value_avg)
+				O2.value = data.NOx_sensors[sel_addr].O2_value_avg.toFixed(3)+" (%)";
+			else
+				O2.value = "Not Valid";
+		}
+		Heater_mode.value = data.NOx_sensors[sel_addr].status.heater_mode_state;
+		Heater_error.value = data.NOx_sensors[sel_addr].errors.heater;
+		NOx_error.value = data.NOx_sensors[sel_addr].errors.NOx;
+		O2_error.value = data.NOx_sensors[sel_addr].errors.O2;
 	}
 
 	function button_event(item)
@@ -458,7 +443,6 @@ for the JavaScript code in this page.
 		let status_box=document.getElementById("status_tab");
 		if (this.readyState == 4 && this.status == 200)
 		{
-			//var MTI_data;
 			switch(request_mode)
 			{
 				case mode_enum.NOX_CAN_if:
@@ -474,44 +458,18 @@ for the JavaScript code in this page.
 						}
 					}
 					break;
-				/*
-				case mode_enum.MTIDev_contents:
+				case mode_enum.NOX_contents:
 					if(this.getResponseHeader("Content-Type")==="application/json")
 					{
+						let NOX_data;
 						try{
-						  MTI_data = JSON.parse(this.responseText);
+						  NOX_data = JSON.parse(this.responseText);
 						}
 						catch(e){
-							//status_box.value = "Error: " + e.message;
+							status_box.value = "Error: " + e.message;
 							break;
 						}
-						var MTI_status=document.getElementById("MTI_status");
-						if(MTI_data.Connection_status==="Okay")
-						{
-							status_box.style.color='black';
-							MTI_status.style.display="table";
-							MTI_status_tab_update(MTI_data, MTI_status);
-							MTI_status_bar_update(MTI_data);
-							for(let i=0;i<batt_and_rssid.length;i++)
-								batt_and_rssid[i].style.display="table-cell";
-							if(!radio_mode_inited)
-							{
-								radio_mode_inited=true;
-								radio_mode_init(MTI_data);
-							}
-							MTI_tele_dev(MTI_data);
-						}
-						else
-						{
-							status_box.style.color='blue';
-							for(let i=0;i<batt_and_rssid.length;i++)
-								batt_and_rssid[i].style.display="none"
-							document.getElementById("MTI_status_tab").style.display="none";
-							document.getElementById("RF_DEVs").style.display="none";
-							document.getElementById("Graph_tab").style.display="none";
-							MTI_status.style.display="none";
-						}
-						status_box.value='Connection: '+MTI_data.Connection_status;
+						fill_data(NOX_data);
 					}
 					else if(this.getResponseHeader("Content-Type")==="report/text")
 					{
@@ -519,7 +477,6 @@ for the JavaScript code in this page.
 						status_box.style.color=!this.responseText.includes('Success')?'red':'green';
 					}
 					break;
-					*/
 			}
 			data_req=false;
 		}
@@ -536,15 +493,17 @@ for the JavaScript code in this page.
 	};
 	function CAN_if_selector(sel)
 	{
-		var main_menu=document.getElementById("main_menu");
+		document.getElementById("NOX").value="";
+		document.getElementById("Heater_mode").value="";
+		document.getElementById("O2").value="";
+		document.getElementById("power_off").value="";
+		document.getElementById("Heater_error").value="";
+		document.getElementById("NOx_error").value="";
+		document.getElementById("O2_error").value="";
 		if(sel.selectedIndex)
-		{
 			request_mode=mode_enum.NOX_contents;
-		}
 		else
-		{
 			request_mode=mode_enum.NOX_CAN_if;
-		}
 	}
 
 	//request names of available logstats
