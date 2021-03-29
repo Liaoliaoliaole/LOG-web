@@ -51,7 +51,7 @@ td.bold{
 		<td><button type="button" onclick='PopupCenter("/morfeas_MDAQ_web_if/MDAQsPortal.html"+"?q="+makeid(),"","1024","768")' disabled>MDAQs<br>Portal</td>
 		<td><button type="button" onclick='PopupCenter("/morfeas_IOBOX_web_if/IOBOXsPortal.html"+"?q="+makeid(),"","1024","768")' disabled>IOBOXs<br>Portal</td>
 		<td><button type="button" onclick='PopupCenter("/morfeas_MTI_web_if/MTIsPortal.html"+"?q="+makeid(),"","1024","768")'>MTIs<br>Portal</td>
-		<td><button type="button" onclick='PopupCenter("/morfeas_NOX_web_if/NOXsPortal.html"+"?q="+makeid(),"","1024","768")' disabled>NOXs<br>Portal</td>
+		<td><button type="button" onclick='PopupCenter("/morfeas_NOX_web_if/NOXsPortal.html"+"?q="+makeid(),"","1024","768")'>NOXs<br>Portal</td>
 		<td><button type="button" onclick='PopupCenter("/morfeas_CPAD_web_if/CPADsPortal.html"+"?q="+makeid(),"","1024","768")' disabled>CPADs<br>Portal</td>
 	  </tr>
 	  <tr>

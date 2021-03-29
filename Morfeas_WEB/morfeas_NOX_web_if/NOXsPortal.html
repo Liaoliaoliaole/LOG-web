@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
+<link rel="stylesheet" href="../External_components/dygraph/dygraph.css">
+<style type="text/css">
+table, th, td{
+	vertical-align:bottom;
+}
+input{
+	text-align:center;
+}
+.dygraph-legend {
+	background-color: rgba(200, 200, 255, 0.75) !important;
+	padding: 4px;
+	border: 1px solid #000;
+	border-radius: 10px;
+	box-shadow: 4px 4px 4px #888;
+	pointer-events: none;
+	width: 100px;
+}
+</style>
+</head>
+<body>
+<table style="width:100%;text-align:left;overflow-x:auto;">
+	<tr>
+		<td>
+			CAN-if:
+			<select onchange="Sensor_select(this)"></select>
+		</td>
+		<td>
+			UniNOx Addr:
+			<select onchange="Sensor_select(this)">
+			  <option value="0"selected>No logging</option>
+			  <option value="Sensor1">#1</option>
+			  <option value="Sensor2">#2</option>
+			</select>
+		</td>
+		<td>Graph Controls:</td>
+		<td><button id="play_pause_button" type="button" onclick="play_pause();">Pause</td>
+		<td><button type="button" onclick="init_graph();">Clear</td>
+		<td><input id="Zoom_Stats_check" type="checkbox" onchange="button_event(this);">Show statistics on zoom</td>
+		<td><button name="DWL_buttons"style="display:none;"onclick="download_csv()">Download CSV</button></td>
+		<td><button name="DWL_buttons"style="display:none;"onclick="download_PDF()">Download PDF</button></td>
+	</tr>
+</table>
+<div id="div_pdf">
+	<div id="div_g" style="width:100%; height:67%;"></div>
+	<table id="Stats"style="width:100%;text-align:center;display:none;overflow-x:auto;">
+	  <tr>
+		<th colspan="6">Current Zoom's Statistics</th>
+	  </tr>
+	  <tr style="color:green;">
+		<td>NOx Average:<br><input name="NOx_stat"readonly></td>
+		<td>NOx Max:<br><input name="NOx_stat"readonly></td>
+		<td>NOx Min:<br><input name="NOx_stat"readonly></td>
+		<td>NOx Peak-Peak<br><input name="NOx_stat"readonly></td>
+	  </tr>
+	  <tr style="color:blue;">
+		<td>O2 Average:<br><input name="O2_stat"readonly></td>
+		<td>O2 Max:<br><input name="O2_stat"readonly></td>
+		<td>O2 Min:<br><input name="O2_stat"readonly></td>
+		<td>O2 Peak-Peak<br><input name="O2_stat"readonly></td>
+	  </tr>
+	</table>
+</div>
+<table id="Current_data"style="width:100%;text-align:center;">
+  <tr>
+    <th colspan="6">Current Sensor's Data</th>
+  </tr>
+  <tr>
+    <td style="color: green;">NOx value:<br><input id="NOX"readonly></td>
+	<td>Power supply status:<br><input id="Supply_status"readonly></td>
+	<td>Heater temperature status:<br><input id="Heater_status"readonly></td>
+	<td>NOx Valid:<br><input id="NOX_valid"readonly></td>
+	<td>O2 Valid:<br><input id="O2_valid"readonly></td>
+	<td>Heater Mode:<br><input id="Heater_mode"readonly></td>
+  </tr>
+  <tr>
+    <td style="color: blue;">O2 value:<br><input id="O2"readonly></td>
+	<td>Heater Error:<br><input id="Heater_error"readonly></td>
+	<td>NOx Error:<br><input id="NOx_error"readonly></td>
+	<td>O2 Error:<br><input id="O2_error"readonly></td>
+	<td><button type="button" onclick="Heater_code=1;">Heater ON</td>
+	<td><button type="button" onclick="Heater_code=2;">Heater OFF</td>
+  </tr>
+  <tr>
+	<td style="width:100%;text-align:left;"colspan="6"><br>Last Status:  <input id="status_tab"size="42"style="text-align:left;"readonly value="No logger selected"></td>
+  </tr>
+</table>
+<footer style="bottom:0;width:99%;">
+	<p>Author: Sam Harry Tzavaras &#169; 12019-12021<br>
+	<a href="../LICENSE">License: AGPLv3</a><br>
+</footer>
+</body>
+<script src="../External_components/dygraph/dygraph.js"></script>
+<script src="../External_components/html2canvas/build/html2canvas.js"></script>
+<script src='../External_components/pdfmake/build/pdfmake.js'></script>
+<script src='../External_components/pdfmake/build/vfs_fonts.js'></script>
+<script>
+//@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this page.
+
+Copyright (C) 12021-12022  Sam Harry Tzavaras
+
+The JavaScript code in this page is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU AGPL) as published by the Free Software
+Foundation, either version 3 of the License, or any later version.
+The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+@licend  The above is the entire license notice
+for the JavaScript code in this page.
+*/
+	const Heater_code_enum = Object.freeze({"Notset":0, "ON":1, "OFF":2}),Buffer_size=3600/0.1; //roughly 1hr on buffer
+	var csv; //export csv file
+	var pre_stamp=-1,x,y1,y2,graph;
+	var data = []; //rolling data buffer
+	var Heater_code=Heater_code_enum.Notset;
+	var wsUri = "ws://"+window.location.hostname+":8080";
+	var Sensor_req;
+	var timer;
+	var websocket;
+	var pause_or_play=1; //1 for play, 0 for pause
+	var graph_options={
+		drawPoints: false,
+		showRoller: false,
+		digitsAfterDecimal : 3,
+		labels: ['Time', 'NOX(ppm)','O2(%)'],
+		series : {
+		  'O2(%)': {
+			axis: 'y2'
+		  }
+		},
+		title :"",
+		ylabel: "NOX(ppm)",
+		y2label: "O2 (%)",
+		legend: "never",
+		zoomCallback: function(minX, maxX, yRanges) {
+			var DWL_buttons = document.getElementsByName("DWL_buttons");
+			if(graph.isZoomed("x"))
+			{
+				stats_calc(data,minX,maxX);
+				DWL_buttons.forEach(function (item){item.style.display=""});
+				if(document.getElementById("Zoom_Stats_check").checked)
+				{
+					document.getElementById("Current_data").style.display="none";
+					document.getElementById("Stats").style.display="";
+				}
+				pause_or_play=1; // simulate
+			}
+			else
+			{
+				DWL_buttons.forEach(function (item){item.style.display="none"});
+				document.getElementById("Stats").style.display="none";
+				document.getElementById("Current_data").style.display="";
+				document.getElementById("play_pause_button").innerHTML="Pause";
+				graph.updateOptions( { "legend": "never" } );
+				pause_or_play=0;
+			}
+			play_pause();
+		  },
+	};
+	function init_graph()
+	{
+		data=[];
+		x = new Date();  // current time
+		y1=NaN;
+		y2=NaN;
+		data.push([x, y1, y2]);
+		if(graph != null)
+			graph.destroy();
+		graph = new Dygraph(document.getElementById("div_g"), data, graph_options);
+	}
+
+	function play_pause()
+	{
+		switch(pause_or_play)
+		{
+			case 0: //case for play pressed
+					document.getElementById("play_pause_button").innerHTML="Pause";
+					graph.resetZoom();
+					pause_or_play=1;
+					graph.updateOptions( { "legend": "never" } );
+					break;
+			case 1: //case for pause pressed
+					document.getElementById("play_pause_button").innerHTML="Play";
+					pause_or_play=0;
+					graph.updateOptions( { "legend": "follow" } );
+					break;
+		}
+	}
+
+	function init_websocket()
+	{
+		websocket = new WebSocket(wsUri);
+		websocket.onopen = function(evt) { onOpen(evt) };
+		websocket.onclose = function(evt) { onClose(evt) };
+		websocket.onmessage = function(evt) { onMessage(evt) };
+		websocket.onerror = function(evt) { onError(evt) };
+	}
+
+	function onOpen(evt)
+	{
+		//writeToScreen("CONNECTED");
+		document.getElementById("status_tab").value = "Opening Session!!!";
+		init_graph();
+		timer = setTimeout(function(){timer=setInterval(function(){doSend(Sensor_req);},100)}, 1000);
+	}
+
+
+	function onClose(evt)
+	{
+		clearInterval(timer);
+		document.getElementById("status_tab").value = evt.reason;
+	}
+
+	function onMessage(evt)
+	{
+		if(evt.data.search("Data:")>=0)
+		{
+			var msg = evt.data.split(" ");
+			if(msg.length===13)
+			{
+				if(pre_stamp!=msg[1])
+				{
+					fill_data(msg);
+					pre_stamp=msg[1];
+					if(!(isNaN(msg[3])&&isNaN(msg[4])))
+					{
+						if(data.length>=Buffer_size) // rolling buffer
+							data.shift();
+						x = new Date();  // current time
+						y1 = parseFloat(msg[3]);
+						y2 = parseFloat(msg[4]);
+						data.push([x, y1, y2]);
+						if(pause_or_play)
+							graph.updateOptions( { 'file': data } );
+					}
+					document.getElementById("status_tab").value = "";
+				}
+				else
+					document.getElementById("status_tab").value = 'ERROR: Sensor not responding';
+			}
+		}
+		else if(evt.data.search("Info:")>=0)
+		{
+			document.getElementById("status_tab").value = evt.data;
+		}
+	}
+
+	function onError(evt)
+	{
+		document.getElementById("status_tab").value = 'ERROR:' + evt.reason;
+	}
+
+	function doSend(message)
+	{
+		if(websocket.readyState===WebSocket.OPEN)
+			switch(Heater_code)
+			{
+				case Heater_code_enum.ON: websocket.send("Heater=ON"); break;
+				case Heater_code_enum.OFF: websocket.send("Heater=OFF");break;
+				default: websocket.send(message);
+			}
+			Heater_code = Heater_code_enum.Notset;
+	}
+
+	function Sensor_select(item)
+	{
+		selected=item.options[item.selectedIndex].value;
+		if(selected !== "0")
+		{
+			Sensor_req=selected;
+			graph_options.title="Graph for Sensor #" + item.selectedIndex;
+			init_graph();
+			if(websocket == null)
+				init_websocket();
+		}
+		else
+		{
+			websocket.close(1000,"Client: Connection closed");
+			websocket = null;
+
+		}
+	}
+
+	function fill_data(msg)
+	{
+		const Supply_status_denum=["Undervoltage","Ok!!!","Error","Not initialized"];
+		const Heater_status_denum=["Not at Temperature","Ok!!!","Error","Not initialized"];
+		const Valid_denum=["Not valid","Valid","Error","Not initialized"];
+		const Heater_mode_denum=["Auto","Slope 3->4","Slope 1->2","Pre-Heating","Heater is OFF"];
+		//Grab DOM input elements
+		var NOX = document.getElementById("NOX");
+		var Supply_status = document.getElementById("Supply_status");
+		var Heater_status = document.getElementById("Heater_status");
+		var NOX_valid = document.getElementById("NOX_valid");
+		var O2_valid = document.getElementById("O2_valid");
+		var Heater_mode = document.getElementById("Heater_mode");
+		var O2 = document.getElementById("O2");
+		var Heater_error = document.getElementById("Heater_error");
+		var NOx_error = document.getElementById("NOx_error");
+		var O2_error = document.getElementById("O2_error");
+
+		//load values from msg
+		NOX.value=msg[3]+" (ppm)";
+		O2.value=msg[4]+" (%)";
+		Supply_status.value=Supply_status_denum[msg[5]];
+		Heater_status.value=Heater_status_denum[msg[6]];
+		NOX_valid.value=Valid_denum[msg[7]];
+		O2_valid.value=Valid_denum[msg[8]];
+		if(msg[2]==0)
+			Heater_mode.value=Heater_mode_denum[4];
+		else
+			Heater_mode.value=Heater_mode_denum[msg[9]];
+		Heater_error.value = Error_decoder(msg[10]);
+		NOx_error.value = Error_decoder(msg[11]);
+		O2_error.value = Error_decoder(msg[12]);
+	}
+	function Error_decoder(error)
+	{
+		switch(error)
+		{
+			case "31": return "No Error"; break;
+			case "05": return "Open Wire"; break;
+			case "03": return "Short Wire"; break;
+			default : return "Unknown Error";
+		}
+	}
+
+	function button_event(item)
+	{
+		if(graph.isZoomed("x"))
+		{
+			if(item.checked)
+			{
+				document.getElementById("Current_data").style.display="none";
+				document.getElementById("Stats").style.display="";
+			}
+			else
+			{
+				document.getElementById("Current_data").style.display="";
+				document.getElementById("Stats").style.display="none";
+			}
+		}
+	}
+
+	function stats_calc(data_ist,minX,maxX)
+	{
+		var NOx_stat=document.getElementsByName("NOx_stat");
+		var O2_stat=document.getElementsByName("O2_stat");
+		var imin,NOx_min,NOx_max,NOx_acc=0,O2_min,O2_max,O2_acc=0;
+		//console.log(minX + ", " + maxX);
+		for(var i=0;(data_ist[i][0].getTime())<=minX;i++);
+		imin=i;
+		NOx_min=data_ist[i][1];
+		NOx_max=NOx_min;
+		O2_min=data_ist[i][2];
+		O2_max=O2_min;
+		csv = 'Timestamp,NOx(ppm),O2(%)\n'; //init csv
+		for(i++;(data_ist[i][0].getTime())<=maxX;i++)
+		{
+			NOx_acc+=data_ist[i][1];
+			O2_acc+=data_ist[i][2];
+			if(data_ist[i][1]>NOx_max)
+				NOx_max=data_ist[i][1];
+			if(data_ist[i][1]<NOx_min)
+				NOx_min=data_ist[i][1];
+			if(data_ist[i][2]>O2_max)
+				O2_max=data_ist[i][2];
+			if(data_ist[i][2]<O2_min)
+				O2_min=data_ist[i][2];
+			csv += data_ist[i].join(',') + "\n"; //load zoom data to csv export obj
+		}
+		NOx_stat[0].value=(Math.round((NOx_acc/(i-imin))*1000)/1000) + " (ppm)";
+		NOx_stat[1].value=NOx_max + " (ppm)";
+		NOx_stat[2].value=NOx_min + " (ppm)";
+		NOx_stat[3].value=(Math.round((NOx_max-NOx_min)*1000)/1000) + " (ppm)";
+
+		O2_stat[0].value=(Math.round((O2_acc/(i-imin))*1000)/1000) + " (%)";
+		O2_stat[1].value=O2_max + " (%)";
+		O2_stat[2].value=O2_min + " (%)";
+		O2_stat[3].value=(Math.round((O2_max-O2_min)*1000))/1000 + " (%)";
+	}
+
+	function download_csv()
+	{
+		var hiddenElement = document.createElement('a');
+		hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
+		hiddenElement.target = '_blank';
+		hiddenElement.download = "Export.csv";
+		hiddenElement.click();
+	}
+
+	function download_PDF()
+	{
+		var docDefinition;
+		var pic;
+		var filename = "NOx_Sensor_" + Sensor_req +"_graph";
+		if(!document.getElementById("Zoom_Stats_check").checked)
+		{
+			document.getElementById("Current_data").style.display="none";
+			document.getElementById("Stats").style.display="";
+			console.log("in");
+		}
+		if (filename != null && filename.indexOf('.') == -1)
+			html2canvas(document.getElementById('div_pdf')).then(function (canvas)
+			{
+				pic = canvas.toDataURL();
+				docDefinition = {
+					pageSize: 'A4',
+					pageOrientation: 'landscape',
+					pageMargins: [ 40, 60, 40, 60 ],
+					content: [{
+						image: pic,
+						width: 600,
+						alignment: 'center'
+					}]
+				};
+				pdfMake.createPdf(docDefinition).download(filename+'.pdf');
+			});
+		if(!document.getElementById("Zoom_Stats_check").checked)
+			setTimeout(function()
+			{
+
+				document.getElementById("Current_data").style.display="";
+				document.getElementById("Stats").style.display="none";
+			}, 50);
+	}
+	window.onload=init_graph();
+//@license-end
+</script>
+</html>
