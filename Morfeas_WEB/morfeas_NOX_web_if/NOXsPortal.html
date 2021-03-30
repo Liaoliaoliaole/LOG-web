@@ -6,6 +6,7 @@
 <meta http-equiv="Expires" content="0"/>
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
 <link rel="stylesheet" href="../External_components/dygraphs/dist/dygraph.css">
+<title>Morfeas NOXs Portal</title>
 <style type="text/css">
 table, th, td{
 	vertical-align:bottom;
@@ -59,7 +60,7 @@ input{
 	</tr>
 </table>
 <div id="div_pdf">
-	<div id="div_g" style="width:100%; height:67%;display:none;"></div>
+	<div id="div_g" style="width:100%; height:60%;display:none;"></div>
 	<table id="Stats"style="width:100%;text-align:center;display:none;overflow-x:auto;">
 	  <tr>
 		<th colspan="6">Current Zoom's Statistics</th>
@@ -83,11 +84,17 @@ input{
     <th colspan="4">UniNOx's Data</th>
   </tr>
   <tr>
-    <td style="color: green;">NOx Avg(PPM):<br><input id="NOX"readonly></td>
+	<td>Port Voltage(V):<br><input id="volts"readonly></td>
+	<td>Port Current(A):<br><input id="amps"readonly></td>
+	<td>Shunt Temp(°C):<br><input id="shunt"readonly></td>
+	<td>Port Utilization(%):<br><input id="util"readonly></td>
+  </tr>
+  <tr>
+	<td style="color: green;">NOx Avg(PPM):<br><input id="NOX"readonly></td>
 	<td style="color: blue;">O2 Avg(%):<br><input id="O2"readonly></td>
 	<td>Heater Mode:<br><input id="Heater_mode"readonly></td>
-	<td><div id="power_off_tl">Auto PowerOFF (sec):</div>
-		<input type="number" min=0 max=65535 id="power_off" onchange="numb_val(this);" readonly>
+	<td><div id="power_off_tl">PowerOFF (sec):</div>
+		<input type="number" min=0 max=65535 size=12 id="power_off" onchange="numb_val(this);" readonly>
 		<button type="button" id="set_button" onclick="post_auto_SWOFF_config();">Set
 	</td>
   </tr>
@@ -97,14 +104,14 @@ input{
 	<td>NOx Error:<br><input id="NOx_error"readonly></td>
 	<td>O2 Error:<br><input id="O2_error"readonly></td>
 	<td>
-		<b>Heater:  </b>
+		<b>Heater:</b>
 		<button type="button" onclick="post_heater(1);">ON
 		<button type="button" onclick="post_heater(0);">OFF
 	</td>
   </tr>
 </table>
 <div>
-	<br>Last Status:  <input id="status_tab"size="42"style="text-align:left;"readonly>
+	<br>Last Status:<input id="status_tab"size="42"style="text-align:left;"readonly>
 </div>
 <footer style="bottom:0;width:99%;">
 	<p>Author: Sam Harry Tzavaras &#169; 12021-12022<br>
@@ -188,6 +195,10 @@ function clean_up()
 	document.getElementById("Heater_error").value="";
 	document.getElementById("NOx_error").value="";
 	document.getElementById("O2_error").value="";
+	document.getElementById("volts").value="";
+	document.getElementById("amps").value="";
+	document.getElementById("shunt").value="";
+	document.getElementById("util").value="";
 	fill_data.auto_poff_value = -1;
 }
 function numb_val(elem)
@@ -217,8 +228,26 @@ function fill_data(data)
 	set_button = document.getElementById("set_button"),
 	power_off_tl = document.getElementById("power_off_tl"),
 	status_tab = document.getElementById("status_tab"),
-	can_if = document.getElementById("NOX_CAN_if");
+	can_if = document.getElementById("NOX_CAN_if"),
+	volts = document.getElementById("volts")
+	amps = document.getElementById("amps")
+	shunt = document.getElementById("shunt")
+	util = document.getElementById("util")
 
+	if(data.Electrics)
+	{
+		volts.value = data.Electrics.BUS_voltage.toFixed(1);
+		amps.value = data.Electrics.BUS_amperage.toFixed(2);
+		shunt.value = data.Electrics.BUS_Shunt_Res_temp.toFixed(1);
+		util.value = data.BUS_Utilization.toFixed(2);
+	}
+	else
+	{
+		volts.style.display = 'none';
+		amps.style.display = 'none';
+		shunt.style.display = 'none';
+		util.style.display = 'none';
+	}
 	if(!Object.entries(data.NOx_sensors[sel_addr]).length)
 	{
 		clean_up();
@@ -245,7 +274,7 @@ function fill_data(data)
 			set_button.style.visibility="hidden";
 		}
 		auto_poff.readOnly = false;
-		power_off_tl.innerHTML = "Auto PowerOFF value (sec):";
+		power_off_tl.innerHTML = "PowerOFF(sec):";
 	}
 	else
 	{
@@ -253,7 +282,7 @@ function fill_data(data)
 		set_button.style.visibility="hidden";
 		auto_poff.value = data.Auto_SW_OFF_value-data.Auto_SW_OFF_cnt;
 		fill_data.auto_poff_value = -1;
-		power_off_tl.innerHTML = "Auto PowerOFF CNT (sec):";
+		power_off_tl.innerHTML = "PowerOFF_CNT(sec):";
 		if(data.NOx_sensors[sel_addr].status.is_NOx_value_valid && data.NOx_sensors[sel_addr].NOx_value_avg)
 			NOX.value = data.NOx_sensors[sel_addr].NOx_value_avg.toFixed(3);
 		else

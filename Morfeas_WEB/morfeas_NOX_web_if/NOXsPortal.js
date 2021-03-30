@@ -82,31 +82,21 @@ function init_graph()
 		graph.destroy();
 	graph = new Dygraph(document.getElementById("div_g"), data, graph_options);
 }
-/*
 function init_websocket()
 {
 	if(!wsUri)
 		return;
 	websocket = new WebSocket(wsUri);
-	websocket.onopen = function(evt) { onOpen(evt) };
-	websocket.onclose = function(evt) { onClose(evt) };
-	websocket.onmessage = function(evt) { onMessage(evt) };
-	websocket.onerror = function(evt) { onError(evt) };
+	websocket.onopen = function(evt){onOpen(evt)};
+	websocket.onclose = function(evt){ws_info(evt)};
+	websocket.onmessage = function(evt){onMessage(evt)};
+	websocket.onerror = function(evt){ws_info(evt)};
 }
-function onOpen(evt)
-{
-	//writeToScreen("CONNECTED");
-	document.getElementById("status_tab").value = "Opening Session!!!";
-	init_graph();
-	timer = setTimeout(function(){timer=setInterval(function(){doSend(Sensor_req);},100)}, 1000);
-}
-function onClose(evt)
-{
-	clearInterval(timer);
-	document.getElementById("status_tab").value = evt.reason;
-}
+function onOpen(evt){init_graph();}
 function onMessage(evt)
 {
+	console.log(evt);
+	/*
 	if(evt.data.search("Data:")>=0)
 	{
 		var msg = evt.data.split(" ");
@@ -137,11 +127,14 @@ function onMessage(evt)
 	{
 		document.getElementById("status_tab").value = evt.data;
 	}
+	*/
 }
-function onError(evt)
+function ws_info(evt)
 {
-	document.getElementById("status_tab").value = 'WS_error:' + evt.reason;
+	document.getElementById("status_tab").value = 'WS_info:' + evt.reason;
+	console.log('WS_error:' + evt.reason);
 }
+/*
 function doSend(message)
 {
 	if(websocket.readyState===WebSocket.OPEN)
