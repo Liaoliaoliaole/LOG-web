@@ -33,48 +33,58 @@ input{
 				<option value='0'>None</option>
 			</select>
 		</td>
-		<td>
+		<td name="g_ctrl" style="display:none;">
 			UniNOx Addr:
 			<select id="sel_addr" onchange="Addr_select(this)">
 			  <option value="0">0</option>
 			  <option value="1">1</option>
 			</select>
 		</td>
-		<td>Graph Controls:</td>
-		<td><button id="play_pause_button" type="button" onclick="play_pause();">Pause</td>
-		<td><button type="button" onclick="init_graph();">Clear</td>
-		<td><input id="Zoom_Stats_check" type="checkbox" onchange="button_event(this);">Show statistics on zoom</td>
-		<td><button name="DWL_buttons"style="display:none;"onclick="download_csv()">Download CSV</button></td>
-		<td><button name="DWL_buttons"style="display:none;"onclick="download_PDF()">Download PDF</button></td>
+		<td name="g_ctrl" style="display:none;">Graph Controls:</td>
+		<td name="g_ctrl" style="display:none;">
+			<button id="play_pause_button" type="button" onclick="play_pause();">Pause</button>
+		</td>
+		<td name="g_ctrl" style="display:none;">
+			<button type="button" onclick="init_graph();">Clear</button>
+		</td>
+		<td name="g_ctrl" style="display:none;">
+			<input id="Zoom_Stats_check" type="checkbox" onchange="button_event(this);">Show statistics on zoom</input>
+		</td>
+		<td name="g_ctrl" style="display:none;">
+			<button name="DWL_buttons"style="display:none;"onclick="download_csv()">Download CSV</button>
+		</td>
+		<td name="g_ctrl" style="display:none;">
+			<button name="DWL_buttons"style="display:none;"onclick="download_PDF()">Download PDF</button>
+		</td>
 	</tr>
 </table>
 <div id="div_pdf">
-	<div id="div_g" style="width:100%; height:67%;"></div>
+	<div id="div_g" style="width:100%; height:67%;display:none;"></div>
 	<table id="Stats"style="width:100%;text-align:center;display:none;overflow-x:auto;">
 	  <tr>
 		<th colspan="6">Current Zoom's Statistics</th>
 	  </tr>
 	  <tr style="color:green;">
-		<td>NOx Average:<br><input name="NOx_stat"readonly></td>
+		<td>NOx Avg(ppm):<br><input name="NOx_stat"readonly></td>
 		<td>NOx Max:<br><input name="NOx_stat"readonly></td>
 		<td>NOx Min:<br><input name="NOx_stat"readonly></td>
 		<td>NOx Peak-Peak<br><input name="NOx_stat"readonly></td>
 	  </tr>
 	  <tr style="color:blue;">
-		<td>O2 Average:<br><input name="O2_stat"readonly></td>
+		<td>O2 Avg(%):<br><input name="O2_stat"readonly></td>
 		<td>O2 Max:<br><input name="O2_stat"readonly></td>
 		<td>O2 Min:<br><input name="O2_stat"readonly></td>
 		<td>O2 Peak-Peak<br><input name="O2_stat"readonly></td>
 	  </tr>
 	</table>
 </div>
-<table id="Current_data"style="width:100%;text-align:center;">
+<table id="Current_data"style="width:100%;text-align:center;display:none;">
   <tr>
     <th colspan="4">UniNOx's Data</th>
   </tr>
   <tr>
-    <td style="color: green;">NOx average:<br><input id="NOX"readonly></td>
-	<td style="color: blue;">O2 average:<br><input id="O2"readonly></td>
+    <td style="color: green;">NOx Avg(PPM):<br><input id="NOX"readonly></td>
+	<td style="color: blue;">O2 Avg(%):<br><input id="O2"readonly></td>
 	<td>Heater Mode:<br><input id="Heater_mode"readonly></td>
 	<td><div id="power_off_tl">Auto PowerOFF (sec):</div>
 		<input type="number" min=0 max=65535 id="power_off" onchange="numb_val(this);" readonly>
@@ -92,10 +102,10 @@ input{
 		<button type="button" onclick="post_heater(0);">OFF
 	</td>
   </tr>
-  <tr>
-	<td style="width:100%;text-align:left;"colspan="6"><br>Last Status:  <input id="status_tab"size="42"style="text-align:left;"readonly value="No logger selected"></td>
-  </tr>
 </table>
+<div>
+	<br>Last Status:  <input id="status_tab"size="42"style="text-align:left;"readonly>
+</div>
 <footer style="bottom:0;width:99%;">
 	<p>Author: Sam Harry Tzavaras &#169; 12021-12022<br>
 	<a href="../LICENSE">License: AGPLv3</a><br>
@@ -139,7 +149,30 @@ var mode_enum = {
 };
 document.getElementById("sel_addr").selectedIndex = 0;
 var data_req=false, request_mode = mode_enum.NOX_CAN_if;
-
+function NOx_disp(state)
+{
+	document.getElementById("div_g").style.display = state ? 'inherit':'none';
+	document.getElementById("Current_data").style.display = state ? 'table':'none';
+	let hidden = document.getElementsByName("g_ctrl");
+	for(let i=0; i<hidden.length; i++)
+		hidden[i].style.display = state ? 'table-cell':'none';
+}
+function CAN_if_selector(sel)
+{
+	clean_up();
+	status_tab = document.getElementById("status_tab");
+	if(sel.selectedIndex)
+	{
+		request_mode=mode_enum.NOX_contents;
+		status_tab.value = "CAN-if:"+sel.value+" selected";
+	}
+	else
+	{
+		status_tab.style.color='black';
+		status_tab.value="Select CAN-if";
+		NOx_disp(false);
+	}
+}
 function Addr_select(item)
 {
 	clean_up();
@@ -191,12 +224,15 @@ function fill_data(data)
 		clean_up();
 		status_tab.style.color='red';
 		status_tab.value = "UniNOx with addr:"+sel_addr+" does not found!!!";
+		NOx_disp(false);
 		return;
 	}
 	else
 	{
 		status_tab.style.color='black';
 		status_tab.value = "Data from "+can_if.value.toUpperCase()+"@UniNOx:"+sel_addr;
+		NOx_disp(true);
+		init_graph();
 	}
 	if(!data.NOx_sensors[sel_addr].status.meas_state)
 	{
@@ -219,11 +255,11 @@ function fill_data(data)
 		fill_data.auto_poff_value = -1;
 		power_off_tl.innerHTML = "Auto PowerOFF CNT (sec):";
 		if(data.NOx_sensors[sel_addr].status.is_NOx_value_valid && data.NOx_sensors[sel_addr].NOx_value_avg)
-			NOX.value = data.NOx_sensors[sel_addr].NOx_value_avg.toFixed(3)+" (ppm)";
+			NOX.value = data.NOx_sensors[sel_addr].NOx_value_avg.toFixed(3);
 		else
 			NOX.value = "Not Valid";
 		if(data.NOx_sensors[sel_addr].status.is_O2_value_valid && data.NOx_sensors[sel_addr].O2_value_avg)
-			O2.value = data.NOx_sensors[sel_addr].O2_value_avg.toFixed(3)+" (%)";
+			O2.value = data.NOx_sensors[sel_addr].O2_value_avg.toFixed(3);
 		else
 			O2.value = "Not Valid";
 	}
@@ -283,6 +319,8 @@ xhttp.onreadystatechange = function()
 						break;
 					}
 					fill_data(NOX_data);
+					if(NOX_data.ws_port && !wsUri)
+						wsUri = "ws://"+window.location.hostname+':'+NOX_data.ws_port;
 				}
 				else if(this.getResponseHeader("Content-Type")==="report/text")
 				{
@@ -304,19 +342,6 @@ xhttp.ontimeout = function(){
   document.getElementById("status_tab").style.color='blue';
   data_req=false;
 };
-function CAN_if_selector(sel)
-{
-	clean_up();
-	status_tab = document.getElementById("status_tab");
-	if(sel.selectedIndex)
-	{
-		request_mode=mode_enum.NOX_contents;
-		status_tab.value = "CAN-if:"+sel.value+" selected";
-	}
-	else
-		status_tab.value="Select CAN-if";
-}
-
 //request names of available logstats
 xhttp.open("GET", "/morfeas_php/morfeas_web_if.php?COMMAND=logstats_names", true);
 xhttp.send();

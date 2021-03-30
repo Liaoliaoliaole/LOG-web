@@ -27,7 +27,7 @@ const Buffer_size=3600/0.05; //Roughly 1hr
 var csv; //export csv file
 var pre_stamp=-1,x,y1,y2,graph;
 var data = []; //rolling data buffer
-var wsUri = "ws://"+window.location.hostname+":8080";
+var wsUri;
 var websocket;
 var pause_or_play=1; //1 for play, 0 for pause
 var graph_options={
@@ -85,6 +85,8 @@ function init_graph()
 /*
 function init_websocket()
 {
+	if(!wsUri)
+		return;
 	websocket = new WebSocket(wsUri);
 	websocket.onopen = function(evt) { onOpen(evt) };
 	websocket.onclose = function(evt) { onClose(evt) };
@@ -219,17 +221,18 @@ function download_csv()
 
 function download_PDF()
 {
-	var docDefinition;
-	var pic;
-	var filename = "NOx_Sensor_" + Sensor_req +"_graph";
+	let docDefinition, pic,
+		NOX_CAN_if = document.getElementById("NOX_CAN_if"),
+		sel_addr = document.getElementById("sel_addr"),
+		div_pdf = document.getElementById('div_pdf');
+	var filename = "NOx_"+NOX_CAN_if+'_'+sel_addr+"_graph";
 	if(!document.getElementById("Zoom_Stats_check").checked)
 	{
 		document.getElementById("Current_data").style.display="none";
 		document.getElementById("Stats").style.display="";
-		console.log("in");
 	}
 	if (filename != null && filename.indexOf('.') == -1)
-		html2canvas(document.getElementById('div_pdf')).then(function (canvas)
+		html2canvas(div_pdf).then(function (canvas)
 		{
 			pic = canvas.toDataURL();
 			docDefinition = {
@@ -247,7 +250,6 @@ function download_PDF()
 	if(!document.getElementById("Zoom_Stats_check").checked)
 		setTimeout(function()
 		{
-
 			document.getElementById("Current_data").style.display="";
 			document.getElementById("Stats").style.display="none";
 		}, 50);
