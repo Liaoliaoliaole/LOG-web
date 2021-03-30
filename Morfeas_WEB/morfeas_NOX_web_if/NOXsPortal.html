@@ -76,9 +76,9 @@ input{
     <td style="color: green;">NOx average:<br><input id="NOX"readonly></td>
 	<td style="color: blue;">O2 average:<br><input id="O2"readonly></td>
 	<td>Heater Mode:<br><input id="Heater_mode"readonly></td>
-	<td id="power_off_tl">Auto PowerOFF (sec):<br>
-		<input id="power_off" readonly>
-		<button type="button" onclick="Heater_code=1;">Set
+	<td><div id="power_off_tl">Auto PowerOFF (sec):</div>
+		<input type="number" min=0 max=65535 id="power_off" onchange="numb_val(this);" readonly>
+		<button type="button" id="set_button" onclick="post_auto_SWOFF_config();">Set
 	</td>
   </tr>
   <tr>
@@ -88,8 +88,8 @@ input{
 	<td>O2 Error:<br><input id="O2_error"readonly></td>
 	<td>
 		<b>Heater:  </b>
-		<button type="button" onclick="Heater_code=1;">ON
-		<button type="button" onclick="Heater_code=2;">OFF
+		<button type="button" onclick="post_heater(1);">ON
+		<button type="button" onclick="post_heater(0);">OFF
 	</td>
   </tr>
   <tr>
@@ -106,6 +106,7 @@ input{
 <script src='../External_components/pdfmake/build/pdfmake.js'></script>
 <script src='../External_components/pdfmake/build/vfs_fonts.js'></script>
 <script src='../morfeas_ecma/common.js'></script>
+<script src='./NOXsPortal.js'></script>
 <script>
 //@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
 /*
@@ -131,400 +132,238 @@ through which recipients can access the Corresponding Source.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-	"use strict";
-	var mode_enum = {
-		NOX_CAN_if: 0,
-		NOX_contents: 1
-	};
-	document.getElementById("sel_addr").selectedIndex = 0;
-	var data_req=false, request_mode = mode_enum.NOX_CAN_if;
-	const Heater_code_enum = Object.freeze({"Notset":0, "ON":1, "OFF":2}),Buffer_size=3600/0.05; //roughly 1hr on buffer
-	var csv; //export csv file
-	var pre_stamp=-1,x,y1,y2,graph;
-	var data = []; //rolling data buffer
-	var Heater_code=Heater_code_enum.Notset;
-	var wsUri = "ws://"+window.location.hostname+":8080";
-	var timer;
-	var websocket;
-	var pause_or_play=1; //1 for play, 0 for pause
-	var graph_options={
-		drawPoints: false,
-		showRoller: false,
-		digitsAfterDecimal : 3,
-		labels: ['Time', 'NOX(ppm)','O2(%)'],
-		series : {
-		  'O2(%)': {
-			axis: 'y2'
-		  }
-		},
-		title :"UniNOx:0",
-		ylabel: "NOX(ppm)",
-		y2label: "O2 (%)",
-		legend: "never",
-		zoomCallback: function(minX, maxX, yRanges) {
-			var DWL_buttons = document.getElementsByName("DWL_buttons");
-			if(graph.isZoomed("x"))
-			{
-				stats_calc(data,minX,maxX);
-				DWL_buttons.forEach(function (item){item.style.display=""});
-				if(document.getElementById("Zoom_Stats_check").checked)
-				{
-					document.getElementById("Current_data").style.display="none";
-					document.getElementById("Stats").style.display="";
-				}
-				pause_or_play=1; // simulate
-			}
-			else
-			{
-				DWL_buttons.forEach(function (item){item.style.display="none"});
-				document.getElementById("Stats").style.display="none";
-				document.getElementById("Current_data").style.display="";
-				document.getElementById("play_pause_button").innerHTML="Pause";
-				graph.updateOptions( { "legend": "never" } );
-				pause_or_play=0;
-			}
-			play_pause();
-		  },
-	};
-	function init_graph()
-	{
-		document.getElementById("NOX").value="";
-		document.getElementById("Heater_mode").value="";
-		document.getElementById("O2").value="";
-		document.getElementById("power_off").value="";
-		document.getElementById("Heater_error").value="";
-		document.getElementById("NOx_error").value="";
-		document.getElementById("O2_error").value="";
-		data=[];
-		x = new Date();  // current time
-		y1=NaN;
-		y2=NaN;
-		data.push([x, y1, y2]);
-		if(graph != null)
-			graph.destroy();
-		graph = new Dygraph(document.getElementById("div_g"), data, graph_options);
-	}
-	function play_pause()
-	{
-		switch(pause_or_play)
-		{
-			case 0: //case for play pressed
-					document.getElementById("play_pause_button").innerHTML="Pause";
-					graph.resetZoom();
-					pause_or_play=1;
-					graph.updateOptions( { "legend": "never" } );
-					break;
-			case 1: //case for pause pressed
-					document.getElementById("play_pause_button").innerHTML="Play";
-					pause_or_play=0;
-					graph.updateOptions( { "legend": "follow" } );
-					break;
-		}
-	}
-/*
-	function init_websocket()
-	{
-		websocket = new WebSocket(wsUri);
-		websocket.onopen = function(evt) { onOpen(evt) };
-		websocket.onclose = function(evt) { onClose(evt) };
-		websocket.onmessage = function(evt) { onMessage(evt) };
-		websocket.onerror = function(evt) { onError(evt) };
-	}
-	function onOpen(evt)
-	{
-		//writeToScreen("CONNECTED");
-		document.getElementById("status_tab").value = "Opening Session!!!";
-		init_graph();
-		timer = setTimeout(function(){timer=setInterval(function(){doSend(Sensor_req);},100)}, 1000);
-	}
-	function onClose(evt)
-	{
-		clearInterval(timer);
-		document.getElementById("status_tab").value = evt.reason;
-	}
-	function onMessage(evt)
-	{
-		if(evt.data.search("Data:")>=0)
-		{
-			var msg = evt.data.split(" ");
-			if(msg.length===13)
-			{
-				if(pre_stamp!=msg[1])
-				{
-					fill_data(msg);
-					pre_stamp=msg[1];
-					if(!(isNaN(msg[3])&&isNaN(msg[4])))
-					{
-						if(data.length>=Buffer_size) // rolling buffer
-							data.shift();
-						x = new Date();  // current time
-						y1 = parseFloat(msg[3]);
-						y2 = parseFloat(msg[4]);
-						data.push([x, y1, y2]);
-						if(pause_or_play)
-							graph.updateOptions( { 'file': data } );
-					}
-					document.getElementById("status_tab").value = "";
-				}
-				else
-					document.getElementById("status_tab").value = 'ERROR: Sensor not responding';
-			}
-		}
-		else if(evt.data.search("Info:")>=0)
-		{
-			document.getElementById("status_tab").value = evt.data;
-		}
-	}
-	function onError(evt)
-	{
-		document.getElementById("status_tab").value = 'ERROR:' + evt.reason;
-	}
-	function doSend(message)
-	{
-		if(websocket.readyState===WebSocket.OPEN)
-			switch(Heater_code)
-			{
-				case Heater_code_enum.ON: websocket.send("Heater=ON"); break;
-				case Heater_code_enum.OFF: websocket.send("Heater=OFF");break;
-				default: websocket.send(message);
-			}
-			Heater_code = Heater_code_enum.Notset;
-	}
-*/
-	function Addr_select(item)
-	{
-		graph_options.title="UniNOx:" + item.selectedIndex;
-		init_graph();
-	}
+"use strict";
+var mode_enum = {
+	NOX_CAN_if: 0,
+	NOX_contents: 1
+};
+document.getElementById("sel_addr").selectedIndex = 0;
+var data_req=false, request_mode = mode_enum.NOX_CAN_if;
 
-	function fill_data(data)
-	{
-		let sel_addr = document.getElementById("sel_addr").value;
-		//Grab DOM input elements
-		let NOX = document.getElementById("NOX"),
-		Heater_mode = document.getElementById("Heater_mode"),
-		O2 = document.getElementById("O2"),
-		Heater_error = document.getElementById("Heater_error"),
-		NOx_error = document.getElementById("NOx_error"),
-		O2_error = document.getElementById("O2_error"),
-		auto_poff = document.getElementById("power_off");
+function Addr_select(item)
+{
+	clean_up();
+	graph_options.title="UniNOx:" + item.selectedIndex;
+	init_graph();
+}
+function clean_up()
+{
+	document.getElementById("NOX").value="";
+	document.getElementById("Heater_mode").value="";
+	document.getElementById("O2").value="";
+	document.getElementById("power_off").value="";
+	document.getElementById("Heater_error").value="";
+	document.getElementById("NOx_error").value="";
+	document.getElementById("O2_error").value="";
+	fill_data.auto_poff_value = -1;
+}
+function numb_val(elem)
+{
+	let set_button = document.getElementById("set_button");
+	if(!elem)
+		return
+	if(!elem.value)
+		elem.value = fill_data.auto_poff_value;
+	set_button.style.visibility = elem.value!=fill_data.auto_poff_value?"visible":"hidden";
+	if(elem.valueAsNumber > elem.max)
+		elem.value = elem.max;
+	else if(elem.valueAsNumber < elem.min)
+		elem.value = elem.min;
+}
+function fill_data(data)
+{
+	let sel_addr = document.getElementById("sel_addr").value;
+	//Grab DOM input elements
+	let NOX = document.getElementById("NOX"),
+	Heater_mode = document.getElementById("Heater_mode"),
+	O2 = document.getElementById("O2"),
+	Heater_error = document.getElementById("Heater_error"),
+	NOx_error = document.getElementById("NOx_error"),
+	O2_error = document.getElementById("O2_error"),
+	auto_poff = document.getElementById("power_off"),
+	set_button = document.getElementById("set_button"),
+	power_off_tl = document.getElementById("power_off_tl"),
+	status_tab = document.getElementById("status_tab"),
+	can_if = document.getElementById("NOX_CAN_if");
 
-		if(!data.NOx_sensors[sel_addr].status.meas_state)
+	if(!Object.entries(data.NOx_sensors[sel_addr]).length)
+	{
+		clean_up();
+		status_tab.style.color='red';
+		status_tab.value = "UniNOx with addr:"+sel_addr+" does not found!!!";
+		return;
+	}
+	else
+	{
+		status_tab.style.color='black';
+		status_tab.value = "Data from "+can_if.value.toUpperCase()+"@UniNOx:"+sel_addr;
+	}
+	if(!data.NOx_sensors[sel_addr].status.meas_state)
+	{
+		NOX.value = "Not measuring";
+		O2.value = NOX.value;
+		if(fill_data.auto_poff_value != data.Auto_SW_OFF_value)
 		{
-			NOX.value = "Not measuring";
-			O2.value = NOX.value;
 			auto_poff.value = data.Auto_SW_OFF_value;
-			auto_poff.readOnly = false;
+			fill_data.auto_poff_value = data.Auto_SW_OFF_value;
+			set_button.style.visibility="hidden";
 		}
+		auto_poff.readOnly = false;
+		power_off_tl.innerHTML = "Auto PowerOFF value (sec):";
+	}
+	else
+	{
+		auto_poff.readOnly = true;
+		set_button.style.visibility="hidden";
+		auto_poff.value = data.Auto_SW_OFF_value-data.Auto_SW_OFF_cnt;
+		fill_data.auto_poff_value = -1;
+		power_off_tl.innerHTML = "Auto PowerOFF CNT (sec):";
+		if(data.NOx_sensors[sel_addr].status.is_NOx_value_valid && data.NOx_sensors[sel_addr].NOx_value_avg)
+			NOX.value = data.NOx_sensors[sel_addr].NOx_value_avg.toFixed(3)+" (ppm)";
 		else
-		{
-			auto_poff.readOnly = true;
-			auto_poff.value = data.Auto_SW_OFF_cnt;
-			if(data.NOx_sensors[sel_addr].status.is_NOx_value_valid && data.NOx_sensors[sel_addr].NOx_value_avg)
-				NOX.value = data.NOx_sensors[sel_addr].NOx_value_avg.toFixed(3)+" (ppm)";
-			else
-				NOX.value = "Not Valid";
-			if(data.NOx_sensors[sel_addr].status.is_O2_value_valid && data.NOx_sensors[sel_addr].O2_value_avg)
-				O2.value = data.NOx_sensors[sel_addr].O2_value_avg.toFixed(3)+" (%)";
-			else
-				O2.value = "Not Valid";
-		}
-		Heater_mode.value = data.NOx_sensors[sel_addr].status.heater_mode_state;
-		Heater_error.value = data.NOx_sensors[sel_addr].errors.heater;
-		NOx_error.value = data.NOx_sensors[sel_addr].errors.NOx;
-		O2_error.value = data.NOx_sensors[sel_addr].errors.O2;
+			NOX.value = "Not Valid";
+		if(data.NOx_sensors[sel_addr].status.is_O2_value_valid && data.NOx_sensors[sel_addr].O2_value_avg)
+			O2.value = data.NOx_sensors[sel_addr].O2_value_avg.toFixed(3)+" (%)";
+		else
+			O2.value = "Not Valid";
 	}
-
-	function button_event(item)
+	Heater_mode.value = data.NOx_sensors[sel_addr].status.heater_mode_state;
+	Heater_error.value = data.NOx_sensors[sel_addr].errors.heater;
+	NOx_error.value = data.NOx_sensors[sel_addr].errors.NOx;
+	O2_error.value = data.NOx_sensors[sel_addr].errors.O2;
+}
+function button_event(item)
+{
+	if(graph.isZoomed("x"))
 	{
-		if(graph.isZoomed("x"))
-		{
-			if(item.checked)
-			{
-				document.getElementById("Current_data").style.display="none";
-				document.getElementById("Stats").style.display="";
-			}
-			else
-			{
-				document.getElementById("Current_data").style.display="";
-				document.getElementById("Stats").style.display="none";
-			}
-		}
-	}
-
-	function stats_calc(data_ist,minX,maxX)
-	{
-		var NOx_stat=document.getElementsByName("NOx_stat");
-		var O2_stat=document.getElementsByName("O2_stat");
-		var imin,NOx_min,NOx_max,NOx_acc=0,O2_min,O2_max,O2_acc=0;
-		//console.log(minX + ", " + maxX);
-		for(var i=0;(data_ist[i][0].getTime())<=minX;i++);
-		imin=i;
-		NOx_min=data_ist[i][1];
-		NOx_max=NOx_min;
-		O2_min=data_ist[i][2];
-		O2_max=O2_min;
-		csv = 'Timestamp,NOx(ppm),O2(%)\n'; //init csv
-		for(i++;(data_ist[i][0].getTime())<=maxX;i++)
-		{
-			NOx_acc+=data_ist[i][1];
-			O2_acc+=data_ist[i][2];
-			if(data_ist[i][1]>NOx_max)
-				NOx_max=data_ist[i][1];
-			if(data_ist[i][1]<NOx_min)
-				NOx_min=data_ist[i][1];
-			if(data_ist[i][2]>O2_max)
-				O2_max=data_ist[i][2];
-			if(data_ist[i][2]<O2_min)
-				O2_min=data_ist[i][2];
-			csv += data_ist[i].join(',') + "\n"; //load zoom data to csv export obj
-		}
-		NOx_stat[0].value=(Math.round((NOx_acc/(i-imin))*1000)/1000) + " (ppm)";
-		NOx_stat[1].value=NOx_max + " (ppm)";
-		NOx_stat[2].value=NOx_min + " (ppm)";
-		NOx_stat[3].value=(Math.round((NOx_max-NOx_min)*1000)/1000) + " (ppm)";
-
-		O2_stat[0].value=(Math.round((O2_acc/(i-imin))*1000)/1000) + " (%)";
-		O2_stat[1].value=O2_max + " (%)";
-		O2_stat[2].value=O2_min + " (%)";
-		O2_stat[3].value=(Math.round((O2_max-O2_min)*1000))/1000 + " (%)";
-	}
-
-	function download_csv()
-	{
-		var hiddenElement = document.createElement('a');
-		hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
-		hiddenElement.target = '_blank';
-		hiddenElement.download = "Export.csv";
-		hiddenElement.click();
-	}
-
-	function download_PDF()
-	{
-		var docDefinition;
-		var pic;
-		var filename = "NOx_Sensor_" + Sensor_req +"_graph";
-		if(!document.getElementById("Zoom_Stats_check").checked)
+		if(item.checked)
 		{
 			document.getElementById("Current_data").style.display="none";
 			document.getElementById("Stats").style.display="";
-			console.log("in");
 		}
-		if (filename != null && filename.indexOf('.') == -1)
-			html2canvas(document.getElementById('div_pdf')).then(function (canvas)
-			{
-				pic = canvas.toDataURL();
-				docDefinition = {
-					pageSize: 'A4',
-					pageOrientation: 'landscape',
-					pageMargins: [ 40, 60, 40, 60 ],
-					content: [{
-						image: pic,
-						width: 600,
-						alignment: 'center'
-					}]
-				};
-				pdfMake.createPdf(docDefinition).download(filename+'.pdf');
-			});
-		if(!document.getElementById("Zoom_Stats_check").checked)
-			setTimeout(function()
-			{
-
-				document.getElementById("Current_data").style.display="";
-				document.getElementById("Stats").style.display="none";
-			}, 50);
-	}
-
-	//AJAX response handler
-	var xhttp = new XMLHttpRequest();
-	xhttp.timeout = 2000;
-	xhttp.onreadystatechange = function()
-	{
-		let status_box=document.getElementById("status_tab");
-		if (this.readyState == 4 && this.status == 200)
-		{
-			switch(request_mode)
-			{
-				case mode_enum.NOX_CAN_if:
-					var resp = JSON.parse(this.responseText);
-					var selector = document.getElementById("NOX_CAN_if");
-					for(var i=0; i<resp.logstats_names.length; i++)
-					{
-						if(resp.logstats_names[i].includes("NOX"))
-						{
-							var opt = document.createElement("option");
-							opt.text = resp.logstats_names[i].slice(13, resp.logstats_names[i].indexOf("."));
-							selector.add(opt);
-						}
-					}
-					break;
-				case mode_enum.NOX_contents:
-					if(this.getResponseHeader("Content-Type")==="application/json")
-					{
-						let NOX_data;
-						try{
-						  NOX_data = JSON.parse(this.responseText);
-						}
-						catch(e){
-							status_box.value = "Error: " + e.message;
-							break;
-						}
-						fill_data(NOX_data);
-					}
-					else if(this.getResponseHeader("Content-Type")==="report/text")
-					{
-						status_box.value=this.responseText;
-						status_box.style.color=!this.responseText.includes('Success')?'red':'green';
-					}
-					break;
-			}
-			data_req=false;
-		}
-		else if(this.status == 404)
-		{
-			status_box.value = "Error 404: Data Not found";
-			status_box.style.color='red';
-		}
-	};
-	xhttp.ontimeout = function(){
-	  document.getElementById("status_tab").value = "Connection to server: Timeout Error";
-	  document.getElementById("status_tab").style.color='blue';
-	  data_req=false;
-	};
-	function CAN_if_selector(sel)
-	{
-		document.getElementById("NOX").value="";
-		document.getElementById("Heater_mode").value="";
-		document.getElementById("O2").value="";
-		document.getElementById("power_off").value="";
-		document.getElementById("Heater_error").value="";
-		document.getElementById("NOx_error").value="";
-		document.getElementById("O2_error").value="";
-		if(sel.selectedIndex)
-			request_mode=mode_enum.NOX_contents;
 		else
-			request_mode=mode_enum.NOX_CAN_if;
-	}
-
-	//request names of available logstats
-	xhttp.open("GET", "/morfeas_php/morfeas_web_if.php?COMMAND=logstats_names", true);
-	xhttp.send();
-	//timer of getting data
-	setInterval(get_data_req, 1000);
-	function get_data_req()
-	{
-		if(!data_req)
 		{
-			var selector = document.getElementById("NOX_CAN_if");
-			if(selector.selectedIndex)
-			{
-				xhttp.open("GET", "/ramdisk/logstat_NOXs_"+selector.value+".json"+"?q="+makeid(), true);
-				xhttp.send();
-				data_req = true;
-			}
+			document.getElementById("Current_data").style.display="";
+			document.getElementById("Stats").style.display="none";
 		}
 	}
-	window.onload=init_graph();
+}
+//AJAX response handler
+var xhttp = new XMLHttpRequest();
+xhttp.timeout = 2000;
+xhttp.onreadystatechange = function()
+{
+	let status_tab=document.getElementById("status_tab");
+	if (this.readyState == 4 && this.status == 200)
+	{
+		switch(request_mode)
+		{
+			case mode_enum.NOX_CAN_if:
+				var resp = JSON.parse(this.responseText);
+				var selector = document.getElementById("NOX_CAN_if");
+				for(var i=0; i<resp.logstats_names.length; i++)
+				{
+					if(resp.logstats_names[i].includes("NOX"))
+					{
+						var opt = document.createElement("option");
+						opt.text = resp.logstats_names[i].slice(13, resp.logstats_names[i].indexOf("."));
+						selector.add(opt);
+					}
+				}
+				break;
+			case mode_enum.NOX_contents:
+				if(this.getResponseHeader("Content-Type")==="application/json")
+				{
+					let NOX_data;
+					try{
+					  NOX_data = JSON.parse(this.responseText);
+					}
+					catch(e){
+						status_tab.value = "Error: " + e.message;
+						break;
+					}
+					fill_data(NOX_data);
+				}
+				else if(this.getResponseHeader("Content-Type")==="report/text")
+				{
+					status_tab.value=this.responseText;
+					status_tab.style.color=!this.responseText.includes('Success')?'red':'green';
+				}
+				break;
+		}
+		data_req=false;
+	}
+	else if(this.status == 404)
+	{
+		status_tab.value = "Error 404: Data Not found";
+		status_tab.style.color='red';
+	}
+};
+xhttp.ontimeout = function(){
+  document.getElementById("status_tab").value = "Connection to server: Timeout Error";
+  document.getElementById("status_tab").style.color='blue';
+  data_req=false;
+};
+function CAN_if_selector(sel)
+{
+	clean_up();
+	status_tab = document.getElementById("status_tab");
+	if(sel.selectedIndex)
+	{
+		request_mode=mode_enum.NOX_contents;
+		status_tab.value = "CAN-if:"+sel.value+" selected";
+	}
+	else
+		status_tab.value="Select CAN-if";
+}
+
+//request names of available logstats
+xhttp.open("GET", "/morfeas_php/morfeas_web_if.php?COMMAND=logstats_names", true);
+xhttp.send();
+//timer of getting data
+setInterval(get_data_req, 1000);
+function get_data_req()
+{
+	if(!data_req)
+	{
+		var selector = document.getElementById("NOX_CAN_if");
+		if(selector.selectedIndex)
+		{
+			xhttp.open("GET", "/ramdisk/logstat_NOXs_"+selector.value+".json"+"?q="+makeid(), true);
+			xhttp.send();
+			data_req = true;
+		}
+	}
+}
+function post_heater(state)
+{
+	var dbus_proxy_arg={handler_type:"NOX"};
+	let addr = Number(document.getElementById("sel_addr").value),
+		can_if = document.getElementById("NOX_CAN_if");
+	if(!can_if.selectedIndex)
+		return;
+	dbus_proxy_arg.dev_name=can_if.value;
+	dbus_proxy_arg.method="NOX_heater";
+	dbus_proxy_arg.contents={NOx_address:addr,NOx_heater:(!!state)};
+	xhttp.open("POST", "/morfeas_php/morfeas_dbus_proxy.php", true);
+	xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	xhttp.send("arg="+compress(JSON.stringify(dbus_proxy_arg)));
+}
+function post_auto_SWOFF_config()
+{
+	var dbus_proxy_arg={handler_type:"NOX"};
+	let can_if = document.getElementById("NOX_CAN_if"),
+		value = Number(document.getElementById("power_off").value);
+	if(!can_if.selectedIndex)
+		return;
+	dbus_proxy_arg.dev_name=can_if.value;
+	dbus_proxy_arg.method="NOX_auto_sw_off";
+	dbus_proxy_arg.contents={NOx_auto_sw_off_value:value};
+	xhttp.open("POST", "/morfeas_php/morfeas_dbus_proxy.php", true);
+	xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	xhttp.send("arg="+compress(JSON.stringify(dbus_proxy_arg)));
+}
+window.onload=function(){clean_up(); init_graph(); document.getElementById("status_tab").value="Select CAN-if";}
 //@license-end
 </script>
 </html>
