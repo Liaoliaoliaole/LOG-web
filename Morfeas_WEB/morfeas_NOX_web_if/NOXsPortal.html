@@ -34,27 +34,27 @@ input{
 				<option value='0'>None</option>
 			</select>
 		</td>
-		<td name="g_ctrl" style="display:none;">
+		<td name="g_ctrl" style="visibility:hidden;">
 			UniNOx Addr:
 			<select id="sel_addr" onchange="Addr_select(this)">
 			  <option value="0">0</option>
 			  <option value="1">1</option>
 			</select>
 		</td>
-		<td name="g_ctrl" style="display:none;">Graph Controls:</td>
-		<td name="g_ctrl" style="display:none;">
+		<td name="g_ctrl" style="visibility:hidden;">Graph Controls:</td>
+		<td name="g_ctrl" style="visibility:hidden;">
 			<button id="play_pause_button" type="button" onclick="play_pause();">Pause</button>
 		</td>
-		<td name="g_ctrl" style="display:none;">
+		<td name="g_ctrl" style="visibility:hidden;">
 			<button type="button" onclick="init_graph();">Clear</button>
 		</td>
-		<td name="g_ctrl" style="display:none;">
+		<td name="g_ctrl" style="visibility:hidden;">
 			<input id="Zoom_Stats_check" type="checkbox" onchange="button_event(this);">Show statistics on zoom</input>
 		</td>
-		<td name="g_ctrl" style="display:none;">
+		<td name="g_ctrl" style="visibility:hidden;">
 			<button name="DWL_buttons"style="display:none;"onclick="download_csv()">Download CSV</button>
 		</td>
-		<td name="g_ctrl" style="display:none;">
+		<td name="g_ctrl" style="visibility:hidden;">
 			<button name="DWL_buttons"style="display:none;"onclick="download_PDF()">Download PDF</button>
 		</td>
 	</tr>
@@ -160,12 +160,17 @@ function NOx_disp(state)
 {
 	let stats_check_box = document.getElementById("Zoom_Stats_check").checked;
 	document.getElementById("div_g").style.display = state ? 'inherit':'none';
-	if(!graph || !(graph.isZoomed("x") && stats_check_box))	
+	if(!graph || !(graph.isZoomed("x") && stats_check_box))
 		document.getElementById("Current_data").style.display = state ? 'table':'none';
-	let hidden = document.getElementsByName("g_ctrl");
+	let hidden = document.getElementsByName("g_ctrl"),
+		selector = document.getElementById("NOX_CAN_if");
 	for(let i=0; i<hidden.length; i++)
-		hidden[i].style.display = state ? 'table-cell':'none';
-	NOx_disp.state = state;
+	{
+		if(!i && selector.selectedIndex)
+			hidden[i].style.visibility = "visible";
+		else
+			hidden[i].style.visibility = state?"visible":"hidden";
+	}
 }
 function CAN_if_selector(sel)
 {
@@ -174,7 +179,7 @@ function CAN_if_selector(sel)
 	if(sel.selectedIndex)
 	{
 		request_mode=mode_enum.NOX_contents;
-		status_tab.value = "CAN-if:"+sel.value+" selected";
+		status_tab.value = "CAN-if: "+sel.value.toUpperCase()+" selected";
 		if(NOx_if_ws && NOx_if_ws.readyState===NOx_if_ws.OPEN)
 			NOx_if_ws.close();
 	}
@@ -257,8 +262,9 @@ function fill_data(data)
 	{
 		clean_up();
 		status_tab.style.color='red';
-		status_tab.value = "UniNOx with addr:"+sel_addr+" does not found!!!";
+		status_tab.value = "UniNOx Addr:"+sel_addr+" Not found!!!";
 		NOx_disp(false);
+		fill_data.graph_state = false;
 		return;
 	}
 	else
