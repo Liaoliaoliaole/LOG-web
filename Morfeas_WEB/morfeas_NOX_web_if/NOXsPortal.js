@@ -23,14 +23,14 @@ through which recipients can access the Corresponding Source.
 for the JavaScript code in this page.
 */
 "use strict";
-const Buffer_size=3600/0.05; //Roughly 1hr
-var csv; //export csv file
-var pre_stamp=-1,x,y1,y2,graph;
-var data = []; //rolling data buffer
-var wsUri;
-var websocket;
-var pause_or_play=1; //1 for play, 0 for pause
-var graph_options={
+const Buffer_size=3600/0.1; //Roughly 1hr
+var x,y1,y2,graph,
+	ws_timer,
+	data_buff = [], //rolling data buffer
+	NOx_if_ws,
+	pause_or_play=1; //1 for play, 0 for pause
+
+var	graph_options = {
 	drawPoints: false,
 	showRoller: false,
 	digitsAfterDecimal : 3,
@@ -45,12 +45,13 @@ var graph_options={
 	y2label: "O2 (%)",
 	legend: "never",
 	zoomCallback: function(minX, maxX, yRanges) {
-		if(!data.length)
+
+		if(!data_buff.length || (minX >= maxX))
 			return;
 		var DWL_buttons = document.getElementsByName("DWL_buttons");
 		if(graph.isZoomed("x"))
 		{
-			stats_calc(data,minX,maxX);
+			stats_calc(data_buff, minX, maxX);
 			DWL_buttons.forEach(function (item){item.style.display=""});
 			if(document.getElementById("Zoom_Stats_check").checked)
 			{
@@ -73,80 +74,67 @@ var graph_options={
 };
 function init_graph()
 {
-	data=[];
+	data_buff=[];
 	x = new Date();  // current time
 	y1=NaN;
 	y2=NaN;
-	data.push([x, y1, y2]);
+	data_buff.push([x, y1, y2]);
 	if(graph != null)
 		graph.destroy();
-	graph = new Dygraph(document.getElementById("div_g"), data, graph_options);
+	graph = new Dygraph(document.getElementById("div_g"), data_buff, graph_options);
 }
-function init_websocket()
+function init_websocket(wsUri)
 {
 	if(!wsUri)
 		return;
-	websocket = new WebSocket(wsUri);
-	websocket.onopen = function(evt){onOpen(evt)};
-	websocket.onclose = function(evt){ws_info(evt)};
-	websocket.onmessage = function(evt){onMessage(evt)};
-	websocket.onerror = function(evt){ws_info(evt)};
+	NOx_if_ws = new WebSocket(wsUri);
+	NOx_if_ws.binaryType = 'arraybuffer';
+	NOx_if_ws.onopen = onOpen;
+	NOx_if_ws.onclose = function(evt){clearInterval(ws_timer);ws_info(evt);};
+	NOx_if_ws.onmessage = onMessage;
+	NOx_if_ws.onerror = ws_info;
 }
-function onOpen(evt){init_graph();}
+function onOpen(evt)
+{
+	init_graph();
+	ws_timer = setInterval(function(){doSend();},100);
+}
 function onMessage(evt)
 {
-	console.log(evt);
-	/*
-	if(evt.data.search("Data:")>=0)
+	var sel_addr = document.getElementById("sel_addr").value;
+	var msg_data, timestamp, NOx_val=[], O2_val=[];
+	if(!(evt.data instanceof ArrayBuffer))
+		 return;
+	msg_data = new DataView(evt.data);
+	timestamp = new Date(Number(msg_data.getBigUint64(0, true)));
+	for(let i=0; i<2; i++)
 	{
-		var msg = evt.data.split(" ");
-		if(msg.length===13)
-		{
-			if(pre_stamp!=msg[1])
-			{
-				fill_data(msg);
-				pre_stamp=msg[1];
-				if(!(isNaN(msg[3])&&isNaN(msg[4])))
-				{
-					if(data.length>=Buffer_size) // rolling buffer
-						data.shift();
-					x = new Date();  // current time
-					y1 = parseFloat(msg[3]);
-					y2 = parseFloat(msg[4]);
-					data.push([x, y1, y2]);
-					if(pause_or_play)
-						graph.updateOptions( { 'file': data } );
-				}
-				document.getElementById("status_tab").value = "";
-			}
-			else
-				document.getElementById("status_tab").value = 'ERROR: Sensor not responding';
-		}
+		NOx_val[i] = Number(msg_data.getFloat32(8+4*i, true));
+		O2_val[i] = Number(msg_data.getFloat32(8+8+4*i, true));
 	}
-	else if(evt.data.search("Info:")>=0)
+	if(!(isNaN(NOx_val[sel_addr]) && isNaN(O2_val[sel_addr])))
 	{
-		document.getElementById("status_tab").value = evt.data;
+		if(data_buff.length>=Buffer_size) // rolling buffer
+			data_buff.shift();
+		data_buff.push([timestamp, NOx_val[sel_addr], O2_val[sel_addr]]);
+		if(pause_or_play)
+			graph.updateOptions({'file':data_buff});
 	}
-	*/
 }
 function ws_info(evt)
 {
-	document.getElementById("status_tab").value = 'WS_info:' + evt.reason;
-	console.log('WS_error:' + evt.reason);
+	if(evt.reason)
+	{
+		document.getElementById("status_tab").value = 'WS_info:'+evt.reason;
+		console.log('WS_error:' + evt.reason);
+	}
 }
-/*
-function doSend(message)
+function doSend()
 {
-	if(websocket.readyState===WebSocket.OPEN)
-		switch(Heater_code)
-		{
-			case Heater_code_enum.ON: websocket.send("Heater=ON"); break;
-			case Heater_code_enum.OFF: websocket.send("Heater=OFF");break;
-			default: websocket.send(message);
-		}
-		Heater_code = Heater_code_enum.Notset;
+	if(NOx_if_ws.readyState===NOx_if_ws.OPEN)
+		NOx_if_ws.send("getMeas");
 }
-*/
+
 function play_pause()
 {
 	switch(pause_or_play)
@@ -166,20 +154,22 @@ function play_pause()
 }
 function stats_calc(data_ist,minX,maxX)
 {
-	if(!data_ist.lenght)
+	if(!data_ist || !data_ist.length || !minX || !maxX)
 		return;
-	var NOx_stat=document.getElementsByName("NOx_stat");
-	var O2_stat=document.getElementsByName("O2_stat");
-	var imin,NOx_min,NOx_max,NOx_acc=0,O2_min,O2_max,O2_acc=0;
+	var NOx_stat=document.getElementsByName("NOx_stat"),
+		O2_stat=document.getElementsByName("O2_stat"),
+		imin,NOx_min,NOx_max,NOx_acc=0,O2_min,O2_max,O2_acc=0;
 	//console.log(minX + ", " + maxX);
-	for(var i=0;(data_ist[i][0].getTime())<=minX;i++);
+	for(var i=0;data_ist[i]&&(data_ist[i][0].getTime())<=minX;i++);
+	if(!data_ist[i])
+		return;
 	imin=i;
 	NOx_min=data_ist[i][1];
 	NOx_max=NOx_min;
 	O2_min=data_ist[i][2];
 	O2_max=O2_min;
-	csv = 'Timestamp,NOx(ppm),O2(%)\n'; //init csv
-	for(i++;(data_ist[i][0].getTime())<=maxX;i++)
+	stats_calc.csv = 'Timestamp,NOx(ppm),O2(%)\n'; //init csv
+	for(i++; data_ist[i]&&(data_ist[i][0].getTime())<=maxX; i++)
 	{
 		NOx_acc+=data_ist[i][1];
 		O2_acc+=data_ist[i][2];
@@ -191,22 +181,31 @@ function stats_calc(data_ist,minX,maxX)
 			O2_max=data_ist[i][2];
 		if(data_ist[i][2]<O2_min)
 			O2_min=data_ist[i][2];
-		csv += data_ist[i].join(',') + "\n"; //load zoom data to csv export obj
+		//load zoom data to csv export obj
+		let d = data_ist[i][0],
+			l_date = d.getMonth()+'/'
+				   + d.getDate()+'/'
+				   + d.getFullYear()+' '
+				   + d.getHours()+':'
+				   + d.getMinutes()+':'
+				   + d.getSeconds()+'.'
+				   + d.getMilliseconds();
+		stats_calc.csv += l_date+','+data_ist[i][1].toFixed(3)+','+data_ist[i][2].toFixed(3)+'\n';
 	}
 	NOx_stat[0].value=(Math.round((NOx_acc/(i-imin))*1000)/1000) + " (ppm)";
-	NOx_stat[1].value=NOx_max + " (ppm)";
-	NOx_stat[2].value=NOx_min + " (ppm)";
+	NOx_stat[1].value=(Math.round(NOx_max*1000)/1000) + " (ppm)";
+	NOx_stat[2].value=(Math.round(NOx_min*1000)/1000) + " (ppm)";
 	NOx_stat[3].value=(Math.round((NOx_max-NOx_min)*1000)/1000) + " (ppm)";
 
 	O2_stat[0].value=(Math.round((O2_acc/(i-imin))*1000)/1000) + " (%)";
-	O2_stat[1].value=O2_max + " (%)";
-	O2_stat[2].value=O2_min + " (%)";
+	O2_stat[1].value=(Math.round(O2_max*1000)/1000) + " (%)";
+	O2_stat[2].value=(Math.round(O2_min*1000)/1000) + " (%)";
 	O2_stat[3].value=(Math.round((O2_max-O2_min)*1000))/1000 + " (%)";
 }
 function download_csv()
 {
 	var hiddenElement = document.createElement('a');
-	hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
+	hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(stats_calc.csv);
 	hiddenElement.target = '_blank';
 	hiddenElement.download = "Export.csv";
 	hiddenElement.click();
@@ -214,32 +213,33 @@ function download_csv()
 
 function download_PDF()
 {
-	let docDefinition, pic,
-		NOX_CAN_if = document.getElementById("NOX_CAN_if"),
+	let	NOX_CAN_if = document.getElementById("NOX_CAN_if"),
 		sel_addr = document.getElementById("sel_addr"),
-		div_pdf = document.getElementById('div_pdf');
-	var filename = "NOx_"+NOX_CAN_if+'_'+sel_addr+"_graph";
+		div_pdf = document.getElementById('div_pdf'),
+		filename = "NOx_"+NOX_CAN_if+'_'+sel_addr+"_graph";
 	if(!document.getElementById("Zoom_Stats_check").checked)
 	{
 		document.getElementById("Current_data").style.display="none";
 		document.getElementById("Stats").style.display="";
 	}
 	if (filename != null && filename.indexOf('.') == -1)
-		html2canvas(div_pdf).then(function (canvas)
-		{
-			pic = canvas.toDataURL();
-			docDefinition = {
-				pageSize: 'A4',
-				pageOrientation: 'landscape',
-				pageMargins: [ 40, 60, 40, 60 ],
-				content: [{
-					image: pic,
-					width: 600,
-					alignment: 'center'
-				}]
-			};
-			pdfMake.createPdf(docDefinition).download(filename+'.pdf');
+	{
+		html2canvas(div_pdf, {
+			onrendered: function (canvas) {
+				let docDefinition = {
+					pageSize: 'A4',
+					pageOrientation: 'landscape',
+					pageMargins: [ 40, 60, 40, 60 ],
+					content: [{
+						image: canvas.toDataURL(),
+						width: 600,
+						alignment: 'center'
+					}]
+				};
+				pdfMake.createPdf(docDefinition).download(filename+'.pdf');
+			}
 		});
+	}
 	if(!document.getElementById("Zoom_Stats_check").checked)
 		setTimeout(function()
 		{

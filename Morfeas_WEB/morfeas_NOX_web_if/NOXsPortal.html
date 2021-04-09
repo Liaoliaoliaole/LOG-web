@@ -158,20 +158,25 @@ document.getElementById("sel_addr").selectedIndex = 0;
 var data_req=false, request_mode = mode_enum.NOX_CAN_if;
 function NOx_disp(state)
 {
+	let stats_check_box = document.getElementById("Zoom_Stats_check").checked;
 	document.getElementById("div_g").style.display = state ? 'inherit':'none';
-	document.getElementById("Current_data").style.display = state ? 'table':'none';
+	if(!graph || !(graph.isZoomed("x") && stats_check_box))	
+		document.getElementById("Current_data").style.display = state ? 'table':'none';
 	let hidden = document.getElementsByName("g_ctrl");
 	for(let i=0; i<hidden.length; i++)
 		hidden[i].style.display = state ? 'table-cell':'none';
+	NOx_disp.state = state;
 }
 function CAN_if_selector(sel)
 {
 	clean_up();
-	status_tab = document.getElementById("status_tab");
+	let status_tab = document.getElementById("status_tab");
 	if(sel.selectedIndex)
 	{
 		request_mode=mode_enum.NOX_contents;
 		status_tab.value = "CAN-if:"+sel.value+" selected";
+		if(NOx_if_ws && NOx_if_ws.readyState===NOx_if_ws.OPEN)
+			NOx_if_ws.close();
 	}
 	else
 	{
@@ -219,20 +224,20 @@ function fill_data(data)
 	let sel_addr = document.getElementById("sel_addr").value;
 	//Grab DOM input elements
 	let NOX = document.getElementById("NOX"),
-	Heater_mode = document.getElementById("Heater_mode"),
-	O2 = document.getElementById("O2"),
-	Heater_error = document.getElementById("Heater_error"),
-	NOx_error = document.getElementById("NOx_error"),
-	O2_error = document.getElementById("O2_error"),
-	auto_poff = document.getElementById("power_off"),
-	set_button = document.getElementById("set_button"),
-	power_off_tl = document.getElementById("power_off_tl"),
-	status_tab = document.getElementById("status_tab"),
-	can_if = document.getElementById("NOX_CAN_if"),
-	volts = document.getElementById("volts")
-	amps = document.getElementById("amps")
-	shunt = document.getElementById("shunt")
-	util = document.getElementById("util")
+		Heater_mode = document.getElementById("Heater_mode"),
+		O2 = document.getElementById("O2"),
+		Heater_error = document.getElementById("Heater_error"),
+		NOx_error = document.getElementById("NOx_error"),
+		O2_error = document.getElementById("O2_error"),
+		auto_poff = document.getElementById("power_off"),
+		set_button = document.getElementById("set_button"),
+		power_off_tl = document.getElementById("power_off_tl"),
+		status_tab = document.getElementById("status_tab"),
+		can_if = document.getElementById("NOX_CAN_if"),
+		volts = document.getElementById("volts"),
+		amps = document.getElementById("amps"),
+		shunt = document.getElementById("shunt"),
+		util = document.getElementById("util");
 
 	if(data.Electrics)
 	{
@@ -261,10 +266,16 @@ function fill_data(data)
 		status_tab.style.color='black';
 		status_tab.value = "Data from "+can_if.value.toUpperCase()+"@UniNOx:"+sel_addr;
 		NOx_disp(true);
-		init_graph();
+		if(!fill_data.graph_state)
+		{
+			init_graph();
+			fill_data.graph_state = true;
+		}
 	}
 	if(!data.NOx_sensors[sel_addr].status.meas_state)
 	{
+		if(NOx_if_ws && NOx_if_ws.readyState===NOx_if_ws.OPEN)
+			NOx_if_ws.close();
 		NOX.value = "Not measuring";
 		O2.value = NOX.value;
 		if(fill_data.auto_poff_value != data.Auto_SW_OFF_value)
@@ -278,6 +289,8 @@ function fill_data(data)
 	}
 	else
 	{
+		if(data.ws_port && (!NOx_if_ws || NOx_if_ws.readyState!==NOx_if_ws.OPEN))
+			init_websocket("ws://"+window.location.hostname+':'+data.ws_port);
 		auto_poff.readOnly = true;
 		set_button.style.visibility="hidden";
 		auto_poff.value = data.Auto_SW_OFF_value-data.Auto_SW_OFF_cnt;
@@ -348,8 +361,6 @@ xhttp.onreadystatechange = function()
 						break;
 					}
 					fill_data(NOX_data);
-					if(NOX_data.ws_port && !wsUri)
-						wsUri = "ws://"+window.location.hostname+':'+NOX_data.ws_port;
 				}
 				else if(this.getResponseHeader("Content-Type")==="report/text")
 				{
@@ -364,6 +375,7 @@ xhttp.onreadystatechange = function()
 	{
 		status_tab.value = "Error 404: Data Not found";
 		status_tab.style.color='red';
+		data_req=false;
 	}
 };
 xhttp.ontimeout = function(){
@@ -417,7 +429,7 @@ function post_auto_SWOFF_config()
 	xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	xhttp.send("arg="+compress(JSON.stringify(dbus_proxy_arg)));
 }
-window.onload=function(){clean_up(); init_graph(); document.getElementById("status_tab").value="Select CAN-if";}
+window.onload=function(){clean_up(); document.getElementById("status_tab").value="Select CAN-if";}
 //@license-end
 </script>
 </html>
