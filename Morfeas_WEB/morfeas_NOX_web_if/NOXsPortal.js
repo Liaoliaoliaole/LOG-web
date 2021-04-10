@@ -87,7 +87,7 @@ function init_websocket(wsUri)
 {
 	if(!wsUri)
 		return;
-	NOx_if_ws = new WebSocket(wsUri);
+	NOx_if_ws = new WebSocket(wsUri,"Morfeas_NOX_WS_if");
 	NOx_if_ws.binaryType = 'arraybuffer';
 	NOx_if_ws.onopen = onOpen;
 	NOx_if_ws.onclose = function(evt){clearInterval(ws_timer);ws_info(evt);};
