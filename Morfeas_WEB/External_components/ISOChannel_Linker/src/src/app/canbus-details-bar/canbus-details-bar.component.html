@@ -1,0 +1,50 @@
+<div>
+  <div class="logstatContainer">
+    <div *ngFor="let logstat of logstats">
+      <div *ngIf="logstat.if_name.includes('SDAQ')">
+        <div class="logstatBox">
+          <div class="logstatBoxText font-weight-bold text-uppercase">{{ logstat.if_name }}</div>
+          <div *ngFor="let connection of logstat.connections">
+            <div *ngIf="connection.name.includes('Detected_SDAQs')" class="logstatBoxText">
+              {{connection.name}}: {{connection.value}}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="logstat.if_name.includes('RPi_Health_Status')">
+        <div class="logstatBox">
+          <div *ngFor="let connection of logstat.connections">
+            <div *ngIf="connection.name.includes('Up_time')">
+              {{connection.name}}: {{connection.value}}{{connection.unit}}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div *ngIf="showAllComponents" class="logstatComponentContainer">
+    <div class="buttonContainer">
+      <div *ngFor="let name of ifNames" class="logstatButtonBox">
+        <div class="mt-1">
+          <button class="btn btn-secondary p-3 btn-flat comp" (click)="toggleComponent(name)">{{ name }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div *ngIf="showAllComponents">
+    <div *ngFor="let tLogstat of logstats">
+      <div *ngIf="toggledLogstats.includes(tLogstat.if_name)">
+        <div class="row extraPad toggledLogstatContainer">
+          <div class="m-1 font-weight-bold text-uppercase toggledLogstatNameBox">{{ tLogstat.if_name }}</div>
+          <div class="m-1 toggledOuterLogstatBox">
+            <div class="toggledLogstatBox" *ngFor="let connection of tLogstat.connections">
+              <span class="font-weight-bold">{{connection.name}}:</span> {{connection.value}}{{connection.unit}}
+            </div>
+          </div>
+          <div class="m-1 toggledLogstatDateBox">Build date:
+            {{ tLogstat.logstat_build_date_UNIX * 1000 | date:'dd-MM-yyyy HH:mm:ss' }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

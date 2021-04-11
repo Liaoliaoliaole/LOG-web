@@ -1,0 +1,47 @@
+<div class="app-flex">
+  <div class="row app-header">
+    <div class="align-self-center pt-3 px-3 pb-1 m-auto" style="width:100%">
+      <div class="col-lg col-md-12 top-right" style="width:100%">
+        <div class="sidebar-icon" style="margin-right: 10px;" (click)="toggleSidebar()">
+          <img class="sidebar-icon" src="./assets/menu.svg">
+        </div>
+		<div class="sidebar-icon" style="margin-right: 10px;">
+        </div>
+        <div class="sidebar-icon" style="margin-right: 10px;">
+        </div>
+        <div class="sidebar-icon" style="margin-right: auto;">
+        </div>
+        <app-canbus-details-bar class="sidebar-details" [logstats]="logstats" [ifNames]="ifNames"
+          [showAllComponents]="showAllComponents">
+        </app-canbus-details-bar>
+        <div style="margin-left: auto;">
+          <button class="btn btn-secondary p-3 btn-flat clear" (click)="allComponents()">All Components</button>
+          <button class="btn btn-secondary p-3 btn-flat clear" (click)="clearFilters()">Clear filters</button>
+        </div>
+        <div *ngIf="updateButtonsVisible">
+          <button *ngIf="!isUpdatingWeb" class="btn btn-secondary p-3 btn-flat clear" (click)="updateMorfeasWeb()">Update Morfeas Web</button>
+          <button *ngIf="isUpdatingWeb" class="btn btn-secondary p-3 btn-flat clear"><div *ngIf="isUpdatingWeb" class="lds-ellipsis"><div></div><div></div><div></div><div></div></div></button>
+          <button *ngIf="!isUpdatingCore" class="btn btn-secondary p-3 btn-flat clear" (click)="updateMorfeasCore()">Update Morfeas Core</button>
+          <button *ngIf="isUpdatingCore" class="btn btn-secondary p-3 btn-flat clear"><div *ngIf="isUpdatingCore" class="lds-ellipsis"><div></div><div></div><div></div><div></div></div></button>
+        </div>
+        <h3 (click)="toggleUpdateButtons()" class="toggle-update-buttons">...</h3>
+        <div style="margin-left: 10px;" *ngIf="showUnsaved">
+          <button class="btn btn-secondary p-3 btn-flat save" (click)="saveOpcUaConfigs()">Save
+            configurations</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row" style="flex-grow: 1;">
+    <div class="col-lg-1 col-lg-1half col-md-12 bottom-left" *ngIf="showSidebar">
+      <app-device-table-sidebar [columns]="tableColumns" [showUnsaved]="showUnsaved" [connections]="connectionNames"
+        style="width:100%" (columnToggle)="toggleColumnVisibility($event)" (activeFilters)="toggleFilter($event)">
+      </app-device-table-sidebar>
+    </div>
+    <div class="col-lg col-md-12 bottom-right">
+      <ag-grid-angular class="ag-theme-material" style="height:100%" [gridOptions]="gridOptions" [modules]="modules"
+        [getRowNodeId]="getRowNodeId">
+      </ag-grid-angular>
+    </div>
+  </div>
+</div>
