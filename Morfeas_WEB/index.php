@@ -128,7 +128,7 @@ for the JavaScript code in this page.
 comp_check();
 document.onkeyup = function(key){
 	var pi=document.getElementById("pi");
-	if(key.ctrlKey && key.shiftKey)
+	if(key.ctrlKey || key.shiftKey)
 		pi.style.visibility="hidden";
 };
 document.onkeydown = function(key){
