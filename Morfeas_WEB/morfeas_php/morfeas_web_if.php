@@ -79,7 +79,6 @@ if($requestType == "GET")
 				}
 				return;
 			case "opcua_config":
-				header('Content-Type: application/json');
 				$OPCUA_Config_xml = simplexml_load_file($opc_ua_config_dir."OPC_UA_Config.xml") or die("{}");
 				$OPCUA_Config_xml_to_client = array();
 				$i=0;
@@ -88,6 +87,7 @@ if($requestType == "GET")
 					$OPCUA_Config_xml_to_client[$i] = $channel;
 					$i++;
 				}
+				header('Content-Type: application/json');
 				echo json_encode($OPCUA_Config_xml_to_client);
 				return;
 		}

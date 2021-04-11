@@ -60,7 +60,7 @@ td.bold{
 				<img src="./art/logger.svg" class="bsize">
 			</span>
 		</td>
-		<td><button type="button" onclick='PopupCenter("/ISOChannel_Linker/html/","","1280","1024")'>
+		<td><button type="button" onclick='PopupCenter("/External_components/ISOChannel_Linker/html/","","1280","1024")'>
 			<span title="ISOChannel Linker">
 				<img src="./art/anchor.png" class="bsize">
 			</span>
@@ -89,11 +89,11 @@ td.bold{
 	</table>
 </div>
 <footer id="footer">
-	<div style="float:left;"> 
+	<div style="float:left;">
 		Author: Sam Harry Tzavaras &#169; 12019-12021<br>
 		<a href="LICENSE">License: AGPLv3</a>
 	</div>
-	<div style="float:right;"> 
+	<div style="float:right;">
 		<a id="pi" style="visibility:hidden;" onclick='PopupCenter("https://"+window.location.hostname+":4200","","1024","768");this.style.visibility="hidden"'>π</a>
 		<img src="./art/debian.png" alt="Powered by Debian GNU/Linux">
 	</div>
@@ -125,34 +125,34 @@ through which recipients can access the Corresponding Source.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-	comp_check();
-	document.onkeyup = function(key){
-		var pi=document.getElementById("pi");
+comp_check();
+document.onkeyup = function(key){
+	var pi=document.getElementById("pi");
+	if(key.ctrlKey && key.shiftKey)
 		pi.style.visibility="hidden";
-	};
-	document.onkeydown = function(key){
-		var pi=document.getElementById("pi");
-		if(key.ctrlKey && key.shiftKey)
-			pi.style.visibility="visible";
-		
-	};
-	
-	function shutdown()
-	{
-		var xhttp = new XMLHttpRequest();
-		xhttp.open("POST", "../morfeas_php/config.php", true);
-		xhttp.setRequestHeader("Content-type", "shutdown");
-		xhttp.send();
-		alert("Shudown executed. Close all related windows!!!");
-	}
+};
+document.onkeydown = function(key){
+	var pi=document.getElementById("pi");
+	if(key.ctrlKey && key.shiftKey)
+		pi.style.visibility="visible";
 
-	function reboot()
-	{
-		var xhttp = new XMLHttpRequest();
-		xhttp.open("POST", "../morfeas_php/config.php", true);
-		xhttp.setRequestHeader("Content-type", "reboot");
-		xhttp.send();
-	}	
+};
+function shutdown()
+{
+	var xhttp = new XMLHttpRequest();
+	xhttp.open("POST", "../morfeas_php/config.php", true);
+	xhttp.setRequestHeader("Content-type", "shutdown");
+	xhttp.send();
+	alert("Shudown executed. Close all related windows!!!");
+}
+
+function reboot()
+{
+	var xhttp = new XMLHttpRequest();
+	xhttp.open("POST", "../morfeas_php/config.php", true);
+	xhttp.setRequestHeader("Content-type", "reboot");
+	xhttp.send();
+}
 //@license-end
 </script>
 </html>
