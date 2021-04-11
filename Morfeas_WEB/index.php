@@ -128,15 +128,12 @@ for the JavaScript code in this page.
 */
 comp_check();
 document.onkeyup = function(key){
-	var pi=document.getElementById("pi");
 	if(key.ctrlKey || key.shiftKey)
-		pi.style.visibility="hidden";
+		document.getElementById("pi").style.visibility="hidden";
 };
 document.onkeydown = function(key){
-	var pi=document.getElementById("pi");
 	if(key.ctrlKey && key.shiftKey)
-		pi.style.visibility="visible";
-
+		document.getElementById("pi").style.visibility="visible";
 };
 function shutdown()
 {
