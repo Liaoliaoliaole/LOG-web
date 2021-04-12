@@ -60,9 +60,14 @@ td.bold{
 				<img src="./art/logger.svg" class="bsize">
 			</span>
 		</td>
-		<td><button type="button" onclick='PopupCenter("/External_components/ISOChannel_Linker/html/","","1280","1024")'>
-			<span title="ISOChannel Linker">
+		<td name="ISOCH"><button type="button" onclick='PopupCenter("/Morfeas_ISOChannel_Linker/ISO_CH_Linker.html"+"?q="+makeid(),"","1280","1024")'>
+			<span title="Morfeas ISOChannel Linker">
 				<img src="./art/anchor.png" class="bsize">
+			</span>
+		</td>
+		<td name="ISOCH" style="display:none;"><button type="button" onclick='PopupCenter("/External_components/ISOChannel_Linker/html/","","1280","1024")'>
+			<span title="Old ISOChannel Linker">
+				<img src="./art/beard.png" class="bsize">
 			</span>
 		</td>
 		<td><button type="button" onclick='PopupCenter("/Morfeas_configuration/Morfeas_System_config.html"+"?q="+makeid(),"","1024","768")'>
@@ -92,7 +97,7 @@ td.bold{
 	<div style="float:left;">
 		Author: Sam Harry Tzavaras &#169; 12019-12021<br>
 		<a href="LICENSE">License: AGPLv3</a><br>
-		<a href="/External_components/Ext_cmp.txt">Credits</a>
+		<a href="/External_components/Credits.html">Credits</a>
 	</div>
 	<div style="float:right;">
 		<a id="pi" style="visibility:hidden;" onclick='PopupCenter("https://"+window.location.hostname+":4200","","1024","768");this.style.visibility="hidden"'>π</a>
@@ -127,13 +132,23 @@ through which recipients can access the Corresponding Source.
 for the JavaScript code in this page.
 */
 comp_check();
-document.onkeyup = function(key){
-	if(key.ctrlKey || key.shiftKey)
+document.onkeyup = res_to_norm;
+document.onfocus = res_to_norm;
+function res_to_norm(){
 		document.getElementById("pi").style.visibility="hidden";
+		let ISOCH = document.getElementsByName("ISOCH");
+		ISOCH[0].style.display = "table-cell";
+		ISOCH[1].style.display = "none";
 };
 document.onkeydown = function(key){
 	if(key.ctrlKey && key.shiftKey)
 		document.getElementById("pi").style.visibility="visible";
+	else if(key.key === 'o')
+	{
+		let ISOCH = document.getElementsByName("ISOCH");
+		ISOCH[0].style.display = "none";
+		ISOCH[1].style.display = "table-cell";
+	}
 };
 function shutdown()
 {
