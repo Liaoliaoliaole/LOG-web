@@ -204,19 +204,36 @@ function stats_calc(data_ist,minX,maxX)
 }
 function download_csv()
 {
+	let	d = new Date(),
+		NOX_CAN_if = document.getElementById("NOX_CAN_if"),
+		sel_addr = document.getElementById("sel_addr"),
+		l_date = d.getMonth()+'_'
+			   + d.getDate()+'_'
+			   + d.getFullYear()+'_'
+			   + d.getHours()+'_'
+			   + d.getMinutes()+'_'
+			   + d.getSeconds();
 	var hiddenElement = document.createElement('a');
 	hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(stats_calc.csv);
 	hiddenElement.target = '_blank';
-	hiddenElement.download = "Export.csv";
+	hiddenElement.download = "NOx_"+NOX_CAN_if.value+'_'+sel_addr.value+l_date+".csv";
 	hiddenElement.click();
 }
 
 function download_PDF()
 {
-	let	NOX_CAN_if = document.getElementById("NOX_CAN_if"),
+	let d = new Date(),
+		NOX_CAN_if = document.getElementById("NOX_CAN_if"),
 		sel_addr = document.getElementById("sel_addr"),
 		div_pdf = document.getElementById('div_pdf'),
-		filename = "NOx_"+NOX_CAN_if+'_'+sel_addr+"_graph";
+		l_date = d.getMonth()+'_'
+			   + d.getDate()+'_'
+			   + d.getFullYear()+'_'
+			   + d.getHours()+'_'
+			   + d.getMinutes()+'_'
+			   + d.getSeconds(),
+		filename = "NOx_"+NOX_CAN_if.value+'_'+sel_addr.value+"_"+l_date;
+	console.log(filename);
 	if(!document.getElementById("Zoom_Stats_check").checked)
 	{
 		document.getElementById("Current_data").style.display="none";
@@ -224,15 +241,30 @@ function download_PDF()
 	}
 	if (filename != null && filename.indexOf('.') == -1)
 	{
+		let l_date = d.getMonth()+'/'
+				   + d.getDate()+'/'
+				   + d.getFullYear()+' '
+				   + d.getHours()+':'
+				   + d.getMinutes()+':'
+				   + d.getSeconds();
 		html2canvas(div_pdf, {
 			onrendered: function (canvas) {
 				let docDefinition = {
-					pageSize: 'A4',
+					pageSize: 'LETTER',
 					pageOrientation: 'landscape',
-					pageMargins: [ 40, 60, 40, 60 ],
+					pageMargins: [40, 40, 40, 40],
+					header: {
+						columns:[{text: window.location.hostname, alignment:'center'}]
+					},
+					footer: {
+						columns:[
+							"NOx@"+NOX_CAN_if.value+'_Addr:'+sel_addr.value,
+							{text: l_date, alignment: 'right'}
+						]
+					},
 					content: [{
 						image: canvas.toDataURL(),
-						width: 600,
+						width: 700,
 						alignment: 'center'
 					}]
 				};
