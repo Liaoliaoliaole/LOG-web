@@ -105,8 +105,8 @@ input{
 	<td>O2 Error:<br><input id="O2_error"readonly></td>
 	<td>
 		<b>Heater:</b>
-		<button type="button" onclick="post_heater(1);">ON
-		<button type="button" onclick="post_heater(0);">OFF
+		<button name="heater_button" type="button" onclick="post_heater(1, this.innerHTML);">ON
+		<button name="heater_button" type="button" onclick="post_heater(0, this.innerHTML);">OFF
 	</td>
   </tr>
 </table>
@@ -407,13 +407,15 @@ function get_data_req()
 		}
 	}
 }
-function post_heater(state)
+function post_heater(state, val)
 {
 	var dbus_proxy_arg={handler_type:"NOX"};
 	let addr = Number(document.getElementById("sel_addr").value),
 		can_if = document.getElementById("NOX_CAN_if");
 	if(!can_if.selectedIndex)
 		return;
+	if(val.includes("G_"))
+		addr = -1;
 	dbus_proxy_arg.dev_name=can_if.value;
 	dbus_proxy_arg.method="NOX_heater";
 	dbus_proxy_arg.contents={NOx_address:addr,NOx_heater:(!!state)};
@@ -436,6 +438,21 @@ function post_auto_SWOFF_config()
 	xhttp.send("arg="+compress(JSON.stringify(dbus_proxy_arg)));
 }
 window.onload=function(){clean_up(); document.getElementById("status_tab").value="Select CAN-if";}
+document.onkeyup = res_to_norm;
+document.onfocus = res_to_norm;
+function res_to_norm(){
+		let heater_button = document.getElementsByName("heater_button");
+		heater_button[0].innerHTML = "ON";
+		heater_button[1].innerHTML = "OFF";
+};
+document.onkeydown = function(key){
+	if(key.shiftKey)
+	{
+		let heater_button = document.getElementsByName("heater_button");
+		heater_button[0].innerHTML = "G_ON";
+		heater_button[1].innerHTML = "G_OFF";
+	}
+};
 //@license-end
 </script>
 </html>
