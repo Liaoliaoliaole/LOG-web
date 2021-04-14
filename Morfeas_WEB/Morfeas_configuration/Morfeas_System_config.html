@@ -93,146 +93,146 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-	"use strict";
-	comp_check();
-	const disp_mode = {
-	   cnf: 0,
-	   std: 1,
-	   ud: 2
-	};
-	Object.freeze(disp_mode);
+"use strict";
+comp_check();
+const disp_mode = {
+   cnf: 0,
+   std: 1,
+   ud: 2
+};
+Object.freeze(disp_mode);
 
-	var child_wins = new Array();
-	var can_ifs_names;
-	var listNode = document.getElementById("Comp_UL");
-	var rem=document.getElementById("rem");
-	//Vars for Morfeas_config tab
-	var curr_morfeas_config_xml, new_morfeas_config_xml, morfeas_config_xml;
-	var comp_args_table = document.getElementById("comp_args");
-	//Vars for ISOstandards tab
-	var curr_ISOstd_xml;
-	var isoSTD_table=document.getElementById("ISO_std_table");
+var child_wins = new Array();
+var can_ifs_names;
+var listNode = document.getElementById("Comp_UL");
+var rem=document.getElementById("rem");
+//Vars for Morfeas_config tab
+var curr_morfeas_config_xml, new_morfeas_config_xml, morfeas_config_xml;
+var comp_args_table = document.getElementById("comp_args");
+//Vars for ISOstandards tab
+var curr_ISOstd_xml;
+var isoSTD_table=document.getElementById("ISO_std_table");
 
-	var curr_tab=-1;//Var for tabs state
-	document.getElementById('isoSTD_xml_file').value = "";
-	document.getElementById('bundle_file').value = "";
-	//AJAX object for configuration receive and send
-	var xhttp = new XMLHttpRequest();
-	xhttp.timeout = 5000;
-	xhttp.onreadystatechange = function()
+var curr_tab=-1;//Var for tabs state
+document.getElementById('isoSTD_xml_file').value = "";
+document.getElementById('bundle_file').value = "";
+//AJAX object for configuration receive and send
+var xhttp = new XMLHttpRequest();
+xhttp.timeout = 5000;
+xhttp.onreadystatechange = function()
+{
+	if(this.readyState == 4)
 	{
-		if(this.readyState == 4)
+		if(this.status == 200)
 		{
-			if(this.status == 200)
+			if(this.getResponseHeader("Content-Type")==="Morfeas_config/xml")
 			{
-				if(this.getResponseHeader("Content-Type")==="Morfeas_config/xml")
+				if(curr_tab === disp_mode.cnf)
 				{
-					if(curr_tab === disp_mode.cnf)
-					{
-						if(!this.responseXML)
-							morfeas_config_xml = (new DOMParser()).parseFromString(this.responseText, "application/xml");
-						else
-							morfeas_config_xml = this.responseXML;
-						curr_morfeas_config_xml = morfeas_config_xml.getElementsByTagName("COMPONENTS")[0];
-						new_morfeas_config_xml = (new DOMParser()).parseFromString((new XMLSerializer()).serializeToString(morfeas_config_xml), "application/xml");
-						new_morfeas_config_xml = new_morfeas_config_xml.getElementsByTagName("COMPONENTS")[0];
-						morfeas_comp_list(listNode, new_morfeas_config_xml, curr_morfeas_config_xml, document.getElementById("rem"));
-					}
+					if(!this.responseXML)
+						morfeas_config_xml = (new DOMParser()).parseFromString(this.responseText, "application/xml");
+					else
+						morfeas_config_xml = this.responseXML;
+					curr_morfeas_config_xml = morfeas_config_xml.getElementsByTagName("COMPONENTS")[0];
+					new_morfeas_config_xml = (new DOMParser()).parseFromString((new XMLSerializer()).serializeToString(morfeas_config_xml), "application/xml");
+					new_morfeas_config_xml = new_morfeas_config_xml.getElementsByTagName("COMPONENTS")[0];
+					morfeas_comp_list(listNode, new_morfeas_config_xml, curr_morfeas_config_xml, document.getElementById("rem"));
 				}
-				else if(this.getResponseHeader("Content-Type")==="ISOstandard/xml")
-				{
-					if(curr_tab === disp_mode.std)
-					{
-						if(!this.responseXML)
-							curr_ISOstd_xml = (new DOMParser()).parseFromString(this.responseText, "application/xml").getElementsByTagName("points")[0];
-						else
-							curr_ISOstd_xml = this.responseXML.getElementsByTagName("points")[0];
-						isoSTD_develop(isoSTD_table, curr_ISOstd_xml);
-					}
-				}
-				else if(this.getResponseHeader("Content-Type")==="getCANifs_names/json")
-					can_ifs_names = JSON.parse(this.responseText);
-				else if(this.getResponseHeader("Content-Type")==="report/json")
-				{
-					let report = JSON.parse(this.responseText);
-					if(report.report)
-					{
-						curr_morfeas_config_xml = new_morfeas_config_xml;
-						alert("New Configuration is saved!!!\nMorfeas System restarted!!!");
-						location.reload();
-					}
-				}
-				else
-					alert(this.responseText);
 			}
-			else if(this.status == 500)
-				alert("FATAL Error on server!!!");
-		}
-	};
-	xhttp.ontimeout = function(){
-		alert("Client: Communication Error!!!");
-	};
-	//get CAN-IFs names
-	if(!can_ifs_names)
-	{
-		xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getCANifs_names", true);
-		xhttp.send();
-	}
-	function disp_sel(mode)
-	{
-		if(mode === curr_tab)
-			return;
-		var tabs = document.getElementsByName("tab");
-		tabs.forEach(tab=>{tab.style.display="none"});
-		switch(mode)
-		{
-			case disp_mode.cnf:
-				if(!curr_morfeas_config_xml)
+			else if(this.getResponseHeader("Content-Type")==="ISOstandard/xml")
+			{
+				if(curr_tab === disp_mode.std)
 				{
-					xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getMorfeasConfig", true);
-					xhttp.send();
+					if(!this.responseXML)
+						curr_ISOstd_xml = (new DOMParser()).parseFromString(this.responseText, "application/xml").getElementsByTagName("points")[0];
+					else
+						curr_ISOstd_xml = this.responseXML.getElementsByTagName("points")[0];
+					isoSTD_develop(isoSTD_table, curr_ISOstd_xml);
 				}
-				tabs[disp_mode.cnf].style.display="block";
-				break;
-			case disp_mode.std:
-				if(!curr_ISOstd_xml)
+			}
+			else if(this.getResponseHeader("Content-Type")==="getCANifs_names/json")
+				can_ifs_names = JSON.parse(this.responseText);
+			else if(this.getResponseHeader("Content-Type")==="report/json")
+			{
+				let report = JSON.parse(this.responseText);
+				if(report.report)
 				{
-					xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getISOstandard", true);
-					xhttp.send();
+					curr_morfeas_config_xml = new_morfeas_config_xml;
+					alert("New Configuration is saved!!!\nMorfeas System restarted!!!");
+					location.reload();
 				}
-				tabs[disp_mode.std].style.display="block";
-				break
-			case disp_mode.ud:
-				tabs[disp_mode.ud].style.display="block";
-				break
+			}
+			else
+				alert(this.responseText);
 		}
-		curr_tab = mode;
+		else if(this.status == 500)
+			alert("FATAL Error on server!!!");
 	}
-	function add_comp()
-	{
-		if(!new_morfeas_config_xml)
-			return;
-		if(new_morfeas_config_xml.childNodes.length<Morfeas_comp_amount_max)
-			child_wins.push(PopupCenter("./morfeas_component_add.html"+"?q="+makeid(),"","600","300"));
-		else
-			alert("Maximum amount of component reached!!!");
-	}
-	function destroy_child_wins()
-	{
-		if(child_wins.length == 0)
-			return;
-		for(let i=0; i<child_wins.length; i++)
-			if(!child_wins[i].closed)
-				child_wins[i].close();
-	}
-	window.onbeforeunload = function(){
-		if(new_morfeas_config_xml&&curr_morfeas_config_xml)
-		{
-			if(new_morfeas_config_xml.textContent.localeCompare(curr_morfeas_config_xml.textContent))
-				return "Configuration is Not Saved!!!";
-		}
+};
+xhttp.ontimeout = function(){
+	alert("Client: Communication Error!!!");
+};
+//get CAN-IFs names
+if(!can_ifs_names)
+{
+	xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getCANifs_names", true);
+	xhttp.send();
+}
+function disp_sel(mode)
+{
+	if(mode === curr_tab)
 		return;
+	var tabs = document.getElementsByName("tab");
+	tabs.forEach(tab=>{tab.style.display="none"});
+	switch(mode)
+	{
+		case disp_mode.cnf:
+			if(!curr_morfeas_config_xml)
+			{
+				xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getMorfeasConfig", true);
+				xhttp.send();
+			}
+			tabs[disp_mode.cnf].style.display="block";
+			break;
+		case disp_mode.std:
+			if(!curr_ISOstd_xml)
+			{
+				xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getISOstandard", true);
+				xhttp.send();
+			}
+			tabs[disp_mode.std].style.display="block";
+			break
+		case disp_mode.ud:
+			tabs[disp_mode.ud].style.display="block";
+			break
 	}
+	curr_tab = mode;
+}
+function add_comp()
+{
+	if(!new_morfeas_config_xml)
+		return;
+	if(new_morfeas_config_xml.childNodes.length<Morfeas_comp_amount_max)
+		child_wins.push(PopupCenter("./morfeas_component_add.html"+"?q="+makeid(),"","600","300"));
+	else
+		alert("Maximum amount of component reached!!!");
+}
+function destroy_child_wins()
+{
+	if(child_wins.length == 0)
+		return;
+	for(let i=0; i<child_wins.length; i++)
+		if(!child_wins[i].closed)
+			child_wins[i].close();
+}
+window.onbeforeunload = function(){
+	if(new_morfeas_config_xml&&curr_morfeas_config_xml)
+	{
+		if(new_morfeas_config_xml.textContent.localeCompare(curr_morfeas_config_xml.textContent))
+			return "Configuration is Not Saved!!!";
+	}
+	return;
+}
 //@license-end
 </script>
 </html>

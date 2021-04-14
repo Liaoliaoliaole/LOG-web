@@ -57,182 +57,182 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-	"use strict";
-	document.getElementById('comp_type').selectedIndex = 0;
-	var caller_res = window.opener;
-	var can_ifs_names = caller_res.can_ifs_names;
-	var comp_data_table = document.getElementById('comp_add_table_data');
-	function new_comp(sel)
+"use strict";
+document.getElementById('comp_type').selectedIndex = 0;
+var caller_res = window.opener;
+var can_ifs_names = caller_res.can_ifs_names;
+var comp_data_table = document.getElementById('comp_add_table_data');
+function new_comp(sel)
+{
+	comp_data_table.innerHTML = "";
+	if(!sel.index)
+		return;
+	//--Make Head--//
+	let th = document.createElement("th");
+	th.setAttribute("colspan","2");
+	let textnode = document.createTextNode("Component's Properties");
+	th.appendChild(textnode);
+	comp_data_table.appendChild(th);
+	switch(sel.value)
 	{
-		comp_data_table.innerHTML = "";
-		if(!sel.index)
-			return;
-		//--Make Head--//
-		let th = document.createElement("th");
-		th.setAttribute("colspan","2");
-		let textnode = document.createTextNode("Component's Properties");
-		th.appendChild(textnode);
-		comp_data_table.appendChild(th);
-		switch(sel.value)
-		{
-			case "NOX_HANDLER":
-			case "SDAQ_HANDLER":
-				if(!can_ifs_names)
-					alert("No CAN-IFs found!!!");
-				else
-					canif_table_constractor(comp_data_table, can_ifs_names);
-				break;
-			case "MDAQ_HANDLER":
-			case "IOBOX_HANDLER":
-			case "MTI_HANDLER":
-				modbus_related_table_constractor(comp_data_table);
-				break;
-		}
+		case "NOX_HANDLER":
+		case "SDAQ_HANDLER":
+			if(!can_ifs_names)
+				alert("No CAN-IFs found!!!");
+			else
+				canif_table_constractor(comp_data_table, can_ifs_names);
+			break;
+		case "MDAQ_HANDLER":
+		case "IOBOX_HANDLER":
+		case "MTI_HANDLER":
+			modbus_related_table_constractor(comp_data_table);
+			break;
 	}
-	function canif_table_constractor(_table, _can_ifs_names)
-	{
-		var tr,td,select,option,textnode;
+}
+function canif_table_constractor(_table, _can_ifs_names)
+{
+	var tr,td,select,option,textnode;
 
+	tr = _table.insertRow();
+	td = document.createElement("td");
+	textnode = document.createTextNode("CAN-IF");
+	td.appendChild(textnode);
+	tr.appendChild(td);
+	td = document.createElement("td");
+	select = document.createElement("select");
+	select.setAttribute("id","can_if");
+	for(let i=0;i<_can_ifs_names.length;i++)
+	{
+		option = document.createElement("option");
+		option.setAttribute("value",_can_ifs_names[i]);
+		textnode = document.createTextNode(_can_ifs_names[i]);
+		option.appendChild(textnode);
+		select.appendChild(option);
+	}
+	td.appendChild(select);
+	tr.appendChild(td);
+}
+function modbus_related_table_constractor(_table)
+{
+	const prop=["DEV_NAME","IPv4_ADDR"];
+	var tr,td,input,textnode;
+	for(let i=0;i<prop.length;i++)
+	{
 		tr = _table.insertRow();
 		td = document.createElement("td");
-		textnode = document.createTextNode("CAN-IF");
+		textnode = document.createTextNode(prop[i]+':');
 		td.appendChild(textnode);
 		tr.appendChild(td);
 		td = document.createElement("td");
-		select = document.createElement("select");
-		select.setAttribute("id","can_if");
-		for(let i=0;i<_can_ifs_names.length;i++)
-		{
-			option = document.createElement("option");
-			option.setAttribute("value",_can_ifs_names[i]);
-			textnode = document.createTextNode(_can_ifs_names[i]);
-			option.appendChild(textnode);
-			select.appendChild(option);
-		}
-		td.appendChild(select);
+		input = document.createElement("input");
+		input.setAttribute("id",prop[i]);
+		input.setAttribute("maxlength","20");
+		input.oninput = function(){this.value = this.value.replace(" ","");};
+		input.onchange = function(){inp_validate(this)};
+		td.appendChild(input);
 		tr.appendChild(td);
 	}
-	function modbus_related_table_constractor(_table)
+}
+function inp_validate(elem)
+{
+	if(elem.id === "IPv4_ADDR")
 	{
-		const prop=["DEV_NAME","IPv4_ADDR"];
-		var tr,td,input,textnode;
-		for(let i=0;i<prop.length;i++)
+		if(!ip_addr_val(elem.value))
 		{
-			tr = _table.insertRow();
-			td = document.createElement("td");
-			textnode = document.createTextNode(prop[i]+':');
-			td.appendChild(textnode);
-			tr.appendChild(td);
-			td = document.createElement("td");
-			input = document.createElement("input");
-			input.setAttribute("id",prop[i]);
-			input.setAttribute("maxlength","20");
-			input.oninput = function(){this.value = this.value.replace(" ","");};
-			input.onchange = function(){inp_validate(this)};
-			td.appendChild(input);
-			tr.appendChild(td);
-		}
-	}
-	function inp_validate(elem)
-	{
-		if(elem.id === "IPv4_ADDR")
-		{
-			if(!ip_addr_val(elem.value))
-			{
-				elem.value = "";
-				alert("You have entered an invalid IP address!");
-				return;
-			}
-		}
-		else if(elem.id === "DEV_NAME")
-		{
-			if(!DEV_NAME_val(elem.value))
-			{
-				elem.value = "";
-				alert("DEV_NAME contains illegal characters");
-				return;
-			}
-		}
-	}
-	function comp_val_and_add()
-	{
-		if(caller_res.new_morfeas_config_xml.childNodes.length>=Morfeas_comp_amount_max)
-		{
-			alert("Maximum Amount of components reached!!!");
-			window.close();
+			elem.value = "";
+			alert("You have entered an invalid IP address!");
 			return;
 		}
-		var sel=document.getElementById("comp_type");
-		var new_handler = caller_res.morfeas_config_xml.createElement(sel.value);
-		switch(sel.value)
+	}
+	else if(elem.id === "DEV_NAME")
+	{
+		if(!DEV_NAME_val(elem.value))
 		{
-			case "NOX_HANDLER":
-			case "SDAQ_HANDLER":
-				let selected_can_if= document.getElementById("can_if");
-				if(is_canIF_inuse(selected_can_if.value, caller_res.new_morfeas_config_xml))
-				{
-					alert("CAN-IF ("+selected_can_if.value+") useb dy another handler");
-					return;
-				}
-				let CANBUS_IF_node = caller_res.morfeas_config_xml.createElement("CANBUS_IF");
-				let CANBUS_IF_textNode = caller_res.morfeas_config_xml.createTextNode(selected_can_if.value);
-				CANBUS_IF_node.appendChild(CANBUS_IF_textNode);
-				new_handler.appendChild(CANBUS_IF_node);
-				caller_res.new_morfeas_config_xml.appendChild(new_handler);
-				break;
+			elem.value = "";
+			alert("DEV_NAME contains illegal characters");
+			return;
+		}
+	}
+}
+function comp_val_and_add()
+{
+	if(caller_res.new_morfeas_config_xml.childNodes.length>=Morfeas_comp_amount_max)
+	{
+		alert("Maximum Amount of components reached!!!");
+		window.close();
+		return;
+	}
+	var sel=document.getElementById("comp_type");
+	var new_handler = caller_res.morfeas_config_xml.createElement(sel.value);
+	switch(sel.value)
+	{
+		case "NOX_HANDLER":
+		case "SDAQ_HANDLER":
+			let selected_can_if= document.getElementById("can_if");
+			if(is_canIF_inuse(selected_can_if.value, caller_res.new_morfeas_config_xml))
+			{
+				alert("CAN-IF ("+selected_can_if.value+") useb dy another handler");
+				return;
+			}
+			let CANBUS_IF_node = caller_res.morfeas_config_xml.createElement("CANBUS_IF");
+			let CANBUS_IF_textNode = caller_res.morfeas_config_xml.createTextNode(selected_can_if.value);
+			CANBUS_IF_node.appendChild(CANBUS_IF_textNode);
+			new_handler.appendChild(CANBUS_IF_node);
+			caller_res.new_morfeas_config_xml.appendChild(new_handler);
+			break;
+		case "MDAQ_HANDLER":
+		case "IOBOX_HANDLER":
+		case "MTI_HANDLER":
+			let selected_dev_name = document.getElementById("DEV_NAME");
+			let selected_ip_addr = document.getElementById("IPv4_ADDR");
+			if(!selected_dev_name.value||!selected_ip_addr.value)
+			{
+				alert("Nothing to commit!!!");
+				return;
+			}
+			if(is_modbus_props_used(selected_dev_name.value, selected_ip_addr.value))
+				return;
+			let node = caller_res.morfeas_config_xml.createElement("DEV_NAME");
+			let textNode = caller_res.morfeas_config_xml.createTextNode(selected_dev_name.value);
+			node.appendChild(textNode);
+			new_handler.appendChild(node);
+			node = caller_res.morfeas_config_xml.createElement("IPv4_ADDR");
+			textNode = caller_res.morfeas_config_xml.createTextNode(selected_ip_addr.value);
+			node.appendChild(textNode);
+			new_handler.appendChild(node);
+			caller_res.new_morfeas_config_xml.appendChild(new_handler);
+			break;
+		default: return;
+	}
+	caller_res.document.getElementById("comp_args").innerHTML="";
+	caller_res.morfeas_comp_list(caller_res.listNode, caller_res.new_morfeas_config_xml, caller_res.curr_morfeas_config_xml, caller_res.rem);
+	window.close();
+}
+
+function is_modbus_props_used(dev_name_val, ip_addr_val)
+{
+	for(let i=0;i<caller_res.new_morfeas_config_xml.childNodes.length;i++)
+	{
+		let node_under_check=caller_res.new_morfeas_config_xml.childNodes[i];
+		switch(node_under_check.nodeName)
+		{
 			case "MDAQ_HANDLER":
 			case "IOBOX_HANDLER":
 			case "MTI_HANDLER":
-				let selected_dev_name = document.getElementById("DEV_NAME");
-				let selected_ip_addr = document.getElementById("IPv4_ADDR");
-				if(!selected_dev_name.value||!selected_ip_addr.value)
+				if(node_under_check.childNodes[0].textContent===dev_name_val)
 				{
-					alert("Nothing to commit!!!");
-					return;
+					alert("DEV_NAME: "+dev_name_val+" is in use!!!");
+					return true;
 				}
-				if(is_modbus_props_used(selected_dev_name.value, selected_ip_addr.value))
-					return;
-				let node = caller_res.morfeas_config_xml.createElement("DEV_NAME");
-				let textNode = caller_res.morfeas_config_xml.createTextNode(selected_dev_name.value);
-				node.appendChild(textNode);
-				new_handler.appendChild(node);
-				node = caller_res.morfeas_config_xml.createElement("IPv4_ADDR");
-				textNode = caller_res.morfeas_config_xml.createTextNode(selected_ip_addr.value);
-				node.appendChild(textNode);
-				new_handler.appendChild(node);
-				caller_res.new_morfeas_config_xml.appendChild(new_handler);
-				break;
-			default: return;
+				if(node_under_check.childNodes[1].textContent===ip_addr_val)
+				{
+					alert("IPv4_ADDR: "+ip_addr_val+" is in use!!!\n@ Handler with DEV_NAME:"+node_under_check.childNodes[0].textContent);
+					return true;
+				}
 		}
-		caller_res.document.getElementById("comp_args").innerHTML="";
-		caller_res.morfeas_comp_list(caller_res.listNode, caller_res.new_morfeas_config_xml, caller_res.curr_morfeas_config_xml, caller_res.rem);
-		window.close();
 	}
-
-	function is_modbus_props_used(dev_name_val, ip_addr_val)
-	{
-		for(let i=0;i<caller_res.new_morfeas_config_xml.childNodes.length;i++)
-		{
-			let node_under_check=caller_res.new_morfeas_config_xml.childNodes[i];
-			switch(node_under_check.nodeName)
-			{
-				case "MDAQ_HANDLER":
-				case "IOBOX_HANDLER":
-				case "MTI_HANDLER":
-					if(node_under_check.childNodes[0].textContent===dev_name_val)
-					{
-						alert("DEV_NAME: "+dev_name_val+" is in use!!!");
-						return true;
-					}
-					if(node_under_check.childNodes[1].textContent===ip_addr_val)
-					{
-						alert("IPv4_ADDR: "+ip_addr_val+" is in use!!!\n@ Handler with DEV_NAME:"+node_under_check.childNodes[0].textContent);
-						return true;
-					}
-			}
-		}
-		return false;
-	}
+	return false;
+}
 //@license-end
 </script>
 </html>

@@ -99,34 +99,34 @@ function morfeas_comp_list(listNode, new_morfeas_components_xml, curr_morfeas_co
 	indicator.innerHTML="USED:"+new_morfeas_components_xml.childNodes.length+"/"+Morfeas_comp_amount_max;
 	for(let i = 0; i<new_morfeas_components_xml.childNodes.length; i++)
 	{
-	  if(comp.nodeType == Node.ELEMENT_NODE)
-	  {
-		let comp_name_id;
-		if(!(comp_name_id=get_comp_name(comp)))
-			continue;
-		let textNode = document.createTextNode(comp_name_id),
-		liNode = document.createElement("LI");
-		liNode.classList.add("caret");
-		liNode.setAttribute("name", comp.nodeName+"@"+i);
-		liNode.onclick = function()
+		if(comp.nodeType == Node.ELEMENT_NODE)
 		{
-			var others = document.getElementsByClassName("caret-down");
-			for(let j = 0; j<others.length; j++)
-				if(others[j] !== this)
-				{
-					others[j].style.fontWeight = "normal";
-					others[j].classList.value = "caret";
-				}
-			this.classList.value = "caret-down";
-			this.style.fontWeight = "bold";
-			morfeas_comp_table(comp_args_table,
-							   new_morfeas_components_xml.childNodes[i],
-							   curr_morfeas_components_xml.childNodes[i]);
-		};
-		liNode.appendChild(textNode);
-		listNode.appendChild(liNode);
-	  }
-	  comp = comp.nextSibling;
+			let comp_name_id;
+			if(!(comp_name_id=get_comp_name(comp)))
+				continue;
+			let textNode = document.createTextNode(comp_name_id),
+			liNode = document.createElement("LI");
+			liNode.classList.add("caret");
+			liNode.setAttribute("name", comp.nodeName+"@"+i);
+			liNode.onclick = function()
+			{
+				var others = document.getElementsByClassName("caret-down");
+				for(let j = 0; j<others.length; j++)
+					if(others[j] !== this)
+					{
+						others[j].style.fontWeight = "normal";
+						others[j].classList.value = "caret";
+					}
+				this.classList.value = "caret-down";
+				this.style.fontWeight = "bold";
+				morfeas_comp_table(comp_args_table,
+								   new_morfeas_components_xml.childNodes[i],
+								   curr_morfeas_components_xml.childNodes[i]);
+			};
+			liNode.appendChild(textNode);
+			listNode.appendChild(liNode);
+		}
+		comp = comp.nextSibling;
 	}
 }
 //Function for set component's argument to the configuration table

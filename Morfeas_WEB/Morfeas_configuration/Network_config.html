@@ -97,317 +97,317 @@ FOR A PARTICULAR PURPOSE.  See the GNU AGPL for more details.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-	"use strict";
-	comp_check();
-	function static_conf(visible)
+"use strict";
+comp_check();
+function static_conf(visible)
+{
+	var static_config=document.getElementsByName("static_config");
+	static_config[0].style.visibility=visible?"visible":"collapse";
+	static_config[1].style.visibility=visible?"visible":"collapse";
+}
+function canif_table_constractor(can_ifs)
+{
+	if(!can_ifs||!can_ifs.length)
+		return;
+	const options=[125,250,500,1000];
+	const can_ifs_dom=document.getElementById("can-IFs");
+	const netconf_table=document.getElementById("netconf_tb");
+	var tr,td,th,select,option,textnode;
+	//--Make Head--//
+	th = document.createElement("th");
+	th.setAttribute("colspan","2");
+	textnode = document.createTextNode("SDAQNet (CAN-ifs)");
+	th.appendChild(textnode);
+	can_ifs_dom.appendChild(th);
+	//--Add BitRates selectors for CAN-ifs--//
+	for(let i=0; i<can_ifs.length;i++)
 	{
-		var static_config=document.getElementsByName("static_config");
-		static_config[0].style.visibility=visible?"visible":"collapse";
-		static_config[1].style.visibility=visible?"visible":"collapse";
-	}
-	function canif_table_constractor(can_ifs)
-	{
-		if(!can_ifs||!can_ifs.length)
-			return;
-		const options=[125,250,500,1000];
-		const can_ifs_dom=document.getElementById("can-IFs");
-		const netconf_table=document.getElementById("netconf_tb");
-		var tr,td,th,select,option,textnode;
-		//--Make Head--//
-		th = document.createElement("th");
-		th.setAttribute("colspan","2");
-		textnode = document.createTextNode("SDAQNet (CAN-ifs)");
-		th.appendChild(textnode);
-		can_ifs_dom.appendChild(th);
-		//--Add BitRates selectors for CAN-ifs--//
-		for(let i=0; i<can_ifs.length;i++)
+		tr = netconf_table.insertRow(can_ifs_dom.rowIndex+i+1);
+		//Add title, (CAN-if Name)
+		td = document.createElement("td");
+		td.setAttribute("name","can_ifs_names");
+		textnode = document.createTextNode(can_ifs[i].if_Name);
+		td.appendChild(textnode);
+		tr.appendChild(td);
+		//Add Select element with available option bitRates
+		td = document.createElement("td");
+		select = document.createElement("select");
+		select.setAttribute("name","can_ifs_bitrates");
+		for(let j=0;j<options.length;j++)
 		{
-			tr = netconf_table.insertRow(can_ifs_dom.rowIndex+i+1);
-			//Add title, (CAN-if Name)
-			td = document.createElement("td");
-			td.setAttribute("name","can_ifs_names");
-			textnode = document.createTextNode(can_ifs[i].if_Name);
-			td.appendChild(textnode);
-			tr.appendChild(td);
-			//Add Select element with available option bitRates
-			td = document.createElement("td");
-			select = document.createElement("select");
-			select.setAttribute("name","can_ifs_bitrates");
-			for(let j=0;j<options.length;j++)
-			{
-				option = document.createElement("option");
-				option.setAttribute("value",String(options[j]));
-				textnode = document.createTextNode(options[j]+" kbps");
-				option.appendChild(textnode);
-				select.appendChild(option);
-			}
-			td.appendChild(select);
-			tr.appendChild(td);
+			option = document.createElement("option");
+			option.setAttribute("value",String(options[j]));
+			textnode = document.createTextNode(options[j]+" kbps");
+			option.appendChild(textnode);
+			select.appendChild(option);
 		}
-		//set bitrate of CAN-ifs
-		const selects=document.getElementsByName("can_ifs_bitrates");
-		for(let i=0; i<selects.length;i++)
-			selects[i].value = (can_ifs[i].bitrate)/1000;
+		td.appendChild(select);
+		tr.appendChild(td);
 	}
-	function default_config(_config)
+	//set bitrate of CAN-ifs
+	const selects=document.getElementsByName("can_ifs_bitrates");
+	for(let i=0; i<selects.length;i++)
+		selects[i].value = (can_ifs[i].bitrate)/1000;
+}
+function default_config(_config)
+{
+	if(!_config)
+		return;
+	hostname.value = _config.hostname;
+	if(_config.ntp)
+		for(let i=0;i<4;i++)
+			ntp[i].value=(_config.ntp>>((3-i)*8))&0xff;
+	switch(_config.mode)
 	{
-		if(!_config)
-			return;
-		hostname.value = _config.hostname;
-		if(_config.ntp)
+		case "Static":
+			static_conf(true);
+			mode.selectedIndex = 0;
 			for(let i=0;i<4;i++)
-				ntp[i].value=(_config.ntp>>((3-i)*8))&0xff;
-		switch(_config.mode)
-		{
-			case "Static":
-				static_conf(true);
-				mode.selectedIndex = 0;
-				for(let i=0;i<4;i++)
-				{
-					ip[i].value=(_config.ip>>((3-i)*8))&0xff;
-					gateway[i].value=(_config.gate>>((3-i)*8))&0xff;
-				}
-				mask.value=_config.mask;
-				break;
-			case "DHCP":
-				static_conf(false);
-				mode.selectedIndex = 1;
-				break;
-		}
-		if(_config.hasOwnProperty("CAN_ifs"))
-		{
-			if(config.CAN_ifs.length)
 			{
-				let can_ifs_dom = document.getElementById("can-IFs");
-				if(can_ifs_dom.innerHTML)
-				{
-					can_ifs_dom.innerHTML="";
-					for(let i=0;i<config.CAN_ifs.length;i++)
-						document.getElementById("netconf_tb").deleteRow(can_ifs_dom.rowIndex+1);
-				}
-				canif_table_constractor(config.CAN_ifs);
+				ip[i].value=(_config.ip>>((3-i)*8))&0xff;
+				gateway[i].value=(_config.gate>>((3-i)*8))&0xff;
 			}
+			mask.value=_config.mask;
+			break;
+		case "DHCP":
+			static_conf(false);
+			mode.selectedIndex = 1;
+			break;
+	}
+	if(_config.hasOwnProperty("CAN_ifs"))
+	{
+		if(config.CAN_ifs.length)
+		{
+			let can_ifs_dom = document.getElementById("can-IFs");
+			if(can_ifs_dom.innerHTML)
+			{
+				can_ifs_dom.innerHTML="";
+				for(let i=0;i<config.CAN_ifs.length;i++)
+					document.getElementById("netconf_tb").deleteRow(can_ifs_dom.rowIndex+1);
+			}
+			canif_table_constractor(config.CAN_ifs);
 		}
 	}
-	function val(inp)
+}
+function val(inp)
+{
+	if(inp.value==="")
+		inp.value=0;
+	else if(Number(inp.value)>inp.max)
+		inp.value=inp.max;
+	else if(Number(inp.value)<inp.min)
+		inp.value=inp.min;
+}
+//DOM const
+const hostname=document.getElementById("hostname"),
+	  mode=document.getElementById("mode"),
+	  ip=document.getElementsByName("ip"),
+	  mask=document.getElementById("mask"),
+	  gateway=document.getElementsByName("gateway"),
+	  ntp=document.getElementsByName("ntp");
+//Set Limits
+for(let i=0;i<4;i++)
+{
+	ip[i].type="number";
+	ip[i].max=255;ip[i].min=0;
+	ip[i].oninput = function(){val(this)};
+	gateway[i].type="number";
+	gateway[i].max=255;gateway[i].min=0;
+	gateway[i].oninput = function(){val(this)};
+	ntp[i].type="number";
+	ntp[i].max=255;ntp[i].min=0;
+	ntp[i].oninput = function(){val(this)};
+}
+mask.type="number";
+mask.max=30;mask.min=4;
+mask.onchange = function(){val(this)};
+//AJAX object for configuration receive and send
+var config=null, xhttp = new XMLHttpRequest();
+xhttp.timeout = 5000;
+xhttp.onreadystatechange = function()
+{
+	if(this.readyState == 4 && this.status == 200)
 	{
-		if(inp.value==="")
-			inp.value=0;
-		else if(Number(inp.value)>inp.max)
-			inp.value=inp.max;
-		else if(Number(inp.value)<inp.min)
-			inp.value=inp.min;
-	}
-	//DOM const
-	const hostname=document.getElementById("hostname"),
-		  mode=document.getElementById("mode"),
-		  ip=document.getElementsByName("ip"),
-		  mask=document.getElementById("mask"),
-		  gateway=document.getElementsByName("gateway"),
-		  ntp=document.getElementsByName("ntp");
-	//Set Limits
-	for(let i=0;i<4;i++)
-	{
-		ip[i].type="number";
-		ip[i].max=255;ip[i].min=0;
-		ip[i].oninput = function(){val(this)};
-		gateway[i].type="number";
-		gateway[i].max=255;gateway[i].min=0;
-		gateway[i].oninput = function(){val(this)};
-		ntp[i].type="number";
-		ntp[i].max=255;ntp[i].min=0;
-		ntp[i].oninput = function(){val(this)};
-	}
-	mask.type="number";
-	mask.max=30;mask.min=4;
-	mask.onchange = function(){val(this)};
-	//AJAX object for configuration receive and send
-	var config=null, xhttp = new XMLHttpRequest();
-	xhttp.timeout = 5000;
-	xhttp.onreadystatechange = function()
-	{
-		if(this.readyState == 4 && this.status == 200)
+		if(this.getResponseHeader("Content-Type")==="application/json")
 		{
-			if(this.getResponseHeader("Content-Type")==="application/json")
+			var rx_msg = JSON.parse(this.responseText);
+			if(rx_msg.hasOwnProperty("report"))
 			{
-				var rx_msg = JSON.parse(this.responseText);
-				if(rx_msg.hasOwnProperty("report"))
+				if(rx_msg.report)
 				{
-					if(rx_msg.report)
-					{
-						alert("Okay");
-						location.reload(true);
-					}
-				}
-				else
-				{
-					config = rx_msg;
-					default_config(config);
+					alert("Okay");
+					location.reload(true);
 				}
 			}
 			else
-				alert(this.responseText);
+			{
+				config = rx_msg;
+				default_config(config);
+			}
 		}
-		else if(this.status == 500)
-			alert("FATAL Error on server!!!");
-	};
-	xhttp.ontimeout = function (e)
-	{
-		alert("Device configured and Rebooted\n"+
-			  "Refresh all the related Windows");
-		window.close();
-	};
-	//Get the configuration
-	xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getCurConfig", true);
-	xhttp.send();
-
-	function Send_config()
-	{
-		var new_config={hostname:"",mode:"",ip:0,mask:0,gate:0,ntp:0,CAN_ifs:[]};
-
-		if(get_new_hostname(new_config)) return;
-		if(get_new_mode(new_config)) return;
-		if(get_new_ntp(new_config)) return;
-		if(get_new_CANifs(new_config)) return;
-		if(!(Object.keys(new_config).length))
-		{
-			alert("Nothing to commit!!!");
-			return;
-		}
-		//console.log(new_config);
-		//Send the configuration
-		xhttp.open("POST", "../morfeas_php/config.php", true);
-		xhttp.setRequestHeader("Content-type", "net_conf");
-		xhttp.send(compress(JSON.stringify(new_config)));
-	}
-	function get_new_hostname(new_config)
-	{
-		if(hostname.value === config.hostname)
-			delete new_config.hostname;
 		else
-		{
-			var illegal_chars = new RegExp('[\\/:*?"<>|. ]|^-|-$|^\d');
-			if(!(hostname.value.length)||hostname.value.length>=16||
-			   illegal_chars.test(hostname.value))
-			{
-				alert("Hostname is Invalid!!!\n"+
-					  "Must contain ONLY:\n"+
-					  "Latin letters and numbers");
-				return -1;
-			}
-			new_config.hostname=hostname.value;
-		}
-		return 0;
+			alert(this.responseText);
 	}
-	function get_new_mode(new_config)
-	{
-		new_config.mode=mode.value;
-		if(new_config.mode !== "Static")
-		{
-			delete new_config.ip;
-			delete new_config.mask;
-			delete new_config.gate;
-			if(new_config.mode===config.mode)
-				delete new_config.mode;
-			return 0;
-		}
-		new_config.mask=Number(mask.value);
-		if(!new_config.mask || new_config.mask>31)
-		{
-			alert("Invalid Subnet Mask!!!");
-			return -1;
-		}
-		for(let i=0; i<4; i++)
-		{
-			if(ip[i].value=="")
-			{
-				new_config.ip=0;
-				break;
-			}
-			if(gateway[i].value=="")
-			{
-				new_config.gate=0;
-				break;
-			}
-			new_config.ip<<=8;
-			new_config.ip+=Number(ip[i].value);
-			new_config.gate<<=8;
-			new_config.gate+=Number(gateway[i].value);
-		}
+	else if(this.status == 500)
+		alert("FATAL Error on server!!!");
+};
+xhttp.ontimeout = function (e)
+{
+	alert("Device configured and Rebooted\n"+
+		  "Refresh all the related Windows");
+	window.close();
+};
+//Get the configuration
+xhttp.open("GET", "../morfeas_php/config.php"+"?COMMAND=getCurConfig", true);
+xhttp.send();
 
-		var mask_num=1<<31;
-		for(let i=0; i<new_config.mask-1; i++)
-		{
-			mask_num|=1<<31;
-			mask_num>>=1;
-		}
-		if(!(~mask_num & new_config.ip)||(mask_num | new_config.ip) === -1 ||
-		  !(0xFF000000 & new_config.ip)||((new_config.ip>>24)&0x000000FF) === 0xFF)
-		{
-			alert("IP address is invalid!!!");
-			return -1;
-		}
-		if(!new_config.gate||!(new_config.gate&~mask_num)||(new_config.gate|mask_num)==-1)
-		{
-			alert("Invalid Gateway!!!");
-			return -1;
-		}
-		if((new_config.ip == config.ip)&&
-		   (new_config.mask == config.mask)&&
-		   (new_config.gate == config.gate))
-		{
-		   delete new_config.mode;
-		   delete new_config.ip;
-		   delete new_config.mask;
-		   delete new_config.gate
-		}
-		return 0;
-	}
-	function get_new_ntp(new_config)
-	{
-		for(let i=0;i<4;i++)
-		{
-			if(ntp[i].value==="")
-			{
-				new_config.ntp=0;
-				break;
-			}
-			new_config.ntp<<=8;
-			new_config.ntp+=Number(ntp[i].value);
-		}
+function Send_config()
+{
+	var new_config={hostname:"",mode:"",ip:0,mask:0,gate:0,ntp:0,CAN_ifs:[]};
 
-		if(!new_config.ntp||new_config.ntp===-1)
+	if(get_new_hostname(new_config)) return;
+	if(get_new_mode(new_config)) return;
+	if(get_new_ntp(new_config)) return;
+	if(get_new_CANifs(new_config)) return;
+	if(!(Object.keys(new_config).length))
+	{
+		alert("Nothing to commit!!!");
+		return;
+	}
+	//console.log(new_config);
+	//Send the configuration
+	xhttp.open("POST", "../morfeas_php/config.php", true);
+	xhttp.setRequestHeader("Content-type", "net_conf");
+	xhttp.send(compress(JSON.stringify(new_config)));
+}
+function get_new_hostname(new_config)
+{
+	if(hostname.value === config.hostname)
+		delete new_config.hostname;
+	else
+	{
+		var illegal_chars = new RegExp('[\\/:*?"<>|. ]|^-|-$|^\d');
+		if(!(hostname.value.length)||hostname.value.length>=16||
+		   illegal_chars.test(hostname.value))
 		{
-			alert("Invalid NTP server's IP!!!");
+			alert("Hostname is Invalid!!!\n"+
+				  "Must contain ONLY:\n"+
+				  "Latin letters and numbers");
 			return -1;
 		}
-		if(new_config.ntp === config.ntp)
-			delete new_config.ntp;
-		return 0;
+		new_config.hostname=hostname.value;
 	}
-	function get_new_CANifs(new_config)
+	return 0;
+}
+function get_new_mode(new_config)
+{
+	new_config.mode=mode.value;
+	if(new_config.mode !== "Static")
 	{
-		const CAN_ifs_bitrate = document.getElementsByName("can_ifs_bitrates");
-		const CAN_ifs_names = document.getElementsByName("can_ifs_names");
-		if(!CAN_ifs_names||!CAN_ifs_bitrate||!config.hasOwnProperty("CAN_ifs"))
-		{
-			delete new_config.CAN_ifs;
-			return 0;
-		}
-		for(let i=0,j=0; i<CAN_ifs_names.length;i++)
-		{
-			if(config.CAN_ifs[i].bitrate !== CAN_ifs_bitrate[i].value*1000)
-			{
-				new_config.CAN_ifs[j]=new Object();
-				new_config.CAN_ifs[j].if_Name=CAN_ifs_names[i].innerHTML;
-				new_config.CAN_ifs[j].bitrate=CAN_ifs_bitrate[i].value*1000;
-				j++;
-			}
-		}
-		if(!new_config.CAN_ifs.length)
-			delete new_config.CAN_ifs;
+		delete new_config.ip;
+		delete new_config.mask;
+		delete new_config.gate;
+		if(new_config.mode===config.mode)
+			delete new_config.mode;
 		return 0;
 	}
+	new_config.mask=Number(mask.value);
+	if(!new_config.mask || new_config.mask>31)
+	{
+		alert("Invalid Subnet Mask!!!");
+		return -1;
+	}
+	for(let i=0; i<4; i++)
+	{
+		if(ip[i].value=="")
+		{
+			new_config.ip=0;
+			break;
+		}
+		if(gateway[i].value=="")
+		{
+			new_config.gate=0;
+			break;
+		}
+		new_config.ip<<=8;
+		new_config.ip+=Number(ip[i].value);
+		new_config.gate<<=8;
+		new_config.gate+=Number(gateway[i].value);
+	}
+
+	var mask_num=1<<31;
+	for(let i=0; i<new_config.mask-1; i++)
+	{
+		mask_num|=1<<31;
+		mask_num>>=1;
+	}
+	if(!(~mask_num & new_config.ip)||(mask_num | new_config.ip) === -1 ||
+	  !(0xFF000000 & new_config.ip)||((new_config.ip>>24)&0x000000FF) === 0xFF)
+	{
+		alert("IP address is invalid!!!");
+		return -1;
+	}
+	if(!new_config.gate||!(new_config.gate&~mask_num)||(new_config.gate|mask_num)==-1)
+	{
+		alert("Invalid Gateway!!!");
+		return -1;
+	}
+	if((new_config.ip == config.ip)&&
+	   (new_config.mask == config.mask)&&
+	   (new_config.gate == config.gate))
+	{
+	   delete new_config.mode;
+	   delete new_config.ip;
+	   delete new_config.mask;
+	   delete new_config.gate
+	}
+	return 0;
+}
+function get_new_ntp(new_config)
+{
+	for(let i=0;i<4;i++)
+	{
+		if(ntp[i].value==="")
+		{
+			new_config.ntp=0;
+			break;
+		}
+		new_config.ntp<<=8;
+		new_config.ntp+=Number(ntp[i].value);
+	}
+
+	if(!new_config.ntp||new_config.ntp===-1)
+	{
+		alert("Invalid NTP server's IP!!!");
+		return -1;
+	}
+	if(new_config.ntp === config.ntp)
+		delete new_config.ntp;
+	return 0;
+}
+function get_new_CANifs(new_config)
+{
+	const CAN_ifs_bitrate = document.getElementsByName("can_ifs_bitrates");
+	const CAN_ifs_names = document.getElementsByName("can_ifs_names");
+	if(!CAN_ifs_names||!CAN_ifs_bitrate||!config.hasOwnProperty("CAN_ifs"))
+	{
+		delete new_config.CAN_ifs;
+		return 0;
+	}
+	for(let i=0,j=0; i<CAN_ifs_names.length;i++)
+	{
+		if(config.CAN_ifs[i].bitrate !== CAN_ifs_bitrate[i].value*1000)
+		{
+			new_config.CAN_ifs[j]=new Object();
+			new_config.CAN_ifs[j].if_Name=CAN_ifs_names[i].innerHTML;
+			new_config.CAN_ifs[j].bitrate=CAN_ifs_bitrate[i].value*1000;
+			j++;
+		}
+	}
+	if(!new_config.CAN_ifs.length)
+		delete new_config.CAN_ifs;
+	return 0;
+}
 //@license-end
 </script>
 </body>
