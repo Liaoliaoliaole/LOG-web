@@ -357,6 +357,7 @@ function morfeas_logstat_commonizer(logstats)
 				//Load Device's status
 				data_table[data_table_index].connections.push(new connection("BUS_Utilization", logstats.logstat_contents[i].BUS_Utilization.toFixed(1), "%"));
 				data_table[data_table_index].connections.push(new connection("Detected_SDAQs", logstats.logstat_contents[i].Detected_SDAQs));
+				data_table[data_table_index].connections.push(new connection("Incomplete_SDAQs", logstats.logstat_contents[i].Incomplete_SDAQs));
 				if(logstats.logstat_contents[i].Electrics)
 				{
 					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_last_calibration_UNIX",
