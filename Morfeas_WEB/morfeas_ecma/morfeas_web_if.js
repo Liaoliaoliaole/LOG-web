@@ -52,13 +52,17 @@ function morfeas_logstat_commonizer(logstats)
 	var data_table = new Array();
 
 	//Check for incompatible input
-	if(logstats === undefined)
+	if(!logstats)
 		return "no logstats type data";
-	if((logstats = JSON.parse(logstats)) === undefined)
-		return "Parsing error";
-	if(logstats.logstats_names === undefined)
+	try {
+		logstats = JSON.parse(logstats);
+	}
+	catch(err) {
+	  return "Parsing error";
+	}
+	if(!logstats.logstats_names)
 		return "missing logstats_names";
-	if(logstats.logstat_contents === undefined)
+	if(!logstats.logstat_contents)
 		return "missing logstat_contents";
 
 	function norm(num, targetLength)
@@ -374,6 +378,8 @@ function morfeas_logstat_commonizer(logstats)
 				{
 					for(let j=0; j<logstats.logstat_contents[i].SDAQs_data.length; j++)
 					{
+						if(logstats.logstat_contents[i].SDAQs_data[j].SDAQ_Status.Registration_status !== "Done")
+							continue;
 						for(let k=0; k<logstats.logstat_contents[i].SDAQs_data[j].Meas.length; k++)
 						{
 							let error_str='No error';

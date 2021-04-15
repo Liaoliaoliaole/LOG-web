@@ -13,7 +13,7 @@
   <tr>
     <th colspan="5" style="font-size: 200%;">System Loggers</th>
   </tr>
-  <tr>  
+  <tr>
   </tr>
   <tr>
 	<td colspan="4"><input id="status" style="text-align:center;" type="textbox" size="20" value="Okay" readonly></td>
@@ -24,7 +24,7 @@
   <tr>
 	<td><input type="button" value="Sensors" onclick='Show_hide(screen_enum.Logstats);display_mode=mode_enum_L2.Sensors;'></td>
 	<td><input type="button" value="Details" onclick='Show_hide(screen_enum.Logstats);display_mode=mode_enum_L2.Details;'></td>
-	<td><input type="button" value="System logs" onclick='Show_hide(screen_enum.Loggers)'></td> 
+	<td><input type="button" value="System logs" onclick='Show_hide(screen_enum.Loggers)'></td>
   </tr>
 </table>
 
@@ -34,7 +34,7 @@
 	<td colspan="4"><code id="Logger_terminal"></code></td>
   </tr>
   <tr>
-	<td style="text-align:left;"><input id="download" type="button" value="Reload Logger names" 
+	<td style="text-align:left;"><input id="download" type="button" value="Reload Logger names"
 		onclick="request_mode = mode_enum.Loggers_name;">
 	</td>
 	<td style="text-align:right;">Logger:
@@ -65,7 +65,7 @@ Copyright (C) 12019-12020  Sam Harry Tzavaras
 The JavaScript code in this page is free software: you can
 redistribute it and/or modify it under the terms of the GNU
 General Public License (GNU AGPL) as published by the Free Software
-Foundation, either version 3 of the License, or any later version.  
+Foundation, either version 3 of the License, or any later version.
 The code is distributed WITHOUT ANY WARRANTY;
 without even the implied warranty of MERCHANTABILITY or FITNESS
 FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
@@ -123,7 +123,7 @@ xhttp.onreadystatechange = function(){
 			case mode_enum.Logger_content:
 				document.getElementById("status").value = "Morfeas Loggers";
 				Logger_terminal.innerHTML = morfeas_opcua_logger_colorizer(this.responseText);
-				if(document.body.scrollTop === document.body.scrollHeight)	
+				if(document.body.scrollTop === document.body.scrollHeight)
 					document.body.scrollTo(0,document.body.scrollHeight);
 				break;
 			case mode_enum.Logstats:
@@ -146,13 +146,13 @@ xhttp.onreadystatechange = function(){
 								if(logstat[i].sensors)
 								{
 									for(let j=0; j<logstat[i].sensors.length; j++)
-									{		
+									{
 										let last_row = sensors_table.insertRow();
 										last_row.insertCell().innerHTML = logstat[i].sensors[j].type;
 										last_row.insertCell().innerHTML = logstat[i].sensors[j].deviceUserIdentifier;
 										last_row.insertCell().innerHTML = logstat[i].sensors[j].sensorUserId;
 										let meas_cell=last_row.insertCell()
-										meas_cell.innerHTML = logstat[i].sensors[j].Is_meas_valid? 
+										meas_cell.innerHTML = logstat[i].sensors[j].Is_meas_valid?
 															  logstat[i].sensors[j].avgMeasurement.toFixed(3)+' '+(logstat[i].sensors[j].unit?logstat[i].sensors[j].unit:""):
 															  'Error: '+logstat[i].sensors[j].Error_explanation;
 										if(!logstat[i].sensors[j].Is_meas_valid)
@@ -174,7 +174,7 @@ xhttp.onreadystatechange = function(){
 									details_table.style="margin:auto;margin-bottom:.075in;width:4in;";
 									details_table.createTHead().innerHTML = logstat[i].if_name;
 									for(let j=0; j<logstat[i].connections.length; j++)
-									{		
+									{
 										let last_row = details_table.insertRow();
 										last_row.insertCell().innerHTML = logstat[i].connections[j].name;
 										if(logstat[i].connections[j].name.includes("UNIX"))
@@ -182,11 +182,12 @@ xhttp.onreadystatechange = function(){
 											let date_conv = new Date();
 											date_conv.setTime(logstat[i].connections[j].value*1000)
 											last_row.insertCell().innerHTML = date_conv.getFullYear()+"/"+
-																			  (date_conv.getMonth()+1)+"/"+ 
+																			  (date_conv.getMonth()+1)+"/"+
 																			  date_conv.getDate();
 										}
 										else
-											last_row.insertCell().innerHTML = logstat[i].connections[j].value + (logstat[i].connections[j].unit?logstat[i].connections[j].unit:"");
+											last_row.insertCell().innerHTML = logstat[i].connections[j].value
+																			+ (logstat[i].connections[j].unit?logstat[i].connections[j].unit:"");
 									}
 									logstats_disp.appendChild(details_table);
 								}
@@ -195,7 +196,10 @@ xhttp.onreadystatechange = function(){
 					}
 				}
 				else
+				{
 					document.getElementById("status").value = logstat;
+					console.log(logstat);
+				}
 				break;
 		}
 	}
@@ -230,13 +234,13 @@ function Morfeas_request()
 		xhttp.send();
 	}
 }
-function Show_hide(log_set) 
+function Show_hide(log_set)
 {
 	if(log_set==screen_enum.Loggers)
 	{
 		document.getElementById("loggers").style.display="table";
 		document.getElementById("logstats_disp").style.display="none";
-		document.getElementById("logger_select").selectedIndex = 0; 
+		document.getElementById("logger_select").selectedIndex = 0;
 		Logger_terminal.innerHTML="";
 		request_mode = mode_enum.Loggers_name;
 	}
