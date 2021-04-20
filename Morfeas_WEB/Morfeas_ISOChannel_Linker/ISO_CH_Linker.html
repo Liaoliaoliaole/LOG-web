@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<link href="../External_components/tabulator/dist/css/tabulator.css" rel="stylesheet">
+<link href="../External_components/tabulator/dist/css/tabulator_modern.min.css" rel="stylesheet">
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
 <title>Morfeas WEB ISOChannels Linker</title>
 </head>
@@ -18,9 +18,11 @@
 	</div>
 </footer>
 </body>
+<script src="../External_components/jquery/dist/jquery.min.js"></script>
+<script src="../External_components/sparkline/dist/jquery.sparkline.min.js"></script>
+<script src="../External_components/tabulator/dist/js/tabulator.min.js"></script>
 <script src='../morfeas_ecma/common.js'></script>
 <script src='../morfeas_ecma/morfeas_web_if.js'></script>
-<script src="../External_components/tabulator/dist/js/tabulator.js"></script>
 <script>
 //@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
 /*
@@ -62,6 +64,9 @@ var tabledata = [
 	{id:1, iso_name:"TT002", type:"SDAQ", conn:"CAN0.ADDR:02.CH2", meas:52.66, graph:[21.66,90.99], desc:"a test 2", min:100, max:4000},
 	{id:2, iso_name:"TT003", type:"SDAQ", conn:"CAN0.ADDR:02.CH3", meas:100.55, graph:[70.66,78.99], desc:"a test 3", min:100, max:4000}
 ];
+var lineFormatter = function(cell, formatterParams, onRendered){
+    onRendered(function(){$(cell.getElement()).sparkline(cell.getValue(), {width:"100%", type:"line"})});
+};
 var opcua_config_table = new Tabulator("#opcua_config_table", {
  	height:"800px",
  	layout:"fitDataFill", //fit columns to width of table (optional)
@@ -71,9 +76,9 @@ var opcua_config_table = new Tabulator("#opcua_config_table", {
 	 	//{formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false},
 		{title:"ISOName", field:"iso_name"},
 		{title:"Sensor type", field:"type"},
-	 	{title:"Sensor connection", field:"conn"},
+	 	{title:"Interface connection", field:"conn"},
 	 	{title:"Current Value", field:"meas"},
-	 	{title:"History", field:"graph"},
+	 	{title:"History", field:"graph", headerSort:false, formatter:lineFormatter},
 		{title:"Description", field:"desc", responsive:0},
 		{title:"Min", field:"min", responsive:0},
 		{title:"Max", field:"max", responsive:0}

@@ -121,7 +121,7 @@ function morfeas_logstat_commonizer(logstats)
 				//Load system's status
 				data_table[data_table_index].sensors = null;
 				if(logstats.logstat_contents[i].CPU_temp)
-					data_table[data_table_index].connections.push(new connection("CPU_temp", logstats.logstat_contents[i].CPU_temp.toFixed(2), "°C"));
+					data_table[data_table_index].connections.push(new connection("CPU_temp", logstats.logstat_contents[i].CPU_temp.toFixed(1), "°C"));
 				data_table[data_table_index].connections.push(new connection("CPU_Util", logstats.logstat_contents[i].CPU_Util.toFixed(2), "%"));
 				data_table[data_table_index].connections.push(new connection("RAM_Util", logstats.logstat_contents[i].RAM_Util.toFixed(2), "%"));
 				data_table[data_table_index].connections.push(new connection("Disk_Util", logstats.logstat_contents[i].Disk_Util.toFixed(2), "%"));
@@ -141,7 +141,7 @@ function morfeas_logstat_commonizer(logstats)
 				//Load Device's sensors
 				if(logstats.logstat_contents[i].MDAQ_Channels !== undefined)
 				{
-					data_table[data_table_index].connections.push(new connection("Board_temp", logstats.logstat_contents[i].Board_temp, "°C"));
+					data_table[data_table_index].connections.push(new connection("Board_temp", logstats.logstat_contents[i].Board_temp.toFixed(1), "°C"));
 					for(let j=0; j<logstats.logstat_contents[i].MDAQ_Channels.length; j++)
 					{
 						for(let k=1; k<=3; k++)//limit to 3]
@@ -177,7 +177,7 @@ function morfeas_logstat_commonizer(logstats)
 				//Load Device's sensors
 				if(logstats.logstat_contents[i].Connection_status === "Okay")
 				{
-					data_table[data_table_index].connections.push(new connection("CPU_temp", logstats.logstat_contents[i].MTI_status.MTI_CPU_temp, "°C"));
+					data_table[data_table_index].connections.push(new connection("CPU_temp", logstats.logstat_contents[i].MTI_status.MTI_CPU_temp.toFixed(1), "°C"));
 					data_table[data_table_index].connections.push(new connection("Battery state", logstats.logstat_contents[i].MTI_status.MTI_charge_status));
 					if(logstats.logstat_contents[i].MTI_status.MTI_charge_status !== "Charging" && logstats.logstat_contents[i].MTI_status.MTI_charge_status !== "Full")
 						data_table[data_table_index].connections.push(new connection("Battery capacity", logstats.logstat_contents[i].MTI_status.MTI_batt_capacity));
@@ -371,7 +371,7 @@ function morfeas_logstat_commonizer(logstats)
 					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_outAmperage",
 																				  logstats.logstat_contents[i].Electrics.BUS_amperage.toFixed(2), "A"));
 					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_ShuntTemp",
-																				  logstats.logstat_contents[i].Electrics.BUS_Shunt_Res_temp.toFixed(2), "°C"));
+																				  logstats.logstat_contents[i].Electrics.BUS_Shunt_Res_temp.toFixed(1), "°C"));
 				}
 				//Load Device's sensors
 				if(logstats.logstat_contents[i].Detected_SDAQs)
