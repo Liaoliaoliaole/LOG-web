@@ -21,6 +21,7 @@
 <script src="../External_components/jquery/dist/jquery.min.js"></script>
 <script src="../External_components/sparkline/dist/jquery.sparkline.min.js"></script>
 <script src="../External_components/tabulator/dist/js/tabulator.min.js"></script>
+<script src="../External_components/moment/dist/moment.min.js"></script>
 <script src='../morfeas_ecma/common.js'></script>
 <script src='../morfeas_ecma/morfeas_web_if.js'></script>
 <script>
@@ -60,30 +61,36 @@ var data_req=false, curr_opcua_config,
 	request_mode = mode_enum.opcua_config;
 
 var tabledata = [
-	{id:0, col:'red', iso_name:"TT001", type:"SDAQ", conn:"CAN0.ADDR:02.CH1", meas:10.55, graph:[25.66,55.99,21], desc:"a test", min:100, max:4000},
-	{id:1, col:'green', iso_name:"TT002", type:"SDAQ", conn:"CAN0.ADDR:02.CH2", meas:52.66, graph:[21.66,90.99], desc:"a test 2 ", min:100, max:4000},
-	{id:2, col:'blue', iso_name:"TT003", type:"SDAQ", conn:"CAN0.ADDR:02.CH3", meas:100.55, graph:[70.66,78.99], desc:"a test 3", min:100, max:4000}
+	{id:0, col:'red', iso_name:"TT001", type:"SDAQ", conn:"CAN0.ADDR:02.CH1", meas:10.55, graph:[25.66,55.99,21], desc:"a test", min:100, max:4000, cal_date:new Date()},
+	{id:1, col:'orange', iso_name:"TT002", type:"SDAQ", conn:"CAN0.ADDR:02.CH2", meas:52.66, graph:[21.66,90.99], desc:"a test 2 ", min:100, max:4000},
+	{id:2, col:'green', iso_name:"TT003", type:"SDAQ", conn:"CAN0.ADDR:02.CH3", meas:100.55, graph:[70.66,78.99], desc:"a test 3", min:100, max:4000}
 ];
+const cal_date_format_params = {
+    outputFormat:"DD/MM/YYYY",
+    invalidPlaceholder:"-"
+};
 var hist_graph_formatter = function(cell, formatterParams, onRendered){
     onRendered(function(){$(cell.getElement()).sparkline(cell.getValue(), {width:"100%", type:"line"});});
 };
 var opcua_config_table = new Tabulator("#opcua_config_table",
 {
 	height:"800px",
- 	layout:"fitDataFill", //fit columns to width of table (optional)
+ 	layout:"fitDataFill",
  	responsiveLayout:"collapse",
-	columns: //Define Table Columns
+	columns:
 	[
 	 	{formatter:"responsiveCollapse",  responsive:0, width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false},
-		{field:"col" ,formatter:"color"},
+		{field:"col" ,formatter:"color", responsive:0},
 		{title:"ISOChannel", field:"iso_name", responsive:0},
 		{title:"Sensor type", field:"type", responsive:0},
 	 	{title:"Interface connection", field:"conn", responsive:0},
 	 	{title:"Current Value", field:"meas", headerSort:false, responsive:0},
 	 	{title:"Value History", field:"graph", headerSort:false, responsive:0, formatter:hist_graph_formatter},
-		{title:"Description", field:"desc", headerSort:false, responsive:1},
-		{title:"Min", field:"min", headerSort:false, responsive:2},
-		{title:"Max", field:"max", headerSort:false, responsive:3}
+		{title:"Unit", field:"unit", headerSort:false, responsive:1},
+		{title:"Description", field:"desc", headerSort:false, responsive:2},
+		{title:"Min", field:"min", headerSort:false, responsive:3},
+		{title:"Max", field:"max", headerSort:false, responsive:4},
+		{title:"Calibration", field:"cal_date", headerSort:false, responsive:5, formatter:"datetime", formatterParams:cal_date_format_params}
  	],
 	data:tabledata, //assign data to table
  	/*
