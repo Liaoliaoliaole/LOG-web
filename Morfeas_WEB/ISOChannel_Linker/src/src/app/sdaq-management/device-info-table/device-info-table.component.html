@@ -19,6 +19,10 @@
           <button class="btn btn-secondary p-3 btn-flat clear" (click)="clearFilters()">Clear filters</button>
         </div>
         <div *ngIf="updateButtonsVisible">
+          <div class="online-check">
+            <p class="online-check-text">Update from Gitlab/hub (internet connection required)</p>
+            <input class="online-check-box" type="checkbox" (click)="setUpdateFromOnline()"/>
+          </div>
           <button *ngIf="!isUpdatingWeb" class="btn btn-secondary p-3 btn-flat clear" (click)="updateMorfeasWeb()">Update Morfeas Web</button>
           <button *ngIf="isUpdatingWeb" class="btn btn-secondary p-3 btn-flat clear"><div *ngIf="isUpdatingWeb" class="lds-ellipsis"><div></div><div></div><div></div><div></div></div></button>
           <button *ngIf="!isUpdatingCore" class="btn btn-secondary p-3 btn-flat clear" (click)="updateMorfeasCore()">Update Morfeas Core</button>

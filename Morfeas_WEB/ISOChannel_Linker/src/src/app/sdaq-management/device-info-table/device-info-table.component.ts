@@ -597,11 +597,19 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   clearFilters() {
     this.gridOptions.api.setFilterModel(null);
   }
+  updateFromOnline = false;
+  setUpdateFromOnline() {
+    if (this.updateFromOnline === false) {
+      this.updateFromOnline = true
+    } else {
+      this.updateFromOnline = false
+    }
+  }
   isUpdatingCore = false;
   updateMorfeasCore() {
     alert('Updating Morfeas Core. This can take several minutes to complete.');
     this.isUpdatingCore = true;
-    this.updateService.sendUpdateRequestForCore()
+    this.updateService.sendUpdateRequestForCore(this.updateFromOnline)
       .subscribe(response => {
         this.isUpdatingCore = false;
         alert(response.message);
@@ -612,7 +620,7 @@ export class DeviceInfoTableComponent implements OnInit, OnDestroy {
   updateMorfeasWeb() {
     alert('Updating Morfeas Web. This can take few minutes.');
     this.isUpdatingWeb = true;
-    this.updateService.sendUpdateRequestForWeb()
+    this.updateService.sendUpdateRequestForWeb(this.updateFromOnline)
       .subscribe(response => {
         this.isUpdatingWeb = false;
         alert(response.message);
