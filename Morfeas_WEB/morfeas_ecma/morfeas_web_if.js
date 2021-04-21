@@ -291,6 +291,7 @@ function morfeas_logstat_commonizer(logstats)
 				data_table[data_table_index].logstat_build_date_UNIX = logstats.logstat_contents[i].logstat_build_date_UNIX;
 				//Load Device's status
 				data_table[data_table_index].connections.push(new connection("BUS_Utilization", logstats.logstat_contents[i].BUS_Utilization.toFixed(1), "%"));
+				data_table[data_table_index].connections.push(new connection("BUS_Error_Rate", logstats.logstat_contents[i].BUS_Error_rate.toFixed(1), "%"));
 				let det_NOx = 0;
 				if(Object.entries(logstats.logstat_contents[i].NOx_sensors))
 				{
@@ -363,6 +364,7 @@ function morfeas_logstat_commonizer(logstats)
 				data_table[data_table_index].logstat_build_date_UNIX = logstats.logstat_contents[i].logstat_build_date_UNIX;
 				//Load Device's status
 				data_table[data_table_index].connections.push(new connection("BUS_Utilization", logstats.logstat_contents[i].BUS_Utilization.toFixed(1), "%"));
+				data_table[data_table_index].connections.push(new connection("BUS_Error_Rate", logstats.logstat_contents[i].BUS_Error_rate.toFixed(1), "%"));
 				data_table[data_table_index].connections.push(new connection("Detected_SDAQs", logstats.logstat_contents[i].Detected_SDAQs));
 				data_table[data_table_index].connections.push(new connection("Incomplete_SDAQs", logstats.logstat_contents[i].Incomplete_SDAQs));
 				if(logstats.logstat_contents[i].Electrics)
