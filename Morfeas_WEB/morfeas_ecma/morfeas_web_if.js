@@ -292,9 +292,12 @@ function morfeas_logstat_commonizer(logstats)
 				//Load Device's status
 				data_table[data_table_index].connections.push(new connection("BUS_Utilization", logstats.logstat_contents[i].BUS_Utilization.toFixed(1), "%"));
 				let det_NOx = 0;
-				for(let j=0; j<logstats.logstat_contents[i].NOx_sensors.length; j++)
-					if(Object.entries(logstats.logstat_contents[i].NOx_sensors[j]).length)
-						det_NOx++;
+				if(Object.entries(logstats.logstat_contents[i].NOx_sensors))
+				{
+					for(let j=0; j<logstats.logstat_contents[i].NOx_sensors.length; j++)
+						if(Object.entries(logstats.logstat_contents[i].NOx_sensors[j]).length)
+							det_NOx++;
+				}
 				data_table[data_table_index].connections.push(new connection("Detected_UniNOx", det_NOx));
 				if(logstats.logstat_contents[i].Electrics)
 				{

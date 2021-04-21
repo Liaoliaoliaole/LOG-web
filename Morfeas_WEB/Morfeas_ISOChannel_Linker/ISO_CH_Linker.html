@@ -82,8 +82,8 @@ var opcua_config_table = new Tabulator("#opcua_config_table",
 	 	{formatter:"responsiveCollapse",  responsive:0, width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false},
 		{field:"col" ,formatter:"color", responsive:0},
 		{title:"ISOChannel", field:"iso_name", responsive:0},
-		{title:"Sensor type", field:"type", responsive:0},
-	 	{title:"Interface connection", field:"conn", responsive:0},
+		{title:"Type", field:"type", responsive:0},
+	 	{title:"Connection", field:"conn", responsive:0},
 	 	{title:"Current Value", field:"meas", headerSort:false, responsive:0},
 	 	{title:"Value History", field:"graph", headerSort:false, responsive:0, formatter:hist_graph_formatter},
 		{title:"Unit", field:"unit", headerSort:false, responsive:1},
@@ -118,7 +118,8 @@ xhttp.onreadystatechange = function()
 				break;
 			case mode_enum.logstats:
 				let curr_logstats = morfeas_logstat_commonizer(this.responseText);
-				//console.log(curr_logstats);
+				if(typeof(curr_logstats) === 'object')
+					console.log(curr_logstats);
 				break;
 		}
 		data_req=false;
