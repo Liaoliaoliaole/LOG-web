@@ -92,7 +92,6 @@ function morfeas_logstat_commonizer(logstats)
 		this.Is_meas_valid = Is_meas_valid === undefined ? null : Is_meas_valid;
 		this.Error_explanation = Error_explanation === undefined ? 'Undefined' : Error_explanation
 	}
-
 	function connection(name, value, unit)
 	{
 		this.name = name === undefined ? null : name;
@@ -106,318 +105,343 @@ function morfeas_logstat_commonizer(logstats)
 		this.sensors = new Array();
 		this.connections = new Array();
 	}
-
-	for(let i=0; i<logstats.logstats_names.length; i++)
+	function sys_logstat(logstat)
 	{
-		if(logstats.logstats_names[i].includes("logstat"))
+		let new_data_table_entry = new table_data_entry();
+		//Load if_name and build_date
+		new_data_table_entry.if_name = "RPi_Health_Status";
+		new_data_table_entry.logstat_build_date_UNIX = logstat.logstat_build_date_UNIX;
+		//Load system's status
+		new_data_table_entry.sensors = null;
+		if(logstat.CPU_temp)
+			new_data_table_entry.connections.push(new connection("CPU_temp", logstat.CPU_temp.toFixed(1), "°C"));
+		new_data_table_entry.connections.push(new connection("CPU_Util", logstat.CPU_Util.toFixed(2), "%"));
+		new_data_table_entry.connections.push(new connection("RAM_Util", logstat.RAM_Util.toFixed(2), "%"));
+		new_data_table_entry.connections.push(new connection("Disk_Util", logstat.Disk_Util.toFixed(2), "%"));
+		new_data_table_entry.connections.push(new connection("Up_time", logstat.Up_time, "sec"));
+		return new_data_table_entry;
+	}
+	function MDAQ_logstat(logstat)
+	{
+		let new_data_table_entry = new table_data_entry();
+		//Load IF_name and build_date
+		new_data_table_entry.if_name = "MDAQ";
+		new_data_table_entry.logstat_build_date_UNIX = logstat.logstat_build_date_UNIX;
+		//Load Device's status
+		new_data_table_entry.connections.push(new connection("Dev_name", logstat.Dev_name));
+		new_data_table_entry.connections.push(new connection("IPv4_address", logstat.IPv4_address));
+		new_data_table_entry.connections.push(new connection("Identifier", logstat.Identifier));
+		new_data_table_entry.connections.push(new connection("Connection_status", logstat.Connection_status));
+		//Load Device's sensors
+		if(logstat.MDAQ_Channels !== undefined)
 		{
-			data_table_index = data_table.length;
-			if(logstats.logstats_names[i] === "logstat_sys.json")//RPi_Health_Stats
+			new_data_table_entry.connections.push(new connection("Board_temp", logstat.Board_temp.toFixed(1), "°C"));
+			for(let i=0; i<logstat.MDAQ_Channels.length; i++)
 			{
-				data_table[data_table_index] = new table_data_entry();
-				//Load if_name and build_date
-				data_table[data_table_index].if_name = "RPi_Health_Status";
-				data_table[data_table_index].logstat_build_date_UNIX = logstats.logstat_contents[i].logstat_build_date_UNIX;
-				//Load system's status
-				data_table[data_table_index].sensors = null;
-				if(logstats.logstat_contents[i].CPU_temp)
-					data_table[data_table_index].connections.push(new connection("CPU_temp", logstats.logstat_contents[i].CPU_temp.toFixed(1), "°C"));
-				data_table[data_table_index].connections.push(new connection("CPU_Util", logstats.logstat_contents[i].CPU_Util.toFixed(2), "%"));
-				data_table[data_table_index].connections.push(new connection("RAM_Util", logstats.logstat_contents[i].RAM_Util.toFixed(2), "%"));
-				data_table[data_table_index].connections.push(new connection("Disk_Util", logstats.logstat_contents[i].Disk_Util.toFixed(2), "%"));
-				data_table[data_table_index].connections.push(new connection("Up_time", logstats.logstat_contents[i].Up_time, "sec"));
-			}
-			else if(logstats.logstats_names[i].includes("logstat_MDAQ"))//Morfeas_MDAQ_if handlers
-			{
-				data_table[data_table_index] = new table_data_entry();
-				//Load IF_name and build_date
-				data_table[data_table_index].if_name = "MDAQ";
-				data_table[data_table_index].logstat_build_date_UNIX = logstats.logstat_contents[i].logstat_build_date_UNIX;
-				//Load Device's status
-				data_table[data_table_index].connections.push(new connection("Dev_name", logstats.logstat_contents[i].Dev_name));
-				data_table[data_table_index].connections.push(new connection("IPv4_address", logstats.logstat_contents[i].IPv4_address));
-				data_table[data_table_index].connections.push(new connection("Identifier", logstats.logstat_contents[i].Identifier));
-				data_table[data_table_index].connections.push(new connection("Connection_status", logstats.logstat_contents[i].Connection_status));
-				//Load Device's sensors
-				if(logstats.logstat_contents[i].MDAQ_Channels !== undefined)
+				for(let j=1; j<=3; j++)//limit to 3]
 				{
-					data_table[data_table_index].connections.push(new connection("Board_temp", logstats.logstat_contents[i].Board_temp.toFixed(1), "°C"));
-					for(let j=0; j<logstats.logstat_contents[i].MDAQ_Channels.length; j++)
-					{
-						for(let k=1; k<=3; k++)//limit to 3]
-						{
-							data_table[data_table_index].sensors.push(new sensor
-							(
-								"MDAQ",
-								logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
-								"CH"+norm(logstats.logstat_contents[i].MDAQ_Channels[j].Channel,2)+".Val"+k,
-								logstats.logstat_contents[i].Identifier+'.'+"CH"+logstats.logstat_contents[i].MDAQ_Channels[j].Channel+".Val"+k,
-								null,null,null,
-								eval("logstats.logstat_contents[i].MDAQ_Channels[j].Values.Value"+k),
-								eval("logstats.logstat_contents[i].MDAQ_Channels[j].Warnings.Is_Value"+k+"_valid"),
-								eval("logstats.logstat_contents[i].MDAQ_Channels[j].Warnings.Is_Value"+k+"_valid")?'':'No sensor'
-							));
-						}
-					}
+					new_data_table_entry.sensors.push(new sensor
+					(
+						"MDAQ",
+						logstat.Dev_name + " (" + logstat.IPv4_address + ")",
+						logstat.Dev_name+".CH:"+norm(logstat.MDAQ_Channels[i].Channel,2)+".Val"+j,
+						logstat.Identifier+'.'+"CH"+logstat.MDAQ_Channels[i].Channel+".Val"+j,
+						null,null,null,
+						eval("logstat.MDAQ_Channels[i].Values.Value"+j),
+						eval("logstat.MDAQ_Channels[i].Warnings.Is_Value"+j+"_valid"),
+						eval("logstat.MDAQ_Channels[i].Warnings.Is_Value"+j+"_valid")?'':'No sensor'
+					));
 				}
-				else
-					data_table[data_table_index].sensors = [];
 			}
-			else if(logstats.logstats_names[i].includes("logstat_MTI"))//Morfeas_MTI_if handlers
+		}
+		else
+			new_data_table_entry.sensors = [];
+		return new_data_table_entry;
+	}
+	function SDAQs_logstat(logstat)
+	{
+		let new_data_table_entry = new table_data_entry();
+		//Load IF_name and build_date
+		new_data_table_entry.if_name = "SDAQs ("+logstat.CANBus_interface+")";
+		new_data_table_entry.logstat_build_date_UNIX = logstat.logstat_build_date_UNIX;
+		//Load Device's status
+		new_data_table_entry.connections.push(new connection("BUS_Utilization", logstat.BUS_Utilization.toFixed(1), "%"));
+		new_data_table_entry.connections.push(new connection("BUS_Error_Rate", logstat.BUS_Error_rate.toFixed(1), "%"));
+		new_data_table_entry.connections.push(new connection("Detected_SDAQs", logstat.Detected_SDAQs));
+		new_data_table_entry.connections.push(new connection("Incomplete_SDAQs", logstat.Incomplete_SDAQs));
+		if(logstat.Electrics)
+		{
+			new_data_table_entry.connections.push(new connection("SDAQnet_("+logstat.CANBus_interface+")_last_calibration_UNIX",
+																		  logstat.Electrics.Last_calibration_UNIX));
+			new_data_table_entry.connections.push(new connection("SDAQnet_("+logstat.CANBus_interface+")_outVoltage",
+																		  logstat.Electrics.BUS_voltage.toFixed(2), "V"));
+			new_data_table_entry.connections.push(new connection("SDAQnet_("+logstat.CANBus_interface+")_outAmperage",
+																		  logstat.Electrics.BUS_amperage.toFixed(2), "A"));
+			new_data_table_entry.connections.push(new connection("SDAQnet_("+logstat.CANBus_interface+")_ShuntTemp",
+																		  logstat.Electrics.BUS_Shunt_Res_temp.toFixed(1), "°C"));
+		}
+		//Load Device's sensors
+		if(logstat.Detected_SDAQs)
+		{
+			for(let i=0; i<logstat.SDAQs_data.length; i++)
 			{
-				data_table[data_table_index] = new table_data_entry();
-				//Load IF_name and build_date
-				data_table[data_table_index].if_name = "MTI";
-				data_table[data_table_index].logstat_build_date_UNIX = logstats.logstat_contents[i].logstat_build_date_UNIX;
-				//Load Device's status
-				data_table[data_table_index].connections.push(new connection("Dev_name", logstats.logstat_contents[i].Dev_name));
-				data_table[data_table_index].connections.push(new connection("IPv4_address", logstats.logstat_contents[i].IPv4_address));
-				data_table[data_table_index].connections.push(new connection("Identifier", logstats.logstat_contents[i].Identifier));
-				data_table[data_table_index].connections.push(new connection("Connection_status", logstats.logstat_contents[i].Connection_status));
-				//Load Device's sensors
-				if(logstats.logstat_contents[i].Connection_status === "Okay")
+				if(logstat.SDAQs_data[i].SDAQ_Status.Registration_status !== "Done")
+					continue;
+				for(let j=0; j<logstat.SDAQs_data[i].Meas.length; j++)
 				{
-					data_table[data_table_index].connections.push(new connection("CPU_temp", logstats.logstat_contents[i].MTI_status.MTI_CPU_temp.toFixed(1), "°C"));
-					data_table[data_table_index].connections.push(new connection("Battery state", logstats.logstat_contents[i].MTI_status.MTI_charge_status));
-					if(logstats.logstat_contents[i].MTI_status.MTI_charge_status !== "Charging" && logstats.logstat_contents[i].MTI_status.MTI_charge_status !== "Full")
-						data_table[data_table_index].connections.push(new connection("Battery capacity", logstats.logstat_contents[i].MTI_status.MTI_batt_capacity));
-					data_table[data_table_index].connections.push(new connection("Radio_mode", logstats.logstat_contents[i].MTI_status.Tele_Device_type));
-					data_table[data_table_index].connections.push(new connection("RF Channel", logstats.logstat_contents[i].MTI_status.Radio_CH));
-					if(logstats.logstat_contents[i].MTI_status.Tele_Device_type !== "RMSW/MUX")
+					let error_str='No error';
+					if(logstat.SDAQs_data[i].Meas[j].Channel_Status.Channel_status_val)
 					{
-						let lim;
-						switch(logstats.logstat_contents[i].MTI_status.Tele_Device_type)
+						if(logstat.SDAQs_data[i].Meas[j].Channel_Status.Out_of_Range)
+							error_str='Out of Range';
+						else if(logstat.SDAQs_data[i].Meas[j].Channel_Status.No_Sensor)
+							error_str='No sensor';
+						else if(logstat.SDAQs_data[i].Meas[j].Channel_Status.Over_Range)
+							error_str='Over Range';
+						else
+							error_str='Unclassified';
+					}
+					new_data_table_entry.sensors.push(new sensor
+					(
+						"SDAQ",
+						logstat.SDAQs_data[i].SDAQ_type,
+						logstat.CANBus_interface.toUpperCase()+".ADDR:"+norm(logstat.SDAQs_data[i].Address,2)+".CH:"+norm(logstat.SDAQs_data[i].Meas[j].Channel,2),
+						logstat.SDAQs_data[i].Serial_number+".CH"+logstat.SDAQs_data[i].Meas[j].Channel,
+						logstat.SDAQs_data[i].Meas[j].Unit,
+						logstat.SDAQs_data[i].Calibration_Data[j].Calibration_date_UNIX,
+						logstat.SDAQs_data[i].Calibration_Data[j].Calibration_period,
+						logstat.SDAQs_data[i].Meas[j].Meas_avg,
+						!(logstat.SDAQs_data[i].Meas[j].Channel_Status.Channel_status_val),
+						error_str
+					));
+				}
+			}
+		}
+		else
+			new_data_table_entry.sensors = [];
+		return new_data_table_entry;
+	}
+	function MTI_logstat(logstat)
+	{
+		let new_data_table_entry = new table_data_entry();
+		//Load IF_name and build_date
+		new_data_table_entry.if_name = "MTI";
+		new_data_table_entry.logstat_build_date_UNIX = logstat.logstat_build_date_UNIX;
+		//Load Device's status
+		new_data_table_entry.connections.push(new connection("Dev_name", logstat.Dev_name));
+		new_data_table_entry.connections.push(new connection("IPv4_address", logstat.IPv4_address));
+		new_data_table_entry.connections.push(new connection("Identifier", logstat.Identifier));
+		new_data_table_entry.connections.push(new connection("Connection_status", logstat.Connection_status));
+		//Load Device's sensors
+		if(logstat.Connection_status === "Okay")
+		{
+			new_data_table_entry.connections.push(new connection("CPU_temp", logstat.MTI_status.MTI_CPU_temp.toFixed(1), "°C"));
+			new_data_table_entry.connections.push(new connection("Battery state", logstat.MTI_status.MTI_charge_status));
+			if(logstat.MTI_status.MTI_charge_status !== "Charging" && logstat.MTI_status.MTI_charge_status !== "Full")
+				new_data_table_entry.connections.push(new connection("Battery capacity", logstat.MTI_status.MTI_batt_capacity));
+			new_data_table_entry.connections.push(new connection("Radio_mode", logstat.MTI_status.Tele_Device_type));
+			new_data_table_entry.connections.push(new connection("RF Channel", logstat.MTI_status.Radio_CH));
+			if(logstat.MTI_status.Tele_Device_type !== "RMSW/MUX")
+			{
+				let lim;
+				switch(logstat.MTI_status.Tele_Device_type)
+				{
+					case "TC16":
+						lim=16;//limit to 16], max amount of channels on a TC16 Telemetry.
+						break;
+					case "TC8":
+						lim=8;//limit to 8], max amount of channels on a TC8 Telemetry.
+						break;
+					case "TC4":
+						lim=4;//limit to 4], max amount of channels on a TC4 Telemetry.
+						break;
+					case "QUAD":
+						lim=2;//limit to 2], max amount of channels on a Quadrature counter Telemetry.
+						break;
+					default: lim=0; new_data_table_entry.sensors = null;
+				}
+				for(let i=0; i<lim; i++)
+				{
+					new_data_table_entry.sensors.push(new sensor
+					(
+						"MTI",
+						logstat.Dev_name + " (" + logstat.IPv4_address + ")",
+						logstat.MTI_status.Tele_Device_type+".CH:"+(i+1),
+						logstat.Identifier+"."+logstat.MTI_status.Tele_Device_type+"."+"CH"+(i+1),
+						lim!==2?"°C":"",null,null,
+						logstat.Tele_data.CHs[i],
+						logstat.Tele_data.IsValid && typeof(logstat.Tele_data.CHs[i])=='number',
+						!logstat.Tele_data.RX_Success_Ratio?'Disconnected':'No sensor'
+					));
+				}
+			}
+			else if(logstat.MTI_status.Tele_Device_type === "RMSW/MUX")
+			{
+				for(let i=0; i<logstat.Tele_data.length; i++)
+				{
+					if(logstat.Tele_data[i].Dev_type === "Mini_RMSW")
+					{
+						for(let j=0; j<4; j++)
 						{
-							case "TC16":
-								lim=16;//limit to 16], max amount of channels on a TC16 Telemetry.
-								break;
-							case "TC8":
-								lim=8;//limit to 8], max amount of channels on a TC8 Telemetry.
-								break;
-							case "TC4":
-								lim=4;//limit to 4], max amount of channels on a TC4 Telemetry.
-								break;
-							case "QUAD":
-								lim=2;//limit to 2], max amount of channels on a Quadrature counter Telemetry.
-								break;
-							default: lim=0; data_table[data_table_index].sensors = null;
-						}
-						for(let j=0; j<lim; j++)
-						{
-							data_table[data_table_index].sensors.push(new sensor
+							new_data_table_entry.sensors.push(new sensor
 							(
 								"MTI",
-								logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
-								logstats.logstat_contents[i].MTI_status.Tele_Device_type+".CH"+(j+1),
-								logstats.logstat_contents[i].Identifier+"."+logstats.logstat_contents[i].MTI_status.Tele_Device_type+"."+"CH"+(j+1),
-								lim!==2?"°C":"",null,null,
-								logstats.logstat_contents[i].Tele_data.CHs[j],
-								logstats.logstat_contents[i].Tele_data.IsValid && typeof(logstats.logstat_contents[i].Tele_data.CHs[j])=='number',
-								!logstats.logstat_contents[i].Tele_data.RX_Success_Ratio?'Disconnected':'No sensor'
-							));
-						}
-					}
-					else if(logstats.logstat_contents[i].MTI_status.Tele_Device_type === "RMSW/MUX")
-					{
-						for(let j=0; j<logstats.logstat_contents[i].Tele_data.length; j++)
-						{
-							if(logstats.logstat_contents[i].Tele_data[j].Dev_type === "Mini_RMSW")
-							{
-								for(let k=0; k<4; k++)
-								{
-									data_table[data_table_index].sensors.push(new sensor
-									(
-										"MTI",
-										logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
-										logstats.logstat_contents[i].Tele_data[j].Dev_type+"(ID:"+logstats.logstat_contents[i].Tele_data[j].Dev_ID+").CH"+(k+1),
-										logstats.logstat_contents[i].Identifier+".ID:"+logstats.logstat_contents[i].Tele_data[j].Dev_ID+"."+"CH"+(k+1),
-										"°C",null,null,
-										logstats.logstat_contents[i].Tele_data[j].CHs_meas[k] !== "No sensor"?
-											logstats.logstat_contents[i].Tele_data[j].CHs_meas[k]:null,
-										logstats.logstat_contents[i].Tele_data[j].CHs_meas[k] !== "No sensor",
-										logstats.logstat_contents[i].Tele_data[j].CHs_meas[k] !== "No sensor"?'No Errors':"No sensor"
-									));
-								}
-							}
-						}
-					}
-				}
-				else
-					data_table[data_table_index].sensors = [];
-			}
-			else if(logstats.logstats_names[i].includes("logstat_IOBOX"))//Morfeas_IOBOX_if handlers
-			{
-				data_table[data_table_index] = new table_data_entry();
-				//Load IF_name and build_date
-				data_table[data_table_index].if_name = "IOBOX";
-				data_table[data_table_index].logstat_build_date_UNIX = logstats.logstat_contents[i].logstat_build_date_UNIX;
-				//Load Device's status
-				data_table[data_table_index].connections.push(new connection("Dev_name", logstats.logstat_contents[i].Dev_name));
-				data_table[data_table_index].connections.push(new connection("IPv4_address", logstats.logstat_contents[i].IPv4_address));
-				data_table[data_table_index].connections.push(new connection("Identifier", logstats.logstat_contents[i].Identifier));
-				data_table[data_table_index].connections.push(new connection("Connection_status", logstats.logstat_contents[i].Connection_status));
-				//Load Device's sensors
-				if(logstats.logstat_contents[i].Connection_status === "Okay")
-				{
-					for(let j=1; j<=4; j++)//limit to 4], amount of receivers on a IOBOX = 4.
-					{
-						if(eval("logstats.logstat_contents[i].RX"+j) !== "Disconnected")
-						{
-							for(let k=1; k<=16; k++)//limit to 16], max amount of channels on a telemetry.
-							{
-								data_table[data_table_index].sensors.push(new sensor
-								(
-									"IOBOX",
-									logstats.logstat_contents[i].Dev_name + " (" + logstats.logstat_contents[i].IPv4_address + ")",
-									"RX"+j+".CH"+norm(k,2),
-									logstats.logstat_contents[i].Identifier+".RX"+j+".CH"+k,
-									"°C",null,null,
-									eval("logstats.logstat_contents[i].RX"+j+".CH"+k),
-									eval("logstats.logstat_contents[i].RX"+j+".CH"+k) !== "No sensor",
-									eval("logstats.logstat_contents[i].RX"+j+".CH"+k) !== "No sensor" ? undefined : "No sensor"
-								));
-							}
-						}
-					}
-				}
-				else
-					data_table[data_table_index].sensors = [];
-			}
-			else if(logstats.logstats_names[i].includes("logstat_NOXs"))//Morfeas_NOX_if handlers
-			{
-				data_table[data_table_index] = new table_data_entry();
-				//Load IF_name and build_date
-				data_table[data_table_index].if_name = "NOX ("+logstats.logstat_contents[i].CANBus_interface+")";
-				data_table[data_table_index].logstat_build_date_UNIX = logstats.logstat_contents[i].logstat_build_date_UNIX;
-				//Load Device's status
-				data_table[data_table_index].connections.push(new connection("BUS_Utilization", logstats.logstat_contents[i].BUS_Utilization.toFixed(1), "%"));
-				data_table[data_table_index].connections.push(new connection("BUS_Error_Rate", logstats.logstat_contents[i].BUS_Error_rate.toFixed(1), "%"));
-				let det_NOx = 0;
-				if(Object.entries(logstats.logstat_contents[i].NOx_sensors))
-				{
-					for(let j=0; j<logstats.logstat_contents[i].NOx_sensors.length; j++)
-						if(Object.entries(logstats.logstat_contents[i].NOx_sensors[j]).length)
-							det_NOx++;
-				}
-				data_table[data_table_index].connections.push(new connection("Detected_UniNOx", det_NOx));
-				if(logstats.logstat_contents[i].Electrics)
-				{
-					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_last_calibration_UNIX",
-																				  logstats.logstat_contents[i].Electrics.Last_calibration_UNIX));
-					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_outVoltage",
-																				  logstats.logstat_contents[i].Electrics.BUS_voltage.toFixed(2), "V"));
-					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_outAmperage",
-																				  logstats.logstat_contents[i].Electrics.BUS_amperage.toFixed(2), "A"));
-					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_ShuntTemp",
-																				  logstats.logstat_contents[i].Electrics.BUS_Shunt_Res_temp.toFixed(2), "°C"));
-				}
-				//Load Device's sensors
-				if(det_NOx)
-				{
-					for(let j=0; j<logstats.logstat_contents[i].NOx_sensors.length; j++)
-					{
-						if(!Object.entries(logstats.logstat_contents[i].NOx_sensors[j]).length)
-							continue;
-						let error_str = "No Error";
-						if(!logstats.logstat_contents[i].NOx_sensors[j].status.is_NOx_value_valid ||
-						   !logstats.logstat_contents[i].NOx_sensors[j].status.is_O2_value_valid)
-						{
-							if(logstats.logstat_contents[i].NOx_sensors[j].errors.heater !== "No error")
-								error_str = logstats.logstat_contents[i].NOx_sensors[j].errors.heater;
-							else if(logstats.logstat_contents[i].NOx_sensors[j].errors.NOx !== "No error")
-								error_str = logstats.logstat_contents[i].NOx_sensors[j].errors.NOx;
-							else if(logstats.logstat_contents[i].NOx_sensors[j].errors.O2 !== "No error")
-								error_str = logstats.logstat_contents[i].NOx_sensors[j].errors.O2;
-							else
-								error_str = logstats.logstat_contents[i].NOx_sensors[j].status.heater_mode_state;
-						}
-						data_table[data_table_index].sensors.push(new sensor(
-							"NOX",
-							"UniNOx(Addr:"+j+")",
-							logstats.logstat_contents[i].CANBus_interface.toUpperCase()+"."+j+".NOx",
-							logstats.logstat_contents[i].CANBus_interface+".addr_"+j+".NOx",
-							"ppm", null, null,
-							logstats.logstat_contents[i].NOx_sensors[j].NOx_value_avg,
-							logstats.logstat_contents[i].NOx_sensors[j].status.is_NOx_value_valid,
-							error_str
-						));
-						data_table[data_table_index].sensors.push(new sensor(
-							"NOX",
-							"UniNOx(Addr:"+j+")",
-							logstats.logstat_contents[i].CANBus_interface.toUpperCase()+"."+j+".O2",
-							logstats.logstat_contents[i].CANBus_interface+".addr_"+j+".O2",
-							"%", null, null,
-							logstats.logstat_contents[i].NOx_sensors[j].O2_value_avg,
-							logstats.logstat_contents[i].NOx_sensors[j].status.is_O2_value_valid,
-							error_str
-						));
-					}
-				}
-				else
-					data_table[data_table_index].sensors = [];
-			}
-			else if(logstats.logstats_names[i].includes("logstat_SDAQs"))//Morfeas_SDAQ_if handlers
-			{
-				data_table[data_table_index] = new table_data_entry();
-				//Load IF_name and build_date
-				data_table[data_table_index].if_name = "SDAQs ("+logstats.logstat_contents[i].CANBus_interface+")";
-				data_table[data_table_index].logstat_build_date_UNIX = logstats.logstat_contents[i].logstat_build_date_UNIX;
-				//Load Device's status
-				data_table[data_table_index].connections.push(new connection("BUS_Utilization", logstats.logstat_contents[i].BUS_Utilization.toFixed(1), "%"));
-				data_table[data_table_index].connections.push(new connection("BUS_Error_Rate", logstats.logstat_contents[i].BUS_Error_rate.toFixed(1), "%"));
-				data_table[data_table_index].connections.push(new connection("Detected_SDAQs", logstats.logstat_contents[i].Detected_SDAQs));
-				data_table[data_table_index].connections.push(new connection("Incomplete_SDAQs", logstats.logstat_contents[i].Incomplete_SDAQs));
-				if(logstats.logstat_contents[i].Electrics)
-				{
-					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_last_calibration_UNIX",
-																				  logstats.logstat_contents[i].Electrics.Last_calibration_UNIX));
-					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_outVoltage",
-																				  logstats.logstat_contents[i].Electrics.BUS_voltage.toFixed(2), "V"));
-					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_outAmperage",
-																				  logstats.logstat_contents[i].Electrics.BUS_amperage.toFixed(2), "A"));
-					data_table[data_table_index].connections.push(new connection("SDAQnet_("+logstats.logstat_contents[i].CANBus_interface+")_ShuntTemp",
-																				  logstats.logstat_contents[i].Electrics.BUS_Shunt_Res_temp.toFixed(1), "°C"));
-				}
-				//Load Device's sensors
-				if(logstats.logstat_contents[i].Detected_SDAQs)
-				{
-					for(let j=0; j<logstats.logstat_contents[i].SDAQs_data.length; j++)
-					{
-						if(logstats.logstat_contents[i].SDAQs_data[j].SDAQ_Status.Registration_status !== "Done")
-							continue;
-						for(let k=0; k<logstats.logstat_contents[i].SDAQs_data[j].Meas.length; k++)
-						{
-							let error_str='No error';
-							if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Channel_status_val)
-							{
-								if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Out_of_Range)
-									error_str='Out of Range';
-								else if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.No_Sensor)
-									error_str='No sensor';
-								else if(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Over_Range)
-									error_str='Over Range';
-								else
-									error_str='Unclassified';
-							}
-							data_table[data_table_index].sensors.push(new sensor
-							(
-								"SDAQ",
-								logstats.logstat_contents[i].SDAQs_data[j].SDAQ_type,
-								"ADDR:"+norm(logstats.logstat_contents[i].SDAQs_data[j].Address,2)+".CH"+norm(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,2),
-								logstats.logstat_contents[i].SDAQs_data[j].Serial_number+".CH"+logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel,
-								logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Unit,
-								logstats.logstat_contents[i].SDAQs_data[j].Calibration_Data[k].Calibration_date_UNIX,
-								logstats.logstat_contents[i].SDAQs_data[j].Calibration_Data[k].Calibration_period,
-								logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Meas_avg,
-								!(logstats.logstat_contents[i].SDAQs_data[j].Meas[k].Channel_Status.Channel_status_val),
-								error_str
+								logstat.Dev_name + " (" + logstat.IPv4_address + ")",
+								logstat.Tele_data[i].Dev_type+"(ID:"+logstat.Tele_data[i].Dev_ID+").CH:"+(j+1),
+								logstat.Identifier+".ID:"+logstat.Tele_data[i].Dev_ID+"."+"CH"+(j+1),
+								"°C",null,null,
+								logstat.Tele_data[i].CHs_meas[j] !== "No sensor"?
+									logstat.Tele_data[i].CHs_meas[j]:null,
+								logstat.Tele_data[i].CHs_meas[j] !== "No sensor",
+								logstat.Tele_data[i].CHs_meas[j] !== "No sensor"?'No Errors':"No sensor"
 							));
 						}
 					}
 				}
-				else
-					data_table[data_table_index].sensors = [];
 			}
+		}
+		else
+			new_data_table_entry.sensors = [];
+		return new_data_table_entry;
+	}
+	function IOBOX_logstat(logstat)
+	{
+		let new_data_table_entry = new table_data_entry();
+		//Load IF_name and build_date
+		new_data_table_entry.if_name = "IOBOX";
+		new_data_table_entry.logstat_build_date_UNIX = logstat.logstat_build_date_UNIX;
+		//Load Device's status
+		new_data_table_entry.connections.push(new connection("Dev_name", logstat.Dev_name));
+		new_data_table_entry.connections.push(new connection("IPv4_address", logstat.IPv4_address));
+		new_data_table_entry.connections.push(new connection("Identifier", logstat.Identifier));
+		new_data_table_entry.connections.push(new connection("Connection_status", logstat.Connection_status));
+		//Load Device's sensors
+		if(logstat.Connection_status === "Okay")
+		{
+			for(let i=1; i<=4; i++)//limit to 4], amount of receivers on a IOBOX = 4.
+			{
+				if(eval("logstat.RX"+i) !== "Disconnected")
+				{
+					for(let j=1; j<=16; j++)//limit to 16], max amount of channels on a telemetry.
+					{
+						new_data_table_entry.sensors.push(new sensor
+						(
+							"IOBOX",
+							logstat.Dev_name + " (" + logstat.IPv4_address + ")",
+							logstat.Dev_name + ".RX"+i+".CH:"+norm(j,2),
+							logstat.Identifier+".RX"+i+".CH"+j,
+							"°C",null,null,
+							eval("logstat.RX"+i+".CH"+j),
+							eval("logstat.RX"+i+".CH"+j) !== "No sensor",
+							eval("logstat.RX"+i+".CH"+j) !== "No sensor" ? undefined : "No sensor"
+						));
+					}
+				}
+			}
+		}
+		else
+			new_data_table_entry.sensors = [];
+		return new_data_table_entry;
+	}
+	function NOXs_logstat(logstat)
+	{
+		let new_data_table_entry = new table_data_entry();
+		//Load IF_name and build_date
+		new_data_table_entry.if_name = "NOXs ("+logstat.CANBus_interface+")";
+		new_data_table_entry.logstat_build_date_UNIX = logstat.logstat_build_date_UNIX;
+		//Load Device's status
+		new_data_table_entry.connections.push(new connection("BUS_Utilization", logstat.BUS_Utilization.toFixed(1), "%"));
+		new_data_table_entry.connections.push(new connection("BUS_Error_Rate", logstat.BUS_Error_rate.toFixed(1), "%"));
+		let det_NOx = 0;
+		if(Object.entries(logstat.NOx_sensors))
+		{
+			for(let j=0; j<logstat.NOx_sensors.length; j++)
+				if(Object.entries(logstat.NOx_sensors[j]).length)
+					det_NOx++;
+		}
+		new_data_table_entry.connections.push(new connection("Detected_UniNOx", det_NOx));
+		if(logstat.Electrics)
+		{
+			new_data_table_entry.connections.push(new connection("SDAQnet_("+logstat.CANBus_interface+")_last_calibration_UNIX",
+																		  logstat.Electrics.Last_calibration_UNIX));
+			new_data_table_entry.connections.push(new connection("SDAQnet_("+logstat.CANBus_interface+")_outVoltage",
+																		  logstat.Electrics.BUS_voltage.toFixed(2), "V"));
+			new_data_table_entry.connections.push(new connection("SDAQnet_("+logstat.CANBus_interface+")_outAmperage",
+																		  logstat.Electrics.BUS_amperage.toFixed(2), "A"));
+			new_data_table_entry.connections.push(new connection("SDAQnet_("+logstat.CANBus_interface+")_ShuntTemp",
+																		  logstat.Electrics.BUS_Shunt_Res_temp.toFixed(2), "°C"));
+		}
+		//Load Device's sensors
+		if(det_NOx)
+		{
+			for(let i=0; i<logstat.NOx_sensors.length; i++)
+			{
+				if(!Obiect.entries(logstat.NOx_sensors[i]).length)
+					continue;
+				let error_str = "No Error";
+				if(!logstat.NOx_sensors[i].status.is_NOx_value_valid ||
+				   !logstat.NOx_sensors[i].status.is_O2_value_valid)
+				{
+					if(logstat.NOx_sensors[i].errors.heater !== "No error")
+						error_str = logstat.NOx_sensors[i].errors.heater;
+					else if(logstat.NOx_sensors[i].errors.NOx !== "No error")
+						error_str = logstat.NOx_sensors[i].errors.NOx;
+					else if(logstat.NOx_sensors[i].errors.O2 !== "No error")
+						error_str = logstat.NOx_sensors[i].errors.O2;
+					else
+						error_str = logstat.NOx_sensors[i].status.heater_mode_state;
+				}
+				new_data_table_entry.sensors.push(new sensor(
+					"NOX",
+					"UniNOx(Addr:"+i+")",
+					logstat.CANBus_interface.toUpperCase()+"."+i+".NOx",
+					logstat.CANBus_interface+".addr_"+i+".NOx",
+					"ppm", null, null,
+					logstat.NOx_sensors[i].NOx_value_avg,
+					logstat.NOx_sensors[i].status.is_NOx_value_valid,
+					error_str
+				));
+				new_data_table_entry.sensors.push(new sensor(
+					"NOX",
+					"UniNOx(Addr:"+i+")",
+					logstat.CANBus_interface.toUpperCase()+"."+i+".O2",
+					logstat.CANBus_interface+".addr_"+i+".O2",
+					"%", null, null,
+					logstat.NOx_sensors[i].O2_value_avg,
+					logstat.NOx_sensors[i].status.is_O2_value_valid,
+					error_str
+				));
+			}
+		}
+		else
+			new_data_table_entry.sensors = [];
+		return new_data_table_entry;
+	}
+	//Logstat commonizer converter
+	for(let i=0; i<logstats.logstats_names.length; i++)
+	{
+		try{
+			if(logstats.logstats_names[i].includes("logstat"))
+			{
+				data_table_index = data_table.length;
+				if(!logstats.logstat_contents[i])
+					continue;
+				if(logstats.logstats_names[i] === "logstat_sys.json")//RPi_Health_Stats
+					data_table[data_table_index] = sys_logstat(logstats.logstat_contents[i]);
+				else if(logstats.logstats_names[i].includes("logstat_MDAQ"))//Morfeas_MDAQ_if handlers
+					data_table[data_table_index] = MDAQ_logstat(logstats.logstat_contents[i]);
+				else if(logstats.logstats_names[i].includes("logstat_MTI"))//Morfeas_MTI_if handlers
+					data_table[data_table_index] = MTI_logstat(logstats.logstat_contents[i]);
+				else if(logstats.logstats_names[i].includes("logstat_NOXs"))//Morfeas_NOX_if handlers
+					data_table[data_table_index] = NOXs_logstat(logstats.logstat_contents[i]);
+				else if(logstats.logstats_names[i].includes("logstat_SDAQs"))//Morfeas_SDAQ_if handlers
+					data_table[data_table_index] = SDAQs_logstat(logstats.logstat_contents[i]);
+				else if(logstats.logstats_names[i].includes("logstat_IOBOX"))//Morfeas_IOBOX_if handlers
+					data_table[data_table_index] = IOBOX_logstat(logstats.logstat_contents[i]);
+			}
+		} catch {
+			console.log("Error @ i="+i);
+			console.log(logstats);
 		}
 	}
 	return data_table;

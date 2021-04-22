@@ -208,186 +208,187 @@ through which recipients can access the Corresponding Source.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-	"use strict";
-	comp_check();
-	var mode_enum = {
-		MTIDev_name: 0,
-		MTIDev_contents: 1
-	};
-	var screen_enum = {
-	  MTI_status_tab: 1,
-	  RF_DEVs: 2,
-	  Graph_tab: 3
-	};
-	//Init of Elements
-	document.getElementById("status").value="Select a device";
-	//global variables for elements
-	var batt_and_rssid = document.getElementsByName("batt_and_rssid");
+"use strict";
+comp_check();
+const mode_enum = {
+	MTIDev_name: 0,
+	MTIDev_contents: 1
+};
+const screen_enum = {
+  MTI_status_tab: 1,
+  RF_DEVs: 2,
+  Graph_tab: 3
+};
+//Init of Elements
+document.getElementById("status").value="Select a device";
+//Global variables for elements
+var batt_and_rssid = document.getElementsByName("batt_and_rssid");
 
-	var data_req=false, radio_mode_inited=false;
-	var request_mode = mode_enum.MTIDev_name;
-	var gen_popup_win;
-	//AJAX response handler
-	var xhttp = new XMLHttpRequest();
-	xhttp.timeout = 2000;
-	xhttp.onreadystatechange = function()
+var data_req=false, radio_mode_inited=false;
+var request_mode = mode_enum.MTIDev_name;
+var gen_popup_win;
+//AJAX response handler
+var xhttp = new XMLHttpRequest();
+xhttp.timeout = 2000;
+xhttp.onreadystatechange = function()
+{
+	if (this.readyState == 4 && this.status == 200)
 	{
-		if (this.readyState == 4 && this.status == 200)
+		var MTI_data;
+		switch(request_mode)
 		{
-			var MTI_data;
-			switch(request_mode)
-			{
-				case mode_enum.MTIDev_name:
-					var resp = JSON.parse(this.responseText);
-					var selector = document.getElementById("MTIDev_name_sel");
-					for(var i=0; i<resp.logstats_names.length; i++)
+			case mode_enum.MTIDev_name:
+				var resp = JSON.parse(this.responseText);
+				var selector = document.getElementById("MTIDev_name_sel");
+				for(var i=0; i<resp.logstats_names.length; i++)
+				{
+					if(resp.logstats_names[i].includes("MTI"))
 					{
-						if(resp.logstats_names[i].includes("MTI"))
-						{
-							var opt = document.createElement("option");
-							opt.text = resp.logstats_names[i].slice(12, resp.logstats_names[i].indexOf("."));
-							selector.add(opt);
-						}
+						var opt = document.createElement("option");
+						opt.text = resp.logstats_names[i].slice(12, resp.logstats_names[i].indexOf("."));
+						selector.add(opt);
 					}
-					break;
-				case mode_enum.MTIDev_contents:
-					var status_box=document.getElementById("status");
-					if(this.getResponseHeader("Content-Type")==="application/json")
+				}
+				break;
+			case mode_enum.MTIDev_contents:
+				var status_box=document.getElementById("status");
+				if(this.getResponseHeader("Content-Type")==="application/json")
+				{
+					try{
+					  MTI_data = JSON.parse(this.responseText);
+					}
+					catch(e){
+						//status_box.value = "Error: " + e.message;
+						break;
+					}
+					var MTI_status=document.getElementById("MTI_status");
+					if(MTI_data.Connection_status==="Okay")
 					{
-						try{
-						  MTI_data = JSON.parse(this.responseText);
-						}
-						catch(e){
-							//status_box.value = "Error: " + e.message;
-							break;
-						}
-						var MTI_status=document.getElementById("MTI_status");
-						if(MTI_data.Connection_status==="Okay")
+						status_box.style.color='black';
+						MTI_status.style.display="table";
+						MTI_status_tab_update(MTI_data, MTI_status);
+						MTI_status_bar_update(MTI_data);
+						for(let i=0;i<batt_and_rssid.length;i++)
+							batt_and_rssid[i].style.display="table-cell";
+						if(!radio_mode_inited)
 						{
-							status_box.style.color='black';
-							MTI_status.style.display="table";
-							MTI_status_tab_update(MTI_data, MTI_status);
-							MTI_status_bar_update(MTI_data);
-							for(let i=0;i<batt_and_rssid.length;i++)
-								batt_and_rssid[i].style.display="table-cell";
-							if(!radio_mode_inited)
-							{
-								radio_mode_inited=true;
-								radio_mode_init(MTI_data);
-							}
-							MTI_tele_dev(MTI_data);
+							radio_mode_inited=true;
+							radio_mode_init(MTI_data);
 						}
-						else
-						{
-							status_box.style.color='blue';
-							for(let i=0;i<batt_and_rssid.length;i++)
-								batt_and_rssid[i].style.display="none"
-							document.getElementById("MTI_status_tab").style.display="none";
-							document.getElementById("RF_DEVs").style.display="none";
-							document.getElementById("Graph_tab").style.display="none";
-							MTI_status.style.display="none";
-						}
-						status_box.value='Connection: '+MTI_data.Connection_status;
+						MTI_tele_dev(MTI_data);
 					}
-					else if(this.getResponseHeader("Content-Type")==="report/text")
+					else
 					{
-						status_box.value=this.responseText;
-						status_box.style.color=!this.responseText.includes('Success')?'red':'green';
+						status_box.style.color='blue';
+						for(let i=0;i<batt_and_rssid.length;i++)
+							batt_and_rssid[i].style.display="none"
+						document.getElementById("MTI_status_tab").style.display="none";
+						document.getElementById("RF_DEVs").style.display="none";
+						document.getElementById("Graph_tab").style.display="none";
+						MTI_status.style.display="none";
 					}
-					break;
-			}
-			data_req=false;
+					status_box.value='Connection: '+MTI_data.Connection_status;
+				}
+				else if(this.getResponseHeader("Content-Type")==="report/text")
+				{
+					status_box.value=this.responseText;
+					status_box.style.color=!this.responseText.includes('Success')?'red':'green';
+				}
+				break;
 		}
-		else if(this.status == 404)
-		{
-			status_box.value = "Error 404: Data Not found";
-			status_box.style.color='red';
-		}
-	};
-	xhttp.ontimeout = function(){
-	  document.getElementById("status").value = "Connection to server: Timeout Error";
-	  document.getElementById("status").style.color='blue';
-	  data_req=false;
-	};
-	//request names of available logstats
-	xhttp.open("GET", "/morfeas_php/morfeas_web_if.php?COMMAND=logstats_names", true);
-	xhttp.send();
-	//timer of getting data
-	setInterval(MTI_data_req, 1000);
-	function MTI_data_req()
-	{
-		if(!data_req)
-		{
-			var selector = document.getElementById("MTIDev_name_sel");
-			if(selector.selectedIndex)
-			{
-				xhttp.open("GET", "/ramdisk/logstat_MTI_"+selector.value+".json"+"?q="+makeid(), true);
-				xhttp.send();
-				data_req = true;
-			}
-			else
-			{
-				MTI_status.style.display="none";
-				if(document.getElementById('RMSWs_MUXs_data'))
-					document.getElementById('RMSWs_MUXs_data').remove();
-			}
-			if(MTI_data_req.prev_sel_index && MTI_data_req.prev_sel_index!=selector.selectedIndex)
-			{
-				if(gen_popup_win && !gen_popup_win.closed)
-					gen_popup_win.close();
-			}
-			MTI_data_req.prev_sel_index=selector.selectedIndex;
-		}
+		data_req=false;
 	}
-	function name_selector(sel)
+	else if(this.status == 404)
 	{
-		var main_menu=document.getElementById("main_menu");
-		if(sel.selectedIndex)
+		status_box.value = "Error 404: Data Not found";
+		status_box.style.color='red';
+		data_req=false;
+	}
+};
+xhttp.ontimeout = function(){
+  document.getElementById("status").value = "Connection to server: Timeout Error";
+  document.getElementById("status").style.color='blue';
+  data_req=false;
+};
+//request names of available logstats
+xhttp.open("GET", "/morfeas_php/morfeas_web_if.php?COMMAND=logstats_names", true);
+xhttp.send();
+//timer of getting data
+setInterval(MTI_data_req, 1000);
+function MTI_data_req()
+{
+	if(!data_req)
+	{
+		var selector = document.getElementById("MTIDev_name_sel");
+		if(selector.selectedIndex)
 		{
-			main_menu.style.display="table";
-			request_mode=mode_enum.MTIDev_contents;
+			xhttp.open("GET", "/ramdisk/logstat_MTI_"+selector.value+".json"+"?q="+makeid(), true);
+			xhttp.send();
+			data_req = true;
 		}
 		else
 		{
-			document.getElementById("status").value="Select a device";
-			for(let i=0;i<batt_and_rssid.length;i++)
-				batt_and_rssid[i].style.display="none"
-			main_menu.style.display="none";
-			request_mode=mode_enum.MTIDev_name;
-			Show_hide(null);
+			MTI_status.style.display="none";
+			if(document.getElementById('RMSWs_MUXs_data'))
+				document.getElementById('RMSWs_MUXs_data').remove();
 		}
-	}
-	function Show_hide(log_set)
-	{
-		document.getElementById("MTI_status_tab").style.display="none";
-		document.getElementById("RF_DEVs").style.display="none";
-		document.getElementById("Graph_tab").style.display="none";
-		switch(log_set)
+		if(MTI_data_req.prev_sel_index && MTI_data_req.prev_sel_index!=selector.selectedIndex)
 		{
-			case screen_enum.MTI_status_tab:
-				document.getElementById("MTI_status_tab").style.display="inline";
-				break;
-			case screen_enum.RF_DEVs:
-				radio_mode_inited=false;
-				document.getElementById("RF_DEVs").style.display="inline";
-				break;
-			case screen_enum.Graph_tab:
-				document.getElementById("Graph_tab").style.display="inline";
-				break;
+			if(gen_popup_win && !gen_popup_win.closed)
+				gen_popup_win.close();
 		}
+		MTI_data_req.prev_sel_index=selector.selectedIndex;
 	}
-	function gen_config_popup()
+}
+function name_selector(sel)
+{
+	var main_menu=document.getElementById("main_menu");
+	if(sel.selectedIndex)
 	{
-		if(!gen_popup_win||gen_popup_win.closed)
-			gen_popup_win=PopupCenter("./Gens_config/Gens_config.html"+"?q="+makeid(),"","800","600");
-		else
-			gen_popup_win.focus();
+		main_menu.style.display="table";
+		request_mode=mode_enum.MTIDev_contents;
 	}
-	window.onbeforeunload=function()
+	else
 	{
-		if(gen_popup_win&&!gen_popup_win.closed)
-			gen_popup_win.close();
-	};
+		document.getElementById("status").value="Select a device";
+		for(let i=0;i<batt_and_rssid.length;i++)
+			batt_and_rssid[i].style.display="none"
+		main_menu.style.display="none";
+		request_mode=mode_enum.MTIDev_name;
+		Show_hide(null);
+	}
+}
+function Show_hide(log_set)
+{
+	document.getElementById("MTI_status_tab").style.display="none";
+	document.getElementById("RF_DEVs").style.display="none";
+	document.getElementById("Graph_tab").style.display="none";
+	switch(log_set)
+	{
+		case screen_enum.MTI_status_tab:
+			document.getElementById("MTI_status_tab").style.display="inline";
+			break;
+		case screen_enum.RF_DEVs:
+			radio_mode_inited=false;
+			document.getElementById("RF_DEVs").style.display="inline";
+			break;
+		case screen_enum.Graph_tab:
+			document.getElementById("Graph_tab").style.display="inline";
+			break;
+	}
+}
+function gen_config_popup()
+{
+	if(!gen_popup_win||gen_popup_win.closed)
+		gen_popup_win=PopupCenter("./Gens_config/Gens_config.html"+"?q="+makeid(),"","800","600");
+	else
+		gen_popup_win.focus();
+}
+window.onbeforeunload=function()
+{
+	if(gen_popup_win&&!gen_popup_win.closed)
+		gen_popup_win.close();
+};
 //@license-end
 </script>
 </html>

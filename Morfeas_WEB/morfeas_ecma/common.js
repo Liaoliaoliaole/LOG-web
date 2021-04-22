@@ -209,4 +209,13 @@ function generateTable(table, data)
     }
   }
 }
+function generateTable_row(table_row, data)
+{
+	for(let key in data)
+	{
+      let cell = table_row.insertCell();
+      let text = document.createTextNode(data[key]);
+      cell.appendChild(text);
+    }
+}
 //@license-end

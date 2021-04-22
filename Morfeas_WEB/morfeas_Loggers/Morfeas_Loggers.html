@@ -137,9 +137,10 @@ xhttp.onreadystatechange = function(){
 							var sensors_table = document.createElement("TABLE");
 							sensors_table.style="margin:auto;margin-bottom:.075in;width:6in;";
 							let header_row=sensors_table.createTHead().insertRow();
+							header_row.style="text-align:center";
 							header_row.insertCell().innerHTML = "<b>Type</b>";
 							header_row.insertCell().innerHTML = "<b>Name/property</b>";
-							header_row.insertCell().innerHTML = "<b>Anchor_link</b>";
+							header_row.insertCell().innerHTML = "<b>Connection</b>";
 							header_row.insertCell().innerHTML = "<b>Meas/Error</b>";
 							for(let i=0; i<logstat.length; i++)
 							{
