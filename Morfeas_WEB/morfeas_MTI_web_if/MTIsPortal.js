@@ -27,9 +27,9 @@ function MTI_status_tab_update(MTI_data, MTI_status_table)
 	var data_cells_new_values=[];
 
 	data_cells_new_values.push(MTI_data.IPv4_address);
-	data_cells_new_values.push(MTI_data.MTI_status.MTI_CPU_temp);
+	data_cells_new_values.push(MTI_data.MTI_status.MTI_CPU_temp.toFixed(1));
 	data_cells_new_values.push(MTI_data.MTI_status.MTI_charge_status);
-	data_cells_new_values.push(MTI_data.MTI_status.MTI_batt_volt);
+	data_cells_new_values.push(MTI_data.MTI_status.MTI_batt_volt.toFixed(2));
 	data_cells_new_values.push(MTI_data.MTI_status.MTI_batt_capacity);
 	data_cells_new_values.push((MTI_data.MTI_status.PWM_gen_out_freq/1000)+"Kc");
 	for(let i=0; i<MTI_data.MTI_status.PWM_CHs_outDuty.length;i++)
