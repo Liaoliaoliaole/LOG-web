@@ -87,7 +87,7 @@ xhttp.onreadystatechange = function()
 {
 	if (this.readyState == 4 && this.status == 200)
 	{
-		var MTI_data;
+		var MDAQ_data;
 		switch(request_mode)
 		{
 			case mode_enum.MDAQ_Dev_name:
@@ -107,18 +107,11 @@ xhttp.onreadystatechange = function()
 				var status_box=document.getElementById("status");
 				if(this.getResponseHeader("Content-Type")==="application/json")
 				{
-					try{
-					  MTI_data = JSON.parse(this.responseText);
-					}
-					catch{
-						break;
-					}
-					populate_MDAQ_tables(MTI_data);
-				}
-				else if(this.getResponseHeader("Content-Type")==="report/text")
-				{
-					status_box.value=this.responseText;
-					status_box.style.color=!this.responseText.includes('Success')?'red':'green';
+					try{ MDAQ_data = JSON.parse(this.responseText); }
+					catch{ break; }
+					status_box.value = "Last_update: "+ new Date(MDAQ_data.logstat_build_date_UNIX*1000).toISOString();
+					status_box.style.color='black';
+					populate_MDAQ_tables(MDAQ_data);
 				}
 				break;
 		}
@@ -165,7 +158,7 @@ function MDAQ_data_req()
 		}
 	}
 }
-function populate_MDAQ_tables(MTI_data)
+function populate_MDAQ_tables(MDAQ_data)
 {
 	var MDAQ_status = document.getElementById("MDAQ_status_table"),
 		CH_meas_table = document.getElementById("CH_meas_table"),
@@ -173,31 +166,33 @@ function populate_MDAQ_tables(MTI_data)
 		SDAQ_stats_row_data = [];
 
 	MDAQ_status.style.display="table";
-	SDAQ_stats_row_data.push(MTI_data.Dev_name);
-	SDAQ_stats_row_data.push(MTI_data.IPv4_address);
-	SDAQ_stats_row_data.push(MTI_data.Board_temp ? MTI_data.Board_temp.toFixed(1)+'°C' : '-');
-	SDAQ_stats_row_data.push(MTI_data.Connection_status);
+	SDAQ_stats_row_data.push(MDAQ_data.Dev_name);
+	SDAQ_stats_row_data.push(MDAQ_data.IPv4_address);
+	SDAQ_stats_row_data.push(MDAQ_data.Board_temp ? MDAQ_data.Board_temp.toFixed(1)+'°C':'-');
+	SDAQ_stats_row_data.push(MDAQ_data.Connection_status);
 	stats.innerHTML = "";
 	generateTable_row(stats, SDAQ_stats_row_data);
-	if(MTI_data.Connection_status === "Okay")
+	if(MDAQ_data.Connection_status === "Okay")
 	{
-		let CH_head=[], Values=[];
+		let CHs_head=[], Values=[];
 		CH_meas_table.innerHTML="";
 		CH_meas_table.style.display="table";
-		for(let Channel of MTI_data.MDAQ_Channels)
+		CHs_head.push("");
+		for(let i=1; i<=8; i++)
+			CHs_head.push("CH_"+i);
+		generateTableHead(CH_meas_table, CHs_head);
+		for(let i=1; i<=3; i++)
 		{
-			CH_head.push("CH:"+Channel.Channel);
-			let v1 = Channel.Warnings.Is_Value1_valid?Channel.Values.Value1.toFixed(3):'-',
-				v2 = Channel.Warnings.Is_Value2_valid?Channel.Values.Value2.toFixed(3):'-',
-				v3 = Channel.Warnings.Is_Value3_valid?Channel.Values.Value3.toFixed(3):'-';
-			Values.push([v1,v2,v3]);
+			let CHs_values = ["Value_"+i+":"];
+			for(let j=0; j<8; j++)
+			{
+				let curr_value = MDAQ_data.MDAQ_Channels[j].Warnings["Is_Value"+i+"_valid"]?MDAQ_data.MDAQ_Channels[j].Values["Value"+i].toFixed(3):"-";
+				CHs_values.push(curr_value);
+			}
+			Values.push(CHs_values);
+			let table_row = CH_meas_table.insertRow();
+			generateTable_row(table_row, Values[i-1]);
 		}
-		generateTableHead(CH_meas_table, CH_head);
-		for(let i=0; i<3; i++)
-		{
-		
-		}
-		console.table(Values[0]);
 	}
 	else
 		CH_meas_table.style.display="none";
