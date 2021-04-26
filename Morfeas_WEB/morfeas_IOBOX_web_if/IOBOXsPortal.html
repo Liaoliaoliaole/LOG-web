@@ -6,14 +6,14 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
-<title>Morfeas MDAQ Portal</title>
+<title>Morfeas IOBOX Portal</title>
 </head>
 <body>
 	<table style="margin:left;">
 	  <tr>
 		<td style="text-align:left;width:100%">
-			MDAQ's Device Name:
-			<select id="MDAQ_Dev_name_sel">
+			IOBOX's Device Name:
+			<select id="IOBOX_Dev_name_sel">
 				<option value='0'>None</option>
 			</select>
 		</td>
@@ -21,22 +21,40 @@
 	</table>
 	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;">
 		<tr>
-			<th colspan="5" style="font-size: 200%;">MDAQ WEB Portal</th>
+			<th colspan="5" style="font-size: 200%;">IOBOX IOBOX Portal</th>
 		</tr>
 		<tr>
 			<td colspan="4"><input id="status" style="text-align:center;" type="textbox" size="45" readonly></td>
 		</tr>
 	</table>
-	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;display:none" id="MDAQ_status_table">
+	<table style="margin:auto;text-align:center;margin-bottom:.175in;width:5in;display:none" id="IOBOX_status_table">
 		<tr>
 			<th>Dev_Name</th>
 			<th>IPv4_address</th>
-			<th>Board_temp</th>
 			<th>Connection status</th>
 		</tr>
-		<tr id="MDAQ_status"></tr>
+		<tr id="IOBOX_status"></tr>
 	</table>
-	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;display:none" id="CH_meas_table"></table>
+	<div style="margin:auto;text-align:center;width:5in;display:none" id="CH_meas_tables">
+		<table style="margin:auto;text-align:center;margin-bottom:.075in;width:5in">
+			<tr>
+				<th colspan="5">Wireless Inductive Power Supply</th>
+			</tr>
+			<tr>
+				<th>Input</th>
+				<th>CH_1</th>
+				<th>CH_2</th>
+				<th>CH_3</th>
+				<th>CH_4</th>
+			</tr>
+			<tr id="IOBOX_power_meas_volt"></tr>
+			<tr id="IOBOX_power_meas_amps"></tr>
+		</table>
+		<table style="margin:auto;text-align:center;margin-bottom:.075in;width:5in" name="RXs"></table>
+		<table style="margin:auto;text-align:center;margin-bottom:.075in;width:5in" name="RXs"></table>
+		<table style="margin:auto;text-align:center;margin-bottom:.075in;width:5in" name="RXs"></table>
+		<table style="margin:auto;text-align:center;margin-bottom:.075in;width:5in" name="RXs"></table>
+	</div>
 	<footer style="bottom:0;width:99%;">
 		<p>Author: Sam Harry Tzavaras &#169; 12021-12022<br>
 		<a href="../LICENSE">License: AGPLv3</a><br>
@@ -71,15 +89,15 @@ for the JavaScript code in this page.
 "use strict";
 comp_check();
 const mode_enum = {
-	MDAQ_Dev_name: 0,
-	MDAQ_Dev_contents: 1
+	IOBOX_Dev_name: 0,
+	IOBOX_Dev_contents: 1
 };
 //Init of Elements
 document.getElementById("status").value="Select a device";
 //Global variables for elements
 var batt_and_rssid = document.getElementsByName("batt_and_rssid");
 
-var data_req=false, request_mode = mode_enum.MDAQ_Dev_name, gen_popup_win;
+var data_req=false, request_mode = mode_enum.IOBOX_Dev_name, gen_popup_win;
 //AJAX response handler
 var xhttp = new XMLHttpRequest();
 xhttp.timeout = 2000;
@@ -87,32 +105,32 @@ xhttp.onreadystatechange = function()
 {
 	if (this.readyState == 4 && this.status == 200)
 	{
-		var MDAQ_data;
+		var IOBOX_data;
 		switch(request_mode)
 		{
-			case mode_enum.MDAQ_Dev_name:
+			case mode_enum.IOBOX_Dev_name:
 				var resp = JSON.parse(this.responseText);
-				var selector = document.getElementById("MDAQ_Dev_name_sel");
+				var selector = document.getElementById("IOBOX_Dev_name_sel");
 				for(let i=0; i<resp.logstats_names.length; i++)
 				{
-					if(resp.logstats_names[i].includes("MDAQ"))
+					if(resp.logstats_names[i].includes("IOBOX"))
 					{
 						var opt = document.createElement("option");
-						opt.text = resp.logstats_names[i].slice(13, resp.logstats_names[i].indexOf("."));
+						opt.text = resp.logstats_names[i].slice(14, resp.logstats_names[i].indexOf("."));
 						selector.add(opt);
 					}
 				}
 				break;
-			case mode_enum.MDAQ_Dev_contents:
+			case mode_enum.IOBOX_Dev_contents:
 				var status_box=document.getElementById("status");
 				if(this.getResponseHeader("Content-Type")==="application/json")
 				{
-					try{ MDAQ_data = JSON.parse(this.responseText); }
+					try{ IOBOX_data = JSON.parse(this.responseText); }
 					catch{ break; }
-					let last_update = new Date(MDAQ_data.logstat_build_date_UNIX*1000)
+					let last_update = new Date(IOBOX_data.logstat_build_date_UNIX*1000)
 					status_box.value = "Last_update: "+last_update.toLocaleDateString()+" "+last_update.toLocaleTimeString();
 					status_box.style.color='black';
-					populate_MDAQ_tables(MDAQ_data);
+					populate_IOBOX_tables(IOBOX_data);
 				}
 				break;
 		}
@@ -134,19 +152,19 @@ xhttp.ontimeout = function(){
 xhttp.open("GET", "/morfeas_php/morfeas_web_if.php?COMMAND=logstats_names", true);
 xhttp.send();
 //timer of getting data
-setInterval(MDAQ_data_req, 1000);
-function MDAQ_data_req()
+setInterval(IOBOX_data_req, 1000);
+function IOBOX_data_req()
 {
 	if(!data_req)
 	{
-		var selector = document.getElementById("MDAQ_Dev_name_sel"),
+		var selector = document.getElementById("IOBOX_Dev_name_sel"),
 			status_box = document.getElementById("status"),
-			MDAQ_status = document.getElementById("MDAQ_status_table"),
-			CH_meas = document.getElementById("CH_meas_table");
+			IOBOX_status = document.getElementById("IOBOX_status_table"),
+			CH_meas = document.getElementById("CH_meas_tables");
 		if(selector.selectedIndex)
 		{
-			request_mode = mode_enum.MDAQ_Dev_contents;
-			xhttp.open("GET", "/ramdisk/logstat_MDAQ_"+selector.value+".json"+"?q="+makeid(), true);
+			request_mode = mode_enum.IOBOX_Dev_contents;
+			xhttp.open("GET", "/ramdisk/logstat_IOBOX_"+selector.value+".json"+"?q="+makeid(), true);
 			xhttp.send();
 			data_req = true;
 		}
@@ -154,27 +172,62 @@ function MDAQ_data_req()
 		{
 			status_box.value="Select a device";
 			status_box.style.color='black';
-			MDAQ_status.style.display="none";
+			IOBOX_status.style.display="none";
 			CH_meas.style.display="none";
 		}
 	}
 }
-function populate_MDAQ_tables(MDAQ_data)
+function populate_IOBOX_tables(IOBOX_data)
 {
-	var MDAQ_status = document.getElementById("MDAQ_status_table"),
-		CH_meas_table = document.getElementById("CH_meas_table"),
-		stats = document.getElementById("MDAQ_status"),
+	var IOBOX_status = document.getElementById("IOBOX_status_table"),
+		CH_meas_tables = document.getElementById("CH_meas_tables"),
+		stats = document.getElementById("IOBOX_status"),
 		SDAQ_stats_row_data = [];
 
-	MDAQ_status.style.display="table";
-	SDAQ_stats_row_data.push(MDAQ_data.Dev_name);
-	SDAQ_stats_row_data.push(MDAQ_data.IPv4_address);
-	SDAQ_stats_row_data.push(MDAQ_data.Board_temp ? MDAQ_data.Board_temp.toFixed(1)+'°C':'-');
-	SDAQ_stats_row_data.push(MDAQ_data.Connection_status);
+	IOBOX_status.style.display="table";
+	SDAQ_stats_row_data.push(IOBOX_data.Dev_name);
+	SDAQ_stats_row_data.push(IOBOX_data.IPv4_address);
+	SDAQ_stats_row_data.push(IOBOX_data.Connection_status);
 	stats.innerHTML = "";
 	generateTable_row(stats, SDAQ_stats_row_data);
-	if(MDAQ_data.Connection_status === "Okay")
+	if(IOBOX_data.Connection_status === "Okay")
 	{
+		CH_meas_tables.style.display="inline";
+		//Populate Power supplies table.
+		var Amps_sum = 0;
+		for(let i=1; i<=4; i++)
+			Amps_sum += IOBOX_data.Power_Supply["CH"+i+"_Iout"]*1000;
+		for(let i=0; i<2; i++)
+		{
+			let IOBOX_power_meas = document.getElementById(i?"IOBOX_power_meas_amps":"IOBOX_power_meas_volt"), supply_meas=[];
+			IOBOX_power_meas.innerHTML="";
+			supply_meas.push(i?Amps_sum.toFixed(2)+'mA':IOBOX_data.Power_Supply.Vin.toFixed(2)+'V');
+			for(let j=1; j<=4; j++)
+			{
+				let value = i?(IOBOX_data.Power_Supply["CH"+j+"_Iout"]*1000).toFixed(2)+'mA':(IOBOX_data.Power_Supply["CH"+j+"_Vout"]).toFixed(2)+'V';
+				supply_meas.push(value);
+			}
+			generateTable_row(IOBOX_power_meas, supply_meas);
+		}
+		//Populate table for each Channel.
+		let RXs = document.getElementsByName("RXs");
+		for(let i=0; i<RXs.length; i++)
+		{
+			let RX_data = IOBOX_data["RX"+(i+1)];
+			if(typeof(RX_data)==="string")
+				RXs[i].innerHTML="<b>RX"+(i+1)+": "+RX_data+'</b>';
+			else
+			{
+				RXs[i].innerHTML="";
+				//RXs[i].createTHead().insertRow().insertCell().innerHTML="<b>RX"+(i+1)+':</b>';
+				
+				let CHs_head=[], Values=[];
+				for(let i=1; i<=8; i++)
+					CHs_head.push("CH_"+i);
+				generateTableHead(RXs[i], CHs_head);
+			}
+		}
+		/*
 		let CHs_head=[], Values=[];
 		CH_meas_table.innerHTML="";
 		CH_meas_table.style.display="table";
@@ -187,16 +240,17 @@ function populate_MDAQ_tables(MDAQ_data)
 			let CHs_values = ["Value_"+i+":"];
 			for(let j=0; j<8; j++)
 			{
-				let curr_value = MDAQ_data.MDAQ_Channels[j].Warnings["Is_Value"+i+"_valid"]?MDAQ_data.MDAQ_Channels[j].Values["Value"+i].toFixed(3):"-";
+				let curr_value = IOBOX_data.IOBOX_Channels[j].Warnings["Is_Value"+i+"_valid"]?IOBOX_data.IOBOX_Channels[j].Values["Value"+i].toFixed(3):"-";
 				CHs_values.push(curr_value);
 			}
 			Values.push(CHs_values);
 			let table_row = CH_meas_table.insertRow();
 			generateTable_row(table_row, Values[i-1]);
 		}
+		*/
 	}
 	else
-		CH_meas_table.style.display="none";
+		CH_meas_tables.style.display="none";
 }
 //@license-end
 </script>
