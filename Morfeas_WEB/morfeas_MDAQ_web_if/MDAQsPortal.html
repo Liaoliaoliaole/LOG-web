@@ -91,7 +91,12 @@ xhttp.onreadystatechange = function()
 		switch(request_mode)
 		{
 			case mode_enum.MDAQ_Dev_name:
-				var resp = JSON.parse(this.responseText);
+				try{ var resp = JSON.parse(this.responseText); }
+				catch{
+					document.getElementById("status").value = "Get MDAQ Names failed!";
+					document.getElementById("status").style.color='red';
+					break;
+				}
 				var selector = document.getElementById("MDAQ_Dev_name_sel");
 				for(let i=0; i<resp.logstats_names.length; i++)
 				{
@@ -120,8 +125,8 @@ xhttp.onreadystatechange = function()
 	}
 	else if(this.status == 404)
 	{
-		status_box.value = "Error 404: Data Not found";
-		status_box.style.color='red';
+		document.getElementById("status").value = "Error 404: Data Not found";
+		document.getElementById("status").style.color='red';
 		data_req=false;
 	}
 };
