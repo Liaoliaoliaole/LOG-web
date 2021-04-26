@@ -86,7 +86,7 @@ for the JavaScript code in this page.
 	xhttp.timeout = 2000;
 	xhttp.onreadystatechange = function()
 	{
-		if (this.readyState == 4 && this.status == 200)
+		if(this.readyState == 4 && this.status == 200)
 		{
 			document.getElementById("status").value = "Okay";
 			data_req=false;

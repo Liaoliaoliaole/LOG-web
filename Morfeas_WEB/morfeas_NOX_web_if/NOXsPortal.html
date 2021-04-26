@@ -339,7 +339,7 @@ xhttp.timeout = 2000;
 xhttp.onreadystatechange = function()
 {
 	let status_tab=document.getElementById("status_tab");
-	if (this.readyState == 4 && this.status == 200)
+	if(this.readyState == 4 && this.status == 200)
 	{
 		switch(request_mode)
 		{
