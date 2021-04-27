@@ -26,6 +26,7 @@ ob_start("ob_gzhandler");//Enable gzip buffering
 header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
 header('Expires: 0');
+header('Content-Type: report/text');
 
 $requestType = $_SERVER['REQUEST_METHOD'];
 $loggers_names = new stdClass();
@@ -41,14 +42,24 @@ if($requestType == "GET")
 				if($logstats = array_diff(scandir($ramdisk_path), array('..', '.', 'Morfeas_Loggers')))
 				{
 					$logstats = array_values($logstats);//Restore array order
+					$logstats_combined->OPCUA_Config_xml_mod = (time() - filemtime($opc_ua_config_dir."OPC_UA_Config.xml"))<5;//Check if OPCUA_Config_xml is modified.
 					$i = 0;
 					foreach($logstats as $logstat)
 						if(preg_match("/^logstat_.+\.json$/i", $logstat))//Read only Morfeas JSON logstat files
 						{
 							$logstats_combined->logstats_names[$i] = $logstats[$i];
-							$logstats_combined->logstat_contents[$i] = json_decode(file_get_contents($ramdisk_path . '/' . $logstat));
-							if($logstats_combined->logstat_contents[$i])
-								$i++;
+							$cnt=0;
+							do{
+								if(!($file_content = file_get_contents($ramdisk_path . '/' . $logstat)))
+								{
+									usleep(100);
+									$cnt++;
+								}
+							}while(!$file_content && $cnt<10);
+							if($cnt>=10)
+								die("Read_Error@".$logstats[$i]);
+							$logstats_combined->logstat_contents[$i] = json_decode($file_content);
+							$i++;
 						}
 					header('Content-Type: application/json');
 					echo json_encode($logstats_combined);
@@ -157,8 +168,7 @@ else if($requestType == "POST")
 	//print($dom->saveXML());
 	$dom->save($opc_ua_config_dir."OPC_UA_Config.xml") or die("Error on OPC_UA_Config.xml write");
 	header('Content-Type: application/json');
-	echo "{\"success\":true}";
-	return;
+	die("{\"success\":true}");
 }
 http_response_code(404);
 ?>

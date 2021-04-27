@@ -120,6 +120,8 @@ xhttp.onreadystatechange = function()
 				let curr_logstats = morfeas_logstat_commonizer(this.responseText);
 				if(typeof(curr_logstats) === 'object')
 					console.log(curr_logstats);
+				if(JSON.parse(this.responseText).OPCUA_Config_xml_mod)
+					request_mode = mode_enum.opcua_config;
 				break;
 		}
 		data_req=false;
