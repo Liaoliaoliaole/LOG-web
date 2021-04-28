@@ -149,7 +149,7 @@ function morfeas_logstat_commonizer(logstats)
 						null,null,null,
 						eval("logstat.MDAQ_Channels[i].Values.Value"+j),
 						eval("logstat.MDAQ_Channels[i].Warnings.Is_Value"+j+"_valid"),
-						eval("logstat.MDAQ_Channels[i].Warnings.Is_Value"+j+"_valid")?'':'No sensor'
+						eval("logstat.MDAQ_Channels[i].Warnings.Is_Value"+j+"_valid")?'-':'No sensor'
 					));
 				}
 			}
@@ -189,15 +189,22 @@ function morfeas_logstat_commonizer(logstats)
 					continue;
 				for(let j=0; j<logstat.SDAQs_data[i].Meas.length; j++)
 				{
-					let error_str='No error';
+					let error_str='-';
+					let meas_val = logstat.SDAQs_data[i].Meas[j].Meas_avg;
 					if(logstat.SDAQs_data[i].Meas[j].Channel_Status.Channel_status_val)
 					{
 						if(logstat.SDAQs_data[i].Meas[j].Channel_Status.Out_of_Range)
 							error_str='Out of Range';
 						else if(logstat.SDAQs_data[i].Meas[j].Channel_Status.No_Sensor)
+						{
 							error_str='No sensor';
+							meas_val='-';
+						}
 						else if(logstat.SDAQs_data[i].Meas[j].Channel_Status.Over_Range)
+						{
 							error_str='Over Range';
+							meas_val='-';
+						}
 						else
 							error_str='Unclassified';
 					}
@@ -210,7 +217,7 @@ function morfeas_logstat_commonizer(logstats)
 						logstat.SDAQs_data[i].Meas[j].Unit,
 						logstat.SDAQs_data[i].Calibration_Data[j].Calibration_date_UNIX,
 						logstat.SDAQs_data[i].Calibration_Data[j].Calibration_period,
-						logstat.SDAQs_data[i].Meas[j].Meas_avg,
+						meas_val,
 						!(logstat.SDAQs_data[i].Meas[j].Channel_Status.Channel_status_val),
 						error_str
 					));
@@ -293,7 +300,7 @@ function morfeas_logstat_commonizer(logstats)
 								logstat.Tele_data[i].CHs_meas[j] !== "No sensor"?
 									logstat.Tele_data[i].CHs_meas[j]:null,
 								logstat.Tele_data[i].CHs_meas[j] !== "No sensor",
-								logstat.Tele_data[i].CHs_meas[j] !== "No sensor"?'No Errors':"No sensor"
+								logstat.Tele_data[i].CHs_meas[j] !== "No sensor"?'-':logstat.Tele_data[i].CHs_meas[j]
 							));
 						}
 					}
@@ -378,7 +385,7 @@ function morfeas_logstat_commonizer(logstats)
 			{
 				if(!Obiect.entries(logstat.NOx_sensors[i]).length)
 					continue;
-				let error_str = "No Error";
+				let error_str = "-";
 				if(!logstat.NOx_sensors[i].status.is_NOx_value_valid ||
 				   !logstat.NOx_sensors[i].status.is_O2_value_valid)
 				{

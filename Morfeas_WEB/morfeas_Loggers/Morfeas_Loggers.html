@@ -141,23 +141,27 @@ xhttp.onreadystatechange = function(){
 							header_row.insertCell().innerHTML = "<b>Type</b>";
 							header_row.insertCell().innerHTML = "<b>Name/property</b>";
 							header_row.insertCell().innerHTML = "<b>Connection</b>";
-							header_row.insertCell().innerHTML = "<b>Meas/Error</b>";
+							header_row.insertCell().innerHTML = "<b>Value</b>";
+							header_row.insertCell().innerHTML = "<b>Status</b>";
 							for(let i=0; i<logstat.length; i++)
 							{
 								if(logstat[i].sensors)
 								{
 									for(let j=0; j<logstat[i].sensors.length; j++)
 									{
-										let last_row = sensors_table.insertRow();
+										let last_row = sensors_table.insertRow(), status_cell, meas_cell;
 										last_row.insertCell().innerHTML = logstat[i].sensors[j].type;
 										last_row.insertCell().innerHTML = logstat[i].sensors[j].deviceUserIdentifier;
 										last_row.insertCell().innerHTML = logstat[i].sensors[j].sensorUserId;
-										let meas_cell=last_row.insertCell()
-										meas_cell.innerHTML = logstat[i].sensors[j].Is_meas_valid?
-															  logstat[i].sensors[j].avgMeasurement.toFixed(3)+' '+(logstat[i].sensors[j].unit?logstat[i].sensors[j].unit:""):
-															  'Error: '+logstat[i].sensors[j].Error_explanation;
+										meas_cell = last_row.insertCell();
+										if(typeof(logstat[i].sensors[j].avgMeasurement)==='number')
+											meas_cell.innerHTML = logstat[i].sensors[j].avgMeasurement.toFixed(3)+' '+(logstat[i].sensors[j].unit?logstat[i].sensors[j].unit:"");
+										else
+											meas_cell.innerHTML = '-';
+										status_cell = last_row.insertCell();
+										status_cell.innerHTML = logstat[i].sensors[j].Error_explanation;
 										if(!logstat[i].sensors[j].Is_meas_valid)
-											meas_cell.style.color='red';
+											status_cell.style.color='red';
 									}
 								}
 							}
