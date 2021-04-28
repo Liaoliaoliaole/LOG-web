@@ -55,16 +55,11 @@ const mode_enum = {
 	opcua_config: 0,
 	logstats: 1
 };
-
+const GRAPH_LENGTH = 60;
 //Global Vars.
 var data_req=false, curr_opcua_config,
 	request_mode = mode_enum.opcua_config;
 
-var tabledata = [
-	{id:0, col:'red', iso_name:"TT001", type:"SDAQ", conn:"CAN0.ADDR:02.CH1", meas:10.55, graph:[25.66,55.99,21], desc:"a test", min:100, max:4000, cal_date:new Date()},
-	{id:1, col:'orange', iso_name:"TT002", type:"SDAQ", conn:"CAN0.ADDR:02.CH2", meas:52.66, graph:[21.66,90.99], desc:"a test 2 ", min:100, max:4000},
-	{id:2, col:'green', iso_name:"TT003", type:"SDAQ", conn:"CAN0.ADDR:02.CH3", meas:100.55, graph:[70.66,78.99], desc:"a test 3", min:100, max:4000}
-];
 const cal_date_format_params = {
     outputFormat:"DD/MM/YYYY",
     invalidPlaceholder:"-"
@@ -91,13 +86,7 @@ var opcua_config_table = new Tabulator("#opcua_config_table",
 		{title:"Min", field:"min", headerSort:false, responsive:3},
 		{title:"Max", field:"max", headerSort:false, responsive:4},
 		{title:"Calibration", field:"cal_date", headerSort:false, responsive:5, formatter:"datetime", formatterParams:cal_date_format_params}
- 	],
-	data:tabledata, //assign data to table
- 	/*
-	rowClick:function(e, row){ //trigger an alert message when the row is clicked
- 		alert("Row " + row.getData().id + " Clicked!!!!");
- 	},
-	*/
+ 	]
 });
 
 //AJAX response handler
@@ -105,7 +94,7 @@ var xhttp = new XMLHttpRequest();
 xhttp.timeout = 2000;
 xhttp.onreadystatechange = function()
 {
-	let status_tab=document.getElementById("status_tab");
+	let status_tab=document.getElementById("status_tab"), curr_logstats;
 	if (this.readyState == 4 && this.status == 200)
 	{
 		if(this.getResponseHeader("Content-Type")!=="application/json")
@@ -113,14 +102,16 @@ xhttp.onreadystatechange = function()
 		switch(request_mode)
 		{
 			case mode_enum.opcua_config:
-				curr_opcua_config = JSON.parse(this.responseText);
+				try{curr_opcua_config = JSON.parse(this.responseText);}
+				catch{break;}
+				build_opcua_config_table(curr_opcua_config);
 				request_mode = mode_enum.logstats;
 				break;
 			case mode_enum.logstats:
-				let curr_logstats = morfeas_logstat_commonizer(this.responseText);
-				if(typeof(curr_logstats) === 'object')
-					console.log(curr_logstats);
-				if(JSON.parse(this.responseText).OPCUA_Config_xml_mod)
+				try{curr_logstats = JSON.parse(this.responseText);}
+				catch{break;}
+				load_data_to_opcua_config_table(curr_logstats);
+				if(curr_logstats.OPCUA_Config_xml_mod)
 					request_mode = mode_enum.opcua_config;
 				break;
 		}
@@ -136,13 +127,10 @@ xhttp.onreadystatechange = function()
 	}
 };
 xhttp.ontimeout = function(){
-	/*
-	document.getElementById("status_tab").value = "Connection to server: Timeout Error";
-	document.getElementById("status_tab").style.color='blue';
-	*/
+	request_mode = mode_enum.opcua_config;
 	data_req=false;
 };
-//timer for get logstats
+//Timer for get logstats
 setInterval(get_data_req, 1000);
 function get_data_req()
 {
@@ -164,6 +152,77 @@ function get_data_req()
 	}
 }
 iso_standard.request_isostandard();//Request ISOstandard from server.
+
+/*
+var tabledata = [
+	{id:0, col:'red', iso_name:"TT001", type:"SDAQ", conn:"CAN0.ADDR:02.CH1", meas:10.55, graph:[25.66,55.99,21], desc:"a test", min:100, max:4000, cal_date:new Date()},
+	{id:1, col:'orange', iso_name:"TT002", type:"SDAQ", conn:"CAN0.ADDR:02.CH2", meas:52.66, graph:[21.66,90.99], desc:"a test 2 ", min:100, max:4000},
+	{id:2, col:'green', iso_name:"TT003", type:"SDAQ", conn:"CAN0.ADDR:02.CH3", meas:100.55, graph:[70.66,78.99], desc:"a test 3", min:100, max:4000}
+];
+*/
+function build_opcua_config_table(curr_opcua_config)
+{
+	if(!curr_opcua_config)
+		return;
+	let tableData = [];
+	for(let i=0; i<curr_opcua_config.length; i++)
+	{
+		let table_data_entry = {};
+		table_data_entry.id=i;
+		table_data_entry.iso_name=curr_opcua_config[i].ISO_CHANNEL;
+		table_data_entry.type=curr_opcua_config[i].INTERFACE_TYPE;
+		table_data_entry.desc=curr_opcua_config[i].DESCRIPTION;
+		table_data_entry.min=curr_opcua_config[i].MIN;
+		table_data_entry.max=curr_opcua_config[i].MAX;
+		if(curr_opcua_config[i].hasOwnProperty('UNIT'))
+			table_data_entry.unit=curr_opcua_config[i].UNIT;
+		table_data_entry.anchor = curr_opcua_config[i].ANCHOR;
+		table_data_entry.graph = new Array();
+		tableData.push(table_data_entry);
+	}
+	opcua_config_table.setData(tableData);
+}
+function load_data_to_opcua_config_table(curr_logstats)
+{
+	if(!curr_logstats)
+		return;
+	let tableData = opcua_config_table.getData(),
+		curr_logstats_com = morfeas_logstat_commonizer(curr_logstats);
+	if(typeof(curr_logstats_com)==="object")
+	{
+		for(let i=0; i<tableData.length; i++)
+		{
+			let data = get_from_common_logstats_by_anchor(curr_logstats_com, tableData[i].type, tableData[i].anchor);
+			if(!data)
+			{
+				tableData[i].col='red';
+				tableData[i].conn='Disconnected';
+				tableData[i].meas = '-';
+				tableData[i].graph = [];
+				continue;
+			}
+			console.log(data);
+			tableData[i].conn = data.sensorUserId;
+			if(data.unit)
+				tableData[i].unit=data.unit;
+			tableData[i].col=data.Is_meas_valid?'green':'yellow';
+			if(typeof(data.avgMeasurement)==='number')//data.Is_meas_valid)
+			{
+				tableData[i].meas = data.avgMeasurement.toFixed(3)+' '+tableData[i].unit;
+				if(tableData[i].graph.length>=GRAPH_LENGTH)
+					tableData[i].graph.shift();
+				tableData[i].graph.push(data.avgMeasurement.toFixed(1));
+			}
+			else
+			{
+				tableData[i].meas = '-';
+				tableData[i].graph = [];
+			}
+			tableData[i].cal_date=data.calibrationDate;
+		}
+	}
+	opcua_config_table.replaceData(tableData);
+}
 //@license-end
 </script>
 </html>

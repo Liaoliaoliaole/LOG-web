@@ -54,11 +54,10 @@ function morfeas_logstat_commonizer(logstats)
 	//Check for incompatible input
 	if(!logstats)
 		return "no logstats type data";
-	try {
-		logstats = JSON.parse(logstats);
-	}
-	catch(err) {
-	  return "Parsing error";
+	if(typeof(logstats)==="string")	
+	{	
+		try {logstats = JSON.parse(logstats);}
+		catch{return "Parsing error";}
 	}
 	if(!logstats.logstats_names)
 		return "missing logstats_names";
@@ -278,7 +277,7 @@ function morfeas_logstat_commonizer(logstats)
 						lim!==2?"°C":"",null,null,
 						logstat.Tele_data.CHs[i],
 						logstat.Tele_data.IsValid && typeof(logstat.Tele_data.CHs[i])=='number',
-						!logstat.Tele_data.RX_Success_Ratio?'Disconnected':'No sensor'
+						!logstat.Tele_data.RX_Success_Ratio?'Disconnected':typeof(logstat.Tele_data.CHs[i])!=='number'?logstat.Tele_data.CHs[i]:'-'
 					));
 				}
 			}
@@ -452,6 +451,21 @@ function morfeas_logstat_commonizer(logstats)
 		}
 	}
 	return data_table;
+}
+function get_from_common_logstats_by_anchor(logstats, type, anchor) 
+{
+	if(!logstats || !anchor ||
+	   !logstats.length || !type)
+		return false;
+	for(let i=0; i<logstats.length; i++)
+	{
+		if(!logstats[i].sensors || !logstats[i].sensors.length || logstats[i].if_name !== type)
+			continue;
+		for(let j=0; j<logstats.length; j++)
+			if(logstats[i].sensors[j].anchor === anchor)
+				return logstats[i].sensors[j];
+	}
+	return false;
 }
 
 var iso_standard = {
