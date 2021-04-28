@@ -54,8 +54,8 @@ function morfeas_logstat_commonizer(logstats)
 	//Check for incompatible input
 	if(!logstats)
 		return "no logstats type data";
-	if(typeof(logstats)==="string")	
-	{	
+	if(typeof(logstats)==="string")
+	{
 		try {logstats = JSON.parse(logstats);}
 		catch{return "Parsing error";}
 	}
@@ -452,18 +452,21 @@ function morfeas_logstat_commonizer(logstats)
 	}
 	return data_table;
 }
-function get_from_common_logstats_by_anchor(logstats, type, anchor) 
+function get_from_common_logstats_by_anchor(logstats, type, anchor)
 {
 	if(!logstats || !anchor ||
 	   !logstats.length || !type)
 		return false;
+
 	for(let i=0; i<logstats.length; i++)
 	{
-		if(!logstats[i].sensors || !logstats[i].sensors.length || logstats[i].if_name !== type)
+		if(!logstats[i].sensors || !logstats[i].sensors.length || !logstats[i].if_name.includes(type))
 			continue;
 		for(let j=0; j<logstats.length; j++)
+		{
 			if(logstats[i].sensors[j].anchor === anchor)
 				return logstats[i].sensors[j];
+		}
 	}
 	return false;
 }
