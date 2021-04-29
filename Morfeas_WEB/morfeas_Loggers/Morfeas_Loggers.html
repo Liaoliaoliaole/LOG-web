@@ -163,8 +163,9 @@ function onReady_State_Change()
 										last_row.insertCell().innerHTML = logstats[i].sensors[j].deviceUserIdentifier;
 										last_row.insertCell().innerHTML = logstats[i].sensors[j].sensorUserId;
 										meas_cell = last_row.insertCell();
+										let unit = logstats[i].sensors[j].unit?logstats[i].sensors[j].unit:"";
 										if(typeof(logstats[i].sensors[j].avgMeasurement)==='number')
-											meas_cell.innerHTML = logstats[i].sensors[j].avgMeasurement.toFixed(3)+' '+(logstats[i].sensors[j].unit?logstats[i].sensors[j].unit:"");
+											meas_cell.innerHTML = logstats[i].sensors[j].avgMeasurement.toFixed(3)+' '+unit;
 										else
 											meas_cell.innerHTML = '-';
 										status_cell = last_row.insertCell();
