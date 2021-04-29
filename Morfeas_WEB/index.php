@@ -66,7 +66,7 @@ td.bold{
 		</td>
 		<td name="ISOCH" style="display:none;"><button type="button" onclick='PopupCenter("/External_components/ISOChannel_Linker/html/","","1280","1024")'>
 			<span title="Old ISOChannel Linker">
-				<img src="./art/beard.png" class="bsize">
+				<img src="./art/Anchor_wapise.png" class="bsize">
 			</span>
 		</td>
 		<td><button type="button" onclick='PopupCenter("/Morfeas_configuration/Morfeas_System_config.html"+"?q="+makeid(),"","1024","768")'>

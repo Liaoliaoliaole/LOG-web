@@ -71,23 +71,25 @@ var hist_graph_formatter = function(cell, formatterParams, onRendered){
 var opcua_config_table = new Tabulator("#opcua_config_table",
 {
 	height:"800px",
- 	layout:"fitDataFill",
+ 	layout:"fitDataStretch",
  	responsiveLayout:"collapse",
 	columns:
 	[
 	 	{formatter:"responsiveCollapse",  responsive:0, width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false},
-		{field:"col" ,formatter:"color", responsive:0},
+		{title:"\#", field:"id", hozAlign:"center", width:50, resizable:false, responsive:0},
+		{field:"col" ,formatter:"color", resizable:false, responsive:0},
 		{title:"ISOChannel", field:"iso_name", responsive:0},
 		{title:"Type", field:"type", responsive:0},
-	 	{title:"Connection", field:"conn", responsive:0},
-	 	{title:"Current Value", field:"meas", headerSort:false, responsive:0},
-	 	{title:"Value History", field:"graph", headerSort:false, responsive:0, formatter:hist_graph_formatter},
+	 	{title:"Connection", field:"conn", minWidth:170, responsive:0},
+		{title:"Sensor status", field:"status", responsive:0},
+	 	{title:"Value", field:"meas", width:80, headerSort:false, responsive:0},
+	 	{title:"History", field:"graph", headerSort:false, responsive:0, formatter:hist_graph_formatter},
 		{title:"Unit", field:"unit", headerSort:false, responsive:1},
-		{title:"Description", field:"desc", headerSort:false, responsive:2},
+		{title:"Valid until", field:"cal_date", width:80, headerSort:false, responsive:2, formatter:"datetime", formatterParams:cal_date_format_params},
 		{title:"Min", field:"min", headerSort:false, responsive:3},
 		{title:"Max", field:"max", headerSort:false, responsive:4},
-		{title:"Calibration", field:"cal_date", headerSort:false, responsive:5, formatter:"datetime", formatterParams:cal_date_format_params}
- 	]
+		{title:"Description", field:"desc", headerSort:false, responsive:5},
+	]
 });
 
 //AJAX response handler
@@ -198,17 +200,31 @@ function load_data_to_opcua_config_table(curr_logstats)
 			let data = get_from_common_logstats_by_anchor(curr_logstats_com, tableData[i].type, tableData[i].anchor);
 			if(!data)
 			{
-				tableData[i].col='red';
-				tableData[i].conn='Disconnected';
+				tableData[i].col="red";
+				tableData[i].conn="OFF-Line";
 				tableData[i].meas = '-';
+				tableData[i].status = '-';
 				tableData[i].graph = [];
 				continue;
 			}
-			console.log(data);
 			tableData[i].conn = data.sensorUserId;
 			if(data.unit)
 				tableData[i].unit=data.unit;
 			tableData[i].col=data.Is_meas_valid?'green':'yellow';
+			tableData[i].status=data.Is_meas_valid?'Okay':data.Error_explanation;
+			if(typeof(data.calibrationDate)==='number' && typeof(data.calibrationPeriod)=='number')
+			{
+				let cal_date = new Date(data.calibrationDate*1000),
+					valid_until = new Date(cal_date.setMonth(cal_date.getMonth()+data.calibrationPeriod));
+				if(new Date() >= valid_until)
+				{
+					tableData[i].col="orange";
+					tableData[i].status = 'Cal no valid';
+				}
+				tableData[i].cal_date=valid_until;
+			}
+			else
+				tableData[i].cal_date=null;
 			if(typeof(data.avgMeasurement)==='number')//data.Is_meas_valid)
 			{
 				tableData[i].meas = data.avgMeasurement.toFixed(3)+' '+tableData[i].unit;
@@ -221,7 +237,6 @@ function load_data_to_opcua_config_table(curr_logstats)
 				tableData[i].meas = '-';
 				tableData[i].graph = [];
 			}
-			tableData[i].cal_date=data.calibrationDate;
 		}
 	}
 	opcua_config_table.replaceData(tableData);

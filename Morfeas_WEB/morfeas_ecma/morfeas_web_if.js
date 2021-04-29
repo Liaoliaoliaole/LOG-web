@@ -89,7 +89,7 @@ function morfeas_logstat_commonizer(logstats)
 		this.type = type === undefined ? null : type;
 		this.avgMeasurement = avgMeasurement === undefined ? null : avgMeasurement;
 		this.Is_meas_valid = Is_meas_valid === undefined ? null : Is_meas_valid;
-		this.Error_explanation = Error_explanation === undefined ? 'Undefined' : Error_explanation
+		this.Error_explanation = Error_explanation === undefined ? '-' : Error_explanation
 	}
 	function connection(name, value, unit)
 	{
@@ -117,7 +117,7 @@ function morfeas_logstat_commonizer(logstats)
 		new_data_table_entry.connections.push(new connection("CPU_Util", logstat.CPU_Util.toFixed(2), "%"));
 		new_data_table_entry.connections.push(new connection("RAM_Util", logstat.RAM_Util.toFixed(2), "%"));
 		new_data_table_entry.connections.push(new connection("Disk_Util", logstat.Disk_Util.toFixed(2), "%"));
-		new_data_table_entry.connections.push(new connection("Up_time", logstat.Up_time, "sec"));
+		new_data_table_entry.connections.push(new connection("Up_time", Seconds_to_human(logstat.Up_time)));
 		return new_data_table_entry;
 	}
 	function MDAQ_logstat(logstat)
@@ -271,8 +271,8 @@ function morfeas_logstat_commonizer(logstats)
 					new_data_table_entry.sensors.push(new sensor
 					(
 						"MTI",
-						logstat.Dev_name + " (" + logstat.IPv4_address + ")",
-						logstat.MTI_status.Tele_Device_type+".CH:"+(i+1),
+						logstat.Dev_name+" ("+logstat.IPv4_address+')',
+						logstat.Dev_name+'.'+logstat.MTI_status.Tele_Device_type+".CH:"+(i+1),
 						logstat.Identifier+"."+logstat.MTI_status.Tele_Device_type+"."+"CH"+(i+1),
 						lim!==2?"°C":"",null,null,
 						logstat.Tele_data.CHs[i],
@@ -293,7 +293,7 @@ function morfeas_logstat_commonizer(logstats)
 							(
 								"MTI",
 								logstat.Dev_name + " (" + logstat.IPv4_address + ")",
-								logstat.Tele_data[i].Dev_type+"(ID:"+logstat.Tele_data[i].Dev_ID+").CH:"+(j+1),
+								logstat.Dev_name+'.'+logstat.Tele_data[i].Dev_type+"(ID:"+logstat.Tele_data[i].Dev_ID+").CH:"+(j+1),
 								logstat.Identifier+".ID:"+logstat.Tele_data[i].Dev_ID+"."+"CH"+(j+1),
 								"°C",null,null,
 								logstat.Tele_data[i].CHs_meas[j] !== "No sensor"?
@@ -400,7 +400,7 @@ function morfeas_logstat_commonizer(logstats)
 				new_data_table_entry.sensors.push(new sensor(
 					"NOX",
 					"UniNOx(Addr:"+i+")",
-					logstat.CANBus_interface.toUpperCase()+"."+i+".NOx",
+					logstat.CANBus_interface.toUpperCase()+".ADDR:"+i+".NOx",
 					logstat.CANBus_interface+".addr_"+i+".NOx",
 					"ppm", null, null,
 					logstat.NOx_sensors[i].NOx_value_avg,
@@ -410,7 +410,7 @@ function morfeas_logstat_commonizer(logstats)
 				new_data_table_entry.sensors.push(new sensor(
 					"NOX",
 					"UniNOx(Addr:"+i+")",
-					logstat.CANBus_interface.toUpperCase()+"."+i+".O2",
+					logstat.CANBus_interface.toUpperCase()+".ADDR:"+i+".O2",
 					logstat.CANBus_interface+".addr_"+i+".O2",
 					"%", null, null,
 					logstat.NOx_sensors[i].O2_value_avg,
@@ -445,8 +445,9 @@ function morfeas_logstat_commonizer(logstats)
 				else if(logstats.logstats_names[i].includes("logstat_IOBOX"))//Morfeas_IOBOX_if handlers
 					data_table[data_table_index] = IOBOX_logstat(logstats.logstat_contents[i]);
 			}
-		} catch {
-			console.log("Error @ i="+i);
+		} catch(err) {
+			console.log("At i="+i);
+			console.log("Error: "+err);
 			console.log(logstats);
 		}
 	}
@@ -462,7 +463,7 @@ function get_from_common_logstats_by_anchor(logstats, type, anchor)
 	{
 		if(!logstats[i].sensors || !logstats[i].sensors.length || !logstats[i].if_name.includes(type))
 			continue;
-		for(let j=0; j<logstats.length; j++)
+		for(let j=0; j<logstats[i].sensors.length; j++)
 		{
 			if(logstats[i].sensors[j].anchor === anchor)
 				return logstats[i].sensors[j];
@@ -528,4 +529,22 @@ var iso_standard = {
 		return;
 	}
 };
+function Seconds_to_human(n)
+{
+	let days,hours,minutes,seconds,ret="";
+	days = parseInt(n/(24*3600));
+	n = n%(24*3600);
+	hours = parseInt(n/3600);
+	n %= 3600;
+	minutes = n/60;
+	n %= 60;
+	seconds = n;
+	if(days)
+	{
+		days = days.toFixed();
+		ret += days+" day"+(days>1?"s ":' ');
+	}
+	ret += hours.toFixed()+":"+minutes.toFixed()+":"+seconds.toFixed();
+	return ret;
+}
 //@license-end
