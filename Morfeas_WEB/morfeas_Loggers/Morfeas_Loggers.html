@@ -82,37 +82,43 @@ for the JavaScript code in this page.
 "use strict";
 comp_check();
 
-var screen_enum = {
+const screen_enum = {
 			  Loggers: 0,
 			  Logstats: 1,
-			};
-var mode_enum = {
+			},
+	  mode_enum = {
 				Loggers_name: 0,
 				Logger_content: 1,
 				Logstats: 2
-			};
-var mode_enum_L2 = {
+			},
+	  mode_enum_L2 = {
 				Sensors: 0,
 				Details: 1
 			};
-var request_mode = mode_enum.Loggers_name;
-var display_mode;
-var Logger_terminal = document.getElementById("Logger_terminal");
-var logstats_disp = document.getElementById("logstats_disp");
-var logstat;
+var display_mode,
+	request_mode = mode_enum.Loggers_name,
+	Logger_terminal = document.getElementById("Logger_terminal"),
+	logstats_disp = document.getElementById("logstats_disp"),
+	status_tab = document.getElementById("status"),
+	log_select = document.getElementById("logger_select"),
+	logstat;
 Logger_terminal.innerHTML="";
+
 //AJAX response handler
 var xhttp = new XMLHttpRequest();
-xhttp.onreadystatechange = function(){
-	if (this.readyState == 4 && this.status == 200)
+xhttp.timeout = 900;
+xhttp.ontimeout = onTimeout;
+xhttp.onreadystatechange = onReady_State_Change;
+function onReady_State_Change()
+{
+	if(this.readyState == 4 && this.status == 200)
 	{
 		switch(request_mode)
 		{
 			case mode_enum.Loggers_name:
 				var Logger_names = JSON.parse(this.responseText);
-				var log_select = document.getElementById("logger_select");
 				log_select.options.length = 1;
-				for (var i=0; i < Logger_names.Logger_names.length; i++)
+				for(var i=0; i < Logger_names.Logger_names.length; i++)
 				{
 					var opt = document.createElement("option");
 					opt.text = Logger_names.Logger_names[i];
@@ -121,20 +127,20 @@ xhttp.onreadystatechange = function(){
 				}
 				break;
 			case mode_enum.Logger_content:
-				document.getElementById("status").value = "Morfeas Loggers";
+				status_tab.value = "Morfeas Loggers";
 				let is_scroll_at_bottom = ((window.innerHeight+window.scrollY)>=document.body.offsetHeight);
 				Logger_terminal.innerHTML = morfeas_opcua_logger_colorizer(this.responseText);
 				if(is_scroll_at_bottom)
 					window.scrollTo(0,document.body.scrollHeight);
 				break;
 			case mode_enum.Logstats:
-				logstat = morfeas_logstat_commonizer(this.responseText);
-				if(typeof logstat !== 'string')
+				logstats = morfeas_logstat_commonizer(this.responseText);
+				if(typeof logstats === 'object')
 				{
 					switch(display_mode)
 					{
 						case mode_enum_L2.Sensors:
-							document.getElementById("status").value = "Sensors";
+							status_tab.value = "Sensors";
 							var sensors_table = document.createElement("TABLE");
 							sensors_table.style="margin:auto;margin-bottom:.075in;width:7in;";
 							let header_row=sensors_table.createTHead().insertRow();
@@ -145,25 +151,25 @@ xhttp.onreadystatechange = function(){
 							header_row.insertCell().innerHTML = "<b>Connection</b>";
 							header_row.insertCell().innerHTML = "<b>Value</b>";
 							header_row.insertCell().innerHTML = "<b>Status</b>";
-							for(let i=0; i<logstat.length; i++)
+							for(let i=0; i<logstats.length; i++)
 							{
-								if(logstat[i].sensors)
+								if(logstats[i].sensors)
 								{
-									for(let j=0; j<logstat[i].sensors.length; j++)
+									for(let j=0; j<logstats[i].sensors.length; j++)
 									{
 										let last_row = sensors_table.insertRow(), status_cell, meas_cell;
 										last_row.insertCell().innerHTML = (j+1);
-										last_row.insertCell().innerHTML = logstat[i].sensors[j].type;
-										last_row.insertCell().innerHTML = logstat[i].sensors[j].deviceUserIdentifier;
-										last_row.insertCell().innerHTML = logstat[i].sensors[j].sensorUserId;
+										last_row.insertCell().innerHTML = logstats[i].sensors[j].type;
+										last_row.insertCell().innerHTML = logstats[i].sensors[j].deviceUserIdentifier;
+										last_row.insertCell().innerHTML = logstats[i].sensors[j].sensorUserId;
 										meas_cell = last_row.insertCell();
-										if(typeof(logstat[i].sensors[j].avgMeasurement)==='number')
-											meas_cell.innerHTML = logstat[i].sensors[j].avgMeasurement.toFixed(3)+' '+(logstat[i].sensors[j].unit?logstat[i].sensors[j].unit:"");
+										if(typeof(logstats[i].sensors[j].avgMeasurement)==='number')
+											meas_cell.innerHTML = logstats[i].sensors[j].avgMeasurement.toFixed(3)+' '+(logstats[i].sensors[j].unit?logstats[i].sensors[j].unit:"");
 										else
 											meas_cell.innerHTML = '-';
 										status_cell = last_row.insertCell();
-										status_cell.innerHTML = logstat[i].sensors[j].Error_explanation;
-										if(!logstat[i].sensors[j].Is_meas_valid)
+										status_cell.innerHTML = logstats[i].sensors[j].Error_explanation;
+										if(!logstats[i].sensors[j].Is_meas_valid)
 											status_cell.style.color='red';
 									}
 								}
@@ -172,7 +178,7 @@ xhttp.onreadystatechange = function(){
 							logstats_disp.appendChild(sensors_table);
 							break;
 						case mode_enum_L2.Details:
-							document.getElementById("status").value = "Details";
+							status_tab.value = "Details";
 							logstats_disp.textContent = '';//remove all children
 							for(let i=0; i<logstat.length; i++)
 							{
@@ -205,19 +211,28 @@ xhttp.onreadystatechange = function(){
 				}
 				else
 				{
-					document.getElementById("status").value = logstat;
+					status_tab.value = logstat;
 					console.log(logstat);
 				}
 				break;
 		}
 	}
+	else if(this.status == 404)
+	{
+		status_tab.value = "Error 404: Data Not found";
+		status_tab.style.color='red';
+	}
+};
+function onTimeout()
+{
+  status_tab.value = "Connection to server: Timeout Error";
+  status_tab.style.color='blue';
 };
 
 //main timer
 window.setInterval(Morfeas_request, 1000);
 function Morfeas_request()
 {
-	var selected_logger = document.getElementById("logger_select");
 	if(request_mode == mode_enum.Loggers_name)
 	{
 		//request names of Loggers
@@ -227,9 +242,9 @@ function Morfeas_request()
 	}
 	else if(request_mode == mode_enum.Logger_content)
 	{
-		if(selected_logger.selectedIndex)
+		if(log_select.selectedIndex)
 		{
-			xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + selected_logger.value + "?q="+makeid(), true);
+			xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + log_select.value + "?q="+makeid(), true);
 			xhttp.overrideMimeType("text/html");
 			xhttp.send();
 		}
@@ -247,15 +262,15 @@ function Show_hide(log_set)
 	if(log_set==screen_enum.Loggers)
 	{
 		document.getElementById("loggers").style.display="table";
-		document.getElementById("logstats_disp").style.display="none";
-		document.getElementById("logger_select").selectedIndex = 0;
+		logstats_disp.style.display="none";
+		log_select.selectedIndex = 0;
 		Logger_terminal.innerHTML="";
 		request_mode = mode_enum.Loggers_name;
 	}
 	else if(log_set==screen_enum.Logstats)
 	{
 		document.getElementById("loggers").style.display="none";
-		document.getElementById("logstats_disp").style.display="inline";
+		logstats_disp.style.display="inline";
 		request_mode = mode_enum.Logstats;
 	}
 }
