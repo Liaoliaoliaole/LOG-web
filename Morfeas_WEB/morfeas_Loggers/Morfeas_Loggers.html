@@ -122,9 +122,10 @@ xhttp.onreadystatechange = function(){
 				break;
 			case mode_enum.Logger_content:
 				document.getElementById("status").value = "Morfeas Loggers";
+				let is_scroll_at_bottom = ((window.innerHeight+window.scrollY)>=document.body.offsetHeight);
 				Logger_terminal.innerHTML = morfeas_opcua_logger_colorizer(this.responseText);
-				if(document.body.scrollTop === document.body.scrollHeight)
-					document.body.scrollTo(0,document.body.scrollHeight);
+				if(is_scroll_at_bottom)
+					window.scrollTo(0,document.body.scrollHeight);
 				break;
 			case mode_enum.Logstats:
 				logstat = morfeas_logstat_commonizer(this.responseText);
