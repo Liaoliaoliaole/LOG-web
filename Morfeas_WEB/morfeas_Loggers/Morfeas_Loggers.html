@@ -101,7 +101,7 @@ var display_mode,
 	logstats_disp = document.getElementById("logstats_disp"),
 	status_tab = document.getElementById("status"),
 	log_select = document.getElementById("logger_select"),
-	logstat;
+	logstats;
 Logger_terminal.innerHTML="";
 
 //AJAX response handler
@@ -180,28 +180,28 @@ function onReady_State_Change()
 						case mode_enum_L2.Details:
 							status_tab.value = "Details";
 							logstats_disp.textContent = '';//remove all children
-							for(let i=0; i<logstat.length; i++)
+							for(let i=0; i<logstats.length; i++)
 							{
-								if(logstat[i].connections)
+								if(logstats[i].connections)
 								{
 									var details_table = document.createElement("TABLE");
 									details_table.style="margin:auto;margin-bottom:.075in;width:4in;";
-									details_table.createTHead().innerHTML = logstat[i].if_name;
-									for(let j=0; j<logstat[i].connections.length; j++)
+									details_table.createTHead().innerHTML = logstats[i].if_name;
+									for(let j=0; j<logstats[i].connections.length; j++)
 									{
 										let last_row = details_table.insertRow();
-										last_row.insertCell().innerHTML = logstat[i].connections[j].name;
-										if(logstat[i].connections[j].name.includes("UNIX"))
+										last_row.insertCell().innerHTML = logstats[i].connections[j].name;
+										if(logstats[i].connections[j].name.includes("UNIX"))
 										{
 											let date_conv = new Date();
-											date_conv.setTime(logstat[i].connections[j].value*1000)
+											date_conv.setTime(logstats[i].connections[j].value*1000)
 											last_row.insertCell().innerHTML = date_conv.getFullYear()+"/"+
 																			  (date_conv.getMonth()+1)+"/"+
 																			  date_conv.getDate();
 										}
 										else
-											last_row.insertCell().innerHTML = logstat[i].connections[j].value
-																			+ (logstat[i].connections[j].unit?logstat[i].connections[j].unit:"");
+											last_row.insertCell().innerHTML = logstats[i].connections[j].value
+																			+ (logstats[i].connections[j].unit?logstats[i].connections[j].unit:"");
 									}
 									logstats_disp.appendChild(details_table);
 								}
