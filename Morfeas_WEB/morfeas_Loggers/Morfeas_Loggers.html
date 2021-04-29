@@ -136,9 +136,10 @@ xhttp.onreadystatechange = function(){
 						case mode_enum_L2.Sensors:
 							document.getElementById("status").value = "Sensors";
 							var sensors_table = document.createElement("TABLE");
-							sensors_table.style="margin:auto;margin-bottom:.075in;width:6in;";
+							sensors_table.style="margin:auto;margin-bottom:.075in;width:7in;";
 							let header_row=sensors_table.createTHead().insertRow();
 							header_row.style="text-align:center";
+							header_row.insertCell().innerHTML = "<b>#</b>";
 							header_row.insertCell().innerHTML = "<b>Type</b>";
 							header_row.insertCell().innerHTML = "<b>Name/property</b>";
 							header_row.insertCell().innerHTML = "<b>Connection</b>";
@@ -151,6 +152,7 @@ xhttp.onreadystatechange = function(){
 									for(let j=0; j<logstat[i].sensors.length; j++)
 									{
 										let last_row = sensors_table.insertRow(), status_cell, meas_cell;
+										last_row.insertCell().innerHTML = (j+1);
 										last_row.insertCell().innerHTML = logstat[i].sensors[j].type;
 										last_row.insertCell().innerHTML = logstat[i].sensors[j].deviceUserIdentifier;
 										last_row.insertCell().innerHTML = logstat[i].sensors[j].sensorUserId;
