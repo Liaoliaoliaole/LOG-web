@@ -34,16 +34,20 @@ At the table~\ref{table:Morfeas_Web_if} will present the allowed commands for th
 If the GET request made without the argument ``COMMAND" or with an unknown value in to it, the return will be ``HTTP ERROR 404".
 
 \subsubsection{POST request}
-The ``Morfeas\_Web\_if.php" script is also accept ``POST" requests in order of new configurations for the ISO Channel object of the OPC-UA.
-The contents for this kind of request is a JSON object with tag name ``data" where contains an array with the configuration for each ISO Channel.
-Every element of the array contain a JSON object with the configuration for each particular ISO channel. The structure for the argument for this POST request
-presented at listing~\ref{lst:Morfeas_Web_if}.
-
+The ``Morfeas\_Web\_if.php" script is also accept ``POST" requests in order to modify the configurations for the ISO Channel objects of the OPC-UA nodeset.
+The contents for this kind of request is a JSON object with two properties: ``COMMAND" and ``DATA".\\
+The property ``COMMAND" contains a string with the operation that the script will do, and the ``DATA" an array of objects.
+Each element of ``DATA" array shall contain a set of variables related to the channel's configuration.
+A structure example for the argument for this POST request presented at listing~\ref{lst:Morfeas_Web_if}.
+\par At success the ``Morfeas\_Web\_if.php" return a JSON object with a report, otherwise return a string with the error that cause it to fail.
+\newpage
 \begin{lstlisting}[frame=single,caption=Example for argument of POST request for Morfeas\_Web\_if.php,label=lst:Morfeas_Web_if]
-{"data":[
+{
+ "COMMAND":"ADD"|"DEL"|"MOD",
+ "DATA":[
    {
       "ISOChannel":"Name of the ISO Channel",
-      "IF_type":"MDAQ"|"SDAQ"|"IOBOX"|"MTI",
+      "IF_type":"MDAQ"|"SDAQ"|"IOBOX"|"MTI"|"NOX",
       "Anchor":"The anchored physical input with the current ISO Channel",
       "Description":"Description of the ISO Channel",
       "Max":"Minimum input value",
@@ -53,8 +57,6 @@ presented at listing~\ref{lst:Morfeas_Web_if}.
  ]
 }
 \end{lstlisting}
-
-In every success the ``Morfeas\_Web\_if.php" return a JSON object with a report, otherwise return a string with the error that cause it to fail.
 
 \subsection{config.php}
 The ``config.php" is a PHP script part of the Morfeas WEB where is responsible for each configuration of the computer and the Morfeas System. It's can called from ``./morfeas\_php/config.php",

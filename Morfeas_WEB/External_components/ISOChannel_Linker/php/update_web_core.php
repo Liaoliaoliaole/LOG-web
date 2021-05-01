@@ -1,5 +1,5 @@
 <?php
-require("../Morfeas_env.php");
+require("../../../Morfeas_env.php");
 $requestType = $_SERVER['REQUEST_METHOD'];
 $postdata = file_get_contents("php://input");
 $request = json_decode($postdata);
@@ -61,7 +61,7 @@ if ($requestType == "POST") {
         }
         $message = 'Update completed.';
         if ($upToDate) {
-            $message = "Update completed.\n\nEverything was already up to date, but installations were still made."; 
+            $message = "Update completed.\n\nEverything was already up to date, but installations were still made.";
         }
         $response = [
             'message' => $message,

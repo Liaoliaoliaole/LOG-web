@@ -21,6 +21,7 @@ require("./Supplementary.php");
 define("usr_comp","COMMAND");
 $ramdisk_path="/mnt/ramdisk/";
 
+libxml_use_internal_errors(true);
 ob_start("ob_gzhandler");//Enable gzip buffering
 //Disable caching
 header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -42,7 +43,8 @@ if($requestType == "GET")
 				if($logstats = array_diff(scandir($ramdisk_path), array('..', '.', 'Morfeas_Loggers')))
 				{
 					$logstats = array_values($logstats);//Restore array order
-					$logstats_combined->OPCUA_Config_xml_mod = (time() - filemtime($opc_ua_config_dir."OPC_UA_Config.xml"))<5;//Check if OPCUA_Config_xml is modified.
+					$logstats_combined->Build_time = time();
+					$logstats_combined->OPCUA_Config_xml_mod = ($logstats_combined->Build_time - filemtime($opc_ua_config_dir."OPC_UA_Config.xml"))<5;
 					$i = 0;
 					foreach($logstats as $logstat)
 						if(preg_match("/^logstat_.+\.json$/i", $logstat))//Read only Morfeas JSON logstat files
@@ -109,10 +111,69 @@ else if($requestType == "POST")
 	$RX_data = file_get_contents('php://input');
 	$Channels_json = decompress($RX_data) or die("Error: Decompressing of ISOChannels failed");
 	$Channels = json_decode($Channels_json) or die("Error: JSON Decode of ISOChannels failed");
+	//Check Properties.
+	if(!property_exists($Channels, 'COMMAND'))
+		die("Error: \"COMMAND\" property Missing!!!");
+	if(!property_exists($Channels, 'DATA'))
+		die("Error: \"DATA\" property Missing!!!");
+	if(!sizeof($Channels->DATA))
+		die("Error: \"DATA\" is Empty!!!");
+	if(!sizeof($Channels->COMMAND))
+		die("Error: \"COMMAND\" is Empty!!!");
+	$c=0;
+	foreach($Channels->DATA as $Channel)
+	{
+		if(!(property_exists($Channel, 'ISOChannel')&&
+			 property_exists($Channel, 'IF_type')&&
+			 property_exists($Channel, 'Anchor')&&
+			 property_exists($Channel, 'Description')&&
+			 property_exists($Channel, 'Min')&&
+			 property_exists($Channel, 'Max'))
+		  )
+			die("DATA[$c] have missing properties");
+		if(!(strlen($Channel->ISOChannel)&&
+			 strlen($Channel->IF_type)&&
+			 strlen($Channel->Anchor)&&
+			 strlen($Channel->Min)&&
+			 strlen($Channel->Max)&&
+			 strlen($Channel->Description))
+		  )
+			die("DATA[$c] have empty properties");
+		$c++;
+	}
+	$OPC_UA_Config_str = readfile($opc_ua_config_dir."OPC_UA_Config.xml") or die("Error: OPC_UA_Config.xml does't found!!!");
+	if(!($OPC_UA_Config = simplexml_load_string(xml_str)))
+	{
+		echo "Error at XML Parsing: ";
+		foreach(libxml_get_errors() as $error)
+			echo "<br>", $error->message;
+		return;
+	}
+	switch($Channels->COMMAND)
+	{
+		case 'ADD':
+			foreach($Channels->DATA as $Channel)
+			{
 
-	if(!property_exists($Channels, 'data'))
-		die("Error: No data property!!!");
-
+			}
+			if(($ret = add_channels($Channels))
+				die("Error: ADD command failed with $ret");
+			break;
+		case 'DEL':
+			if(($ret = mod_channels($Channels))
+				die("Error: DEL command failed with $ret");
+			break;
+		case 'MOD':
+			if(($ret = del_channels($Channels))
+				die("Error: MOD command failed with $ret");
+			break;
+		default:
+			die("Error: Unknown Command!!!");
+	}
+	OPC_UA_Config->asXML($opc_ua_config_dir."OPC_UA_Config.xml") or die("Error: Unable to write OPC_UA_Config.xml file!!!");
+	header('Content-Type: application/json');
+	die("{\"success\":true}");
+	/*
 	$imp = new DOMImplementation;
 	$dtd = $imp->createDocumentType('NODESet', '', 'Morfeas.dtd');
 	$dom = $imp->createDocument('', '', $dtd);
@@ -121,10 +182,10 @@ else if($requestType == "POST")
 	$dom->formatOutput = true;
 
 	$root = $dom->createElement('NODESet');
-	if(sizeof($Channels->data))//If there is data
+	if(sizeof($Channels->DATA))//If there is data
 	{
 		$data_num=0;
-		foreach($Channels->data as $Channel)
+		foreach($Channels->DATA as $Channel)
 		{
 			//Validate entry
 			if(!(property_exists($Channel, 'ISOChannel')&&
@@ -149,7 +210,7 @@ else if($requestType == "POST")
 			$channel_node->appendChild($channel_node_child);
 			$channel_node_child = $dom->createElement('ANCHOR', $Channel->Anchor);
 			$channel_node->appendChild($channel_node_child);
-			$channel_node_child = $dom->createElement('DESCRIPTION', $Channel->Description);
+			$chswitchannel_node_child = $dom->createElement('DESCRIPTION', $Channel->Description);
 			$channel_node->appendChild($channel_node_child);
 			$channel_node_child = $dom->createElement('MIN', $Channel->Min);
 			$channel_node->appendChild($channel_node_child);
@@ -169,6 +230,17 @@ else if($requestType == "POST")
 	$dom->save($opc_ua_config_dir."OPC_UA_Config.xml") or die("Error on OPC_UA_Config.xml write");
 	header('Content-Type: application/json');
 	die("{\"success\":true}");
+	*/
 }
 http_response_code(404);
+
+function add_channels($Channels)
+{
+}
+function mod_channels($Channels)
+{
+}
+function del_channels($Channels)
+{
+}
 ?>
