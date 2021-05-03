@@ -43,6 +43,7 @@ if($requestType == "GET")
 				if($logstats = array_diff(scandir($ramdisk_path), array('..', '.', 'Morfeas_Loggers')))
 				{
 					$logstats = array_values($logstats);//Restore array order
+					$logstats_combined = new stdClass;
 					$logstats_combined->Build_time = time();
 					$logstats_combined->OPCUA_Config_xml_mod = ($logstats_combined->Build_time - filemtime($opc_ua_config_dir."OPC_UA_Config.xml"))<5;
 					$i = 0;
@@ -152,25 +153,25 @@ else if($requestType == "POST")
 	switch($Channels->COMMAND)
 	{
 		case 'ADD':
-			foreach($Channels->DATA as $Channel)
+			foreach($Channels->DATA as $newChannel)
 			{
-
+				print_r($newChannel);
 			}
-			if(($ret = add_channels($Channels))
+			if(($ret = add_channels($Channels)))
 				die("Error: ADD command failed with $ret");
 			break;
 		case 'DEL':
-			if(($ret = mod_channels($Channels))
+			if(($ret = mod_channels($Channels)))
 				die("Error: DEL command failed with $ret");
 			break;
 		case 'MOD':
-			if(($ret = del_channels($Channels))
+			if(($ret = del_channels($Channels)))
 				die("Error: MOD command failed with $ret");
 			break;
 		default:
 			die("Error: Unknown Command!!!");
 	}
-	OPC_UA_Config->asXML($opc_ua_config_dir."OPC_UA_Config.xml") or die("Error: Unable to write OPC_UA_Config.xml file!!!");
+	$OPC_UA_Config->asXML($opc_ua_config_dir."OPC_UA_Config.xml") or die("Error: Unable to write OPC_UA_Config.xml file!!!");
 	header('Content-Type: application/json');
 	die("{\"success\":true}");
 	/*
@@ -233,14 +234,4 @@ else if($requestType == "POST")
 	*/
 }
 http_response_code(404);
-
-function add_channels($Channels)
-{
-}
-function mod_channels($Channels)
-{
-}
-function del_channels($Channels)
-{
-}
 ?>

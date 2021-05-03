@@ -130,9 +130,9 @@ xhttp.onreadystatechange = function()
 				var status_box=document.getElementById("status");
 				if(this.getResponseHeader("Content-Type")==="application/json")
 				{
-					try{ IOBOX_data = JSON.parse(this.responseText); }
-					catch{ break; }
-					let last_update = new Date(IOBOX_data.logstat_build_date_UNIX*1000)
+					try{IOBOX_data = JSON.parse(this.responseText);}
+					catch{break;}
+					let last_update = new Date(IOBOX_data.logstat_build_date_UNIX*1000);
 					status_box.value = "Last_update: "+last_update.toLocaleDateString()+" "+last_update.toLocaleTimeString();
 					status_box.style.color='black';
 					populate_IOBOX_tables(IOBOX_data);
