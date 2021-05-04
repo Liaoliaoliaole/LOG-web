@@ -31,6 +31,7 @@ function build_opcua_config_table(curr_opcua_config)
 	{
 		let table_data_entry = {};
 		table_data_entry.id=i;
+		table_data_entry.order_num = i+1;
 		table_data_entry.iso_name=curr_opcua_config[i].ISO_CHANNEL;
 		table_data_entry.type=curr_opcua_config[i].INTERFACE_TYPE;
 		table_data_entry.desc=curr_opcua_config[i].DESCRIPTION;
@@ -76,13 +77,13 @@ function load_data_to_opcua_config_table(curr_logstats)
 				if(new Date() >= valid_until)
 				{
 					tableData[i].col="orange";
-					tableData[i].status = 'Cal no valid';
+					tableData[i].status = "Cal not valid";
 				}
 				tableData[i].cal_date=valid_until;
 			}
 			else
 				tableData[i].cal_date=null;
-			if(typeof(data.avgMeasurement)==='number')//data.Is_meas_valid)
+			if(typeof(data.avgMeasurement)==='number' && data.Is_meas_valid)
 			{
 				tableData[i].meas = data.avgMeasurement.toFixed(3)+' '+tableData[i].unit;
 				if(tableData[i].graph.length>=GRAPH_LENGTH)
@@ -97,5 +98,13 @@ function load_data_to_opcua_config_table(curr_logstats)
 		}
 	}
 	opcua_config_table.replaceData(tableData);
+}
+function ISOChannel_edit(event, cell)
+{
+	//console.log(event);
+	//console.log(cell);
+
+	let config_win = PopupCenter("./ISO_CH_MOD.html"+"?q="+makeid(), "Configuration for \""+cell.value+"\"", 600, 800);
+	config_win.curr_config = cell.getRow().getData();
 }
 //@license-end
