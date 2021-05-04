@@ -151,14 +151,14 @@ function onReady_State_Change()
 							header_row.insertCell().innerHTML = "<b>Connection</b>";
 							header_row.insertCell().innerHTML = "<b>Value</b>";
 							header_row.insertCell().innerHTML = "<b>Status</b>";
-							for(let i=0; i<logstats.length; i++)
+							for(let i=0,order_num=1; i<logstats.length; i++)
 							{
 								if(logstats[i].sensors)
 								{
-									for(let j=0; j<logstats[i].sensors.length; j++)
+									for(let j=0; j<logstats[i].sensors.length; j++,order_num++)
 									{
 										let last_row = sensors_table.insertRow(), status_cell, meas_cell;
-										last_row.insertCell().innerHTML = (j+1);
+										last_row.insertCell().innerHTML = order_num;
 										last_row.insertCell().innerHTML = logstats[i].sensors[j].type;
 										last_row.insertCell().innerHTML = logstats[i].sensors[j].deviceUserIdentifier;
 										last_row.insertCell().innerHTML = logstats[i].sensors[j].sensorUserId;
