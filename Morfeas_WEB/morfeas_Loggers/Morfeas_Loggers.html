@@ -235,13 +235,12 @@ function onTimeout()
   status_tab.value = "Connection to server: Timeout Error";
   status_tab.style.color='blue';
 };
-
-//main timer
+//Request Timer
 window.setInterval(Morfeas_request, 1000);
 function Morfeas_request()
 {
 	if(request_mode == mode_enum.Loggers_name)
-	{	//request names of Loggers
+	{
 		xhttp.open("GET", "../morfeas_php/morfeas_web_if.php?COMMAND=loggers", true);
 		xhttp.send();
 		return;
