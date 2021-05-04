@@ -16,7 +16,7 @@
   <tr>
   </tr>
   <tr>
-	<td colspan="4"><input id="status" style="text-align:center;" type="textbox" size="20" value="Okay" readonly></td>
+	<td colspan="4"><input id="status" style="text-align:center;" type="textbox" size="20" value="Morfeas Loggers" readonly></td>
   </tr>
   <tr>
     <th colspan="4" style="font-size: 120%;">Main Menu</th>
@@ -103,6 +103,8 @@ var display_mode,
 	log_select = document.getElementById("logger_select"),
 	logstats;
 Logger_terminal.innerHTML="";
+status_tab.value = "Morfeas Loggers";
+status_tab.style.color = "black";
 
 //AJAX response handler
 var xhttp = new XMLHttpRequest();
@@ -128,6 +130,7 @@ function onReady_State_Change()
 				break;
 			case mode_enum.Logger_content:
 				status_tab.value = "Morfeas Loggers";
+				status_tab.style.color = 'black';
 				let is_scroll_at_bottom = ((window.innerHeight+window.scrollY)>=document.body.offsetHeight);
 				Logger_terminal.innerHTML = morfeas_opcua_logger_colorizer(this.responseText);
 				if(is_scroll_at_bottom)
@@ -141,6 +144,7 @@ function onReady_State_Change()
 					{
 						case mode_enum_L2.Sensors:
 							status_tab.value = "Sensors";
+							status_tab.style.color = 'black';
 							var sensors_table = document.createElement("TABLE");
 							sensors_table.style="margin:auto;margin-bottom:.075in;width:7in;";
 							let header_row=sensors_table.createTHead().insertRow();
@@ -180,6 +184,7 @@ function onReady_State_Change()
 							break;
 						case mode_enum_L2.Details:
 							status_tab.value = "Details";
+							status_tab.style.color = 'black';
 							logstats_disp.textContent = '';//remove all children
 							for(let i=0; i<logstats.length; i++)
 							{
@@ -213,6 +218,7 @@ function onReady_State_Change()
 				else
 				{
 					status_tab.value = logstat;
+					status_tab.style.color = 'yellow';
 					console.log(logstat);
 				}
 				break;
@@ -235,8 +241,7 @@ window.setInterval(Morfeas_request, 1000);
 function Morfeas_request()
 {
 	if(request_mode == mode_enum.Loggers_name)
-	{
-		//request names of Loggers
+	{	//request names of Loggers
 		xhttp.open("GET", "../morfeas_php/morfeas_web_if.php?COMMAND=loggers", true);
 		xhttp.send();
 		return;
