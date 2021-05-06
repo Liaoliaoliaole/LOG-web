@@ -94,6 +94,9 @@ var opcua_config_table = new Tabulator("#opcua_config_table",
 	height:"800px",
  	layout:"fitDataStretch",
  	responsiveLayout:"collapse",
+ 	selectable:true,
+ 	selectablePersistence:false,
+ 	selectableRangeMode:"click",
 	columns:
 	[
 	 	{formatter:"responsiveCollapse",  responsive:0, width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false},
@@ -126,6 +129,7 @@ function filter_clear()
 	document.getElementById("filter_value").value = "";
 	opcua_config_table.clearFilter(true);
 	opcua_config_table.clearSort(true);
+	opcua_config_table.deselectRow();
 }
 //AJAX response handler
 var xhttp = new XMLHttpRequest();

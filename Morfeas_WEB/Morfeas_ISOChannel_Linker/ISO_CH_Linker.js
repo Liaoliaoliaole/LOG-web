@@ -50,9 +50,11 @@ function load_data_to_opcua_config_table(curr_logstats)
 	if(!curr_logstats)
 		return;
 	let tableData = opcua_config_table.getData(),
+		selectedRows_ids = [],
 		curr_logstats_com = morfeas_logstat_commonizer(curr_logstats);
 	if(typeof(curr_logstats_com)==="object")
 	{
+		let selectedRows = opcua_config_table.getSelectedRows();
 		for(let i=0; i<tableData.length; i++)
 		{
 			let data = get_from_common_logstats_by_anchor(curr_logstats_com, tableData[i].type, tableData[i].anchor);
@@ -96,8 +98,15 @@ function load_data_to_opcua_config_table(curr_logstats)
 				tableData[i].graph = [];
 			}
 		}
+		if(selectedRows.length)
+		{
+			for(let i=0; i<selectedRows.length; i++)
+				selectedRows_ids.push(selectedRows[i]._row.data.id);
+		}
+		opcua_config_table.replaceData(tableData);
+		if(selectedRows_ids)
+			opcua_config_table.selectRow(selectedRows_ids);
 	}
-	opcua_config_table.replaceData(tableData);
 }
 function ISOChannel_edit(event, cell)
 {
@@ -120,7 +129,7 @@ function ISOChannel_export()
 
 function ISOChannel_menu()
 {
-	const lables_names = ["Add ISOChannel","Import","Export"],
+	const lables_names = ["Add ISOChannel","Import","Export All"],
 		  func_tb = [ISOChannel_add, ISOChannel_import, ISOChannel_export];
 	var menu = [];
 
