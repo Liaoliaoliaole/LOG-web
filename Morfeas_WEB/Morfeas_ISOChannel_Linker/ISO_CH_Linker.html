@@ -15,7 +15,7 @@
 			<th colspan="5" style="font-size: 200%;">ISO Channels Linker</th>
 		</tr>
 		<tr>
-			<td colspan="4"><input id="status_tab" style="text-align:center;" type="textbox" size="45" value='Use "+" to add channel'readonly></td>
+			<td colspan="4"><input id="status_tab" style="text-align:center;" type="textbox" size="45" placeholder='Click on ISOChannel to ADD' readonly></td>
 		</tr>
 	</table>
 	<table style="margin-bottom:.075in;">
@@ -99,7 +99,7 @@ var opcua_config_table = new Tabulator("#opcua_config_table",
 	 	{formatter:"responsiveCollapse",  responsive:0, width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false},
 		{title:"#", field:"order_num", hozAlign:"center", width:50, resizable:false, responsive:0},
 		{field:"col" ,formatter:"color", resizable:false, tooltip:Collor_def_str, responsive:0},
-		{title:"ISOChannel", field:"iso_name", cellDblClick:ISOChannel_edit, responsive:0},
+		{title:"ISOChannel", field:"iso_name", cellDblClick:ISOChannel_edit, headerMenu:ISOChannel_menu, responsive:0},
 		{title:"Type", field:"type", responsive:0},
 	 	{title:"Connection", field:"conn", minWidth:170, responsive:0},
 		{title:"Status", field:"status", minWidth:90, hozAlign:"center", responsive:0},

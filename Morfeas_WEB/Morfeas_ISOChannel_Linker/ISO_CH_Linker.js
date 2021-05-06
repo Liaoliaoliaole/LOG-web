@@ -101,10 +101,37 @@ function load_data_to_opcua_config_table(curr_logstats)
 }
 function ISOChannel_edit(event, cell)
 {
-	//console.log(event);
-	//console.log(cell);
-
 	let config_win = PopupCenter("./ISO_CH_MOD.html"+"?q="+makeid(), "Configuration for \""+cell.value+"\"", 600, 800);
 	config_win.curr_config = cell.getRow().getData();
+}
+function ISOChannel_add()
+{
+	let config_win = PopupCenter("./ISO_CH_ADD.html"+"?q="+makeid(), "Morfeas ADD ISOChannel portal", 600, 800);
+	config_win.iso_standard = iso_standard;
+}
+function ISOChannel_import()
+{
+	//PopupCenter("./ISO_CH_IMPORT.html"+"?q="+makeid(), "Configuration for \""+cell.value+"\"", 600, 800);
+}
+function ISOChannel_export()
+{
+	//PopupCenter("./ISO_CH_EXPORT.html"+"?q="+makeid(), "Configuration for \""+cell.value+"\"", 600, 800);
+}
+
+function ISOChannel_menu()
+{
+	const lables_names = ["Add ISOChannel","Import","Export"],
+		  func_tb = [ISOChannel_add, ISOChannel_import, ISOChannel_export];
+	var menu = [];
+
+    for(let i=0; i<lables_names.length; i++)
+	{
+        let label = document.createElement("span");
+        let title = document.createElement("span");
+        title.textContent = lables_names[i];
+        label.appendChild(title);
+        menu.push({label:label,action:func_tb[i]});
+    }
+	return menu;
 }
 //@license-end

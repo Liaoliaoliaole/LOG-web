@@ -196,7 +196,7 @@ function onReady_State_Change()
 									for(let j=0; j<logstats[i].connections.length; j++)
 									{
 										let last_row = details_table.insertRow();
-										last_row.insertCell().innerHTML = logstats[i].connections[j].name;
+										last_row.insertCell().innerHTML = logstats[i].connections[j].name.replace("_UNIX", "");
 										if(logstats[i].connections[j].name.includes("UNIX"))
 										{
 											let date_conv = new Date();
