@@ -96,13 +96,14 @@ var opcua_config_table = new Tabulator("#opcua_config_table",
  	responsiveLayout:"collapse",
  	selectable:true,
  	selectablePersistence:false,
- 	selectableRangeMode:"click",
+ 	//selectableRangeMode:"click",
+	rowContextMenu: rowMenu,
 	columns:
 	[
 	 	{formatter:"responsiveCollapse",  responsive:0, width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false},
 		{title:"#", field:"order_num", hozAlign:"center", width:50, resizable:false, responsive:0},
 		{field:"col" ,formatter:"color", resizable:false, tooltip:Collor_def_str, responsive:0},
-		{title:"ISOChannel", field:"iso_name", cellDblClick:ISOChannel_edit, headerMenu:ISOChannel_menu, responsive:0},
+		{title:"ISOChannel", field:"iso_name", cellDblClick:ISOChannel_edit, headerMenu:ISOChannels_menu, responsive:0},
 		{title:"Type", field:"type", responsive:0},
 	 	{title:"Connection", field:"conn", minWidth:170, responsive:0},
 		{title:"Status", field:"status", minWidth:90, hozAlign:"center", responsive:0},
@@ -122,7 +123,6 @@ function filter_func(elem)
 		return;
 	}
 	opcua_config_table.setFilter("iso_name", "like", elem.value);
-	//opcua_config_table.setFilter("conn", "like", elem.value);
 }
 function filter_clear()
 {
@@ -209,8 +209,13 @@ function get_data_req()
 		}
 	}
 }
-iso_standard.request_isostandard();//Request ISOstandard from server.
 document.getElementById("filter_value").value = "";
+document.onkeydown = function(key)
+{
+	if(key.key === "Escape")
+		opcua_config_table.deselectRow();
+};
+iso_standard.request_isostandard();//Request ISOstandard from server.
 //@license-end
 </script>
 </html>

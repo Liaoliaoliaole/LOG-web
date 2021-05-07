@@ -22,6 +22,7 @@
     <th colspan="4" style="font-size: 120%;">Main Menu</th>
   </tr>
   <tr>
+	<td><input type="button" value="Errors" onclick='Show_hide(screen_enum.Logstats);display_mode=mode_enum_L2.Errors;'></td>
 	<td><input type="button" value="Sensors" onclick='Show_hide(screen_enum.Logstats);display_mode=mode_enum_L2.Sensors;'></td>
 	<td><input type="button" value="Details" onclick='Show_hide(screen_enum.Logstats);display_mode=mode_enum_L2.Details;'></td>
 	<td><input type="button" value="System logs" onclick='Show_hide(screen_enum.Loggers)'></td>
@@ -44,11 +45,9 @@
 	</td>
   </tr>
 </table>
-<!-- Logstats -->
 <div id ="logstats_disp" style="margin:auto; display: none;"></div>
-<!-- Footnote -->
 <footer style="bottom:0;width:99%;">
-	<p>Author: Sam Harry Tzavaras &#169; 12019-12020<br>
+	<p>Author: Sam Harry Tzavaras &#169; 12019-12022<br>
 	<a href="../LICENSE">License: AGPLv3</a><br>
 </footer>
 </body>
@@ -93,7 +92,8 @@ const screen_enum = {
 			},
 	  mode_enum_L2 = {
 				Sensors: 0,
-				Details: 1
+				Errors: 1,
+				Details: 2
 			};
 var display_mode,
 	request_mode = mode_enum.Loggers_name,
@@ -142,6 +142,7 @@ function onReady_State_Change()
 				{
 					switch(display_mode)
 					{
+						case mode_enum_L2.Errors:
 						case mode_enum_L2.Sensors:
 							status_tab.value = "Sensors";
 							status_tab.style.color = 'black';
@@ -161,6 +162,12 @@ function onReady_State_Change()
 								{
 									for(let j=0; j<logstats[i].sensors.length; j++,order_num++)
 									{
+										if(display_mode === mode_enum_L2.Errors)
+											if(logstats[i].sensors[j].Error_explanation === '-')
+											{
+												order_num--;
+												continue;
+											}
 										let last_row = sensors_table.insertRow(), status_cell, meas_cell;
 										last_row.insertCell().innerHTML = order_num;
 										last_row.insertCell().innerHTML = logstats[i].sensors[j].type;

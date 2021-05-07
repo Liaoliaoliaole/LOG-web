@@ -22,6 +22,7 @@ through which recipients can access the Corresponding Source.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
+"use strict";
 function build_opcua_config_table(curr_opcua_config)
 {
 	if(!curr_opcua_config)
@@ -110,27 +111,28 @@ function load_data_to_opcua_config_table(curr_logstats)
 }
 function ISOChannel_edit(event, cell)
 {
-	let config_win = PopupCenter("./ISO_CH_MOD.html"+"?q="+makeid(), "Configuration for \""+cell.value+"\"", 600, 800);
-	config_win.curr_config = cell.getRow().getData();
+	let popup_win = PopupCenter("./ISO_CH_MOD.html"+"?q="+makeid(), cell.value, 600, 800);
+	popup_win.curr_config = cell.getRow().getData();
 }
 function ISOChannel_add()
 {
-	let config_win = PopupCenter("./ISO_CH_ADD.html"+"?q="+makeid(), "Morfeas ADD ISOChannel portal", 600, 800);
-	config_win.iso_standard = iso_standard;
+	let popup_win = PopupCenter("./ISO_CH_ADD.html"+"?q="+makeid(), "", 440, 370);
+	popup_win.curr_iso_standards = iso_standard;
+	popup_win.curr_iso_channels = opcua_config_table.getData();
 }
-function ISOChannel_import()
+function ISOChannels_import()
 {
 	//PopupCenter("./ISO_CH_IMPORT.html"+"?q="+makeid(), "Configuration for \""+cell.value+"\"", 600, 800);
 }
-function ISOChannel_export()
+function ISOChannels_export()
 {
 	//PopupCenter("./ISO_CH_EXPORT.html"+"?q="+makeid(), "Configuration for \""+cell.value+"\"", 600, 800);
 }
 
-function ISOChannel_menu()
+function ISOChannels_menu()
 {
 	const lables_names = ["Add ISOChannel","Import","Export All"],
-		  func_tb = [ISOChannel_add, ISOChannel_import, ISOChannel_export];
+		  func_tb = [ISOChannel_add, ISOChannels_import, ISOChannels_export];
 	var menu = [];
 
     for(let i=0; i<lables_names.length; i++)
@@ -143,4 +145,17 @@ function ISOChannel_menu()
     }
 	return menu;
 }
+var rowMenu = [
+	{label:"Edit", action:ISOChannel_edit},
+	{label:"Delete"},
+	{separator:true},
+	{
+		label:"All selected",
+		menu:[
+			{label:"Export"},
+			{label:"Delete"}
+		]
+	},
+	{label:"Deselect All", action:function(){opcua_config_table.deselectRow();}}
+]
 //@license-end

@@ -5,13 +5,109 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<link href="../External_components/tabulator/dist/css/tabulator.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../External_components/autoComplete.js/dist/css/main.css">
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico">
+<title>Morfeas WEB Link Creator</title>
 </head>
 <body>
-
+	<table style="margin:auto;text-align:center;margin-bottom:.075in">
+		<tr>
+			<th colspan="5" style="font-size: 200%;">Link Creator</th>
+		</tr>
+	</table>
+	<table style="margin:auto;text-align:left;margin-bottom:.075in;width:90%;">
+		<tr>
+			<td>
+				<label for="type_selector">Type:</label>
+			</td>
+			<td>
+				<select name="link_data" id="type_selector">
+					<option>-</option>
+					<option>SDAQ</option>
+					<option>MDAQ</option>
+					<option>IOBOX</option>
+					<option>MTI</option>
+					<option>NOX</option>
+				</select>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<label for="connection">Connection:</label>
+			</td>
+			<td>
+				<input name="link_data" id="connection" disabled></input>
+				<button disabled>&#128269;</button>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<label for="iso_name">ISO Code:</label>
+			</td>
+			<td>
+				<input name="link_data"
+					   id="iso_name"
+					   type="search"
+					   spellcheck=false
+					   autocorrect="off"
+					   autocapitalize="off"
+					   maxlength="20"
+					   disabled>_
+				<select name="link_data" id="iso_code_post_fix" disabled></select>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<label for="desc">Description:</label>
+			</td>
+			<td>
+				<input name="link_data" id="desc" disabled></input>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<label for="min">Min:</label>
+			</td>
+			<td>
+				<input name="link_data" id="min" type="number" disabled></input>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<label for="max">Max:</label>
+			</td>
+			<td>
+				<input name="link_data" id="max" type="number" disabled></input>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<label for="unit">Unit:</label>
+			</td>
+			<td>
+				<input name="link_data" id="unit" disabled></input>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<label for="unit">Cal Date:</label>
+			</td>
+			<td>
+				<input name="link_data" id="date" type="date" disabled></input>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<label for="period">Cal Period:</label>
+			</td>
+			<td>
+				<input name="link_data" id="period" type="number" min='0' max='255' disabled></input>
+			</td>
+		</tr>
+	</table>
 </body>
 <script src="../External_components/autoComplete.js/dist/js/autoComplete.min.js"></script>
+<script src='../morfeas_ecma/common.js'></script>
 <script>
 //@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
 /*
@@ -37,7 +133,47 @@ through which recipients can access the Corresponding Source.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
+"use strict";
+comp_check();
+var post_fix = document.getElementById("iso_code_post_fix"),
+	curr_iso_channels,
+	curr_iso_standards;
 
+//Checks and Inits
+if(!curr_iso_standards || !curr_iso_channels)
+	window.close('','_parent','');
+for(let i=0; i<=20; i++)
+{
+	let text = i?i:'N/A',
+		new_postfix_opt = document.createElement('option'),
+		opt_text = document.createTextNode(text);
+	new_postfix_opt.appendChild(opt_text);
+	new_postfix_opt.setAttribute('value', text);
+	post_fix.appendChild(new_postfix_opt);
+}
+const autoCompleteJS = new autoComplete({
+    selector: "#iso_name",
+    placeHolder: "Search...",
+    data: {
+        src: ["test1", "test2", "test3"]
+    },
+    resultsList: {
+        noResults: (list, query) => {
+            // Create "No Results" message list element
+            const message = document.createElement("li");
+            message.setAttribute("class", "no_result");
+            // Add message text content
+            message.innerHTML = '<span>Found No Results for "${query}"</span>';
+            // Add message list element to the list
+            list.appendChild(message);
+        },
+    },
+    resultItem: {
+        highlight: {
+            render: true
+        }
+    }
+});
 //@license-end
 </script>
 </html>
