@@ -116,7 +116,7 @@ function ISOChannel_edit(event, cell)
 }
 function ISOChannel_add()
 {
-	let popup_win = PopupCenter("./ISO_CH_ADD.html"+"?q="+makeid(), "", 440, 370);
+	let popup_win = PopupCenter("./ISO_CH_ADD.html"+"?q="+makeid(), "", 500, 400);
 	popup_win.curr_iso_standards = iso_standard;
 	popup_win.curr_iso_channels = opcua_config_table.getData();
 }
