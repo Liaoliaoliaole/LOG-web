@@ -40,6 +40,22 @@ function build_opcua_config_table(curr_opcua_config)
 		table_data_entry.max=curr_opcua_config[i].MAX;
 		if(curr_opcua_config[i].hasOwnProperty('UNIT'))
 			table_data_entry.unit=curr_opcua_config[i].UNIT;
+		if(curr_opcua_config[i].hasOwnProperty('CAL_DATE') && curr_opcua_config[i].hasOwnProperty('CAL_PERIOD'))
+		{
+				let cal_date_split = curr_opcua_config[i].CAL_DATE.split('/'),
+					cal_date = new Date(0);
+				cal_date.setFullYear(Number(cal_date_split[0]),
+									 Number(cal_date_split[1])-1,
+									 Number(cal_date_split[2]));
+				let	valid_until = new Date(cal_date.setMonth(cal_date.getMonth()+Number(curr_opcua_config[i].CAL_PERIOD)));
+				if(new Date() >= valid_until)
+				{
+					table_data_entry.col="orange";
+					table_data_entry.status = "Cal not valid";
+				}
+				table_data_entry.valid_until=valid_until;
+		}
+			table_data_entry.unit=curr_opcua_config[i].UNIT;
 		table_data_entry.anchor = curr_opcua_config[i].ANCHOR;
 		table_data_entry.graph = new Array();
 		tableData.push(table_data_entry);
@@ -73,25 +89,39 @@ function load_data_to_opcua_config_table(curr_logstats)
 				tableData[i].unit=data.unit;
 			tableData[i].col=data.Is_meas_valid?'green':'yellow';
 			tableData[i].status=data.Is_meas_valid?'Okay':data.Error_explanation;
-			if(typeof(data.calibrationDate)==='number' && typeof(data.calibrationPeriod)=='number')
+			if(tableData[i].type === "SDAQ")
 			{
-				let cal_date = new Date(data.calibrationDate*1000),
-					valid_until = new Date(cal_date.setMonth(cal_date.getMonth()+data.calibrationPeriod));
-				if(new Date() >= valid_until)
+				if(typeof(data.calibrationDate)==='number' && typeof(data.calibrationPeriod)=='number')
 				{
-					tableData[i].col="orange";
-					tableData[i].status = "Cal not valid";
+					let cal_date = new Date(data.calibrationDate*1000),
+						valid_until = new Date(cal_date.setMonth(cal_date.getMonth()+data.calibrationPeriod));
+					if(new Date() >= valid_until)
+					{
+						tableData[i].col="orange";
+						tableData[i].status = "Cal not valid";
+					}
+					tableData[i].valid_until=valid_until;
 				}
-				tableData[i].cal_date=valid_until;
+				else
+					tableData[i].cal_date=null;
 			}
-			else
-				tableData[i].cal_date=null;
+			else if(tableData[i].valid_until)
+			{
+				if(typeof(tableData[i].valid_until.getMonth)==='function')
+				{
+					if(new Date() >= tableData[i].valid_until)
+					{
+						tableData[i].col="orange";
+						tableData[i].status = "Cal not valid";
+					}
+				}
+			}
 			if(typeof(data.avgMeasurement)==='number' && data.Is_meas_valid)
 			{
 				tableData[i].meas = data.avgMeasurement.toFixed(3)+' '+tableData[i].unit;
 				if(tableData[i].graph.length>=GRAPH_LENGTH)
 					tableData[i].graph.shift();
-				tableData[i].graph.push(data.avgMeasurement.toFixed(1));
+				tableData[i].graph.push(data.avgMeasurement.toFixed(0));
 			}
 			else
 			{
@@ -124,36 +154,106 @@ function ISOChannels_import()
 {
 	//PopupCenter("./ISO_CH_IMPORT.html"+"?q="+makeid(), "Configuration for \""+cell.value+"\"", 600, 800);
 }
-function ISOChannels_export()
+function ISOChannels_export_all()
 {
 	//PopupCenter("./ISO_CH_EXPORT.html"+"?q="+makeid(), "Configuration for \""+cell.value+"\"", 600, 800);
 }
-
-function ISOChannels_menu()
+function ISOChannels_export_all_selected()
 {
-	const lables_names = ["Add ISOChannel","Import","Export All"],
-		  func_tb = [ISOChannel_add, ISOChannels_import, ISOChannels_export];
-	var menu = [];
 
-    for(let i=0; i<lables_names.length; i++)
-	{
-        let label = document.createElement("span");
-        let title = document.createElement("span");
-        title.textContent = lables_names[i];
-        label.appendChild(title);
-        menu.push({label:label,action:func_tb[i]});
-    }
-	return menu;
 }
+function ISOChannel_delete_curr(event, row)
+{
+	if(!row)
+		return;
+	let data = row._row.data,
+		del_ISOChannels_tbl = [];
+
+	if(confirm("ISOChannel \""+data.iso_name+"\" will be delete\nAre you sure?"))
+	{
+		let del_ISOChannel = {};
+		del_ISOChannel.ISOChannel = data.iso_name;
+		del_ISOChannel.IF_type = data.type;
+		del_ISOChannel.Anchor = data.anchor;
+		del_ISOChannel.Description = data.desc;
+		del_ISOChannel.Min = data.min;
+		del_ISOChannel.Max = data.max;
+		del_ISOChannels_tbl.push(del_ISOChannel);
+		ISOChannels_delete_post(del_ISOChannels_tbl);
+	}
+}
+function ISOChannels_delete_all_selected()
+{
+	let data = opcua_config_table.getSelectedData(),
+		del_ISOChannels_tbl = [];
+
+	if(data.length && confirm(data.length+" ISOChannel"+(data.length>1?'s':'')+" will be delete\nAre you sure?"))
+	{
+		for(let i=0; i<data.length; i++)
+		{
+			let del_ISOChannel = {};
+			del_ISOChannel.ISOChannel = data[i].iso_name;
+			del_ISOChannel.IF_type = data[i].type;
+			del_ISOChannel.Anchor = data[i].anchor;
+			del_ISOChannel.Description = data[i].desc;
+			del_ISOChannel.Min = data[i].min;
+			del_ISOChannel.Max = data[i].max;
+			del_ISOChannels_tbl.push(del_ISOChannel);
+		}
+		ISOChannels_delete_post(del_ISOChannels_tbl);
+	}
+}
+function ISOChannels_delete_post(data_tb)
+{
+	if(!data_tb)
+		return;
+	let post_msg_contents = {},
+		post_xhttp = new XMLHttpRequest(),
+		status_tab = document.getElementById("status_tab");
+
+	post_xhttp.timeout = 2000;
+	post_xhttp.ontimeout = function(){
+		status_tab.value = "Connection to server: Timeout Error";
+		status_tab.style.color='blue';
+	};
+	post_xhttp.onreadystatechange = function(){
+		if(this.readyState == 4 && this.status == 200)
+		{
+			if(this.getResponseHeader("Content-Type")==="report/text")
+			{
+				status_tab.value = this.responseText;
+				status_tab.style.color='red';
+				console.log(this.responseText);
+			}
+		}
+		else if(this.status == 404)
+		{
+			status_tab.value = "Error 404: Data Not found";
+			status_tab.style.color='red';
+		}
+	};
+	//Prepare message contents.
+	post_msg_contents.COMMAND = "DEL";
+	post_msg_contents.DATA = data_tb;
+	post_xhttp.open("POST", "/morfeas_php/morfeas_web_if.php", true);
+	post_xhttp.send(compress(JSON.stringify(post_msg_contents)));
+}
+
+var ISOChannels_menu = [
+	{label:"Add ISOChannel", action:ISOChannel_add},
+	{separator:true},
+	{label:"Import", action:ISOChannels_import},
+	{label:"Export All", action:ISOChannels_export_all}
+];
 var rowMenu = [
 	{label:"Edit", action:ISOChannel_edit},
-	{label:"Delete"},
+	{label:"Delete", action:ISOChannel_delete_curr},
 	{separator:true},
 	{
 		label:"All selected",
 		menu:[
-			{label:"Export"},
-			{label:"Delete"}
+			{label:"Export", action:ISOChannels_export_all_selected},
+			{label:"Delete", action:ISOChannels_delete_all_selected}
 		]
 	},
 	{label:"Deselect All", action:function(){opcua_config_table.deselectRow();}}

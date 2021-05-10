@@ -5,8 +5,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<link rel="stylesheet" href="../External_components/autoComplete.js/dist/css/main.css">
+<link rel="stylesheet" href="../External_components/autoComplete.js/dist/css/autoComplete.01.css">
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico">
+<style>
+.extra{
+	display : none;
+}
+</style>
 <title>Morfeas WEB Link Creator</title>
 </head>
 <body>
@@ -45,15 +50,17 @@
 				<label for="iso_name">ISO Code:</label>
 			</td>
 			<td>
-				<input name="link_data"
-					   id="iso_name"
-					   type="search"
-					   spellcheck=false
-					   autocorrect="off"
-					   autocapitalize="off"
-					   maxlength="20"
-					   >
-				<select name="link_data" id="iso_code_post_fix" disabled></select>
+				<div class="autoComplete_wrapper">
+					<input name="link_data"
+						   id="iso_name"
+						   type="search"
+						   spellcheck=false
+						   autocorrect="off"
+						   autocapitalize="off"
+						   maxlength="20"
+						   disabled>_
+					<select name="link_data" id="iso_code_post_fix" disabled></select>
+				</div>
 			</td>
 		</tr>
 		<tr>
@@ -80,15 +87,7 @@
 				<input name="link_data" id="max" type="number" disabled></input>
 			</td>
 		</tr>
-		<tr>
-			<td>
-				<label for="unit">Unit:</label>
-			</td>
-			<td>
-				<input name="link_data" id="unit" disabled></input>
-			</td>
-		</tr>
-		<tr>
+		<tr class="extra">
 			<td>
 				<label for="unit">Cal Date:</label>
 			</td>
@@ -96,7 +95,7 @@
 				<input name="link_data" id="date" type="date" disabled></input>
 			</td>
 		</tr>
-		<tr>
+		<tr class="extra">
 			<td>
 				<label for="period">Cal Period:</label>
 			</td>
@@ -163,7 +162,7 @@ const autoCompleteJS = new autoComplete({
             const message = document.createElement("li");
             message.setAttribute("class", "no_result");
             // Add message text content
-            message.innerHTML = '<span>Found No Results for "${query}"</span>';
+            message.innerHTML = '<span>Found No Results</span>';
             // Add message list element to the list
             list.appendChild(message);
         },

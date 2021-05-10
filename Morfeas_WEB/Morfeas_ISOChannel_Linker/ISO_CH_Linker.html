@@ -109,7 +109,7 @@ var opcua_config_table = new Tabulator("#opcua_config_table",
 		{title:"Status", field:"status", minWidth:90, hozAlign:"center", responsive:0},
 	 	{title:"Value", field:"meas", width:80, headerSort:false, responsive:0},
 	 	{title:"History", field:"graph", headerSort:false, responsive:0, formatter:hist_graph_formatter},
-		{title:"Valid Until", field:"cal_date", width:80, headerSort:false, responsive:1, formatter:"datetime", formatterParams:cal_date_format_params},
+		{title:"Valid Until", field:"valid_until", width:80, headerSort:false, responsive:1, formatter:"datetime", formatterParams:cal_date_format_params},
 		{title:"Min", field:"min", headerSort:false, responsive:2},
 		{title:"Max", field:"max", headerSort:false, responsive:3},
 		{title:"Description", field:"desc", headerSort:false, responsive:4},
@@ -156,7 +156,7 @@ xhttp.onreadystatechange = function()
 				catch{break;}
 				if(isOPC_UA_config_empty)
 				{
-					status_tab.value = "Use \"+\" to add channel";
+					status_tab.value="";
 					status_tab.style.color='black';
 				}
 				else
