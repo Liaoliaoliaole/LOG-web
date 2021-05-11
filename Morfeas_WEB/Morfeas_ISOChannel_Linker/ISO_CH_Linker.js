@@ -50,10 +50,12 @@ function build_opcua_config_table(curr_opcua_config)
 				let	valid_until = new Date(cal_date.setMonth(cal_date.getMonth()+Number(curr_opcua_config[i].CAL_PERIOD)));
 				if(new Date() >= valid_until)
 				{
-					table_data_entry.col="orange";
+					table_data_entry.col = "orange";
 					table_data_entry.status = "Cal not valid";
 				}
-				table_data_entry.valid_until=valid_until;
+				table_data_entry.valid_until = valid_until;
+				table_data_entry.cal_date = curr_opcua_config[i].CAL_DATE;
+				table_data_entry.cal_period = Number(curr_opcua_config[i].CAL_PERIOD);
 		}
 			table_data_entry.unit=curr_opcua_config[i].UNIT;
 		table_data_entry.anchor = curr_opcua_config[i].ANCHOR;
@@ -101,6 +103,8 @@ function load_data_to_opcua_config_table(curr_logstats)
 						tableData[i].status = "Cal not valid";
 					}
 					tableData[i].valid_until=valid_until;
+					tableData[i].cal_date = cal_date;
+					tableData[i].cal_period = data.calibrationPeriod;
 				}
 				else
 					tableData[i].cal_date=null;
@@ -142,7 +146,10 @@ function load_data_to_opcua_config_table(curr_logstats)
 function ISOChannel_edit(event, cell)
 {
 	let popup_win = PopupCenter("./ISO_CH_MOD.html"+"?q="+makeid(), cell.value, 600, 800);
-	popup_win.curr_config = cell.getRow().getData();
+	if(cell.hasOwnProperty("_cell"))
+		popup_win.curr_config = cell.getRow().getData();
+	else
+		popup_win.curr_config = cell._row.data;
 }
 function ISOChannel_add()
 {
@@ -156,12 +163,78 @@ function ISOChannels_import()
 }
 function ISOChannels_export_all()
 {
-	//PopupCenter("./ISO_CH_EXPORT.html"+"?q="+makeid(), "Configuration for \""+cell.value+"\"", 600, 800);
+	let tableData = opcua_config_table.getData(),
+		ISOChannels_tbl = [];
+
+	if(!tableData.length)
+		return;
+	for(let i=0; i<tableData.length; i++)
+	{
+		let ISOChannel_entry = {};
+
+		ISOChannel_entry.ISO_CHANNEL = tableData[i].iso_name;
+		ISOChannel_entry.INTERFACE_TYPE = tableData[i].type;
+		ISOChannel_entry.ANCHOR = tableData[i].anchor;
+		ISOChannel_entry.DESCRIPTION = tableData[i].desc;
+		ISOChannel_entry.MIN = tableData[i].min;
+		ISOChannel_entry.MAX = tableData[i].max;
+		if(tableData[i].type !== "SDAQ")
+		{
+			ISOChannel_entry.UNIT = tableData[i].unit;
+			if(tableData[i].valid_until)
+			{
+				ISOChannel_entry.CAL_DATE = tableData[i].cal_date;
+				ISOChannel_entry.CAL_PERIOD = tableData[i].cal_period;
+			}
+		}
+		ISOChannels_tbl.push(ISOChannel_entry);
+	}
+	Morfeas_ISOChannels_export(ISOChannels_tbl, "All");
 }
 function ISOChannels_export_all_selected()
 {
+	let tableData = opcua_config_table.getSelectedData(),
+		ISOChannels_tbl = [];
 
+	if(!tableData.length)
+		return;
+	for(let i=0; i<tableData.length; i++)
+	{
+		let ISOChannel_entry = {};
+
+		ISOChannel_entry.ISO_CHANNEL = tableData[i].iso_name;
+		ISOChannel_entry.INTERFACE_TYPE = tableData[i].type;
+		ISOChannel_entry.ANCHOR = tableData[i].anchor;
+		ISOChannel_entry.DESCRIPTION = tableData[i].desc;
+		ISOChannel_entry.MIN = tableData[i].min;
+		ISOChannel_entry.MAX = tableData[i].max;
+		if(tableData[i].type !== "SDAQ")
+		{
+			ISOChannel_entry.UNIT = tableData[i].unit;
+			if(tableData[i].valid_until)
+			{
+				ISOChannel_entry.CAL_DATE = tableData[i].cal_date.getFullYear()+'/'
+										   +(tableData[i].cal_date.getMonth()+1)+'/'
+										   +tableData[i].cal_date.getDate();
+				ISOChannel_entry.CAL_PERIOD = tableData[i].cal_period;
+			}
+		}
+		ISOChannels_tbl.push(ISOChannel_entry);
+	}
+	Morfeas_ISOChannels_export(ISOChannels_tbl, "Selection");
 }
+function Morfeas_ISOChannels_export(ISOChannels_tbl, exp_type)
+{
+	if(typeof(exp_type)!=="string")
+		exp_type = '';
+	else
+		exp_type += '_';
+	let now = new Date(),
+		filename = "Morfeas_ISOChannel_Linker_Export_"+exp_type+
+				   now.getFullYear()+'_'+(now.getMonth()+1)+'_'+now.getDate();
+	download(filename, JSON.stringify(ISOChannels_tbl, null, '\t'), "application/json;charset=utf-8");
+}
+
 function ISOChannel_delete_curr(event, row)
 {
 	if(!row)
@@ -187,7 +260,7 @@ function ISOChannels_delete_all_selected()
 	let data = opcua_config_table.getSelectedData(),
 		del_ISOChannels_tbl = [];
 
-	if(data.length && confirm(data.length+" ISOChannel"+(data.length>1?'s':'')+" will be delete\nAre you sure?"))
+	if(data.length && confirm(data.length+" ISOChannel"+(data.length>1?'s':'')+" will be deleted\nAre you sure?"))
 	{
 		for(let i=0; i<data.length; i++)
 		{

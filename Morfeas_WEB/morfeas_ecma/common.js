@@ -214,4 +214,17 @@ function generateTable_row(table_row, data)
       cell.appendChild(text);
     }
 }
+
+function download(filename, contains, data_type)
+{
+	if(!data_type)
+		data_type = "data:text/plain;charset=utf-8";
+	var elem = document.createElement('a');
+	elem.setAttribute("href", "Data:"+data_type+','+ encodeURIComponent(contains));
+	elem.setAttribute("download", filename);
+	elem.style.display = "none";
+	document.body.appendChild(elem);
+	elem.click();
+	document.body.removeChild(elem);
+}
 //@license-end

@@ -8,9 +8,7 @@
 <link rel="stylesheet" href="../External_components/autoComplete.js/dist/css/autoComplete.01.css">
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico">
 <style>
-.extra{
-	display : none;
-}
+.cal_data{display : none;}
 </style>
 <title>Morfeas WEB Link Creator</title>
 </head>
@@ -26,7 +24,7 @@
 				<label for="type_selector">Type:</label>
 			</td>
 			<td>
-				<select name="link_data" id="type_selector">
+				<select name="link_data" id="type_selector" onchange="type_selector_changed(this);">
 					<option>-</option>
 					<option>SDAQ</option>
 					<option>MDAQ</option>
@@ -38,11 +36,11 @@
 		</tr>
 		<tr>
 			<td>
-				<label for="connection">Connection:</label>
+				<label for="conn">Sensor's Path:</label>
 			</td>
 			<td>
-				<input name="link_data" id="connection" disabled></input>
-				<button disabled>&#128269;</button>
+				<input name="link_data" id="conn" placeHolder = "CAN-if.ADDRess.CHannel" disabled></input>
+				<button id="sensor_search" onclick="sensor_search_func();" disabled>&#128269;</button>
 			</td>
 		</tr>
 		<tr>
@@ -54,6 +52,7 @@
 					<input name="link_data"
 						   id="iso_name"
 						   type="search"
+						   placeHolder="Search..."
 						   spellcheck=false
 						   autocorrect="off"
 						   autocapitalize="off"
@@ -87,7 +86,15 @@
 				<input name="link_data" id="max" type="number" disabled></input>
 			</td>
 		</tr>
-		<tr class="extra">
+		<tr style="display:none" id="unit_field">
+			<td>
+				<label for="unit">Unit:</label>
+			</td>
+			<td>
+				<input name="link_data" id="unit" disabled></input>
+			</td>
+		</tr>
+		<tr class="cal_data">
 			<td>
 				<label for="unit">Cal Date:</label>
 			</td>
@@ -95,12 +102,19 @@
 				<input name="link_data" id="date" type="date" disabled></input>
 			</td>
 		</tr>
-		<tr class="extra">
+		<tr class="cal_data">
 			<td>
 				<label for="period">Cal Period:</label>
 			</td>
 			<td>
 				<input name="link_data" id="period" type="number" min='0' max='255' disabled></input>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="1"></td>
+			<td>
+				<button onclick="send();" disabled>Send</button>
+				<button onclick="window.close('','_parent','');">Cancel</button>
 			</td>
 		</tr>
 	</table>
@@ -135,12 +149,18 @@ for the JavaScript code in this page.
 "use strict";
 comp_check();
 var post_fix = document.getElementById("iso_code_post_fix"),
+	link_data = document.getElementsByName("link_data"),
+	sensor_search = document.getElementById("sensor_search"),
+	unit_field = document.getElementById("unit_field"),
+	cal_data = document.getElementsByClassName("cal_data"),
+	conn = document.getElementById("conn"),
 	curr_iso_channels,
 	curr_iso_standards;
 
-//Checks and Inits
+//Checks and Initialization
 if(!curr_iso_standards || !curr_iso_channels)
 	window.close('','_parent','');
+
 for(let i=0; i<=20; i++)
 {
 	let text = i?i:'N/A',
@@ -150,29 +170,77 @@ for(let i=0; i<=20; i++)
 	new_postfix_opt.setAttribute('value', text);
 	post_fix.appendChild(new_postfix_opt);
 }
+link_data[0].selectedIndex=0;
+type_selector_changed(0);
+//Callback Functions
+function type_selector_changed(sel)
+{
+	if(!sel.selectedIndex)
+	{
+		for(let i=1; i<link_data.length; i++)
+		{
+			link_data[i].value = '';
+			link_data[i].disabled = true;
+		}
+		sensor_search.disabled = true;
+		unit_field.style.display = "none";
+		conn.placeholder = '';
+		for(let i=0; i<cal_data.length; i++)
+			cal_data[i].style.display = "none";
+		return;
+	}
+	link_data[1].disabled=false;
+	sensor_search.disabled = false;
+	switch(sel.value)
+	{
+		case "SDAQ":
+			unit_field.style.display = "none";
+			conn.placeholder = "CAN-if.Addr:XX.CH:XX";
+			for(let i=0; i<cal_data.length; i++)
+				cal_data[i].style.display = "none";
+			break;
+		case "MDAQ":
+			unit_field.style.display = "table-row";
+		case "IOBOX":
+		case "MTI":
+		case "NOX":
+			if(sel.value != "MDAQ")
+				unit_field.style.display = "none";
+			for(let i=0; i<cal_data.length; i++)
+				cal_data[i].style.display = "table-row";
+			switch(sel.value)
+			{
+				case "MDAQ": conn.placeholder = "NAME.CH:XX.Val:XX"; break;
+				case "IOBOX":
+				case "MTI": conn.placeholder = "NAME.Type.CH:XX"; break;
+				case "NOX": conn.placeholder = "CAN-if.Addr:X.Sensor"; break;
+			}
+	}
+}
+
+function sensor_search_func()
+{
+
+}
+
+function send()
+{
+
+}
+/*
 const autoCompleteJS = new autoComplete({
-    selector: "#iso_name",
-    placeHolder: "Search...",
-    data: {
-        src: ["test1", "test2", "test3"]
-    },
-    resultsList: {
-        noResults: (list, query) => {
-            // Create "No Results" message list element
-            const message = document.createElement("li");
-            message.setAttribute("class", "no_result");
-            // Add message text content
-            message.innerHTML = '<span>Found No Results</span>';
-            // Add message list element to the list
-            list.appendChild(message);
-        },
-    },
-    resultItem: {
-        highlight: {
-            render: true
-        }
-    }
+	selector: "#iso_name",
+	placeHolder: "Search...",
+	data: {
+		src: ["test1", "test2", "test3"]
+	},
+	resultItem: {
+		highlight: {
+			render: true
+		}
+	}
 });
+*/
 //@license-end
 </script>
 </html>
