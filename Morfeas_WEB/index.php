@@ -80,12 +80,12 @@ td.bold{
 			</span>
 		</td>
 		<td><button type="button" onclick='reboot()'>
-			<span title="reboot">
+			<span title="Reboot">
 				<img src="./art/reboot.png" class="bsize">
 			</span>
 		</td>
 		<td><button type="button" onclick='shutdown()'>
-			<span title="shutdown">
+			<span title="Shutdown">
 				<img src="./art/shutdown.png" class="bsize">
 			</span>
 		</td>

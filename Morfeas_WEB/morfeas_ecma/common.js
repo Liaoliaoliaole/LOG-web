@@ -180,6 +180,12 @@ function compress(data, debug_info)
 	return result;
 }
 
+function pad(str, max)//from number-pad-zero.js
+{
+	str = str.toString();
+	return str.length < max ? pad("0" + str, max) : str;
+}
+
 function generateTableHead(table, data)
 {
 	let thead = table.createTHead();

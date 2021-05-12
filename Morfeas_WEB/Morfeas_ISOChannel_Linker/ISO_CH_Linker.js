@@ -70,13 +70,13 @@ function load_data_to_opcua_config_table(curr_logstats)
 		return;
 	let tableData = opcua_config_table.getData(),
 		selectedRows_ids = [],
-		curr_logstats_com = morfeas_logstat_commonizer(curr_logstats);
-	if(typeof(curr_logstats_com)==="object")
+		curr_logstats_comb = morfeas_logstat_commonizer(curr_logstats);
+	if(typeof(curr_logstats_comb)==="object")
 	{
 		let selectedRows = opcua_config_table.getSelectedRows();
 		for(let i=0; i<tableData.length; i++)
 		{
-			let data = get_from_common_logstats_by_anchor(curr_logstats_com, tableData[i].type, tableData[i].anchor);
+			let data = get_from_common_logstats_by_anchor(curr_logstats_comb, tableData[i].type, tableData[i].anchor);
 			if(!data)
 			{
 				tableData[i].col="red";
@@ -141,6 +141,16 @@ function load_data_to_opcua_config_table(curr_logstats)
 		opcua_config_table.replaceData(tableData);
 		if(selectedRows_ids)
 			opcua_config_table.selectRow(selectedRows_ids);
+		//Update Logstats to ADD and Edit windows.
+		if(add_wins.length)
+			for(let i=0; i<add_wins.length; i++)
+				add_wins[i].curr_logstats_comb = curr_logstats_comb;
+		/*
+		if(edit_wins.length)
+			for(let i=0; i<edit_wins.length; i++)
+				if(!edit_wins[i].closed)
+					edit_wins[i].close();
+		*/
 	}
 }
 function ISOChannel_edit(event, cell)
@@ -150,16 +160,18 @@ function ISOChannel_edit(event, cell)
 		popup_win.curr_config = cell.getRow().getData();
 	else
 		popup_win.curr_config = cell._row.data;
+	edit_wins.push(popup_win);
 }
 function ISOChannel_add()
 {
 	let popup_win = PopupCenter("./ISO_CH_ADD.html"+"?q="+makeid(), "", 500, 400);
 	popup_win.curr_iso_standards = iso_standard;
 	popup_win.curr_iso_channels = opcua_config_table.getData();
+	add_wins.push(popup_win);
 }
 function ISOChannels_import()
 {
-	//PopupCenter("./ISO_CH_IMPORT.html"+"?q="+makeid(), "Configuration for \""+cell.value+"\"", 600, 800);
+	//PopupCenter("./ISO_CH_IMPORT.html"+"?q="+makeid(), cell.value, 600, 800);
 }
 function ISOChannels_export_all()
 {
@@ -242,7 +254,7 @@ function ISOChannel_delete_curr(event, row)
 	let data = row._row.data,
 		del_ISOChannels_tbl = [];
 
-	if(confirm("ISOChannel \""+data.iso_name+"\" will be delete\nAre you sure?"))
+	if(confirm("The ISOChannel \""+data.iso_name+"\" will be deleted\nContinue?"))
 	{
 		let del_ISOChannel = {};
 		del_ISOChannel.ISOChannel = data.iso_name;
@@ -260,7 +272,7 @@ function ISOChannels_delete_all_selected()
 	let data = opcua_config_table.getSelectedData(),
 		del_ISOChannels_tbl = [];
 
-	if(data.length && confirm(data.length+" ISOChannel"+(data.length>1?'s':'')+" will be deleted\nAre you sure?"))
+	if(data.length && confirm(data.length+" ISOChannel"+(data.length>1?'s':'')+" will be deleted\nContinue?"))
 	{
 		for(let i=0; i<data.length; i++)
 		{

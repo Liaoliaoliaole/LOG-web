@@ -39,8 +39,10 @@
 				<label for="conn">Sensor's Path:</label>
 			</td>
 			<td>
-				<input name="link_data" id="conn" placeHolder = "CAN-if.ADDRess.CHannel" disabled></input>
-				<button id="sensor_search" onclick="sensor_search_func();" disabled>&#128269;</button>
+				<div class="autoComplete_wrapper">
+					<input name="link_data" id="conn" disabled></input>
+					<button id="sensor_search" onclick="sensor_search_func();" disabled>&#128269;</button>
+				</div>
 			</td>
 		</tr>
 		<tr>
@@ -99,7 +101,14 @@
 				<label for="unit">Cal Date:</label>
 			</td>
 			<td>
-				<input name="link_data" id="date" type="date" disabled></input>
+				<input name="link_data"
+					   id="cal_date"
+					   type="date"
+					   max="2255-12-31"
+					   min="2000-01-01"
+					   onchange="cal_date_changed(this);"
+					   disabled>
+				</input>
 			</td>
 		</tr>
 		<tr class="cal_data">
@@ -107,7 +116,16 @@
 				<label for="period">Cal Period:</label>
 			</td>
 			<td>
-				<input name="link_data" id="period" type="number" min='0' max='255' disabled></input>
+				<input name="link_data"
+					   id="period"
+					   type="number"
+					   min='0'
+					   max='255'
+					   maxlength="4"
+					   size="4"
+					   onchange="period_input_changed(this);"
+					   disabled>
+				</input>
 			</td>
 		</tr>
 		<tr>
@@ -148,14 +166,20 @@ for the JavaScript code in this page.
 */
 "use strict";
 comp_check();
-var post_fix = document.getElementById("iso_code_post_fix"),
+var	curr_iso_channels, curr_iso_standards, curr_logstats_comb;
+var search_wins = [],
+	conn_autocomplete,
+	ISOname_autocomplete;
+var type = document.getElementById("type_selector"),
+	post_fix = document.getElementById("iso_code_post_fix"),
 	link_data = document.getElementsByName("link_data"),
 	sensor_search = document.getElementById("sensor_search"),
 	unit_field = document.getElementById("unit_field"),
 	cal_data = document.getElementsByClassName("cal_data"),
-	conn = document.getElementById("conn"),
-	curr_iso_channels,
-	curr_iso_standards;
+	cal_date = document.getElementById("cal_date"),
+	period = document.getElementById("period"),
+	conn = document.getElementById("conn");
+
 
 //Checks and Initialization
 if(!curr_iso_standards || !curr_iso_channels)
@@ -175,13 +199,13 @@ type_selector_changed(0);
 //Callback Functions
 function type_selector_changed(sel)
 {
+	for(let i=1; i<link_data.length; i++)
+	{
+		link_data[i].value = '';
+		link_data[i].disabled = true;
+	}
 	if(!sel.selectedIndex)
 	{
-		for(let i=1; i<link_data.length; i++)
-		{
-			link_data[i].value = '';
-			link_data[i].disabled = true;
-		}
 		sensor_search.disabled = true;
 		unit_field.style.display = "none";
 		conn.placeholder = '';
@@ -191,6 +215,24 @@ function type_selector_changed(sel)
 	}
 	link_data[1].disabled=false;
 	sensor_search.disabled = false;
+	//Populate conn_autocomplete.
+	let available_dev_paths = get_available_devs(curr_logstats_comb, sel.value);
+	if(available_dev_paths)
+	{
+		console.log(available_dev_paths);
+		conn_autocomplete = new autoComplete({
+			selector: "#conn",
+			data: {
+				src: available_dev_paths,
+				key: ["sensorUserId"]
+			},
+			resultItem: {
+				highlight: {
+					render: true
+				}
+			}
+		});
+	}
 	switch(sel.value)
 	{
 		case "SDAQ":
@@ -211,16 +253,85 @@ function type_selector_changed(sel)
 			switch(sel.value)
 			{
 				case "MDAQ": conn.placeholder = "NAME.CH:XX.Val:XX"; break;
-				case "IOBOX":
+				case "IOBOX": conn.placeholder = "NAME.RX:X.CH:XX"; break;
 				case "MTI": conn.placeholder = "NAME.Type.CH:XX"; break;
 				case "NOX": conn.placeholder = "CAN-if.Addr:X.Sensor"; break;
 			}
+			let now_date = new Date();
+			cal_date.disabled = false;
+			cal_date.value = now_date.getFullYear()+'-'+
+							 pad((now_date.getMonth()+1),2)+'-'+
+							 pad(now_date.getDate(),2);
+			period.disabled = false;
+			period.value = 12;
+			period_input_changed.prev_value = 12;
+	}
+}
+function cal_date_changed(elem)
+{
+	if(!elem.value)
+	{
+		let now_date = new Date();
+		elem.value = now_date.getFullYear()+'-'+
+					 pad((now_date.getMonth()+1),2)+'-'+
+					 pad(now_date.getDate(),2);
+	}
+}
+function period_input_changed(elem)
+{
+	if(!elem.value)
+		elem.value = period_input_changed.prev_value;
+	else
+	{
+		if(Number(elem.value) > Number(elem.max))
+			elem.value = elem.max;
+		if(Number(elem.value) < Number(elem.min))
+			elem.value = elem.min;
+		period_input_changed.prev_value = elem.value;
 	}
 }
 
 function sensor_search_func()
 {
+	if(curr_logstats_comb)
+	{
+		let tree = logstat_to_tree(curr_logstats_comb, type.value)
+		console.log(tree);
+		/*
+		let popup_win = PopupCenter("./ISO_CH_MOD.html"+"?q="+makeid(), cell.value, 600, 800);
+		search_wins.push(popup_win);
+		*/
+	}
+}
 
+function get_available_devs(_logstats, _type)
+{
+	let dev_paths=[];
+
+	if(!_logstats)
+		return;
+	for(let i=0; i<_logstats.length; i++)
+	{
+		if(_type && !_logstats[i].if_name.includes(_type))
+			continue;
+		if(_logstats[i].sensors.length)
+			dev_paths.push(_logstats[i].sensors);
+	}
+	return dev_paths;
+}
+
+function logstat_to_tree(_logstats, _type)
+{
+	let tree = [];
+	if(!_logstats)
+		return;
+	for(let i=0; i<_logstats.length; i++)
+	{
+		if(_type && !_logstats[i].if_name.includes(_type))
+			continue;
+		tree.push(_logstats[i].sensors);
+	}
+	return tree;
 }
 
 function send()
@@ -241,6 +352,13 @@ const autoCompleteJS = new autoComplete({
 	}
 });
 */
+window.onbeforeunload = function()
+{
+	if(search_wins.length)
+		for(let i=0; i<search_wins.length; i++)
+			if(!search_wins[i].closed)
+				search_wins[i].close();
+};
 //@license-end
 </script>
 </html>

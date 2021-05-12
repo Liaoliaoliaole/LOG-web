@@ -564,8 +564,8 @@ function update_RMSWs_MUXs_data(MTI_data)
 			html_tele_data[0].innerHTML=MTI_data.Tele_data[i].Dev_type;
 			html_tele_data[1].innerHTML=MTI_data.Tele_data[i].Dev_ID;
 			html_tele_data[2].innerHTML=MTI_data.Tele_data[i].Time_from_last_msg+' sec';
-			html_tele_data[3].innerHTML=MTI_data.Tele_data[i].Dev_temp+'°C';
-			html_tele_data[4].innerHTML=MTI_data.Tele_data[i].Supply_volt+'V';
+			html_tele_data[3].innerHTML=MTI_data.Tele_data[i].Dev_temp.toFixed(1)+'°C';
+			html_tele_data[4].innerHTML=MTI_data.Tele_data[i].Supply_volt.toFixed(1)+'V';
 			html_tele_data[5].innerHTML=MTI_data.Tele_data[i].Mem_offset;
 			switch(MTI_data.Tele_data[i].Dev_type)
 			{
@@ -577,7 +577,7 @@ function update_RMSWs_MUXs_data(MTI_data)
 				case 'RMSW':
 					let html_RMSW_data = document.getElementsByName(MTI_data.Tele_data[i].Dev_type+'_'+MTI_data.Tele_data[i].Dev_ID+'_meas');
 					for(let j=0; j<html_RMSW_data.length; j++)
-						html_RMSW_data[j].innerHTML=MTI_data.Tele_data[i].CHs_meas[j]+(j%2?'A':'V');
+						html_RMSW_data[j].innerHTML=MTI_data.Tele_data[i].CHs_meas[j].toFixed(2)+(j%2?'A':'V');
 					let html_RMSW_ind = document.getElementsByName(MTI_data.Tele_data[i].Dev_type+'_'+MTI_data.Tele_data[i].Dev_ID+'_ind');
 					if(html_RMSW_ind.length)
 					{
@@ -592,7 +592,12 @@ function update_RMSWs_MUXs_data(MTI_data)
 				case 'Mini_RMSW':
 					let html_Mini_RMSW_data = document.getElementsByName(MTI_data.Tele_data[i].Dev_type+'_'+MTI_data.Tele_data[i].Dev_ID+'_meas');
 					for(let j=0; j<html_Mini_RMSW_data.length; j++)
-						html_Mini_RMSW_data[j].innerHTML=MTI_data.Tele_data[i].CHs_meas[j]+(typeof(MTI_data.Tele_data[i].CHs_meas[j])=='number'?'°C':'');
+					{
+						let meas_value_or_status = MTI_data.Tele_data[i].CHs_meas[j];
+						if(typeof(MTI_data.Tele_data[i].CHs_meas[j])=='number')
+							meas_value_or_status = MTI_data.Tele_data[i].CHs_meas[j].toFixed(3)+'°C';
+						html_Mini_RMSW_data[j].innerHTML = meas_value_or_status
+					}
 					let html_main_sw_ind = document.getElementsByName(MTI_data.Tele_data[i].Dev_type+'_'+MTI_data.Tele_data[i].Dev_ID+'_main_sw');
 					if(html_main_sw_ind.length)
 					{

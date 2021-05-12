@@ -73,14 +73,15 @@ const mode_enum = {
 	logstats: 1
 };
 const Collor_def_str = "Green:Okay\n"+
-					   "Yellow:Sensor warning\n"+
 					   "Orange:Calibration not valid\n"+
+					   "Yellow:Sensor warning\n"+
 					   "Red:Sensor is OFF-Line";
 const GRAPH_LENGTH = 120;
 //Global Vars.
 var data_req=false, isOPC_UA_config_empty = true,
 	OPCUA_Config_xml_modified_flag=false,
-	request_mode = mode_enum.opcua_config;
+	request_mode = mode_enum.opcua_config,
+	edit_wins = [], add_wins = [];
 
 const cal_date_format_params = {
     outputFormat:"DD/MM/YYYY",
@@ -214,6 +215,17 @@ document.onkeydown = function(key)
 {
 	if(key.key === "Escape")
 		opcua_config_table.deselectRow();
+};
+window.onbeforeunload = function()
+{
+	if(edit_wins.length)
+		for(let i=0; i<edit_wins.length; i++)
+			if(!edit_wins[i].closed)
+				edit_wins[i].close();
+	if(add_wins.length)
+		for(let i=0; i<add_wins.length; i++)
+			if(!add_wins[i].closed)
+				add_wins[i].close();
 };
 iso_standard.request_isostandard();//Request ISOstandard from server.
 //@license-end
