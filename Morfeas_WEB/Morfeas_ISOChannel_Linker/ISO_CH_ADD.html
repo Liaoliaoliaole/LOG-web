@@ -168,6 +168,7 @@ for the JavaScript code in this page.
 comp_check();
 var	curr_iso_channels, curr_iso_standards, curr_logstats_comb;
 var search_wins = [],
+	sel_dev_anchor,
 	conn_autocomplete,
 	ISOname_autocomplete;
 var type = document.getElementById("type_selector"),
@@ -199,6 +200,7 @@ type_selector_changed(0);
 //Callback Functions
 function type_selector_changed(sel)
 {
+	sel_dev_anchor = undefined;
 	for(let i=1; i<link_data.length; i++)
 	{
 		link_data[i].value = '';
@@ -219,7 +221,6 @@ function type_selector_changed(sel)
 	let available_dev_paths = get_available_devs(curr_logstats_comb, sel.value);
 	if(available_dev_paths)
 	{
-		console.log(available_dev_paths);
 		conn_autocomplete = new autoComplete({
 			selector: "#conn",
 			data: {
@@ -227,9 +228,11 @@ function type_selector_changed(sel)
 				key: ["sensorUserId"]
 			},
 			resultItem: {
-				highlight: {
-					render: true
-				}
+				highlight: {render: true}
+			},
+			onSelection: function(fb){
+				conn.value = fb.selection.value.sensorUserId;
+				sel_dev_anchor = fb.selection.value.anchor;
 			}
 		});
 	}
@@ -315,7 +318,7 @@ function get_available_devs(_logstats, _type)
 		if(_type && !_logstats[i].if_name.includes(_type))
 			continue;
 		if(_logstats[i].sensors.length)
-			dev_paths.push(_logstats[i].sensors);
+			dev_paths.push(..._logstats[i].sensors);
 	}
 	return dev_paths;
 }
