@@ -40,7 +40,13 @@
 			</td>
 			<td>
 				<div class="autoComplete_wrapper">
-					<input name="link_data" id="conn" disabled></input>
+					<input name="link_data"
+						   id="conn"
+						   onchange="conn_inp_val(this);"
+						   size="30"
+						   maxlength="30"
+						   disabled>
+					</input>
 					<button id="sensor_search" onclick="sensor_search_func();" disabled>&#128269;</button>
 				</div>
 			</td>
@@ -53,14 +59,15 @@
 				<div class="autoComplete_wrapper">
 					<input name="link_data"
 						   id="iso_name"
-						   type="search"
 						   placeHolder="Search..."
-						   spellcheck=false
-						   autocorrect="off"
-						   autocapitalize="off"
+						   onchange="iso_name_val(this);"
+						   size="20"
 						   maxlength="20"
 						   disabled>_
-					<select name="link_data" id="iso_code_post_fix" disabled></select>
+					<select id="iso_code_post_fix"
+							onchange="iso_code_post_fix_changed(this);"
+							disabled>
+					</select>
 				</div>
 			</td>
 		</tr>
@@ -68,8 +75,8 @@
 			<td>
 				<label for="desc">Description:</label>
 			</td>
-			<td>
-				<input name="link_data" id="desc" disabled></input>
+			<td colspan="2">
+				<input name="link_data" id="desc" size="30" disabled></input>
 			</td>
 		</tr>
 		<tr>
@@ -77,7 +84,12 @@
 				<label for="min">Min:</label>
 			</td>
 			<td>
-				<input name="link_data" id="min" type="number" disabled></input>
+				<input name="link_data"
+					   id="min"
+					   type="number"
+					   size="5"
+					   disabled>
+				</input>
 			</td>
 		</tr>
 		<tr>
@@ -85,7 +97,12 @@
 				<label for="max">Max:</label>
 			</td>
 			<td>
-				<input name="link_data" id="max" type="number" disabled></input>
+				<input name="link_data"
+					   id="max"
+					   type="number"
+					   size="5"
+					   disabled>
+				</input>
 			</td>
 		</tr>
 		<tr style="display:none" id="unit_field">
@@ -93,12 +110,17 @@
 				<label for="unit">Unit:</label>
 			</td>
 			<td>
-				<input name="link_data" id="unit" disabled></input>
+				<input name="link_data"
+					   id="unit"
+					   size="5"
+					   onchange="unit_val_changed(this)"
+					   disabled>
+				</input>
 			</td>
 		</tr>
 		<tr class="cal_data">
 			<td>
-				<label for="unit">Cal Date:</label>
+				<label for="cal_date">Cal Date:</label>
 			</td>
 			<td>
 				<input name="link_data"
@@ -131,7 +153,7 @@
 		<tr>
 			<td colspan="1"></td>
 			<td>
-				<button onclick="send();" disabled>Send</button>
+				<button id="send_button" onclick="send();" disabled>Send</button>
 				<button onclick="window.close('','_parent','');">Cancel</button>
 			</td>
 		</tr>
@@ -167,20 +189,25 @@ for the JavaScript code in this page.
 "use strict";
 comp_check();
 var	curr_iso_channels, curr_iso_standards, curr_logstats_comb;
-var search_wins = [],
+var search_win,
 	sel_dev_anchor,
 	conn_autocomplete,
 	ISOname_autocomplete;
-var type = document.getElementById("type_selector"),
-	post_fix = document.getElementById("iso_code_post_fix"),
+var post_fix = document.getElementById("iso_code_post_fix"),
 	link_data = document.getElementsByName("link_data"),
 	sensor_search = document.getElementById("sensor_search"),
 	unit_field = document.getElementById("unit_field"),
 	cal_data = document.getElementsByClassName("cal_data"),
+	send_button = document.getElementById("send_button");
+var type = document.getElementById("type_selector"),
+	conn = document.getElementById("conn"),
+	iso_name = document.getElementById("iso_name"),
+	desc = document.getElementById("desc"),
+	min = document.getElementById("min"),
+	max = document.getElementById("max"),
+	unit_inp = document.getElementById("unit"),
 	cal_date = document.getElementById("cal_date"),
-	period = document.getElementById("period"),
-	conn = document.getElementById("conn");
-
+	period = document.getElementById("period");
 
 //Checks and Initialization
 if(!curr_iso_standards || !curr_iso_channels)
@@ -195,19 +222,24 @@ for(let i=0; i<=20; i++)
 	new_postfix_opt.setAttribute('value', text);
 	post_fix.appendChild(new_postfix_opt);
 }
+post_fix.selectedIndex=0;
 link_data[0].selectedIndex=0;
 type_selector_changed(0);
 //Callback Functions
 function type_selector_changed(sel)
 {
 	sel_dev_anchor = undefined;
+	if(search_win && !search_win.closed)
+		search_win.close();
 	for(let i=1; i<link_data.length; i++)
 	{
 		link_data[i].value = '';
 		link_data[i].disabled = true;
 	}
+	post_fix.disabled = true;
 	if(!sel.selectedIndex)
 	{
+		send_button.disabled = true;
 		sensor_search.disabled = true;
 		unit_field.style.display = "none";
 		conn.placeholder = '';
@@ -218,7 +250,7 @@ function type_selector_changed(sel)
 	link_data[1].disabled=false;
 	sensor_search.disabled = false;
 	//Populate conn_autocomplete.
-	let available_dev_paths = get_available_devs(curr_logstats_comb, sel.value);
+	let available_dev_paths = get_available_devs(curr_logstats_comb, sel.value, curr_iso_channels);
 	if(available_dev_paths)
 	{
 		conn_autocomplete = new autoComplete({
@@ -233,6 +265,8 @@ function type_selector_changed(sel)
 			onSelection: function(fb){
 				conn.value = fb.selection.value.sensorUserId;
 				sel_dev_anchor = fb.selection.value.anchor;
+				conn.style.color = 'black';
+				conn_inp_val(conn);
 			}
 		});
 	}
@@ -255,7 +289,7 @@ function type_selector_changed(sel)
 				cal_data[i].style.display = "table-row";
 			switch(sel.value)
 			{
-				case "MDAQ": conn.placeholder = "NAME.CH:XX.Val:XX"; break;
+				case "MDAQ": conn.placeholder = "NAME.CH:XX.Val:X"; break;
 				case "IOBOX": conn.placeholder = "NAME.RX:X.CH:XX"; break;
 				case "MTI": conn.placeholder = "NAME.Type.CH:XX"; break;
 				case "NOX": conn.placeholder = "CAN-if.Addr:X.Sensor"; break;
@@ -269,9 +303,108 @@ function type_selector_changed(sel)
 			period.value = 12;
 			period_input_changed.prev_value = 12;
 	}
+	vals_check();
+}
+function conn_inp_val(elem)
+{
+	let conn_found_fl = false;
+	elem.value = elem.value.replace(/\s/g, '');
+	elem.style.color = 'black';
+	if(!elem.value)
+		return;
+	for(let i=0; i<curr_iso_channels.length; i++)
+	{
+		if(elem.value == curr_iso_channels[i].conn ||
+     	   curr_iso_channels[i].anchor == sel_dev_anchor)
+		{
+			elem.style.color='red';
+			sel_dev_anchor = '';
+			for(let i=2; i<link_data.length; i++)
+				link_data[i].disabled = true;
+			vals_check();
+			return;
+		}
+	}
+	for(let i=0; i<conn_autocomplete.data.src.length; i++)
+		if(elem.value == conn_autocomplete.data.src[i].sensorUserId)
+		{
+			conn_found_fl = true;
+			unit_inp.value = conn_autocomplete.data.src[i].unit;
+		}
+	if(!conn_found_fl)
+	{
+		elem.style.color='red';
+		sel_dev_anchor = '';
+		for(let i=2; i<link_data.length; i++)
+			link_data[i].disabled = true;
+		vals_check();
+		return;
+	}
+	//Enable input fields.
+	for(let i=2; i<link_data.length; i++)
+		link_data[i].disabled = false;
+	post_fix.disabled = false;
+	if(curr_iso_standards.iso_standard_xml)
+	{	//Populate ISOname_autocomplete.
+		let recommented_ISOChannels = curr_iso_standards.get_isostandard_by_unit(unit_inp.value);
+		if(recommented_ISOChannels)
+		{
+			ISOname_autocomplete = new autoComplete({
+				selector: "#iso_name",
+				data: {
+					src: recommented_ISOChannels,
+					key: ["iso_code"]
+				},
+				resultItem: {
+					highlight: {render: true}
+				},
+				onSelection: function(fb){
+					post_fix.selectedIndex=0;
+					iso_name.value = fb.selection.value.iso_code;
+					desc.value = fb.selection.value.attributes.description;
+					min.value = fb.selection.value.attributes.min;
+					max.value = fb.selection.value.attributes.max;
+					unit_inp.value = fb.selection.value.attributes.unit;
+					vals_check();
+				}
+			});
+		}
+	}
+	vals_check();
+}
+function iso_name_val(elem)
+{
+	elem.value = elem.value.replace(/\s/g, '');
+	if(!elem.value)
+	{
+		post_fix.selectedIndex = 0;
+		desc.value = '';
+		min.value = '';
+		max.value = '';
+		if(unit_field.style.display != "none")
+			unit_inp.value = '';
+	}
+	vals_check();
+}
+function iso_code_post_fix_changed(elem)
+{
+	let pos;
+	if((pos = desc.value.indexOf(" Cyl:"))>=0)
+		desc.value = desc.value.slice(0, pos);
+	if(elem.selectedIndex && iso_name.value)
+		desc.value += " Cyl:"+elem.value;
+	else
+		post_fix.selectedIndex = 0;
+	vals_check();
+}
+function unit_val_changed(elem)
+{
+	elem.value = elem.value.replace(/\s/g, '');
+	vals_check();
 }
 function cal_date_changed(elem)
 {
+	let date_min, date_max, curr_value;
 	if(!elem.value)
 	{
 		let now_date = new Date();
@@ -279,6 +412,17 @@ function cal_date_changed(elem)
 					 pad((now_date.getMonth()+1),2)+'-'+
 					 pad(now_date.getDate(),2);
 	}
+	else
+	{
+		date_min = new Date(elem.min);
+		date_max = new Date(elem.max);
+		curr_value = new Date(elem.value);
+		if(curr_value < date_min)
+			elem.value = elem.min;
+		else if(curr_value > date_max)
+			elem.value = elem.max;
+	}
+	vals_check();
 }
 function period_input_changed(elem)
 {
@@ -292,25 +436,20 @@ function period_input_changed(elem)
 			elem.value = elem.min;
 		period_input_changed.prev_value = elem.value;
 	}
+	vals_check();
 }
 
 function sensor_search_func()
 {
-	if(curr_logstats_comb)
-	{
-		let tree = logstat_to_tree(curr_logstats_comb, type.value)
-		console.log(tree);
-		/*
-		let popup_win = PopupCenter("./ISO_CH_MOD.html"+"?q="+makeid(), cell.value, 600, 800);
-		search_wins.push(popup_win);
-		*/
-	}
+	if(!search_win || search_win.closed)
+		search_win = PopupCenter("./dev_search.html"+"?q="+makeid(), "", 600, 800);
+	else
+		search_win.focus();
 }
 
-function get_available_devs(_logstats, _type)
+function get_available_devs(_logstats, _type, _ISOchannels)
 {
 	let dev_paths=[];
-
 	if(!_logstats)
 		return;
 	for(let i=0; i<_logstats.length; i++)
@@ -320,47 +459,50 @@ function get_available_devs(_logstats, _type)
 		if(_logstats[i].sensors.length)
 			dev_paths.push(..._logstats[i].sensors);
 	}
+	if(_ISOchannels)
+	{
+		for(let i=0; i<dev_paths.length; i++)
+			for(let j=0; j<_ISOchannels.length; j++)
+				if(dev_paths[i].sensorUserId == _ISOchannels[j].conn)
+					dev_paths.splice(i, 1);
+	}
 	return dev_paths;
 }
 
-function logstat_to_tree(_logstats, _type)
+function vals_check()
 {
-	let tree = [];
-	if(!_logstats)
-		return;
-	for(let i=0; i<_logstats.length; i++)
-	{
-		if(_type && !_logstats[i].if_name.includes(_type))
-			continue;
-		tree.push(_logstats[i].sensors);
-	}
-	return tree;
+	let okay = false;
+	if(conn.value && iso_name.value && desc.value &&
+	   min.value && max.value && unit_inp.value)
+		okay = true;
+	if(Number(min.value)>Number(max.value))
+		okay = false;
+	send_button.disabled = !okay;
 }
 
 function send()
 {
-
-}
-/*
-const autoCompleteJS = new autoComplete({
-	selector: "#iso_name",
-	placeHolder: "Search...",
-	data: {
-		src: ["test1", "test2", "test3"]
-	},
-	resultItem: {
-		highlight: {
-			render: true
-		}
+	let new_link_data = {};
+	new_link_data.ISO_CHANNEL = link_data[2].value+(post_fix.selectedIndex?('_'+post_fix.value):'');
+	new_link_data.INTERFACE_TYPE = link_data[0].value;
+	new_link_data.ANCHOR = sel_dev_anchor;
+	new_link_data.DESCRIPTION = link_data[3].value;
+	new_link_data.MIN = link_data[4].value;
+	new_link_data.MAX = link_data[5].value;
+	if(link_data[0].selectedIndex > 1)
+		new_link_data.UNIT = link_data[6].value;
+	if(cal_data[0].style.display != "none")
+	{
+		new_link_data.CAL_DATE = link_data[7].value;
+		new_link_data.CAL_PERIOD = link_data[8].value;
 	}
-});
-*/
+	console.log(new_link_data);
+}
+
 window.onbeforeunload = function()
 {
-	if(search_wins.length)
-		for(let i=0; i<search_wins.length; i++)
-			if(!search_wins[i].closed)
-				search_wins[i].close();
+	if(search_win && !search_win.closed)
+		search_win.close();
 };
 //@license-end
 </script>
