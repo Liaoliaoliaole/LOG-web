@@ -96,7 +96,7 @@ td.bold{
 	<div style="float:left;">
 		Author: Sam Harry Tzavaras &#169; 12019-12021<br>
 		<a href="LICENSE">License: AGPLv3</a><br>
-		<a onclick='PopupCenter("/External_components/Credits.html","","750","250")'href="./">Credits</a>
+		<a onclick='PopupCenter("/External_components/Credits.html","","750","300")'href="./">Credits</a>
 	</div>
 	<div style="float:right;">
 		<a id="pi" style="visibility:hidden;" onclick='PopupCenter("https://"+window.location.hostname+":4200","","1024","768");this.style.visibility="hidden"'>π</a>

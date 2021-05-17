@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<link rel="stylesheet" href="../External_components/js-treeview/dist/treeview.min.css">
+<link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico">
+<title>Morfeas WEB Device Search</title>
+</head>
+<body>
+<table style="margin:auto;text-align:center;margin-bottom:.075in">
+	<tr>
+		<th colspan="5" style="font-size: 200%;">Device Search</th>
+	</tr>
+	<tr>
+		<td>
+			<button>Update</button>
+		</td>
+	</tr>
+</table>
+<div id="Dev_tree"></div>
+<table style="margin:auto;text-align:right;margin-bottom:.075in">
+	<tr>
+		<td>
+			<button>Okay</button>
+		</td>
+		<td>
+			<button onclick="window.close('','_parent','');">Cancel</button>
+		</td>
+	</tr>
+</table>
+</body>
+<script src="../External_components/js-treeview/dist/treeview.min.js"></script>
+<script src='../morfeas_ecma/common.js'></script>
+<script>
+//@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this page.
+
+Copyright (C) 12021-12022  Sam Harry Tzavaras
+
+The JavaScript code in this page is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU AGPL) as published by the Free Software
+Foundation, either version 3 of the License, or any later version.
+The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+@licend  The above is the entire license notice
+for the JavaScript code in this page.
+*/
+var	curr_logstats_comb, dev_type, 
+	caller_res = window.opener,
+	dev_tree,
+	dev_tree_data;
+
+function build_data_and_tree(logstats)
+{
+	dev_tree = new TreeView([
+		{ name: 'Item 1', children: []},
+		{ name: 'Item 2', expanded: true, children: [
+				{ name: 'Sub Item 1'},
+				{ name: 'Sub Item 2', data: "data_str"}
+			]
+		}
+	], 'Dev_tree');
+	dev_tree.collapseAll();
+	dev_tree.on('select', function(elem){
+		console.log(elem);
+	});
+	/*
+	tree.onSelect = function(elem){
+		console.log(elem);
+	};
+	*/
+	console.log(dev_tree);
+}
+
+//Checks and Initialization
+/*
+if(!curr_logstats_comb || !dev_type)
+	window.close('','_parent','');
+*/
+build_data_and_tree(curr_logstats_comb);
+//@license-end
+</script>
+</html>

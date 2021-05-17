@@ -8,11 +8,17 @@
 <link rel="stylesheet" href="../External_components/autoComplete.js/dist/css/autoComplete.01.css">
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico">
 <style>
-.cal_data{display : none;}
+.cal_data{display: none;}
+.center_screen{
+	position: absolute;
+	left: 50%;
+	transform: translate(-50%);
+}
 </style>
 <title>Morfeas WEB Link Creator</title>
 </head>
 <body>
+<div class="center_screen">
 	<table style="margin:auto;text-align:center;margin-bottom:.075in">
 		<tr>
 			<th colspan="5" style="font-size: 200%;">Link Creator</th>
@@ -107,19 +113,6 @@
 				</input>
 			</td>
 		</tr>
-		<tr style="display:none" id="unit_field">
-			<td>
-				<label for="unit">Unit:</label>
-			</td>
-			<td>
-				<input name="link_data"
-					   id="unit"
-					   size="5"
-					   onchange="unit_val_changed(this)"
-					   disabled>
-				</input>
-			</td>
-		</tr>
 		<tr class="cal_data">
 			<td>
 				<label for="cal_date">Cal Date:</label>
@@ -153,6 +146,19 @@
 			</td>
 		</tr>
 		<tr>
+			<td>
+				<label for="unit">Unit:</label>
+			</td>
+			<td>
+				<input name="link_data"
+					   id="unit"
+					   size="5"
+					   onchange="unit_val_changed(this)"
+					   disabled>
+				</input>
+			</td>
+		</tr>
+		<tr>
 			<td colspan="1"></td>
 			<td>
 				<button id="send_button" onclick="send();" disabled>Send</button>
@@ -160,6 +166,7 @@
 			</td>
 		</tr>
 	</table>
+<div>
 </body>
 <script src="../External_components/autoComplete.js/dist/js/autoComplete.min.js"></script>
 <script src='../morfeas_ecma/common.js'></script>
@@ -198,7 +205,6 @@ var search_win,
 var post_fix = document.getElementById("iso_code_post_fix"),
 	link_data = document.getElementsByName("link_data"),
 	sensor_search = document.getElementById("sensor_search"),
-	unit_field = document.getElementById("unit_field"),
 	cal_data = document.getElementsByClassName("cal_data"),
 	send_button = document.getElementById("send_button");
 var type = document.getElementById("type_selector"),
@@ -243,7 +249,7 @@ function type_selector_changed(sel)
 	{
 		send_button.disabled = true;
 		sensor_search.disabled = true;
-		unit_field.style.display = "none";
+		unit_inp.disabled = true;
 		conn.placeholder = '';
 		for(let i=0; i<cal_data.length; i++)
 			cal_data[i].style.display = "none";
@@ -275,18 +281,18 @@ function type_selector_changed(sel)
 	switch(sel.value)
 	{
 		case "SDAQ":
-			unit_field.style.display = "none";
+			unit_inp.disabled = true;
 			conn.placeholder = "CAN-if.Addr:XX.CH:XX";
 			for(let i=0; i<cal_data.length; i++)
 				cal_data[i].style.display = "none";
 			break;
 		case "MDAQ":
-			unit_field.style.display = "table-row";
+			unit_inp.disabled = false;
 		case "IOBOX":
 		case "MTI":
 		case "NOX":
 			if(sel.value != "MDAQ")
-				unit_field.style.display = "none";
+				unit_inp.disabled = true;
 			for(let i=0; i<cal_data.length; i++)
 				cal_data[i].style.display = "table-row";
 			switch(sel.value)
@@ -312,8 +318,13 @@ function conn_inp_val(elem)
 	let conn_found_fl = false;
 	elem.value = elem.value.replace(/\s/g, '');
 	elem.style.color = 'black';
+	sensor_search.disabled = false;
 	if(!elem.value)
+	{
+		for(let i=2; i<link_data.length; i++)
+			link_data[i].disabled = true;
 		return;
+	}
 	for(let i=0; i<curr_iso_channels.length; i++)
 	{
 		if(elem.value == curr_iso_channels[i].conn ||
@@ -344,7 +355,12 @@ function conn_inp_val(elem)
 	}
 	//Enable input fields.
 	for(let i=2; i<link_data.length; i++)
+	{
 		link_data[i].disabled = false;
+		//If type is not MDAQ disable unit_inp.
+		if(i==link_data.length-1 && type.selectedIndex != 2)
+			link_data[i].disabled = true;
+	}
 	post_fix.disabled = false;
 	if(curr_iso_standards.iso_standard_xml)
 	{	//Populate ISOname_autocomplete.
@@ -373,6 +389,10 @@ function conn_inp_val(elem)
 		}
 	}
 	vals_check();
+	//Disable sensor_search
+	sensor_search.disabled = true;
+	if(search_win && !search_win.closed)
+		search_win.close();
 }
 function iso_name_val(elem)
 {
@@ -383,7 +403,7 @@ function iso_name_val(elem)
 		desc.value = '';
 		min.value = '';
 		max.value = '';
-		if(unit_field.style.display != "none")
+		if(unit_inp.disabled == false)
 			unit_inp.value = '';
 	}
 	vals_check();
@@ -444,7 +464,11 @@ function period_input_changed(elem)
 function sensor_search_func()
 {
 	if(!search_win || search_win.closed)
-		search_win = PopupCenter("./dev_search.html"+"?q="+makeid(), "", 600, 800);
+	{
+		search_win = PopupCenter("./dev_search.html"+"?q="+makeid(), "", 300, 800);
+		search_win.curr_logstats_comb = curr_logstats_comb;
+		search_win.dev_type = type.value;
+	}
 	else
 		search_win.focus();
 }
