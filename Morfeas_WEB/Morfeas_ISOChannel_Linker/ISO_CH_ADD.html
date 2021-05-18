@@ -396,7 +396,7 @@ function conn_inp_val(elem)
 }
 function iso_name_val(elem)
 {
-	elem.value = elem.value.replace(/\s/g, '');
+	elem.value = elem.value.replace(/[.\s]/g, '');
 	if(!elem.value)
 	{
 		post_fix.selectedIndex = 0;
