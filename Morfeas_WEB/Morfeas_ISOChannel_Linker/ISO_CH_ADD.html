@@ -509,18 +509,18 @@ function vals_check()
 function send()
 {
 	let new_link_data = {};
-	new_link_data.ISO_CHANNEL = link_data[2].value+(post_fix.selectedIndex?('_'+post_fix.value):'');
-	new_link_data.INTERFACE_TYPE = link_data[0].value;
+	new_link_data.ISO_CHANNEL = iso_name.value+(post_fix.selectedIndex?('_'+post_fix.value):'');
+	new_link_data.INTERFACE_TYPE = type.value;
 	new_link_data.ANCHOR = sel_dev_anchor;
-	new_link_data.DESCRIPTION = link_data[3].value;
-	new_link_data.MIN = link_data[4].value;
-	new_link_data.MAX = link_data[5].value;
+	new_link_data.DESCRIPTION = desc.value;
+	new_link_data.MIN = min.value;
+	new_link_data.MAX = max.value;
 	if(link_data[0].selectedIndex > 1)
-		new_link_data.UNIT = link_data[6].value;
+		new_link_data.UNIT = unit_inp.value;
 	if(cal_data[0].style.display != "none")
 	{
-		new_link_data.CAL_DATE = link_data[7].value;
-		new_link_data.CAL_PERIOD = link_data[8].value;
+		new_link_data.CAL_DATE = cal_date.value;
+		new_link_data.CAL_PERIOD = period.value;
 	}
 	console.log(new_link_data);
 }

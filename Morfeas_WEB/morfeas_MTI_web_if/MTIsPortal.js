@@ -33,7 +33,7 @@ function MTI_status_tab_update(MTI_data, MTI_status_table)
 	data_cells_new_values.push(MTI_data.MTI_status.MTI_batt_capacity);
 	data_cells_new_values.push((MTI_data.MTI_status.PWM_gen_out_freq/1000)+"Kc");
 	for(let i=0; i<MTI_data.MTI_status.PWM_CHs_outDuty.length;i++)
-		data_cells_new_values.push(MTI_data.MTI_status.PWM_CHs_outDuty[i]+"%");
+		data_cells_new_values.push(MTI_data.MTI_status.PWM_CHs_outDuty[i].toFixed(1)+"%");
 	data_cells_new_values.push(MTI_data.MTI_status.Tele_Device_type);
 	data_cells_new_values.push(MTI_data.MTI_status.Radio_CH);
 	data_cells_new_values.push(MTI_data.MTI_status.Modem_data_rate);
