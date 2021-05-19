@@ -23,6 +23,9 @@
 		<tr>
 			<th colspan="5" style="font-size: 200%;">Link Creator</th>
 		</tr>
+		<tr>
+			<td colspan="4"><input id="status_tab" style="text-align:center;" type="textbox" size="25" value="Select type" readonly></td>
+		</tr>
 	</table>
 	<table style="margin:auto;text-align:left;margin-bottom:.075in;width:90%;">
 		<tr>
@@ -206,7 +209,8 @@ var post_fix = document.getElementById("iso_code_post_fix"),
 	link_data = document.getElementsByName("link_data"),
 	sensor_search = document.getElementById("sensor_search"),
 	cal_data = document.getElementsByClassName("cal_data"),
-	send_button = document.getElementById("send_button");
+	send_button = document.getElementById("send_button"),
+	status_tab = document.getElementById("status_tab");
 var type = document.getElementById("type_selector"),
 	conn = document.getElementById("conn"),
 	iso_name = document.getElementById("iso_name"),
@@ -253,6 +257,7 @@ function type_selector_changed(sel)
 		conn.placeholder = '';
 		for(let i=0; i<cal_data.length; i++)
 			cal_data[i].style.display = "none";
+		vals_check();
 		return;
 	}
 	link_data[1].disabled=false;
@@ -498,11 +503,16 @@ function get_available_devs(_logstats, _type, _ISOchannels)
 function vals_check()
 {
 	let okay = false;
+
+	status_tab.value = !type.selectedIndex?"Select Type":"Define sensor's path";
+	if(Number(min.value)>Number(max.value))
+	{
+		status_tab.value = "Error: Min > Max";
+		okay = false;
+	}
 	if(conn.value && iso_name.value && desc.value &&
 	   min.value && max.value && unit_inp.value)
 		okay = true;
-	if(Number(min.value)>Number(max.value))
-		okay = false;
 	send_button.disabled = !okay;
 }
 
