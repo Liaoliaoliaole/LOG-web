@@ -7,6 +7,13 @@
 <meta http-equiv="Expires" content="0">
 <link rel="stylesheet" href="../External_components/js-treeview/dist/treeview.min.css">
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico">
+<style>
+.tree_div{
+	overflow-y: auto;
+	height: 90%;
+	width: 100%;
+}
+</style>
 <title>Morfeas WEB Device Search</title>
 </head>
 <body>
@@ -20,7 +27,7 @@
 		</td>
 	</tr>
 </table>
-<div id="Dev_tree"></div>
+<div class="tree_div" id="Dev_tree"></div>
 <table style="margin:auto;text-align:right;margin-bottom:.075in">
 	<tr>
 		<td>
@@ -64,7 +71,7 @@ var	curr_logstats_comb, dev_type,
 	dev_tree,
 	dev_tree_data;
 
-function build_data_and_tree(logstats)
+function build_data_and_tree()
 {
 	dev_tree = new TreeView([
 		{ name: 'Item 1', children: []},
@@ -78,19 +85,11 @@ function build_data_and_tree(logstats)
 	dev_tree.on('select', function(elem){
 		console.log(elem);
 	});
-	/*
-	tree.onSelect = function(elem){
-		console.log(elem);
-	};
-	*/
 	console.log(dev_tree);
 }
-
 //Checks and Initialization
-/*
 if(!curr_logstats_comb || !dev_type)
 	window.close('','_parent','');
-*/
 build_data_and_tree(curr_logstats_comb);
 //@license-end
 </script>

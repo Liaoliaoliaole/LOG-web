@@ -153,6 +153,28 @@ else if($requestType == "POST")
 	switch($Channels->COMMAND)
 	{
 		case 'ADD':
+			$OPC_UA_Config_CHs = $OPC_UA_Config->CHANNEL;
+			foreach($Channels->DATA as $Channel_to_be_add)
+			{
+				for($i=0; $i<count($OPC_UA_Config); $i++)
+				{
+					if($Channel_to_be_add->ISOChannel == $OPC_UA_Config_CHs[$i]->ISO_CHANNEL)
+						die("ISOChannel: \"$Channel_to_be_add->ISOChannel\" Already exist!!!");
+				}
+				$newISOChannel = $OPC_UA_Config->addChild('CHANNEL');
+				$newISOChannel->addChild('ISO_CHANNEL', $Channel_to_be_add->ISOChannel);
+				$newISOChannel->addChild('INTERFACE_TYPE', $Channel_to_be_add->IF_type);
+				$newISOChannel->addChild('ANCHOR', $Channel_to_be_add->Anchor);
+				$newISOChannel->addChild('DESCRIPTION', $Channel_to_be_add->Description);
+				$newISOChannel->addChild('MIN', $Channel_to_be_add->Min);
+				$newISOChannel->addChild('MAX', $Channel_to_be_add->Max);
+				if(property_exists($Channel_to_be_add, 'Unit'))
+						$newISOChannel->addChild('UNIT', $Channel_to_be_add->Unit);
+				if(property_exists($Channel_to_be_add, 'Cal_date'))
+						$newISOChannel->addChild('CAL_DATE', $Channel_to_be_add->Cal_date);
+				if(property_exists($Channel_to_be_add, 'Cal_period'))
+						$newISOChannel->addChild('CAL_PERIOD', $Channel_to_be_add->Cal_period);
+			}
 			break;
 		case 'DEL':
 			$OPC_UA_Config_cnt = count($OPC_UA_Config);
@@ -161,12 +183,12 @@ else if($requestType == "POST")
 			{
 				for($i=0; $i<$OPC_UA_Config_cnt; $i++)
 				{
-					if($Channel_to_be_deleted->ISOChannel == $OPC_UA_Config->CHANNEL[$i]->ISO_CHANNEL
-					   && $Channel_to_be_deleted->IF_type == $OPC_UA_Config->CHANNEL[$i]->INTERFACE_TYPE
-					   && $Channel_to_be_deleted->Anchor == $OPC_UA_Config->CHANNEL[$i]->ANCHOR
-					   && $Channel_to_be_deleted->Min == $OPC_UA_Config->CHANNEL[$i]->MIN
-					   && $Channel_to_be_deleted->Max == $OPC_UA_Config->CHANNEL[$i]->MAX
-					   && $Channel_to_be_deleted->Description == $OPC_UA_Config->CHANNEL[$i]->DESCRIPTION)
+					if($Channel_to_be_deleted->ISOChannel == $OPC_UA_Config_CHs[$i]->ISO_CHANNEL
+					   && $Channel_to_be_deleted->IF_type == $OPC_UA_Config_CHs[$i]->INTERFACE_TYPE
+					   && $Channel_to_be_deleted->Anchor == $OPC_UA_Config_CHs[$i]->ANCHOR
+					   && $Channel_to_be_deleted->Min == $OPC_UA_Config_CHs[$i]->MIN
+					   && $Channel_to_be_deleted->Max == $OPC_UA_Config_CHs[$i]->MAX
+					   && $Channel_to_be_deleted->Description == $OPC_UA_Config_CHs[$i]->DESCRIPTION)
 					   {
 							unset($OPC_UA_Config->CHANNEL[$i]);
 							$OPC_UA_Config_cnt--;

@@ -125,7 +125,7 @@ function load_data_to_opcua_config_table(curr_logstats)
 				tableData[i].meas = data.avgMeasurement.toFixed(3)+' '+tableData[i].unit;
 				if(tableData[i].graph.length>=GRAPH_LENGTH)
 					tableData[i].graph.shift();
-				tableData[i].graph.push(data.avgMeasurement.toFixed(0));
+				tableData[i].graph.push(data.avgMeasurement.toFixed(1));
 			}
 			else
 			{
