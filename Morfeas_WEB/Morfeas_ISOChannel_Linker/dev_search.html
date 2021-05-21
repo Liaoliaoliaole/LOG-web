@@ -9,7 +9,7 @@
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico">
 <style>
 .tree_div{
-	overflow-y: auto;
+	overflow-y: scroll;
 	height: 90%;
 	width: 100%;
 }
@@ -73,6 +73,12 @@ var	curr_logstats_comb, dev_type,
 
 function build_data_and_tree()
 {
+	let g_logstat_filtered = [];
+	//Filter curr_logstats_comb
+	for(let i=0; i<curr_logstats_comb.length; i++)
+		if(curr_logstats_comb[i].if_name.includes(dev_type))
+			g_logstat_filtered.push(curr_logstats_comb[i]);
+	console.log(g_logstat_filtered);
 	dev_tree = new TreeView([
 		{ name: 'Item 1', children: []},
 		{ name: 'Item 2', expanded: true, children: [
