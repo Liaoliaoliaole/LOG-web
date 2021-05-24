@@ -68,12 +68,12 @@ through which recipients can access the Corresponding Source.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-var	curr_logstats_comb, dev_type,
+var	dev_type,
 	caller_res = window.opener,
 	dev_tree, dev_tree_data,
 	xhttp = new XMLHttpRequest();
 
-function build_data_and_tree()
+function build_data_and_tree(curr_logstats_comb)
 {
 	let g_logstat_filtered = [];
 	//Filter curr_logstats_comb
@@ -126,8 +126,7 @@ xhttp.onreadystatechange = function()
 		g_logstats = morfeas_logstat_commonizer(g_logstats);
 		if(typeof(g_logstats)==='object')
 		{
-			curr_logstats_comb = g_logstats;
-			//build_data_and_tree();
+			//build_data_and_tree(g_logstats);
 		}
 		console.log(g_logstats);
 	}
