@@ -46,23 +46,26 @@ if($requestType == "GET")
 					$logstats_combined = new stdClass;
 					$logstats_combined->Build_time = time();
 					$logstats_combined->OPCUA_Config_xml_mod = ($logstats_combined->Build_time - filemtime($opc_ua_config_dir."OPC_UA_Config.xml"))<3;
-					$i = 0;
 					foreach($logstats as $logstat)
 						if(preg_match("/^logstat_.+\.json$/i", $logstat))//Read only Morfeas JSON logstat files
-						{
-							$logstats_combined->logstats_names[$i] = $logstats[$i];
-							$cnt=0;
-							do{
-								if(!($file_content = file_get_contents($ramdisk_path . '/' . $logstat)))
-								{
-									usleep(100);
-									$cnt++;
-								}
-							}while(!$file_content && $cnt<10);
-							if($cnt>=10)
-								die("Read_Error@".$logstats[$i]);
-							$logstats_combined->logstat_contents[$i] = json_decode($file_content);
-							$i++;
+						{	//Check if argument "TYPE" is set and if yes apply filtering.
+							if(array_key_exists("TYPE", $_GET) && !strpos($logstat, $_GET["TYPE"]))
+								continue;
+							else
+							{
+								$logstats_combined->logstats_names[] = $logstat;
+								$cnt=0;
+								do{
+									if(!($file_content = file_get_contents($ramdisk_path . '/' . $logstat)))
+									{
+										usleep(100);
+										$cnt++;
+									}
+								}while(!$file_content && $cnt<10);
+								if($cnt>=10)
+									die("Read_Error@".$logstat);
+								$logstats_combined->logstat_contents[] = json_decode($file_content);
+							}
 						}
 					header('Content-Type: application/json');
 					echo json_encode($logstats_combined);
@@ -70,14 +73,10 @@ if($requestType == "GET")
 				return;
 			case "logstats_names":
 				if($logstats = array_diff(scandir($ramdisk_path), array('..', '.', 'Morfeas_Loggers')))
-				{
-					$i = 0;
+				{	//Read only Morfeas JSON logstat files
 					foreach($logstats as $logstat)
-						if(preg_match("/^logstat_.+\.json$/i", $logstat))//Read only Morfeas JSON logstat files
-						{
-							$logstats_combined->logstats_names[$i] = $logstat;
-								$i++;
-						}
+						if(preg_match("/^logstat_.+\.json$/i", $logstat))
+							$logstats_combined->logstats_names[] = $logstat;
 					header('Content-Type: application/json');
 					echo json_encode($logstats_combined);
 				}
@@ -95,12 +94,8 @@ if($requestType == "GET")
 			case "opcua_config":
 				$OPCUA_Config_xml = simplexml_load_file($opc_ua_config_dir."OPC_UA_Config.xml") or die("{}");
 				$OPCUA_Config_xml_to_client = array();
-				$i=0;
 				foreach($OPCUA_Config_xml->children() as $channel)
-				{
-					$OPCUA_Config_xml_to_client[$i] = $channel;
-					$i++;
-				}
+					$OPCUA_Config_xml_to_client[] = $channel;
 				header('Content-Type: application/json');
 				echo json_encode($OPCUA_Config_xml_to_client);
 				return;

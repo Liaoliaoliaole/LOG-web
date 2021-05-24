@@ -22,8 +22,9 @@
 		<th colspan="5" style="font-size: 200%;">Device Search</th>
 	</tr>
 	<tr>
+		<td colspan="4"><input id="status_tab" style="text-align:center;" type="textbox" size="25" readonly></td>
 		<td>
-			<button>Update</button>
+			<button onclick="get_logstats_of_type()">Update</button>
 		</td>
 	</tr>
 </table>
@@ -40,6 +41,7 @@
 </table>
 </body>
 <script src="../External_components/js-treeview/dist/treeview.min.js"></script>
+<script src='../morfeas_ecma/morfeas_web_if.js'></script>
 <script src='../morfeas_ecma/common.js'></script>
 <script>
 //@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
@@ -66,10 +68,10 @@ through which recipients can access the Corresponding Source.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-var	curr_logstats_comb, dev_type, 
+var	curr_logstats_comb, dev_type,
 	caller_res = window.opener,
-	dev_tree,
-	dev_tree_data;
+	dev_tree, dev_tree_data,
+	xhttp = new XMLHttpRequest();
 
 function build_data_and_tree()
 {
@@ -93,10 +95,57 @@ function build_data_and_tree()
 	});
 	console.log(dev_tree);
 }
+//AJAX response handler
+xhttp.timeout = 2000;
+xhttp.ontimeout = function(){
+	let status_tab=document.getElementById("status_tab")
+	status_tab.value = "Connection to server: Timeout Error";
+	status_tab.style.color='blue';
+};
+xhttp.onreadystatechange = function()
+{
+	let status_tab=document.getElementById("status_tab"), g_logstats = {};
+	if(this.readyState == 4 && this.status == 200)
+	{
+		if(this.getResponseHeader("Content-Type")!=="application/json")
+		{
+			status_tab = this.responseText;
+			status_tab.style.color='red';
+			return;
+		}
+		try{g_logstats = JSON.parse(this.responseText);}
+		catch{
+			status_tab.value = "Decoding Error!!!";
+			status_tab.style.color='red';
+			return;
+		}
+		let last_update = new Date(g_logstats.Build_time*1000);
+		status_tab.value = last_update.toLocaleDateString()+" "+last_update.toLocaleTimeString();
+		status_tab.style.color='black';
+		console.log(g_logstats);
+		g_logstats = morfeas_logstat_commonizer(g_logstats);
+		if(typeof(g_logstats)==='object')
+		{
+			curr_logstats_comb = g_logstats;
+			//build_data_and_tree();
+		}
+		console.log(g_logstats);
+	}
+	else if(this.status == 404)
+	{
+		status_tab.value = "Error 404: Data Not found";
+		status_tab.style.color='red';
+	}
+};
+function get_logstats_of_type()
+{
+	xhttp.open("GET", "/morfeas_php/morfeas_web_if.php?COMMAND=logstats&TYPE="+dev_type, true);
+	xhttp.send();
+}
 //Checks and Initialization
-if(!curr_logstats_comb || !dev_type)
+if(!dev_type)
 	window.close('','_parent','');
-build_data_and_tree(curr_logstats_comb);
+get_logstats_of_type();
 //@license-end
 </script>
 </html>
