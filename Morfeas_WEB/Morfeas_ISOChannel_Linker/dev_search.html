@@ -73,28 +73,6 @@ var	dev_type,
 	dev_tree, dev_tree_data,
 	xhttp = new XMLHttpRequest();
 
-function build_data_and_tree(curr_logstats_comb)
-{
-	let g_logstat_filtered = [];
-	//Filter curr_logstats_comb
-	for(let i=0; i<curr_logstats_comb.length; i++)
-		if(curr_logstats_comb[i].if_name.includes(dev_type))
-			g_logstat_filtered.push(curr_logstats_comb[i]);
-	console.log(g_logstat_filtered);
-	dev_tree = new TreeView([
-		{ name: 'Item 1', children: []},
-		{ name: 'Item 2', expanded: true, children: [
-				{ name: 'Sub Item 1'},
-				{ name: 'Sub Item 2', data: "data_str"}
-			]
-		}
-	], 'Dev_tree');
-	dev_tree.collapseAll();
-	dev_tree.on('select', function(elem){
-		console.log(elem);
-	});
-	console.log(dev_tree);
-}
 //AJAX response handler
 xhttp.timeout = 2000;
 xhttp.ontimeout = function(){
@@ -123,12 +101,18 @@ xhttp.onreadystatechange = function()
 		status_tab.value = last_update.toLocaleDateString()+" "+last_update.toLocaleTimeString();
 		status_tab.style.color='black';
 		console.log(g_logstats);
-		g_logstats = morfeas_build_dev_tree_from_logstats(g_logstats, dev_type);
-		if(typeof(g_logstats)==='object')
+		g_logstats = morfeas_build_dev_tree_from_logstats(g_logstats.logstat_contents, dev_type);
+		if(typeof(g_logstats)==='string')
 		{
 			console.log(g_logstats);
-			//build_data_and_tree(g_logstats);
+			return;
 		}
+		console.log(g_logstats);
+		dev_tree = new TreeView(g_logstats, 'Dev_tree');
+		//dev_tree.collapseAll();
+		dev_tree.on('select', function(elem){
+			console.log(elem);
+		});
 	}
 	else if(this.status == 404)
 	{

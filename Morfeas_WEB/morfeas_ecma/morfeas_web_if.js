@@ -474,54 +474,45 @@ function get_from_common_logstats_by_anchor(logstats, type, anchor)
 function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 {
 	var data_table_index, dev_index, sensor_index;
-	var data_table = new Array();
+	var morfeas_devs_tree = new Array();
 
+	console.log(logstats);
 	//Check for incompatible inputs
 	if(!dev_type)
 		return "no dev_type data";
 	if(!logstats)
 		return "no logstats type data";
-	if(typeof(logstats)==="string")
-	{
-		try {logstats = JSON.parse(logstats);}
-		catch{return "Parsing error";}
-	}
-	if(!logstats.logstats_names)
-		return "missing logstats_names";
-	if(!logstats.logstat_contents)
-		return "missing logstat_contents";
+	if(typeof(logstats)!=="object")
+		return "Invalid type of arg:\"logstats\"";
 	//Logstat to dev_tree converter
-	for(let i=0; i<logstats.logstats_names.length; i++)
+	for(let i=0; i<logstats.length; i++)
 	{
-		if(logstats.logstats_names[i].includes(dev_type))
-		/*
-		try{
-			if(logstats.logstats_names[i].includes("logstat"))
-			{
-				data_table_index = data_table.length;
-				if(!logstats.logstat_contents[i])
-					continue;
-				if(logstats.logstats_names[i] === "logstat_sys.json")//RPi_Health_Stats
-					data_table[data_table_index] = sys_logstat(logstats.logstat_contents[i]);
-				else if(logstats.logstats_names[i].includes("logstat_MDAQ"))//Morfeas_MDAQ_if handlers
-					data_table[data_table_index] = MDAQ_logstat(logstats.logstat_contents[i]);
-				else if(logstats.logstats_names[i].includes("logstat_MTI"))//Morfeas_MTI_if handlers
-					data_table[data_table_index] = MTI_logstat(logstats.logstat_contents[i]);
-				else if(logstats.logstats_names[i].includes("logstat_NOXs"))//Morfeas_NOX_if handlers
-					data_table[data_table_index] = NOXs_logstat(logstats.logstat_contents[i]);
-				else if(logstats.logstats_names[i].includes("logstat_SDAQs"))//Morfeas_SDAQ_if handlers
-					data_table[data_table_index] = SDAQs_logstat(logstats.logstat_contents[i]);
-				else if(logstats.logstats_names[i].includes("logstat_IOBOX"))//Morfeas_IOBOX_if handlers
-					data_table[data_table_index] = IOBOX_logstat(logstats.logstat_contents[i]);
-			}
-		} catch(err) {
-			console.log("At i="+i);
-			console.log("Error: "+err);
-			console.log(logstats);
+		switch(dev_type)
+		{
+			case "SDAQ":
+				break;
+			case "MDAQ":
+				break;
+			case "IOBOX":
+				break;
+			case "MTI":
+				break;
+			case "NOX":
+				break;
+			default: return "dev_type unknown";
 		}
+		/*
+		[
+			{ name: 'Item 1', children: []},
+			{ name: 'Item 2', expanded: true, children: [
+					{ name: 'Sub Item 1'},
+					{ name: 'Sub Item 2', data: "data_str"}
+				]
+			}
+		]
 		*/
 	}
-	return data_table;
+	return morfeas_devs_tree;
 }
 
 var iso_standard = {
