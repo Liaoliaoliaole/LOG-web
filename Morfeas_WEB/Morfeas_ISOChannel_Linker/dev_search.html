@@ -123,12 +123,12 @@ xhttp.onreadystatechange = function()
 		status_tab.value = last_update.toLocaleDateString()+" "+last_update.toLocaleTimeString();
 		status_tab.style.color='black';
 		console.log(g_logstats);
-		g_logstats = morfeas_logstat_commonizer(g_logstats);
+		g_logstats = morfeas_build_dev_tree_from_logstats(g_logstats, dev_type);
 		if(typeof(g_logstats)==='object')
 		{
+			console.log(g_logstats);
 			//build_data_and_tree(g_logstats);
 		}
-		console.log(g_logstats);
 	}
 	else if(this.status == 404)
 	{

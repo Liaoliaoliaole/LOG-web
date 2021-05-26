@@ -302,10 +302,10 @@ function type_selector_changed(sel)
 				cal_data[i].style.display = "table-row";
 			switch(sel.value)
 			{
-				case "MDAQ": conn.placeholder = "NAME.CH:XX.Val:X"; break;
-				case "IOBOX": conn.placeholder = "NAME.RX:X.CH:XX"; break;
-				case "MTI": conn.placeholder = "NAME.Type.CH:XX"; break;
-				case "NOX": conn.placeholder = "CAN-if.Addr:X.Sensor"; break;
+				case "MDAQ": conn.placeholder = "DEV_NAME.CH:XX.Val:X"; break;
+				case "IOBOX": conn.placeholder = "DEV_NAME.RX:X.CH:XX"; break;
+				case "MTI": conn.placeholder = "DEV_NAME.Type.CH:XX"; break;
+				case "NOX": conn.placeholder = "CAN-if.Addr:X.Sensor_name"; break;
 			}
 			let now_date = new Date();
 			cal_date.disabled = false;

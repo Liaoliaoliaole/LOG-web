@@ -88,10 +88,10 @@ function load_data_to_opcua_config_table(curr_logstats)
 			}
 			tableData[i].conn = data.sensorUserId;
 			if(data.unit)
-				tableData[i].unit=data.unit;
-			tableData[i].col=data.Is_meas_valid?'green':'yellow';
-			tableData[i].status=data.Is_meas_valid?'Okay':data.Error_explanation;
-			if(tableData[i].type === "SDAQ")
+				tableData[i].unit = data.unit;
+			tableData[i].col = data.Is_meas_valid?'green':'yellow';
+			tableData[i].status = data.Is_meas_valid?'Okay':data.Error_explanation;
+			if(tableData[i].type==="SDAQ")
 			{
 				if(typeof(data.calibrationDate)==='number' && typeof(data.calibrationPeriod)=='number')
 				{
@@ -129,6 +129,8 @@ function load_data_to_opcua_config_table(curr_logstats)
 			}
 			else
 			{
+				tableData[i].col = 'yellow';
+				tableData[i].status = data.Error_explanation;
 				tableData[i].meas = '-';
 				tableData[i].graph = [];
 			}
