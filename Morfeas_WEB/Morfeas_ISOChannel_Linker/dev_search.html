@@ -10,7 +10,7 @@
 <style>
 .tree_div{
 	overflow-y: scroll;
-	height: 90%;
+	height: 2in;
 	width: 100%;
 }
 </style>
@@ -100,7 +100,6 @@ xhttp.onreadystatechange = function()
 		let last_update = new Date(g_logstats.Build_time*1000);
 		status_tab.value = last_update.toLocaleDateString()+" "+last_update.toLocaleTimeString();
 		status_tab.style.color='black';
-		console.log(g_logstats);
 		g_logstats = morfeas_build_dev_tree_from_logstats(g_logstats.logstat_contents, dev_type);
 		if(typeof(g_logstats)==='string')
 		{
@@ -109,7 +108,7 @@ xhttp.onreadystatechange = function()
 		}
 		console.log(g_logstats);
 		dev_tree = new TreeView(g_logstats, 'Dev_tree');
-		//dev_tree.collapseAll();
+		dev_tree.collapseAll();
 		dev_tree.on('select', function(elem){
 			console.log(elem);
 		});

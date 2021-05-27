@@ -64,11 +64,6 @@ function morfeas_logstat_commonizer(logstats)
 	if(!logstats.logstat_contents)
 		return "missing logstat_contents";
 
-	function norm(num, targetLength)
-	{
-		return num.toString().padStart(targetLength, 0);
-	}
-
 	function sensor(type,
 				deviceUserIdentifier,
 				sensorUserId,
@@ -473,10 +468,49 @@ function get_from_common_logstats_by_anchor(logstats, type, anchor)
 }
 function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 {
+	
+	function get_SDAQ_if_chidren(SDAQ_if_data, if_name)
+	{
+		let SDAQs = [];
+		for(let i=0; i<SDAQ_if_data.length; i++)
+		{
+			console.log(SDAQ_if_data[i]);
+			let SDAQ = {};
+			SDAQ.name = SDAQ_if_data[i].SDAQ_type+' (Addr:'+SDAQ_if_data[i].Address+')';
+			SDAQ.addr = SDAQ_if_data[i].Address;
+			SDAQ.Status = SDAQ_if_data[i].SDAQ_Status;
+			SDAQ.Info = SDAQ_if_data[i].SDAQ_info;
+			SDAQ.Timediff = SDAQ_if_data[i].Timediff;
+			SDAQ.Serial_number = SDAQ_if_data[i].Serial_number;
+			SDAQ.expandable = true;
+			SDAQ.children = [];
+			for(let j=0; j<SDAQ_if_data[i].SDAQ_info.Number_of_channels; j++)
+			{
+				let Channel = {};
+				Channel.name = "CH:"+(j+1);
+				Channel.Calibration_Data = SDAQ_if_data[i].Calibration_Data[j];
+				Channel.Meas = SDAQ_if_data[i].Meas[j];
+				Channel.Path = if_name+".ADDR:"+norm(SDAQ.addr,2)+".CH:"+norm(j+1,2);
+				Channel.Anchor = SDAQ.Serial_number+".CH"+(j+1);
+				SDAQ.children.push(Channel);
+			}
+			SDAQs.push(SDAQ);
+		}
+		return SDAQs;
+	}
+	/*
+	[
+		{ name: 'Item 1', children: []},
+		{ name: 'Item 2', expanded: true, children: 
+			[
+				{ name: 'Sub Item 1'},
+				{ name: 'Sub Item 2', data: "data_str"}
+			]
+		}
+	]
+	*/
 	var data_table_index, dev_index, sensor_index;
 	var morfeas_devs_tree = new Array();
-
-	console.log(logstats);
 	//Check for incompatible inputs
 	if(!dev_type)
 		return "no dev_type data";
@@ -490,6 +524,14 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 		switch(dev_type)
 		{
 			case "SDAQ":
+				let if_handler = {};
+				if_handler.name = logstats[i].CANBus_interface.toUpperCase();
+				if(logstats[i].SDAQs_data && logstats[i].SDAQs_data.length)
+				{
+					if_handler.expanded = true;
+					if_handler.children = get_SDAQ_if_chidren(logstats[i].SDAQs_data, if_handler.name);
+				}
+				morfeas_devs_tree.push(if_handler);
 				break;
 			case "MDAQ":
 				break;
@@ -501,16 +543,6 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 				break;
 			default: return "dev_type unknown";
 		}
-		/*
-		[
-			{ name: 'Item 1', children: []},
-			{ name: 'Item 2', expanded: true, children: [
-					{ name: 'Sub Item 1'},
-					{ name: 'Sub Item 2', data: "data_str"}
-				]
-			}
-		]
-		*/
 	}
 	return morfeas_devs_tree;
 }
@@ -589,5 +621,9 @@ function Seconds_to_human(n)
 	}
 	ret += hours.toFixed()+":"+minutes.toFixed()+":"+seconds.toFixed();
 	return ret;
+}
+function norm(num, targetLength)
+{
+	return num.toString().padStart(targetLength, 0);
 }
 //@license-end
