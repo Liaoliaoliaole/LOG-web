@@ -138,7 +138,7 @@ function morfeas_logstat_commonizer(logstats)
 					(
 						"MDAQ",
 						logstat.Dev_name + " (" + logstat.IPv4_address + ")",
-						logstat.Dev_name+".CH:"+norm(logstat.MDAQ_Channels[i].Channel,2)+".Val"+j,
+						logstat.Dev_name+".CH:"+logstat.MDAQ_Channels[i].Channel+".Val"+j,
 						logstat.Identifier+'.'+"CH"+logstat.MDAQ_Channels[i].Channel+".Val"+j,
 						null,null,null,
 						eval("logstat.MDAQ_Channels[i].Values.Value"+j),
@@ -476,7 +476,7 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 		{
 			console.log(SDAQ_if_data[i]);
 			let SDAQ = {};
-			SDAQ.name = SDAQ_if_data[i].SDAQ_type+' (Addr:'+SDAQ_if_data[i].Address+')';
+			SDAQ.name = SDAQ_if_data[i].SDAQ_type+' ('+SDAQ_if_data[i].Address+')';
 			SDAQ.addr = SDAQ_if_data[i].Address;
 			SDAQ.Status = SDAQ_if_data[i].SDAQ_Status;
 			SDAQ.Info = SDAQ_if_data[i].SDAQ_info;
@@ -498,17 +498,7 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 		}
 		return SDAQs;
 	}
-	/*
-	[
-		{ name: 'Item 1', children: []},
-		{ name: 'Item 2', expanded: true, children:
-			[
-				{ name: 'Sub Item 1'},
-				{ name: 'Sub Item 2', data: "data_str"}
-			]
-		}
-	]
-	*/
+
 	var data_table_index, dev_index, sensor_index;
 	var morfeas_devs_tree = new Array();
 	//Check for incompatible inputs
@@ -519,12 +509,13 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 	if(typeof(logstats)!=="object")
 		return "Invalid type of arg:\"logstats\"";
 	//Logstat to dev_tree converter
+	let if_handler = {};
 	for(let i=0; i<logstats.length; i++)
 	{
 		switch(dev_type)
 		{
 			case "SDAQ":
-				let if_handler = {};
+				if_handler = {};
 				if_handler.name = logstats[i].CANBus_interface.toUpperCase();
 				if(logstats[i].SDAQs_data && logstats[i].SDAQs_data.length)
 				{
@@ -534,8 +525,79 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 				morfeas_devs_tree.push(if_handler);
 				break;
 			case "MDAQ":
+				if_handler = {};
+				if_handler.name = logstats[i].Dev_name;
+				if(logstats[i].Connection_status==="Okay" && logstats[i].MDAQ_Channels.length)
+				{
+					if_handler.expanded = true;
+					if_handler.children = [];
+					for(let j=0; j<logstats[i].MDAQ_Channels.length; j++)
+					{
+						let CH_Vals = [],
+							MDAQ_CH = {
+							name: "CH "+(j+1),
+							expandable: true,
+							children: CH_Vals
+						};
+						for(let k=1; k<=3; k++)
+						{
+							let CH_val = {};
+							CH_val.name = "Value_"+k;
+							CH_val.Meas = logstats[i].MDAQ_Channels[j].Values["Value"+k];
+							CH_val.is_Meas_valid = logstats[i].MDAQ_Channels[j].Warnings["Is_Value"+k+"_valid"];
+							CH_val.Path = logstats[i].Dev_name+".CH:"+logstats[i].MDAQ_Channels[j].Channel+".Val"+k,
+							CH_val.Anchor = logstats[i].Identifier+'.'+"CH"+logstats[i].MDAQ_Channels[j].Channel+".Val"+k,
+							CH_Vals.push(CH_val);
+						}
+						if_handler.children.push(MDAQ_CH);
+					}
+				}
+				morfeas_devs_tree.push(if_handler);
 				break;
 			case "IOBOX":
+				if_handler = {};
+				if_handler.name = logstats[i].Dev_name;
+				if(logstats[i].Connection_status==="Okay")
+				{
+					if_handler.expanded = true;
+					if_handler.children = [];
+					for(let j=1; j<4; j++)
+					{
+						if(logstats[i]["RX"+j] === "Disconnected")
+							continue;
+						/*
+						let CH_Vals = [],
+							MDAQ_CH = {
+							name: "CH "+(j+1),
+							expandable: true,
+							children: CH_Vals
+						};
+						for(let k=1; k<=3; k++)
+						{
+							let CH_val = {};
+							CH_val.name = "Value_"+k;
+							CH_val.Meas = logstats[i].MDAQ_Channels[j].Values["Value"+k];
+							CH_val.is_Meas_valid = logstats[i].MDAQ_Channels[j].Warnings["Is_Value"+k+"_valid"];
+							CH_val.Path = logstats[i].Dev_name+".CH:"+logstats[i].MDAQ_Channels[j].Channel+".Val"+k,
+							CH_val.Anchor = logstats[i].Identifier+'.'+"CH"+logstats[i].MDAQ_Channels[j].Channel+".Val"+k,
+							CH_Vals.push(CH_val);
+						}
+						if_handler.children.push(MDAQ_CH);
+						*/
+					}
+				}
+				morfeas_devs_tree.push(if_handler);
+				/*
+				[
+					{ name: 'Item 1', children: []},
+					{ name: 'Item 2', expanded: true, children:
+						[
+							{ name: 'Sub Item 1'},
+							{ name: 'Sub Item 2', data: "data_str"}
+						]
+					}
+				]
+				*/
 				break;
 			case "MTI":
 				break;

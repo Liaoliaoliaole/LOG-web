@@ -255,6 +255,7 @@ function type_selector_changed(sel)
 		sensor_search.disabled = true;
 		unit_inp.disabled = true;
 		conn.placeholder = '';
+		conn.style.textAlign="left";
 		for(let i=0; i<cal_data.length; i++)
 			cal_data[i].style.display = "none";
 		vals_check();
@@ -316,6 +317,12 @@ function type_selector_changed(sel)
 			period.value = 12;
 			period_input_changed.prev_value = 12;
 	}
+	conn.style.textAlign="left";
+	if(!conn_autocomplete)
+	{
+		conn.placeholder = "Use Search \u2192";
+		conn.style.textAlign="right";
+	}
 	vals_check();
 }
 function conn_inp_val(elem)
@@ -343,12 +350,17 @@ function conn_inp_val(elem)
 			return;
 		}
 	}
-	for(let i=0; i<conn_autocomplete.data.src.length; i++)
-		if(elem.value == conn_autocomplete.data.src[i].sensorUserId)
+	if(conn_autocomplete)
+	{
+		for(let i=0; i<conn_autocomplete.data.src.length; i++)
 		{
-			conn_found_fl = true;
-			unit_inp.value = conn_autocomplete.data.src[i].unit;
+			if(elem.value == conn_autocomplete.data.src[i].sensorUserId)
+			{
+				conn_found_fl = true;
+				unit_inp.value = conn_autocomplete.data.src[i].unit;
+			}
 		}
+	}
 	if(!conn_found_fl)
 	{
 		elem.style.color='red';
