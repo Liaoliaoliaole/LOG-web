@@ -468,7 +468,7 @@ function get_from_common_logstats_by_anchor(logstats, type, anchor)
 }
 function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 {
-	
+
 	function get_SDAQ_if_chidren(SDAQ_if_data, if_name)
 	{
 		let SDAQs = [];
@@ -501,7 +501,7 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 	/*
 	[
 		{ name: 'Item 1', children: []},
-		{ name: 'Item 2', expanded: true, children: 
+		{ name: 'Item 2', expanded: true, children:
 			[
 				{ name: 'Sub Item 1'},
 				{ name: 'Sub Item 2', data: "data_str"}
@@ -513,9 +513,9 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 	var morfeas_devs_tree = new Array();
 	//Check for incompatible inputs
 	if(!dev_type)
-		return "no dev_type data";
+		return "No dev_type data";
 	if(!logstats)
-		return "no logstats type data";
+		return "No logstats type data";
 	if(typeof(logstats)!=="object")
 		return "Invalid type of arg:\"logstats\"";
 	//Logstat to dev_tree converter

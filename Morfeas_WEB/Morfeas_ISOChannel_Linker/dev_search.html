@@ -104,6 +104,8 @@ xhttp.onreadystatechange = function()
 		if(typeof(g_logstats)==='string')
 		{
 			console.log(g_logstats);
+			alert(g_logstats);
+			window.close('','_parent','');
 			return;
 		}
 		console.log(g_logstats);
