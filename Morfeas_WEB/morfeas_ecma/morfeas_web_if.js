@@ -474,7 +474,6 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 		let SDAQs = [];
 		for(let i=0; i<SDAQ_if_data.length; i++)
 		{
-			console.log(SDAQ_if_data[i]);
 			let SDAQ = {};
 			SDAQ.name = SDAQ_if_data[i].SDAQ_type+' ('+SDAQ_if_data[i].Address+')';
 			SDAQ.addr = SDAQ_if_data[i].Address;
@@ -561,18 +560,18 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 				{
 					if_handler.expanded = true;
 					if_handler.children = [];
-					for(let j=1; j<4; j++)
+					for(let j=1; j<=4; j++)
 					{
 						if(logstats[i]["RX"+j] === "Disconnected")
 							continue;
-						/*
-						let CH_Vals = [],
-							MDAQ_CH = {
-							name: "CH "+(j+1),
+						let CHs = [],
+							IOBOX_RX = {
+							name: "RX_"+j,
 							expandable: true,
-							children: CH_Vals
+							children: CHs
 						};
-						for(let k=1; k<=3; k++)
+						/*
+						for(let k=1; k<=16; k++)
 						{
 							let CH_val = {};
 							CH_val.name = "Value_"+k;
@@ -582,8 +581,8 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 							CH_val.Anchor = logstats[i].Identifier+'.'+"CH"+logstats[i].MDAQ_Channels[j].Channel+".Val"+k,
 							CH_Vals.push(CH_val);
 						}
-						if_handler.children.push(MDAQ_CH);
 						*/
+						if_handler.children.push(IOBOX_RX);
 					}
 				}
 				morfeas_devs_tree.push(if_handler);
