@@ -570,19 +570,39 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 							expandable: true,
 							children: CHs
 						};
-						/*
 						for(let k=1; k<=16; k++)
 						{
-							let CH_val = {};
-							CH_val.name = "Value_"+k;
-							CH_val.Meas = logstats[i].MDAQ_Channels[j].Values["Value"+k];
-							CH_val.is_Meas_valid = logstats[i].MDAQ_Channels[j].Warnings["Is_Value"+k+"_valid"];
-							CH_val.Path = logstats[i].Dev_name+".CH:"+logstats[i].MDAQ_Channels[j].Channel+".Val"+k,
-							CH_val.Anchor = logstats[i].Identifier+'.'+"CH"+logstats[i].MDAQ_Channels[j].Channel+".Val"+k,
-							CH_Vals.push(CH_val);
+							let CH = {};
+							CH.name = "CH"+norm(k,2);
+							CH.Meas = logstats[i]["RX"+j]["CH"+k];
+							CH.is_Meas_valid = typeof(CH.Meas)==="number";
+							CH.Path = logstats[i].Dev_name+".RX:"+j+".CH:"+norm(k,2);
+							CH.Anchor = logstats[i].Identifier+".RX"+j+".CH"+k;
+							CHs.push(CH);
 						}
-						*/
 						if_handler.children.push(IOBOX_RX);
+					}
+				}
+				morfeas_devs_tree.push(if_handler);
+				break;
+			case "MTI":
+				if_handler = {};
+				if_handler.name = logstats[i].Dev_name;
+				if(logstats[i].Connection_status==="Okay")
+				{
+				}
+				morfeas_devs_tree.push(if_handler);
+				break;
+			case "NOX":
+				if_handler = {};
+				if_handler.name = logstats[i].CANBus_interface.toUpperCase();
+				for(let j=0; j<logstats[i].NOx_sensors.length; j++)
+				{
+					if(!logstats[i].NOx_sensors[j])
+						continue;
+					for(let k=0; k<2; k++)
+					{
+						
 					}
 				}
 				morfeas_devs_tree.push(if_handler);
@@ -597,10 +617,6 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 					}
 				]
 				*/
-				break;
-			case "MTI":
-				break;
-			case "NOX":
 				break;
 			default: return "dev_type unknown";
 		}

@@ -70,7 +70,7 @@ function MTI_status_tab_update(MTI_data, MTI_status_table)
 	for(let i=0;i<pwm_meters.length;i++)
 	{
 		pwm_meters[i].value=MTI_data.MTI_status.PWM_CHs_outDuty[i];
-		pwm_text[i].innerHTML=MTI_data.MTI_status.PWM_CHs_outDuty[i]+"%";
+		pwm_text[i].innerHTML=MTI_data.MTI_status.PWM_CHs_outDuty[i].toFixed(0)+"%";
 	}
 }
 function MTI_status_bar_update(MTI_data)
