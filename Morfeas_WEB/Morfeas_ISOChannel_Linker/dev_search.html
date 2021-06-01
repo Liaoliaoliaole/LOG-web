@@ -9,7 +9,7 @@
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico">
 <style>
 .tree_div{
-	overflow-y: scroll;
+	overflow-y: auto;
 	height: 2in;
 	width: 100%;
 }
@@ -32,7 +32,7 @@
 <table style="margin:auto;text-align:right;margin-bottom:.075in">
 	<tr>
 		<td>
-			<button>Okay</button>
+			<button onclick="okay_callback_func();"disabled>Okay</button>
 		</td>
 		<td>
 			<button onclick="window.close('','_parent','');">Cancel</button>
@@ -69,9 +69,9 @@ through which recipients can access the Corresponding Source.
 for the JavaScript code in this page.
 */
 "use strict";
-var	dev_type,
+var	dev_type, curr_iso_channels, 
+	dev_tree, okay_callback_func,
 	caller_res = window.opener,
-	dev_tree, dev_tree_data,
 	xhttp = new XMLHttpRequest();
 
 //AJAX response handler
@@ -128,7 +128,7 @@ function get_logstats_of_type()
 	xhttp.send();
 }
 //Checks and Initialization
-if(!dev_type)
+if(!dev_type || !curr_iso_channels)
 	window.close('','_parent','');
 get_logstats_of_type();
 //@license-end

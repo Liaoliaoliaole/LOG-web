@@ -484,6 +484,7 @@ function sensor_search_func()
 	{
 		search_win = PopupCenter("./dev_search.html"+"?q="+makeid(), "", 400, 500);
 		search_win.dev_type = type.value;
+		search_win.curr_iso_channels = curr_iso_channels;
 	}
 	else
 		search_win.focus();

@@ -377,7 +377,7 @@ function morfeas_logstat_commonizer(logstats)
 		{
 			for(let i=0; i<logstat.NOx_sensors.length; i++)
 			{
-				if(!Obiect.entries(logstat.NOx_sensors[i]).length)
+				if(!Object.entries(logstat.NOx_sensors[i]).length)
 					continue;
 				let error_str = "-";
 				if(!logstat.NOx_sensors[i].status.is_NOx_value_valid ||
@@ -592,20 +592,6 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 				{
 				}
 				morfeas_devs_tree.push(if_handler);
-				break;
-			case "NOX":
-				if_handler = {};
-				if_handler.name = logstats[i].CANBus_interface.toUpperCase();
-				for(let j=0; j<logstats[i].NOx_sensors.length; j++)
-				{
-					if(!logstats[i].NOx_sensors[j])
-						continue;
-					for(let k=0; k<2; k++)
-					{
-						
-					}
-				}
-				morfeas_devs_tree.push(if_handler);
 				/*
 				[
 					{ name: 'Item 1', children: []},
@@ -617,6 +603,45 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 					}
 				]
 				*/
+				break;
+			case "NOX":
+				if_handler = {};
+				if_handler.name = logstats[i].CANBus_interface.toUpperCase();
+				let det_NOx = 0;
+				if(Object.entries(logstats[i].NOx_sensors))
+				{
+					for(let j=0; j<logstats[i].NOx_sensors.length; j++)
+						if(Object.entries(logstats[i].NOx_sensors[j]).length)
+							det_NOx++;
+				}
+				if(det_NOx)
+				{
+					if_handler.expanded = true;
+					if_handler.children = [];
+					const sensor_names = ["NOx","O2"];
+					for(let j=0; j<logstats[i].NOx_sensors.length; j++)
+					{
+						if(!Object.keys(logstats[i].NOx_sensors[j]).length)
+							continue;
+						let UniNOX_at_addr = {};
+						UniNOX_at_addr.name = "Addr:"+j;
+						UniNOX_at_addr.expanded = true;
+						UniNOX_at_addr.children = [];
+						for(let k=0; k<2; k++)
+						{
+							let Sensor = {};
+							Sensor.name = sensor_names[k];
+							Sensor.is_Meas_valid = logstats[i].NOx_sensors[j].status["is_"+sensor_names[k]+"_value_valid"];							
+							Sensor.Meas = Sensor.is_Meas_valid ? logstats[i].NOx_sensors[j][sensor_names[k]+"_value_avg"] :
+																 logstats[i].NOx_sensors[j].status.heater_mode_state;
+							Sensor.Path = logstats[i].CANBus_interface.toUpperCase()+".Addr:"+j+'.'+sensor_names[k];
+							Sensor.Anchor = logstats[i].CANBus_interface+".addr_"+j+'.'+sensor_names[k];
+							UniNOX_at_addr.children.push(Sensor);
+						}
+						if_handler.children.push(UniNOX_at_addr);
+					}
+				}
+				morfeas_devs_tree.push(if_handler);
 				break;
 			default: return "dev_type unknown";
 		}
