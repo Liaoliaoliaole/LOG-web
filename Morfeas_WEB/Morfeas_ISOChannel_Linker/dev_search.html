@@ -9,9 +9,12 @@
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico">
 <style>
 .tree_div{
+	border-style: double;
+	border-spacing: 50% 2em;
+	margin: 0 auto;
 	overflow-y: auto;
 	height: 2in;
-	width: 100%;
+	width: 90%;
 }
 </style>
 <title>Morfeas WEB Device Search</title>
@@ -29,6 +32,7 @@
 	</tr>
 </table>
 <div class="tree_div" id="Dev_tree"></div>
+<table id="sel_data" style="margin:auto;text-align:right;margin-bottom:.075in"></table>
 <table style="margin:auto;text-align:right;margin-bottom:.075in">
 	<tr>
 		<td>
@@ -69,8 +73,9 @@ through which recipients can access the Corresponding Source.
 for the JavaScript code in this page.
 */
 "use strict";
-var	dev_type, curr_iso_channels, 
+var	dev_type, curr_iso_channels,
 	dev_tree, okay_callback_func,
+	sel_data = document.getElementById("sel_data"),
 	caller_res = window.opener,
 	xhttp = new XMLHttpRequest();
 
@@ -109,11 +114,13 @@ xhttp.onreadystatechange = function()
 			window.close('','_parent','');
 			return;
 		}
-		console.log(g_logstats);
 		dev_tree = new TreeView(g_logstats, 'Dev_tree');
 		dev_tree.collapseAll();
 		dev_tree.on('select', function(elem){
 			console.log(elem);
+			sel_data.innerHTML = '';
+			//let data = [...elem.data];
+			//generateTable(sel_data, data);
 		});
 	}
 	else if(this.status == 404)
