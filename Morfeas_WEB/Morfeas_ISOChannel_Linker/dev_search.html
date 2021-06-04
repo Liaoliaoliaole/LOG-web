@@ -119,8 +119,11 @@ xhttp.onreadystatechange = function()
 		dev_tree.on('select', function(elem){
 			console.log(elem);
 			sel_data.innerHTML = '';
-			let data = Object.entries(elem.data);
-			generateTable(sel_data, data);
+			if(elem.data)
+			{
+				let data = Object.entries(elem.data);
+				generateTable(sel_data, data);
+			}
 		});
 	}
 	else if(this.status == 404)
