@@ -248,7 +248,7 @@ function Morfeas_ISOChannels_export(ISOChannels_tbl, exp_type)
 		exp_type += '_';
 	let now = new Date(),
 		filename = "Morfeas_ISOChannel_Linker_Export_"+exp_type+
-				   now.getFullYear()+'_'+(now.getMonth()+1)+'_'+now.getDate();
+				   now.getFullYear()+'_'+(now.getMonth()+1)+'_'+now.getDate()+".json";
 	download(filename, JSON.stringify(ISOChannels_tbl, null, '\t'), "application/json;charset=utf-8");
 }
 
