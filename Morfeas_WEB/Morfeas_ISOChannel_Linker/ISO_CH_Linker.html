@@ -81,7 +81,7 @@ const GRAPH_LENGTH = 120;
 var data_req=false, isOPC_UA_config_empty = true,
 	OPCUA_Config_xml_modified_flag=false,
 	request_mode = mode_enum.opcua_config,
-	edit_wins = [], add_wins = [];
+	edit_wins = [], add_wins = [], import_win;
 
 const cal_date_format_params = {
     outputFormat:"DD/MM/YYYY",
@@ -226,6 +226,8 @@ window.onbeforeunload = function()
 		for(let i=0; i<add_wins.length; i++)
 			if(!add_wins[i].closed)
 				add_wins[i].close();
+	if(import_win && !import_win.closed)
+		import_win.close();
 };
 iso_standard.request_isostandard();//Request ISOstandard from server.
 //@license-end

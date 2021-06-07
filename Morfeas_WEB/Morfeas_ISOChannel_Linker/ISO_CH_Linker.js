@@ -147,12 +147,11 @@ function load_data_to_opcua_config_table(curr_logstats)
 		if(add_wins.length)
 			for(let i=0; i<add_wins.length; i++)
 				add_wins[i].curr_logstats_comb = curr_logstats_comb;
-		/*
 		if(edit_wins.length)
 			for(let i=0; i<edit_wins.length; i++)
-				if(!edit_wins[i].closed)
-					edit_wins[i].close();
-		*/
+				edit_wins[i].curr_logstats_comb = curr_logstats_comb;
+		if(import_win && !import_win.closed)
+			import_win.curr_logstats_comb = curr_logstats_comb;
 	}
 }
 function ISOChannel_edit(event, cell)
@@ -162,6 +161,7 @@ function ISOChannel_edit(event, cell)
 		popup_win.curr_config = cell.getRow().getData();
 	else
 		popup_win.curr_config = cell._row.data;
+	popup_win.curr_iso_standards = iso_standard;
 	edit_wins.push(popup_win);
 }
 function ISOChannel_add()
@@ -173,10 +173,14 @@ function ISOChannel_add()
 }
 function ISOChannels_import()
 {
-	let popup_win = PopupCenter("./ISO_CH_IMPORT.html"+"?q="+makeid(), "", 800, 600);
-	popup_win.curr_iso_standards = iso_standard;
-	popup_win.curr_iso_channels = opcua_config_table.getData();
-	add_wins.push(popup_win);
+	if(import_win && !import_win.closed)
+	{
+		import_win.focus();
+		return;
+	}
+	import_win = PopupCenter("./ISO_CH_IMPORT.html"+"?q="+makeid(), "", 800, 600);
+	import_win.curr_iso_standards = iso_standard;
+	import_win.curr_iso_channels = opcua_config_table.getData();
 }
 function ISOChannels_export_all()
 {
