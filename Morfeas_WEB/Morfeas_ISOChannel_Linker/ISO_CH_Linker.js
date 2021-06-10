@@ -178,7 +178,7 @@ function ISOChannels_import()
 		import_win.focus();
 		return;
 	}
-	import_win = PopupCenter("./ISO_CH_IMPORT.html"+"?q="+makeid(), "", 800, 600);
+	import_win = PopupCenter("./ISO_CH_IMPORT.html"+"?q="+makeid(), "", 500, 450);
 	import_win.curr_iso_standards = iso_standard;
 	import_win.curr_iso_channels = opcua_config_table.getData();
 }
