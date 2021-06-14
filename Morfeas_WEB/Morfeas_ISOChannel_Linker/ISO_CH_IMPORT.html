@@ -15,11 +15,11 @@
 		</tr>
 		<tr>
 			<td>	
-				<input type="file" id="import_file" accept=".json">
+				<input type="file" id="import_file" accept=".json" onchange="file_read(event)">
 			</td>
 		</tr>
 		<tr>
-			<td colspan="2"><textarea id="Logger" style="resize:none;" rows="20" cols="40" readonly></textarea></td>
+			<td colspan="2"><textarea id="Logger" style="resize:none;" rows="20" cols="40" value="" readonly></textarea></td>
 		</tr>
 		<tr>
 			<td>
@@ -64,8 +64,44 @@ var curr_iso_standards,
 if(!curr_iso_standards || !curr_iso_channels)
 	window.close('','_parent','');
 
+function file_read(event) 
+{
+    let input = event.target,
+		filename = input.files[0],
+		reader = new FileReader();
+    
+	reader.onload = function(){
+		let inp_obj,
+			text = reader.result,
+			logger = document.getElementById("Logger");
+		logger.value='';
+		import_ISOChannels = undefined;
+		logger.value+="Filename: "+filename.name+'\n';
+		try{inp_obj = JSON.parse(text)}
+		catch(e){
+			logger.value+="Error: "+e.message;
+			return;
+		}
+		console.log(typeof(inp_obj));
+		if(!inp_obj.length)
+		{
+			logger.value+="Error: Data isn't array";
+			return;
+		}
+		for(let i=0; i<inp_obj.length; i++)
+		{
+			
+		}
+    };
+    reader.readAsText(filename);
+}
 function upload()
 {
+	if(!import_ISOChannels)
+	{
+		alert("No Data to upload");
+		return;
+	}
 	/*
 	let new_link_data = {}, post_msg_contents = {COMMAND: "", DATA: []},
 		post_xhttp = new XMLHttpRequest();
