@@ -29,6 +29,7 @@
 	</table>
 </body>
 <script src='../morfeas_ecma/common.js'></script>
+<script src='../morfeas_ecma/morfeas_web_if.js'></script>
 <script>
 //@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
 /*
@@ -58,7 +59,8 @@ for the JavaScript code in this page.
 comp_check();
 var curr_iso_standards, 
 	curr_iso_channels,
-	import_ISOChannels;
+	import_ISOChannels,
+	logger = document.getElementById("Logger");
 
 //Checks and Initialization
 if(!curr_iso_standards || !curr_iso_channels)
@@ -72,8 +74,7 @@ function file_read(event)
     
 	reader.onload = function(){
 		let inp_obj,
-			text = reader.result,
-			logger = document.getElementById("Logger");
+			text = reader.result;
 		logger.value='';
 		import_ISOChannels = undefined;
 		logger.value+="Filename: "+filename.name+'\n';
