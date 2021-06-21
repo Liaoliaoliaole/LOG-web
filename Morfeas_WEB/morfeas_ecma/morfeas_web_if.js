@@ -648,7 +648,10 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 	}
 	return morfeas_devs_tree;
 }
-
+function import_from_file_validator(logger)
+{
+	return;
+}
 var iso_standard = {
 	iso_standard_xml : new Object(),
 	request_isostandard : function()
