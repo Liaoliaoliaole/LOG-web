@@ -648,9 +648,19 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 	}
 	return morfeas_devs_tree;
 }
-function import_from_file_validator(logger)
+function import_from_file_validator(inp_obj, curr_conf, logger)
 {
-	return;
+	if(!inp_obj)
+	{
+		logger+="Error: Data is Invalid\n";
+		return;
+	}
+	if(!inp_obj.length)
+	{
+		logger+="Error: Data isn't array\n";
+		return;
+	}
+	return true;
 }
 var iso_standard = {
 	iso_standard_xml : new Object(),

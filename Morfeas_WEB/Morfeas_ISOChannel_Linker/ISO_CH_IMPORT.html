@@ -57,14 +57,13 @@ for the JavaScript code in this page.
 */
 "use strict";
 comp_check();
-var curr_iso_standards,
-	curr_iso_channels,
+var curr_iso_channels,
 	import_ISOChannels,
 	logger = document.getElementById("Logger"),
 	upload_btn = document.getElementById("upload_btn");
 
 //Checks and Initialization
-if(!curr_iso_standards || !curr_iso_channels)
+if(!curr_iso_channels)
 	window.close('','_parent','');
 
 function file_read(event)
@@ -84,16 +83,12 @@ function file_read(event)
 			logger.value+="Error: "+e.message;
 			return;
 		}
-		if(!inp_obj.length)
-		{
-			logger.value+="Error: Data isn't array\n";
-			return;
-		}
-		if(!(import_ISOChannels = import_from_file_validator(logger.value)))
+		if(!(import_from_file_validator(inp_obj, logger.value)))
 		{
 			logger.value+="Error: Validation failed!\n";
 			return;
 		}
+		import_ISOChannels = conv_imp_data(inp_obj);
 		upload_btn.disabled = false;
     };
     reader.readAsText(filename);
@@ -115,7 +110,7 @@ function upload()
 		if(this.readyState == 4 && this.status == 200)
 		{
 			if(this.getResponseHeader("Content-Type")==="report/text")
-				logger.value+=this.responseText;
+				logger.value+="Server-> "+this.responseText;
 			else if(this.getResponseHeader("Content-Type")==="application/json")
 			{
 				let report;
@@ -128,9 +123,35 @@ function upload()
 		else if(this.status == 404)
 			logger.value+="Error 404: Data Not found\n";
 	};
+	console.log(post_msg_contents);
 	//Send imported elements.
 	post_xhttp.open("POST", "/morfeas_php/morfeas_web_if.php", true);
 	post_xhttp.send(compress(JSON.stringify(post_msg_contents)));
+}
+
+function conv_imp_data(inp_data)
+{
+	if(!inp_data || !inp_data.length)
+		return;
+	let conv_data = [], iso_CH_entry;
+	for(let i=0; i<inp_data.length; i++)
+	{
+		iso_CH_entry = {};
+		iso_CH_entry.ISOChannel = inp_data[i].ISO_CHANNEL;
+		iso_CH_entry.IF_type = inp_data[i].INTERFACE_TYPE;
+		iso_CH_entry.Anchor = inp_data[i].ANCHOR;
+		iso_CH_entry.Description = inp_data[i].DESCRIPTION;
+		iso_CH_entry.Min = inp_data[i].MIN;
+		iso_CH_entry.Max = inp_data[i].MAX;
+		if(inp_data[i].hasOwnProperty('UNIT'))
+			iso_CH_entry.Unit = inp_data[i].UNIT;
+		if(inp_data[i].hasOwnProperty('CAL_DATE'))
+			iso_CH_entry.Cal_date = inp_data[i].CAL_DATE;
+		if(inp_data[i].hasOwnProperty('CAL_PERIOD'))
+			iso_CH_entry.Cal_period = inp_data[i].CAL_PERIOD;
+		conv_data.push(iso_CH_entry);
+	}
+	return conv_data;
 }
 //@license-end
 </script>
