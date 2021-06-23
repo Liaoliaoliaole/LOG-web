@@ -631,7 +631,7 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 						{
 							let Sensor = {};
 							Sensor.name = sensor_names[k];
-							Sensor.is_Meas_valid = logstats[i].NOx_sensors[j].status["is_"+sensor_names[k]+"_value_valid"];							
+							Sensor.is_Meas_valid = logstats[i].NOx_sensors[j].status["is_"+sensor_names[k]+"_value_valid"];
 							Sensor.Meas = Sensor.is_Meas_valid ? logstats[i].NOx_sensors[j][sensor_names[k]+"_value_avg"] :
 																 logstats[i].NOx_sensors[j].status.heater_mode_state;
 							Sensor.Path = logstats[i].CANBus_interface.toUpperCase()+".Addr:"+j+'.'+sensor_names[k];
@@ -650,15 +650,51 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 }
 function import_from_file_validator(inp_obj, curr_conf, logger)
 {
-	if(!inp_obj)
+	if(!logger)
 	{
-		logger+="Error: Data is Invalid\n";
+		console.log("input argument logger is Undefined!!!")
+		return;
+	}
+	if(!inp_obj || !curr_conf)
+	{
+		logger.value+="Error: Data is Invalid\n";
 		return;
 	}
 	if(!inp_obj.length)
 	{
-		logger+="Error: Data isn't array\n";
+		logger.value+="Error: Data isn't array\n";
 		return;
+	}
+	//Validate element for each inp_obj entry
+	for(let i=0; i<inp_obj.length; i++)
+	{
+		if(!inp_obj[i].hasOwnProperty("ISO_CHANNEL") ||
+		   !inp_obj[i].hasOwnProperty("INTERFACE_TYPE") ||
+		   !inp_obj[i].hasOwnProperty("ANCHOR") ||
+		   !inp_obj[i].hasOwnProperty("DESCRIPTION") ||
+		   !inp_obj[i].hasOwnProperty("MIN") ||
+		   !inp_obj[i].hasOwnProperty("MAX"))
+		{
+			logger.value+="Error: Element "+i+" have missing elements!!!\n";
+			return;
+		}
+		if(typeof(inp_obj[i].ISO_CHANNEL)!=="string" ||
+		   typeof(inp_obj[i].INTERFACE_TYPE)!=="string" ||
+		   typeof(inp_obj[i].ANCHOR)!=="string" ||
+		   typeof(inp_obj[i].DESCRIPTION)!=="string" ||
+		   isNaN(inp_obj[i].MIN)||isNaN(inp_obj[i].MAX))
+		{
+			logger.value+=("Error: Element "+i+" have invalid contents!!!\n");
+			return;
+		}
+		/*
+		if(inp_data[i].hasOwnProperty('UNIT'))
+			iso_CH_entry.Unit = inp_data[i].UNIT;
+		if(inp_data[i].hasOwnProperty('CAL_DATE'))
+			iso_CH_entry.Cal_date = inp_data[i].CAL_DATE;
+		if(inp_data[i].hasOwnProperty('CAL_PERIOD'))
+			iso_CH_entry.Cal_period = inp_data[i].CAL_PERIOD;
+		*/
 	}
 	return true;
 }

@@ -83,7 +83,7 @@ function file_read(event)
 			logger.value+="Error: "+e.message;
 			return;
 		}
-		if(!(import_from_file_validator(inp_obj, logger.value)))
+		if(!(import_from_file_validator(inp_obj, curr_iso_channels, logger)))
 		{
 			logger.value+="Error: Validation failed!\n";
 			return;
