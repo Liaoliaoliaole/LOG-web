@@ -684,7 +684,7 @@ function import_from_file_validator(inp_obj, curr_conf, logger)
 		   typeof(inp_obj[i].DESCRIPTION)!=="string" ||
 		   isNaN(inp_obj[i].MIN)||isNaN(inp_obj[i].MAX))
 		{
-			logger.value+=("Error: Element "+i+" have invalid contents!!!\n");
+			logger.value+="Error: Element "+i+" have invalid contents!!!\n";
 			return;
 		}
 		/*
