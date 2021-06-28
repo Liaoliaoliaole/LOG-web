@@ -682,7 +682,10 @@ function import_from_file_validator(inp_obj, curr_conf, logger)
 		   typeof(inp_obj[i].INTERFACE_TYPE)!=="string" ||
 		   typeof(inp_obj[i].ANCHOR)!=="string" ||
 		   typeof(inp_obj[i].DESCRIPTION)!=="string" ||
-		   isNaN(inp_obj[i].MIN)||isNaN(inp_obj[i].MAX))
+		   isNaN(inp_obj[i].MIN)||isNaN(inp_obj[i].MAX) ||
+		   (inp_obj[i].hasOwnProperty('UNIT') && typeof(inp_obj[i].UNIT)!=="string") ||
+		   (inp_obj[i].hasOwnProperty('CAL_DATE') && typeof(inp_obj[i].CAL_DATE)!=="string") ||
+		   (inp_obj[i].hasOwnProperty('CAL_PERIOD') && isNaN(inp_obj[i].CAL_PERIOD))
 		{
 			logger.value+="Error: Element "+i+" have invalid contents!!!\n";
 			return;
