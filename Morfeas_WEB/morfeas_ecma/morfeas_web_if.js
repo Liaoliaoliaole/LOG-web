@@ -694,7 +694,6 @@ function import_from_file_validator(inp_obj, curr_conf, logger)
 		{
 			
 		}
-		
 		/*
 		if(inp_data[i].hasOwnProperty('UNIT'))
 			iso_CH_entry.Unit = inp_data[i].UNIT;
