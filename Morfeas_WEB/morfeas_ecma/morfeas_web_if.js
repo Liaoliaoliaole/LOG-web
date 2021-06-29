@@ -690,6 +690,11 @@ function import_from_file_validator(inp_obj, curr_conf, logger)
 			logger.value+="Error: Element "+i+" have invalid contents!!!\n";
 			return;
 		}
+		if(inp_obj[i].hasOwnProperty('CAL_DATE'))
+		{
+			
+		}
+		
 		/*
 		if(inp_data[i].hasOwnProperty('UNIT'))
 			iso_CH_entry.Unit = inp_data[i].UNIT;
