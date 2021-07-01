@@ -19,7 +19,7 @@
 			</td>
 		</tr>
 		<tr>
-			<td colspan="2"><textarea id="Logger" style="resize:none;" rows="20" cols="40" value="" readonly></textarea></td>
+			<td colspan="2"><textarea id="Logger" style="resize:none;" rows="20" cols="50" value="" readonly></textarea></td>
 		</tr>
 		<tr>
 			<td>
@@ -83,11 +83,13 @@ function file_read(event)
 			logger.value+="Error: "+e.message;
 			return;
 		}
+		logger.value+="Validation Started";
 		if(!(import_from_file_validator(inp_obj, curr_iso_channels, logger)))
 		{
 			logger.value+="Error: Validation failed!\n";
 			return;
 		}
+		logger.value+="Validation succeded\nReady to upload\n";
 		import_ISOChannels = conv_imp_data(inp_obj);
 		upload_btn.disabled = false;
     };

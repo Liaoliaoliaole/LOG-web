@@ -692,7 +692,30 @@ function import_from_file_validator(inp_obj, curr_conf, logger)
 		}
 		if(inp_obj[i].hasOwnProperty('CAL_DATE'))
 		{
+			if(!inp_obj[i].CAL_DATE)
+			{
+				logger.value+="Error: \"CAL_DATE\" property of Element "+i+" is empty!!!\n";
+				return;
+			}
+			if(!inp_obj[i].CAL_DATE.match(/^[\d]{4}\/[[\d]{2}\/[[\d]{2}$/g))
+			{
+				logger.value+="Error: \"CAL_DATE\" property of Element "+i+" is invalid. (YYYY/MM/DD)\n";
+				return;
+			}
 			
+		}
+		if(inp_obj[i].hasOwnProperty('UNIT') && !inp_obj[i].UNIT)
+		{
+			logger.value+="Error: \"UNIT\" property of Element "+i+" is empty!!!\n";
+			return;
+		}
+		if(inp_obj[i].hasOwnProperty('CAL_PERIOD'))
+		{
+			if(inp_obj[i].CAL_PERIOD<0 || inp_obj[i].CAL_PERIOD>255)
+			{				
+				logger.value+="Error: \"CAL_PERIOD\" property of Element "+i+" is out of range!!!\n";
+				return;
+			}
 		}
 		/*
 		if(inp_data[i].hasOwnProperty('UNIT'))
