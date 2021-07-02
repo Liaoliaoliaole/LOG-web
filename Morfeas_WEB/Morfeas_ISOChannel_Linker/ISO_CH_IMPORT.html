@@ -83,13 +83,14 @@ function file_read(event)
 			logger.value+="Error: "+e.message;
 			return;
 		}
-		logger.value+="Validation Started";
-		if(!(import_from_file_validator(inp_obj, curr_iso_channels, logger)))
+		logger.value+="Validation Started...\n";
+		if(!(import_from_file_validator(inp_obj, logger)))
 		{
 			logger.value+="Error: Validation failed!\n";
 			return;
 		}
 		logger.value+="Validation succeded\nReady to upload\n";
+		//inp_obj vs curr_iso_channels
 		import_ISOChannels = conv_imp_data(inp_obj);
 		upload_btn.disabled = false;
     };
@@ -112,7 +113,7 @@ function upload()
 		if(this.readyState == 4 && this.status == 200)
 		{
 			if(this.getResponseHeader("Content-Type")==="report/text")
-				logger.value+="Server-> "+this.responseText;
+				logger.value+="Server-> "+this.responseText+'\n';
 			else if(this.getResponseHeader("Content-Type")==="application/json")
 			{
 				let report;

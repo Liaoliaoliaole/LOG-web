@@ -648,14 +648,14 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 	}
 	return morfeas_devs_tree;
 }
-function import_from_file_validator(inp_obj, curr_conf, logger)
+function import_from_file_validator(inp_obj, logger)
 {
 	if(!logger)
 	{
 		console.log("input argument logger is Undefined!!!")
 		return;
 	}
-	if(!inp_obj || !curr_conf)
+	if(!inp_obj)
 	{
 		logger.value+="Error: Data is Invalid\n";
 		return;
@@ -690,6 +690,12 @@ function import_from_file_validator(inp_obj, curr_conf, logger)
 			logger.value+="Error: Element "+i+" have invalid contents!!!\n";
 			return;
 		}
+		
+		if(inp_obj[i].hasOwnProperty('UNIT') && !inp_obj[i].UNIT)
+		{
+			logger.value+="Error: \"UNIT\" property of Element "+i+" is empty!!!\n";
+			return;
+		}
 		if(inp_obj[i].hasOwnProperty('CAL_DATE'))
 		{
 			if(!inp_obj[i].CAL_DATE)
@@ -702,29 +708,26 @@ function import_from_file_validator(inp_obj, curr_conf, logger)
 				logger.value+="Error: \"CAL_DATE\" property of Element "+i+" is invalid. (YYYY/MM/DD)\n";
 				return;
 			}
-			
-		}
-		if(inp_obj[i].hasOwnProperty('UNIT') && !inp_obj[i].UNIT)
-		{
-			logger.value+="Error: \"UNIT\" property of Element "+i+" is empty!!!\n";
-			return;
+			let date_p = inp_obj[i].CAL_DATE.split('/'),
+				year = Number(date_p[0]),
+				month = Number(date_p[1]),
+				day = Number(date_p[2]);
+			if((year<2000||year>2255)
+			 ||(month<1||month>12)
+			 ||(day<1||day>31))
+			{
+				logger.value+="Error: \"CAL_DATE\" property of Element "+i+" is not a valid date\n";
+				return;
+			}
 		}
 		if(inp_obj[i].hasOwnProperty('CAL_PERIOD'))
 		{
 			if(inp_obj[i].CAL_PERIOD<0 || inp_obj[i].CAL_PERIOD>255)
-			{				
+			{
 				logger.value+="Error: \"CAL_PERIOD\" property of Element "+i+" is out of range!!!\n";
 				return;
 			}
 		}
-		/*
-		if(inp_data[i].hasOwnProperty('UNIT'))
-			iso_CH_entry.Unit = inp_data[i].UNIT;
-		if(inp_data[i].hasOwnProperty('CAL_DATE'))
-			iso_CH_entry.Cal_date = inp_data[i].CAL_DATE;
-		if(inp_data[i].hasOwnProperty('CAL_PERIOD'))
-			iso_CH_entry.Cal_period = inp_data[i].CAL_PERIOD;
-		*/
 	}
 	return true;
 }
