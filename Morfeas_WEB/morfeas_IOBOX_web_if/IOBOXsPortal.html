@@ -50,10 +50,10 @@
 			<tr id="IOBOX_power_meas_volt"></tr>
 			<tr id="IOBOX_power_meas_amps"></tr>
 		</table>
-		<table style="margin:auto;text-align:center;margin-bottom:.075in;width:6in" name="RXs"></table>
-		<table style="margin:auto;text-align:center;margin-bottom:.075in;width:6in" name="RXs"></table>
-		<table style="margin:auto;text-align:center;margin-bottom:.075in;width:6in" name="RXs"></table>
-		<table style="margin:auto;text-align:center;margin-bottom:.075in;width:6in" name="RXs"></table>
+		<table style="margin:auto;text-align:center;margin-bottom:.075in;width:6.5in" name="RXs"></table>
+		<table style="margin:auto;text-align:center;margin-bottom:.075in;width:6.5in" name="RXs"></table>
+		<table style="margin:auto;text-align:center;margin-bottom:.075in;width:6.5in" name="RXs"></table>
+		<table style="margin:auto;text-align:center;margin-bottom:.075in;width:6.5in" name="RXs"></table>
 	</div>
 	<footer style="bottom:0;width:99%;">
 		<p>Author: Sam Harry Tzavaras &#169; 12021-12022<br>
@@ -227,7 +227,7 @@ function populate_IOBOX_tables(IOBOX_data)
 				let CHs_head = [], Values, j=1;
 				CHs_head.push("RX"+(i+1));
 				CHs_head.push("Status: "+IOBOX_data["RX"+(i+1)].Status);
-				CHs_head.push("Success:"+IOBOX_data["RX"+(i+1)].Success+'%');
+				CHs_head.push("RSSID:"+IOBOX_data["RX"+(i+1)].Success+'%');
 				generateTableHead(RXs_t[i], CHs_head);
 				for(let c=0; c<2; c++)
 				{
