@@ -70,6 +70,7 @@
 						   id="iso_name"
 						   placeHolder="Search..."
 						   onchange="iso_name_val(this);"
+						   onfocusout="vals_check()"
 						   size="20"
 						   maxlength="20"
 						   disabled>_
@@ -388,14 +389,14 @@ function conn_inp_val(elem)
 				selector: "#iso_name",
 				data: {
 					src: recommented_ISOChannels,
-					key: ["iso_code"]
+					key: ["iso_code_and_desc"]
 				},
 				resultItem: {
 					highlight: {render: true}
 				},
 				onSelection: function(fb){
 					post_fix.selectedIndex=0;
-					iso_name.value = fb.selection.value.iso_code;
+					iso_name.value = fb.selection.value.attributes.iso_code;
 					desc.value = fb.selection.value.attributes.description;
 					min.value = fb.selection.value.attributes.min;
 					max.value = fb.selection.value.attributes.max;

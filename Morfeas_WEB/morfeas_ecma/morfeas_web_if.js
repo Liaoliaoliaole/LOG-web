@@ -775,7 +775,8 @@ var iso_standard = {
 				if(!unit || unit === xml.children[i].children[1].textContent)
 				{
 					let elem = new Object({iso_code:"",attributes:{description:"",unit:"",max:"",min:""}});
-					elem.iso_code=xml.children[i].nodeName;
+					elem.iso_code_and_desc=xml.children[i].nodeName+' | '+xml.children[i].children[0].textContent;
+					elem.attributes.iso_code=xml.children[i].nodeName;
 					elem.attributes.description=xml.children[i].children[0].textContent;
 					elem.attributes.unit=xml.children[i].children[1].textContent;
 					elem.attributes.max=xml.children[i].children[2].textContent;
