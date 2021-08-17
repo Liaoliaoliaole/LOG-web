@@ -466,33 +466,44 @@ function get_from_common_logstats_by_anchor(logstats, type, anchor)
 	}
 	return false;
 }
-function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
+function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 {
-
+	function is_anchor_in_use(Anchor)
+	{
+		if(!curr_ISOCHs)
+			return false;
+		for(let i=0; i<curr_ISOCHs.length; i++)
+			if(curr_ISOCHs[i].anchor === Anchor)
+				return true;
+	}
 	function get_SDAQ_if_chidren(SDAQ_if_data, if_name)
 	{
 		let SDAQs = [];
 		for(let i=0; i<SDAQ_if_data.length; i++)
 		{
 			let SDAQ = {};
-			SDAQ.name = SDAQ_if_data[i].SDAQ_type+' ('+SDAQ_if_data[i].Address+')';
+			SDAQ.name = '(ADDR:'+norm(SDAQ_if_data[i].Address,2)+') '+SDAQ_if_data[i].SDAQ_type;
 			SDAQ.addr = SDAQ_if_data[i].Address;
 			SDAQ.Status = SDAQ_if_data[i].SDAQ_Status;
 			SDAQ.Info = SDAQ_if_data[i].SDAQ_info;
 			SDAQ.Timediff = SDAQ_if_data[i].Timediff;
 			SDAQ.Serial_number = SDAQ_if_data[i].Serial_number;
-			SDAQ.expandable = true;
 			SDAQ.children = [];
 			for(let j=0; j<SDAQ_if_data[i].SDAQ_info.Number_of_channels; j++)
 			{
 				let Channel = {};
-				Channel.name = "CH:"+(j+1);
+				Channel.name = "CH:"+norm((j+1),2);
 				Channel.Calibration_Data = SDAQ_if_data[i].Calibration_Data[j];
 				Channel.Meas = SDAQ_if_data[i].Meas[j];
 				Channel.Path = if_name+".ADDR:"+norm(SDAQ.addr,2)+".CH:"+norm(j+1,2);
 				Channel.Anchor = SDAQ.Serial_number+".CH"+(j+1);
+				if(curr_ISOCHs && is_anchor_in_use(Channel.Anchor))
+					continue;
 				SDAQ.children.push(Channel);
 			}
+			SDAQ.expandable = SDAQ.children.length ? true : false;
+			if(!SDAQ.expandable)
+				SDAQ.name += "→\"All CHs in Use\"";
 			SDAQs.push(SDAQ);
 		}
 		return SDAQs;
@@ -544,10 +555,15 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 							CH_val.name = "Value_"+k;
 							CH_val.Meas = logstats[i].MDAQ_Channels[j].Values["Value"+k];
 							CH_val.is_Meas_valid = logstats[i].MDAQ_Channels[j].Warnings["Is_Value"+k+"_valid"];
-							CH_val.Path = logstats[i].Dev_name+".CH:"+logstats[i].MDAQ_Channels[j].Channel+".Val"+k,
-							CH_val.Anchor = logstats[i].Identifier+'.'+"CH"+logstats[i].MDAQ_Channels[j].Channel+".Val"+k,
+							CH_val.Path = logstats[i].Dev_name+".CH:"+logstats[i].MDAQ_Channels[j].Channel+".Val"+k;
+							CH_val.Anchor = logstats[i].Identifier+'.'+"CH"+logstats[i].MDAQ_Channels[j].Channel+".Val"+k;
+							if(curr_ISOCHs && is_anchor_in_use(CH_val.Anchor))
+								continue;
 							CH_Vals.push(CH_val);
 						}
+						MDAQ_CH.expandable = CH_Vals.length ? true : false;
+						if(!MDAQ_CH.expandable)
+							MDAQ_CH.name += "→\"All Values in use\"";
 						if_handler.children.push(MDAQ_CH);
 					}
 				}
@@ -578,8 +594,13 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 							CH.is_Meas_valid = typeof(CH.Meas)==="number";
 							CH.Path = logstats[i].Dev_name+".RX:"+j+".CH:"+norm(k,2);
 							CH.Anchor = logstats[i].Identifier+".RX"+j+".CH"+k;
+							if(curr_ISOCHs && is_anchor_in_use(CH.Anchor))
+								continue;
 							CHs.push(CH);
 						}
+						IOBOX_RX.expandable = CHs.length ? true : false;
+						if(!IOBOX_RX.expandable)
+							IOBOX_RX.name += "→\"All CHs in use\"";
 						if_handler.children.push(IOBOX_RX);
 					}
 				}
@@ -590,19 +611,69 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 				if_handler.name = logstats[i].Dev_name;
 				if(logstats[i].Connection_status==="Okay")
 				{
+					if_handler.expanded = true;
+					if_handler.children = [];
+					switch(logstats[i].MTI_status.Tele_Device_type)
+					{
+						case "TC4":
+						case "TC8":
+						case "TC16":
+							let CHs = [],
+								MTI = {
+								name: logstats[i].MTI_status.Tele_Device_type+'(RF:'+logstats[i].MTI_status.Radio_CH+')',
+								expandable: true,
+								children: CHs
+							};
+							for(let j=0; j<logstats[i].Tele_data.CHs.length; j++)
+							{
+								let CH = {};
+								CH.name = "CH"+norm((j+1),2);
+								CH.Meas = logstats[i].Tele_data.CHs[j];
+								CH.is_Meas_valid = typeof(CH.Meas)==="number";
+								CH.Path = logstats[i].Dev_name+'.'+logstats[i].MTI_status.Tele_Device_type+'.'+CH.name;
+								CH.Anchor = logstats[i].Identifier+"."+logstats[i].MTI_status.Tele_Device_type+"."+"CH"+(j+1);
+								if(curr_ISOCHs && is_anchor_in_use(CH.Anchor))
+									continue;
+								CHs.push(CH);
+							}
+							MTI.expandable = CHs.length ? true : false;
+							if(!MTI.expandable)
+								MTI.name += "→\"All CHs in use\"";
+							if_handler.children.push(MTI);
+						break;
+						case "RMSW/MUX":
+							for(let j=0; j<logstats[i].Tele_data.length; j++)
+							{
+								if(logstats[i].Tele_data[j].Dev_type==="Mini_RMSW")
+								{
+									let CHs = [],
+									Mini_RMSW = {
+										name: "Mini_RMSW(ID:"+norm(logstats[i].Tele_data[j].Dev_ID,3)+")",
+										expandable: true,
+										children: CHs
+									};
+									for(let k=0; k<logstats[i].Tele_data[j].CHs_meas.length; k++)
+									{
+										let CH = {};
+										CH.name = "CH"+(k+1);
+										CH.Meas = logstats[i].Tele_data[j].CHs_meas[k];
+										CH.is_Meas_valid = typeof(CH.Meas)==="number";
+										CH.Path = logstats[i].Dev_name+'.'+Mini_RMSW.name+'.'+CH.name;
+										CH.Anchor = logstats[i].Identifier+".ID:"+logstats[i].Tele_data[j].Dev_ID+".CH"+(k+1);
+										if(curr_ISOCHs && is_anchor_in_use(CH.Anchor))
+											continue;
+										CHs.push(CH);
+									}
+									Mini_RMSW.expandable = CHs.length ? true : false;
+									if(!Mini_RMSW.expandable)
+										Mini_RMSW.name += "→\"All CHs in use\"";
+									if_handler.children.push(Mini_RMSW);
+								}
+							}
+						break;
+					}
 				}
 				morfeas_devs_tree.push(if_handler);
-				/*
-				[
-					{ name: 'Item 1', children: []},
-					{ name: 'Item 2', expanded: true, children:
-						[
-							{ name: 'Sub Item 1'},
-							{ name: 'Sub Item 2', data: "data_str"}
-						]
-					}
-				]
-				*/
 				break;
 			case "NOX":
 				if_handler = {};
@@ -636,8 +707,13 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type)
 																 logstats[i].NOx_sensors[j].status.heater_mode_state;
 							Sensor.Path = logstats[i].CANBus_interface.toUpperCase()+".Addr:"+j+'.'+sensor_names[k];
 							Sensor.Anchor = logstats[i].CANBus_interface+".addr_"+j+'.'+sensor_names[k];
+							if(curr_ISOCHs && is_anchor_in_use(Sensor.Anchor))
+								continue;
 							UniNOX_at_addr.children.push(Sensor);
 						}
+						UniNOX_at_addr.expandable = UniNOX_at_addr.children.length ? true : false;
+						if(!UniNOX_at_addr.expandable)
+							UniNOX_at_addr.name += "→\"All Sensors in use\"";
 						if_handler.children.push(UniNOX_at_addr);
 					}
 				}
@@ -690,7 +766,7 @@ function import_from_file_validator(inp_obj, logger)
 			logger.value+="Error: Element "+i+" have invalid contents!!!\n";
 			return;
 		}
-		
+
 		if(inp_obj[i].hasOwnProperty('UNIT') && !inp_obj[i].UNIT)
 		{
 			logger.value+="Error: \"UNIT\" property of Element "+i+" is empty!!!\n";

@@ -80,9 +80,9 @@ function load_data_to_opcua_config_table(curr_logstats)
 			if(!data)
 			{
 				tableData[i].col="red";
-				tableData[i].conn="OFF-Line";
+				tableData[i].conn="-";
 				tableData[i].meas = '-';
-				tableData[i].status = '-';
+				tableData[i].status = 'OFF-Line';
 				tableData[i].graph = [];
 				continue;
 			}

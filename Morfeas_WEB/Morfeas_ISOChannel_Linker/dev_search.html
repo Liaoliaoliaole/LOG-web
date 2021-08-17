@@ -36,7 +36,7 @@
 <table style="margin:auto;text-align:right;margin-bottom:.075in">
 	<tr>
 		<td>
-			<button onclick="okay_callback_func();"disabled>Okay</button>
+			<button id="ok_but" onclick="okay_callback_func();"disabled>Okay</button>
 		</td>
 		<td>
 			<button onclick="window.close('','_parent','');">Cancel</button>
@@ -76,6 +76,7 @@ for the JavaScript code in this page.
 var	dev_type, curr_iso_channels,
 	dev_tree, okay_callback_func,
 	sel_data = document.getElementById("sel_data"),
+	ok_button = document.getElementById("ok_but"),
 	caller_res = window.opener,
 	xhttp = new XMLHttpRequest();
 
@@ -106,7 +107,7 @@ xhttp.onreadystatechange = function()
 		let last_update = new Date(g_logstats.Build_time*1000);
 		status_tab.value = last_update.toLocaleDateString()+" "+last_update.toLocaleTimeString();
 		status_tab.style.color='black';
-		g_logstats = morfeas_build_dev_tree_from_logstats(g_logstats.logstat_contents, dev_type);
+		g_logstats = morfeas_build_dev_tree_from_logstats(g_logstats.logstat_contents, dev_type, curr_iso_channels);
 		if(typeof(g_logstats)==='string')
 		{
 			console.log(g_logstats);
@@ -116,13 +117,20 @@ xhttp.onreadystatechange = function()
 		}
 		dev_tree = new TreeView(g_logstats, 'Dev_tree');
 		dev_tree.collapseAll();
+		dev_tree.on('collapse', clean_sel_data);
+		dev_tree.on('expand', clean_sel_data);
+		function clean_sel_data(){
+			sel_data.innerHTML = '';
+			ok_button.disabled = true;
+		}
 		dev_tree.on('select', function(elem){
 			console.log(elem);
 			sel_data.innerHTML = '';
-			if(elem.data)
+			if(elem.data && elem.data.Anchor)
 			{
 				let data = Object.entries(elem.data);
 				generateTable(sel_data, data);
+				ok_button.disabled = false;
 			}
 		});
 	}
@@ -134,6 +142,7 @@ xhttp.onreadystatechange = function()
 };
 function get_logstats_of_type()
 {
+	sel_data.innerHTML = '';
 	xhttp.open("GET", "/morfeas_php/morfeas_web_if.php?COMMAND=logstats&TYPE="+dev_type, true);
 	xhttp.send();
 }
