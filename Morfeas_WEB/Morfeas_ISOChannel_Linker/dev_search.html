@@ -124,12 +124,10 @@ xhttp.onreadystatechange = function()
 			ok_button.disabled = true;
 		}
 		dev_tree.on('select', function(elem){
-			console.log(elem);
 			sel_data.innerHTML = '';
 			if(elem.data && elem.data.Anchor)
 			{
-				let data = Object.entries(elem.data);
-				generateTable(sel_data, data);
+				gen_sel_data_table(elem.data)
 				ok_button.disabled = false;
 			}
 		});
@@ -145,6 +143,11 @@ function get_logstats_of_type()
 	sel_data.innerHTML = '';
 	xhttp.open("GET", "/morfeas_php/morfeas_web_if.php?COMMAND=logstats&TYPE="+dev_type, true);
 	xhttp.send();
+}
+function gen_sel_data_table(data)
+{
+	console.log(data);
+	generateTable(sel_data, Object.entries(data));
 }
 //Checks and Initialization
 if(!dev_type || !curr_iso_channels)

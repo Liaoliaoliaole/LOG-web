@@ -563,7 +563,7 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 						}
 						MDAQ_CH.expandable = CH_Vals.length ? true : false;
 						if(!MDAQ_CH.expandable)
-							MDAQ_CH.name += "→\"All Values in use\"";
+							MDAQ_CH.name += "\u2192\"All Values in use\"";
 						if_handler.children.push(MDAQ_CH);
 					}
 				}
@@ -600,7 +600,7 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 						}
 						IOBOX_RX.expandable = CHs.length ? true : false;
 						if(!IOBOX_RX.expandable)
-							IOBOX_RX.name += "→\"All CHs in use\"";
+							IOBOX_RX.name += "\u2192\"All CHs in use\"";
 						if_handler.children.push(IOBOX_RX);
 					}
 				}
@@ -648,7 +648,7 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 								{
 									let CHs = [],
 									Mini_RMSW = {
-										name: "Mini_RMSW(ID:"+norm(logstats[i].Tele_data[j].Dev_ID,3)+")",
+										name: "Mini_RMSW(ID:"+logstats[i].Tele_data[j].Dev_ID+")",
 										expandable: true,
 										children: CHs
 									};
@@ -666,7 +666,7 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 									}
 									Mini_RMSW.expandable = CHs.length ? true : false;
 									if(!Mini_RMSW.expandable)
-										Mini_RMSW.name += "→\"All CHs in use\"";
+										Mini_RMSW.name += "\u2192\"All CHs in use\"";
 									if_handler.children.push(Mini_RMSW);
 								}
 							}
@@ -713,7 +713,7 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 						}
 						UniNOX_at_addr.expandable = UniNOX_at_addr.children.length ? true : false;
 						if(!UniNOX_at_addr.expandable)
-							UniNOX_at_addr.name += "→\"All Sensors in use\"";
+							UniNOX_at_addr.name += "\u2192\"All Sensors in use\"";
 						if_handler.children.push(UniNOX_at_addr);
 					}
 				}
