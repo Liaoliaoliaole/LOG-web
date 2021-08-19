@@ -553,8 +553,11 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 						{
 							let CH_val = {};
 							CH_val.name = "Value_"+k;
-							CH_val.Meas = logstats[i].MDAQ_Channels[j].Values["Value"+k];
 							CH_val.is_Meas_valid = logstats[i].MDAQ_Channels[j].Warnings["Is_Value"+k+"_valid"];
+							if(CH_val.is_Meas_valid)
+								CH_val.Meas = logstats[i].MDAQ_Channels[j].Values["Value"+k];
+							else
+								CH_val.Meas = "Out_of_range";
 							CH_val.Path = logstats[i].Dev_name+".CH:"+logstats[i].MDAQ_Channels[j].Channel+".Val"+k;
 							CH_val.Anchor = logstats[i].Identifier+'.'+"CH"+logstats[i].MDAQ_Channels[j].Channel+".Val"+k;
 							if(curr_ISOCHs && is_anchor_in_use(CH_val.Anchor))
@@ -592,7 +595,7 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 							CH.name = "CH"+norm(k,2);
 							CH.Meas = logstats[i]["RX"+j]["CH"+k];
 							CH.is_Meas_valid = typeof(CH.Meas)==="number";
-							CH.Path = logstats[i].Dev_name+".RX:"+j+".CH:"+norm(k,2);
+							CH.Path = logstats[i].Dev_name+".RX"+j+".CH:"+norm(k,2);
 							CH.Anchor = logstats[i].Identifier+".RX"+j+".CH"+k;
 							if(curr_ISOCHs && is_anchor_in_use(CH.Anchor))
 								continue;
@@ -627,7 +630,7 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 							for(let j=0; j<logstats[i].Tele_data.CHs.length; j++)
 							{
 								let CH = {};
-								CH.name = "CH"+norm((j+1),2);
+								CH.name = "CH:"+(j+1);
 								CH.Meas = logstats[i].Tele_data.CHs[j];
 								CH.is_Meas_valid = typeof(CH.Meas)==="number";
 								CH.Path = logstats[i].Dev_name+'.'+logstats[i].MTI_status.Tele_Device_type+'.'+CH.name;
@@ -655,7 +658,7 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 									for(let k=0; k<logstats[i].Tele_data[j].CHs_meas.length; k++)
 									{
 										let CH = {};
-										CH.name = "CH"+(k+1);
+										CH.name = "CH:"+(k+1);
 										CH.Meas = logstats[i].Tele_data[j].CHs_meas[k];
 										CH.is_Meas_valid = typeof(CH.Meas)==="number";
 										CH.Path = logstats[i].Dev_name+'.'+Mini_RMSW.name+'.'+CH.name;
@@ -690,6 +693,7 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 					if_handler.expanded = true;
 					if_handler.children = [];
 					const sensor_names = ["NOx","O2"];
+					const sensor_unit = ["ppm",'%'];
 					for(let j=0; j<logstats[i].NOx_sensors.length; j++)
 					{
 						if(!Object.keys(logstats[i].NOx_sensors[j]).length)
@@ -705,7 +709,8 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 							Sensor.is_Meas_valid = logstats[i].NOx_sensors[j].status["is_"+sensor_names[k]+"_value_valid"];
 							Sensor.Meas = Sensor.is_Meas_valid ? logstats[i].NOx_sensors[j][sensor_names[k]+"_value_avg"] :
 																 logstats[i].NOx_sensors[j].status.heater_mode_state;
-							Sensor.Path = logstats[i].CANBus_interface.toUpperCase()+".Addr:"+j+'.'+sensor_names[k];
+							Sensor.Unit = sensor_unit[k];
+							Sensor.Path = logstats[i].CANBus_interface.toUpperCase()+".ADDR:"+j+'.'+sensor_names[k];
 							Sensor.Anchor = logstats[i].CANBus_interface+".addr_"+j+'.'+sensor_names[k];
 							if(curr_ISOCHs && is_anchor_in_use(Sensor.Anchor))
 								continue;

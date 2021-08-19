@@ -32,11 +32,11 @@
 	</tr>
 </table>
 <div class="tree_div" id="Dev_tree"></div>
-<table id="sel_data" style="margin:auto;text-align:right;margin-bottom:.075in"></table>
+<table id="sel_data_tbl" style="margin:auto;text-align:right;margin-bottom:.075in"></table>
 <table style="margin:auto;text-align:right;margin-bottom:.075in">
 	<tr>
 		<td>
-			<button id="ok_but" onclick="okay_callback_func();"disabled>Okay</button>
+			<button id="ok_but" onclick="okay_callback_func(sel_data);"disabled>Okay</button>
 		</td>
 		<td>
 			<button onclick="window.close('','_parent','');">Cancel</button>
@@ -74,8 +74,8 @@ for the JavaScript code in this page.
 */
 "use strict";
 var	dev_type, curr_iso_channels,
-	dev_tree, okay_callback_func,
-	sel_data = document.getElementById("sel_data"),
+	dev_tree, okay_callback_func, sel_data,
+	sel_data_tbl = document.getElementById("sel_data_tbl"),
 	ok_button = document.getElementById("ok_but"),
 	caller_res = window.opener,
 	xhttp = new XMLHttpRequest();
@@ -120,11 +120,12 @@ xhttp.onreadystatechange = function()
 		dev_tree.on('collapse', clean_sel_data);
 		dev_tree.on('expand', clean_sel_data);
 		function clean_sel_data(){
-			sel_data.innerHTML = '';
+			sel_data_tbl.innerHTML = '';
+			sel_data = {};
 			ok_button.disabled = true;
 		}
 		dev_tree.on('select', function(elem){
-			sel_data.innerHTML = '';
+			sel_data_tbl.innerHTML = '';
 			if(elem.data && elem.data.Anchor)
 			{
 				gen_sel_data_table(elem.data)
@@ -140,14 +141,57 @@ xhttp.onreadystatechange = function()
 };
 function get_logstats_of_type()
 {
-	sel_data.innerHTML = '';
+	sel_data_tbl.innerHTML = '';
 	xhttp.open("GET", "/morfeas_php/morfeas_web_if.php?COMMAND=logstats&TYPE="+dev_type, true);
 	xhttp.send();
 }
 function gen_sel_data_table(data)
 {
-	console.log(data);
-	generateTable(sel_data, Object.entries(data));
+	sel_data = {};
+	sel_data.path = data.Path;
+	sel_data.Anchor = data.Anchor;
+	let t_data = {};
+	t_data.Sensor_path = data.Path;
+	switch(dev_type)
+	{
+		case "SDAQ":
+			if(!data.Meas.Channel_Status.Channel_status_val)
+				t_data.Last_meas = Math.round(data.Meas.Meas_avg*1000)/1000;
+			else
+			{
+				if(data.Meas.Channel_Status.No_Sensor)
+					t_data.Last_meas = 'No_Sensor';
+				else if(data.Meas.Channel_Status.Out_of_Range)
+					t_data.Last_meas = 'Out_of_Range';
+				else if(data.Meas.Channel_Status.Over_Range)
+					t_data.Last_meas = 'Over_Range';
+			}
+			if(data.Calibration_Data.Is_calibrated)
+			{
+				t_data.Cal_date = new Date(data.Calibration_Data.Calibration_date_UNIX*1000);
+				t_data.Cal_date = t_data.Cal_date.getFullYear()+'/'+(t_data.Cal_date.getMonth()+1)+'/'+(t_data.Cal_date.getDay()+1);
+				t_data.Period = data.Calibration_Data.Calibration_period+" Months";
+				t_data.Last_meas += data.Calibration_Data.Unit; 
+			}
+			else if(!data.Meas.Channel_Status.Channel_status_val)
+				t_data.Last_meas += data.Meas.Unit;
+			break;
+		case "MDAQ":
+			t_data.Last_meas = data.is_Meas_valid ? Math.round(data.Meas*1000)/1000 : data.Meas;
+			break;
+		case "IOBOX":
+		case "MTI":
+			t_data.Last_meas = data.is_Meas_valid ? (Math.round(data.Meas*1000)/1000)+'°C' : data.Meas;
+			break;
+		case "NOX":
+			t_data.Last_meas = data.is_Meas_valid ? (Math.round(data.Meas*1000)/1000)+data.Unit : data.Meas;
+			break;
+	}
+	generateTableHead(sel_data_tbl, ["Name","Property"]);
+	let sel_data_tbl_vals = Object.entries(t_data);
+	for(let i=0; i<sel_data_tbl_vals.length; i++)
+		sel_data_tbl_vals[i][0]+=':';
+	generateTable(sel_data_tbl, sel_data_tbl_vals);
 }
 //Checks and Initialization
 if(!dev_type || !curr_iso_channels)

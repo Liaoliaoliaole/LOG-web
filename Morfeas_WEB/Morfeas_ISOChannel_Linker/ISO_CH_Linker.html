@@ -167,8 +167,11 @@ xhttp.onreadystatechange = function()
 					status_tab.style.color='black';
 					load_data_to_opcua_config_table(curr_logstats);
 				}
-				if(curr_logstats.OPCUA_Config_xml_mod && !OPCUA_Config_xml_modified_flag)
+				if(curr_logstats.OPCUA_Config_xml_mod && !OPCUA_Config_xml_modified_flag)//Server inform modification of OPCUA config.
+				{
+					close_all_popup();
 					request_mode = mode_enum.opcua_config;
+				}
 				OPCUA_Config_xml_modified_flag = curr_logstats.OPCUA_Config_xml_mod;
 				break;
 		}
@@ -216,7 +219,7 @@ document.onkeydown = function(key)
 	if(key.key === "Escape")
 		opcua_config_table.deselectRow();
 };
-window.onbeforeunload = function()
+function close_all_popup()
 {
 	if(edit_wins.length)
 		for(let i=0; i<edit_wins.length; i++)
@@ -229,6 +232,7 @@ window.onbeforeunload = function()
 	if(import_win && !import_win.closed)
 		import_win.close();
 };
+window.onbeforeunload = close_all_popup;
 iso_standard.request_isostandard();//Request ISOstandard from server.
 //@license-end
 </script>
