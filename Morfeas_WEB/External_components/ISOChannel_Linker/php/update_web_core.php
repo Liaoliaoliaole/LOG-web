@@ -88,8 +88,8 @@ Example of Update_config.xml:
 </CONFIG>
 */
 
-require("../Morfeas_env.php");
-require("./Supplementary.php");
+require("../../../Morfeas_env.php");
+require("../../../morfeas_php/Supplementary.php");
 $requestType = $_SERVER['REQUEST_METHOD'];
 $postdata = file_get_contents("php://input");
 $postdata = decompress($postdata);

@@ -192,6 +192,30 @@ else if($requestType == "POST")
 			}
 			break;
 		case 'MOD':
+			/*
+			$OPC_UA_Config_CHs = $OPC_UA_Config->CHANNEL;
+			foreach($Channels->DATA as $Channel_to_be_mod)
+			{
+				for($i=0; $i<count($OPC_UA_Config); $i++)
+				{
+					if($Channel_to_be_add->ISOChannel == $OPC_UA_Config_CHs[$i]->ISO_CHANNEL)
+						die("ISOChannel: \"$Channel_to_be_add->ISOChannel\" Already exist!!!");
+				}
+				$newISOChannel = $OPC_UA_Config->addChild('CHANNEL');
+				$newISOChannel->addChild('ISO_CHANNEL', $Channel_to_be_add->ISOChannel);
+				$newISOChannel->addChild('INTERFACE_TYPE', $Channel_to_be_add->IF_type);
+				$newISOChannel->addChild('ANCHOR', $Channel_to_be_add->Anchor);
+				$newISOChannel->addChild('DESCRIPTION', $Channel_to_be_add->Description);
+				$newISOChannel->addChild('MIN', $Channel_to_be_add->Min);
+				$newISOChannel->addChild('MAX', $Channel_to_be_add->Max);
+				if(property_exists($Channel_to_be_add, 'Unit'))
+						$newISOChannel->addChild('UNIT', $Channel_to_be_add->Unit);
+				if(property_exists($Channel_to_be_add, 'Cal_date'))
+						$newISOChannel->addChild('CAL_DATE', $Channel_to_be_add->Cal_date);
+				if(property_exists($Channel_to_be_add, 'Cal_period'))
+						$newISOChannel->addChild('CAL_PERIOD', $Channel_to_be_add->Cal_period);
+			}
+			*/
 			break;
 		default: die("Error: Unknown Command!!!");
 	}

@@ -156,7 +156,7 @@ function load_data_to_opcua_config_table(curr_logstats)
 }
 function ISOChannel_edit(event, cell)
 {
-	let popup_win = PopupCenter("./ISO_CH_MOD.html"+"?q="+makeid(), cell.value, 600, 800);
+	let popup_win = PopupCenter("./ISO_CH_MOD.html"+"?q="+makeid(), cell.value, 620, 430);
 	if(cell.hasOwnProperty("_cell"))
 		popup_win.curr_config = cell.getRow().getData();
 	else
