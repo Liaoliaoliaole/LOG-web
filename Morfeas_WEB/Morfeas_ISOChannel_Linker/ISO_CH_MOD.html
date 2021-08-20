@@ -210,19 +210,20 @@ function mod_win_val_init()
 	iso_name.value = curr_config.iso_name;
 	desc.value = curr_config.desc;
 	min.value = curr_config.min;
-	max.value = curr_config.max;
-	unit_inp.value = curr_config.unit;
-	cal_date.value = curr_config.cal_date.replaceAll('/','-');
-	period.value = curr_config.cal_period;
-	
+	max.value = curr_config.max;	
 	
 	switch(curr_config.type)
 	{
 		case "SDAQ":
+			
+			break;
 		case "MDAQ":
 		case "IOBOX":
 		case "MTI":
 		case "NOX":
+			unit_inp.value = curr_config.unit;
+			cal_date.value = curr_config.cal_date.replaceAll('/','-');
+			period.value = curr_config.cal_period;
 	}
 }
 //Callback Functions
