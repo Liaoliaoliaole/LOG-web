@@ -222,7 +222,8 @@ function mod_win_val_init()
 		case "MTI":
 		case "NOX":
 			unit_inp.value = curr_config.unit;
-			cal_date.value = curr_config.cal_date.replaceAll('/','-');
+			if(curr_config.cal_date)
+				cal_date.value = curr_config.cal_date.replaceAll('/','-');
 			period.value = curr_config.cal_period;
 	}
 }
@@ -250,6 +251,11 @@ function cal_date_changed(elem)
 	vals_check();
 }
 
+window.onbeforeunload = function()
+{
+	if(search_win && !search_win.closed)
+		search_win.close();
+};
 /*
 for(let i=0; i<=20; i++)
 {
@@ -592,12 +598,6 @@ function send()
 	post_xhttp.open("POST", "/morfeas_php/morfeas_web_if.php", true);
 	post_xhttp.send(compress(JSON.stringify(post_msg_contents)));
 }
-
-window.onbeforeunload = function()
-{
-	if(search_win && !search_win.closed)
-		search_win.close();
-};
 */
 //@license-end
 </script>
