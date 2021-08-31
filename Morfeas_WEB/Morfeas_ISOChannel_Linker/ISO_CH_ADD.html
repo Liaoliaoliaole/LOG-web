@@ -466,6 +466,8 @@ function cal_date_changed(elem)
 }
 function period_input_changed(elem)
 {
+	if(isNaN(elem.valueAsNumber))
+		elem.value = !isNaN(period_input_changed.prev_value)?period_input_changed.prev_value:12;
 	if(!elem.value)
 		elem.value = period_input_changed.prev_value;
 	else

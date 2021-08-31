@@ -81,7 +81,7 @@
 					   id="min"
 					   type="number"
 					   size="5"
-					   onchange="vals_check()">
+					   onchange="min_max_check(this)">
 				</input>
 			</td>
 		</tr>
@@ -94,11 +94,11 @@
 					   id="max"
 					   type="number"
 					   size="5"
-					   onchange="vals_check()">
+					   onchange="min_max_check(this)">
 				</input>
 			</td>
 		</tr>
-		<tr>
+		<tr name="date_period_unit">
 			<td>
 				<label for="cal_date">Cal Date:</label>
 			</td>
@@ -112,7 +112,7 @@
 				</input>
 			</td>
 		</tr>
-		<tr>
+		<tr name="date_period_unit">
 			<td>
 				<label for="period">Cal Period:</label>
 			</td>
@@ -128,7 +128,7 @@
 				</input>
 			</td>
 		</tr>
-		<tr>
+		<tr name="date_period_unit">
 			<td>
 				<label for="unit">Unit:</label>
 			</td>
@@ -206,28 +206,63 @@ mod_win_val_init();
 function mod_win_val_init()
 {
 	type.value = curr_config.type;
-	conn.value = curr_config.conn;
-	iso_name.value = curr_config.iso_name;
 	desc.value = curr_config.desc;
 	min.value = curr_config.min;
-	max.value = curr_config.max;	
-	
+	max.value = curr_config.max;
+	iso_name.value = curr_config.iso_name;
+	if(curr_config.conn === "-")
+	{
+		conn.disabled = false;
+		sensor_search.disabled = false;
+	}
+	else
+		conn.value = curr_config.conn;
 	switch(curr_config.type)
 	{
 		case "SDAQ":
-			
+			let grp = document.getElementsByName("date_period_unit");
+			for(let i=0; i<grp.length; i++)
+				grp[i].style.display = "none";
 			break;
 		case "MDAQ":
+			unit_inp.disabled = false;
 		case "IOBOX":
 		case "MTI":
 		case "NOX":
 			unit_inp.value = curr_config.unit;
-			if(curr_config.cal_date)
+			if(curr_config.cal_date && typeof(curr_config.cal_date)==='string')
 				cal_date.value = curr_config.cal_date.replaceAll('/','-');
-			period.value = curr_config.cal_period;
+			else
+			{
+				let now = new Date(), cal_date_str;
+				cal_date_str = now.getFullYear()+'-'+
+							   pad((now.getMonth()+1),2)+'-'+
+							   pad(now.getDate(),2);
+				cal_date.value = cal_date_str;
+			}
+			period.value = curr_config.cal_period?curr_config.cal_period : 12;
+			break;
 	}
 }
 //Callback Functions
+function min_max_check(elem)
+{
+	if(isNaN(elem.valueAsNumber))
+		elem.value = 0;
+	switch(elem.id)
+	{
+		case "min":
+			if(Number(elem.value) > Number(max.value))
+				elem.value = max.value;
+			break;
+		case "max":
+			if(Number(elem.value) < Number(min.value))
+				elem.value = min.value;
+			break;
+	}
+	vals_check();
+}
+
 function cal_date_changed(elem)
 {
 	let date_min, date_max, curr_value;
@@ -249,6 +284,43 @@ function cal_date_changed(elem)
 			elem.value = elem.max;
 	}
 	vals_check();
+}
+function unit_val_changed(elem)
+{
+	if(!elem.value)
+		elem.value = curr_config.unit?curr_config.unit:'-';
+	else	
+		elem.value = elem.value.replace(/\s/g, '');
+	vals_check();
+}
+
+function period_input_changed(elem)
+{
+	if(isNaN(elem.valueAsNumber))
+		elem.value = !isNaN(period_input_changed.prev_value)?period_input_changed.prev_value: curr_config.cal_period?curr_config.cal_period:12;
+	if(!elem.value)
+		elem.value = period_input_changed.prev_value;
+	else
+	{
+		if(Number(elem.value) > Number(elem.max))
+			elem.value = elem.max;
+		if(Number(elem.value) < Number(elem.min))
+			elem.value = elem.min;
+		period_input_changed.prev_value = elem.value;
+	}
+	vals_check();
+}
+
+function vals_check()
+{
+	let okay = false;
+	if(!desc.value)
+		desc.value = curr_config.desc;
+	if( desc.value != curr_config.desc ||
+	    min.value != curr_config.min  ||
+	    max.value != curr_config.max )
+		okay = true;
+	send_button.disabled = !okay;
 }
 
 window.onbeforeunload = function()
@@ -457,26 +529,6 @@ function iso_name_val(elem)
 	}
 	vals_check();
 }
-function unit_val_changed(elem)
-{
-	elem.value = elem.value.replace(/\s/g, '');
-	vals_check();
-}
-
-function period_input_changed(elem)
-{
-	if(!elem.value)
-		elem.value = period_input_changed.prev_value;
-	else
-	{
-		if(Number(elem.value) > Number(elem.max))
-			elem.value = elem.max;
-		if(Number(elem.value) < Number(elem.min))
-			elem.value = elem.min;
-		period_input_changed.prev_value = elem.value;
-	}
-	vals_check();
-}
 
 function sensor_search_func()
 {
@@ -518,24 +570,6 @@ function get_available_devs(_logstats, _type, _ISOchannels)
 					dev_paths.splice(i, 1);
 	}
 	return dev_paths;
-}
-
-function vals_check()
-{
-	let okay = false;
-
-	status_tab.value = !type.selectedIndex?"Select Type":"Define sensor's path";
-	status_tab.style.color='black';
-	if(Number(min.value)>Number(max.value))
-	{
-		status_tab.value = "Error: Min > Max";
-		status_tab.style.color='red';
-		okay = false;
-	}
-	if(conn.value && iso_name.value && desc.value &&
-	   min.value && max.value && unit_inp.value)
-		okay = true;
-	send_button.disabled = !okay;
 }
 
 function send()
