@@ -56,7 +56,7 @@ function decompress($data)
 		$result .= $new_dict_entry->data;
 		$Cal_Checksum ^= $new_dict_entry->num;
 	}
-	$Cal_Checksum &= 0xFF;
+	$Cal_Checksum = ($Cal_Checksum&0xFF)+0x20;//+0x20 to avoid control characters 
 	if(!($RX_Checksum^$Cal_Checksum))
 		return $result;
 	else

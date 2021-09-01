@@ -165,7 +165,7 @@ function compress(data, debug_info)
 	}
 	if(word !== "")
 		result += word;
-	result = String.fromCharCode(dictOffset) + String.fromCharCode(dictionary_size)+ result + String.fromCharCode(checksum&0xFF);
+	result = String.fromCharCode(dictOffset) + String.fromCharCode(dictionary_size)+ result + String.fromCharCode((checksum&0xFF)+0x20);//+0x20 to avoid control characters 
 	if(debug_info)
 	{
 		var tack = performance.now()
@@ -232,5 +232,28 @@ function download(filename, contains, data_type)
 	document.body.appendChild(elem);
 	elem.click();
 	document.body.removeChild(elem);
+}
+
+function get_available_devs(_logstats, _type, _ISOchannels)
+{
+	let dev_paths=[];
+	if(!_logstats)
+		return;
+	for(let i=0; i<_logstats.length; i++)
+	{
+		if(_type && !_logstats[i].if_name.includes(_type))
+			continue;
+		if(_logstats[i].sensors.length)
+			dev_paths.push(..._logstats[i].sensors);
+	}
+	if(_ISOchannels)
+	{
+		let c = dev_paths.length
+		for(let i=0; i<dev_paths.length; i++)
+			for(let j=0; j<_ISOchannels.length; j++)
+				if(dev_paths[i] && dev_paths[i].sensorUserId === _ISOchannels[j].conn)
+					dev_paths.splice(i, 1);
+	}
+	return dev_paths;
 }
 //@license-end

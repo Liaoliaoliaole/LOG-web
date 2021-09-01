@@ -157,11 +157,12 @@ function load_data_to_opcua_config_table(curr_logstats)
 function ISOChannel_edit(event, cell)
 {
 	let popup_win = PopupCenter("./ISO_CH_MOD.html"+"?q="+makeid(), cell.value, 620, 430);
+	popup_win.curr_logstats_comb = curr_logstats_comb;
 	if(cell.hasOwnProperty("_cell"))
 		popup_win.curr_config = cell.getRow().getData();
 	else
 		popup_win.curr_config = cell._row.data;
-	popup_win.curr_iso_standards = iso_standard;
+	popup_win.curr_iso_channels = opcua_config_table.getData();
 	edit_wins.push(popup_win);
 }
 function ISOChannel_add()

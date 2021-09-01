@@ -29,7 +29,7 @@
 				<label for="type_selector">Type:</label>
 			</td>
 			<td>
-				<input name="link_data" id="type_selector" size="5"readonly disabled></input>
+				<input id="type_selector" size="5"readonly disabled></input>
 			</td>
 		</tr>
 		<tr>
@@ -38,8 +38,7 @@
 			</td>
 			<td>
 				<div class="autoComplete_wrapper">
-					<input name="link_data"
-						   id="conn"
+					<input id="conn"
 						   onchange="conn_inp_val(this);"
 						   size="30"
 						   maxlength="30"
@@ -55,8 +54,7 @@
 			</td>
 			<td>
 				<div class="autoComplete_wrapper">
-					<input name="link_data"
-						   id="iso_name"
+					<input id="iso_name"
 						   size="20"
 						   maxlength="20"
 						   readonly
@@ -69,7 +67,7 @@
 				<label for="desc">Description:</label>
 			</td>
 			<td colspan="2">
-				<input name="link_data" id="desc" size="30" onchange="vals_check()"></input>
+				<input id="desc" size="30" onchange="vals_check()"></input>
 			</td>
 		</tr>
 		<tr>
@@ -77,8 +75,7 @@
 				<label for="min">Min:</label>
 			</td>
 			<td>
-				<input name="link_data"
-					   id="min"
+				<input id="min"
 					   type="number"
 					   size="5"
 					   onchange="min_max_check(this)">
@@ -90,8 +87,7 @@
 				<label for="max">Max:</label>
 			</td>
 			<td>
-				<input name="link_data"
-					   id="max"
+				<input id="max"
 					   type="number"
 					   size="5"
 					   onchange="min_max_check(this)">
@@ -103,8 +99,7 @@
 				<label for="cal_date">Cal Date:</label>
 			</td>
 			<td>
-				<input name="link_data"
-					   id="cal_date"
+				<input id="cal_date"
 					   type="date"
 					   max="2255-12-31"
 					   min="2000-01-01"
@@ -117,8 +112,7 @@
 				<label for="period">Cal Period:</label>
 			</td>
 			<td>
-				<input name="link_data"
-					   id="period"
+				<input id="period"
 					   type="number"
 					   min='0'
 					   max='255'
@@ -133,8 +127,7 @@
 				<label for="unit">Unit:</label>
 			</td>
 			<td>
-				<input name="link_data"
-					   id="unit"
+				<input id="unit"
 					   size="5"
 					   onchange="unit_val_changed(this)"
 					   disabled>
@@ -180,14 +173,11 @@ for the JavaScript code in this page.
 */
 "use strict";
 comp_check();
-var	curr_config, curr_logstats_comb;
-var search_win,	sel_dev_anchor,
-	conn_autocomplete, ISOname_autocomplete;
-var link_data = document.getElementsByName("link_data"),
-	sensor_search = document.getElementById("sensor_search"),
+var	curr_config, curr_logstats_comb, curr_iso_channels;
+var search_win,	sel_dev_anchor, conn_autocomplete;
+var sensor_search = document.getElementById("sensor_search"),
 	cal_data = document.getElementsByClassName("cal_data"),
-	send_button = document.getElementById("send_button"),
-	status_tab = document.getElementById("status_tab");
+	send_button = document.getElementById("send_button");
 var type = document.getElementById("type_selector"),
 	conn = document.getElementById("conn"),
 	iso_name = document.getElementById("iso_name"),
@@ -214,9 +204,48 @@ function mod_win_val_init()
 	{
 		conn.disabled = false;
 		sensor_search.disabled = false;
+		console.log(curr_logstats_comb);
+		//Populate conn_autocomplete.
+		let available_dev_paths = get_available_devs(curr_logstats_comb, curr_config.type);
+		if(available_dev_paths)
+		{
+			conn_autocomplete = new autoComplete({
+				selector: "#conn",
+				data: {
+					src: available_dev_paths,
+					key: ["sensorUserId"]
+				},
+				resultItem: {
+					highlight: {render: true}
+				},
+				onSelection: function(fb){
+					conn.value = fb.selection.value.sensorUserId;
+					sel_dev_anchor = fb.selection.value.anchor;
+					conn.style.color = 'black';
+					conn_inp_val(conn);
+				}
+			});
+			switch(curr_config.type)
+			{
+				case  "SDAQ": conn.placeholder = "CAN-if.Addr:XX.CH:XX";break;
+				case  "MDAQ": conn.placeholder = "DEV_NAME.CH:XX.Val:X"; break;
+				case "IOBOX": conn.placeholder = "DEV_NAME.RX:X.CH:XX"; break;
+				case   "MTI": conn.placeholder = "DEV_NAME.Type.CH:XX"; break;
+				case   "NOX": conn.placeholder = "CAN-if.Addr:X.Sensor_name"; break;
+			}
+			conn.style.textAlign="left";
+		}
+		else
+		{
+			conn.placeholder = "Use Search \u2192";
+			conn.style.textAlign="right";
+		}
 	}
 	else
+	{
 		conn.value = curr_config.conn;
+		sel_dev_anchor = curr_config.anchor;
+	}
 	switch(curr_config.type)
 	{
 		case "SDAQ":
@@ -245,6 +274,66 @@ function mod_win_val_init()
 	}
 }
 //Callback Functions
+function conn_inp_val(elem)
+{
+	let conn_found_fl = false;
+	elem.value = elem.value.replace(/\s/g, '');
+	elem.style.color = 'black';
+	sensor_search.disabled = false;
+
+	for(let i=0; i<curr_iso_channels.length; i++)
+	{
+		if(elem.value == curr_iso_channels[i].conn ||
+     	   curr_iso_channels[i].anchor == sel_dev_anchor)
+		{
+			elem.style.color='red';
+			sel_dev_anchor = '';
+			vals_check();
+			return;
+		}
+	}
+	if(conn_autocomplete)
+	{
+		for(let i=0; i<conn_autocomplete.data.src.length; i++)
+		{
+			if(elem.value == conn_autocomplete.data.src[i].sensorUserId)
+			{
+				conn_found_fl = true;
+				unit_inp.value = conn_autocomplete.data.src[i].unit;
+			}
+		}
+	}
+	if(!conn_found_fl)
+	{
+		elem.style.color='red';
+		sel_dev_anchor = '';
+		vals_check();
+		return;
+	}
+	vals_check();
+	//Disable sensor_search
+	sensor_search.disabled = true;
+	if(search_win && !search_win.closed)
+		search_win.close();
+}
+function sensor_search_func()
+{
+	if(!search_win || search_win.closed)
+	{
+		search_win = PopupCenter("./dev_search.html"+"?q="+makeid(), "", 400, 500);
+		search_win.dev_type = type.value;
+		search_win.curr_iso_channels = curr_iso_channels;
+		search_win.okay_callback_func = function(sel_data){
+			if(!sel_data)
+				return;
+			sel_dev_anchor = sel_data.Anchor;
+			conn.value = sel_data.path;
+			conn.onchange();
+		};
+	}
+	else
+		search_win.focus();
+}
 function min_max_check(elem)
 {
 	if(isNaN(elem.valueAsNumber))
@@ -262,7 +351,6 @@ function min_max_check(elem)
 	}
 	vals_check();
 }
-
 function cal_date_changed(elem)
 {
 	let date_min, date_max, curr_value;
@@ -289,11 +377,10 @@ function unit_val_changed(elem)
 {
 	if(!elem.value)
 		elem.value = curr_config.unit?curr_config.unit:'-';
-	else	
+	else
 		elem.value = elem.value.replace(/\s/g, '');
 	vals_check();
 }
-
 function period_input_changed(elem)
 {
 	if(isNaN(elem.valueAsNumber))
@@ -310,7 +397,6 @@ function period_input_changed(elem)
 	}
 	vals_check();
 }
-
 function vals_check()
 {
 	let okay = false;
@@ -320,290 +406,49 @@ function vals_check()
 	    min.value != curr_config.min  ||
 	    max.value != curr_config.max )
 		okay = true;
-	send_button.disabled = !okay;
-}
-
-window.onbeforeunload = function()
-{
-	if(search_win && !search_win.closed)
-		search_win.close();
-};
-/*
-for(let i=0; i<=20; i++)
-{
-	let text = i?i:'N/A',
-		new_postfix_opt = document.createElement('option'),
-		opt_text = document.createTextNode(text);
-	new_postfix_opt.appendChild(opt_text);
-	new_postfix_opt.setAttribute('value', text);
-	post_fix.appendChild(new_postfix_opt);
-}
-post_fix.selectedIndex=0;
-link_data[0].selectedIndex=0;
-type_selector_changed(0);
-//Callback Functions
-function type_selector_changed(sel)
-{
-	sel_dev_anchor = undefined;
-	if(search_win && !search_win.closed)
-		search_win.close();
-	for(let i=1; i<link_data.length; i++)
+	switch(curr_config.type)
 	{
-		link_data[i].value = '';
-		link_data[i].disabled = true;
-	}
-	post_fix.disabled = true;
-	if(!sel.selectedIndex)
-	{
-		send_button.disabled = true;
-		sensor_search.disabled = true;
-		unit_inp.disabled = true;
-		conn.placeholder = '';
-		conn.style.textAlign="left";
-		for(let i=0; i<cal_data.length; i++)
-			cal_data[i].style.display = "none";
-		vals_check();
-		return;
-	}
-	link_data[1].disabled=false;
-	sensor_search.disabled = false;
-	//Populate conn_autocomplete.
-	let available_dev_paths = get_available_devs(curr_logstats_comb, sel.value, curr_iso_channels);
-	if(available_dev_paths)
-	{
-		conn_autocomplete = new autoComplete({
-			selector: "#conn",
-			data: {
-				src: available_dev_paths,
-				key: ["sensorUserId"]
-			},
-			resultItem: {
-				highlight: {render: true}
-			},
-			onSelection: function(fb){
-				conn.value = fb.selection.value.sensorUserId;
-				sel_dev_anchor = fb.selection.value.anchor;
-				conn.style.color = 'black';
-				conn_inp_val(conn);
-			}
-		});
-	}
-	switch(sel.value)
-	{
-		case "SDAQ":
-			unit_inp.disabled = true;
-			conn.placeholder = "CAN-if.Addr:XX.CH:XX";
-			for(let i=0; i<cal_data.length; i++)
-				cal_data[i].style.display = "none";
-			break;
 		case "MDAQ":
-			unit_inp.disabled = false;
+			if(unit_inp.value != curr_config.unit)
+				okay = true;
 		case "IOBOX":
 		case "MTI":
 		case "NOX":
-			if(sel.value != "MDAQ")
-				unit_inp.disabled = true;
-			for(let i=0; i<cal_data.length; i++)
-				cal_data[i].style.display = "table-row";
-			switch(sel.value)
-			{
-				case "MDAQ": conn.placeholder = "DEV_NAME.CH:XX.Val:X"; break;
-				case "IOBOX": conn.placeholder = "DEV_NAME.RX:X.CH:XX"; break;
-				case "MTI": conn.placeholder = "DEV_NAME.Type.CH:XX"; break;
-				case "NOX": conn.placeholder = "CAN-if.Addr:X.Sensor_name"; break;
-			}
-			let now_date = new Date();
-			cal_date.disabled = false;
-			cal_date.value = now_date.getFullYear()+'-'+
-							 pad((now_date.getMonth()+1),2)+'-'+
-							 pad(now_date.getDate(),2);
-			period.disabled = false;
-			period.value = 12;
-			period_input_changed.prev_value = 12;
+			if(period.value != curr_config.cal_period ||
+			   cal_date.value.replaceAll('-','/') != curr_config.cal_date)
+				okay = true;
+			break;
 	}
-	conn.style.textAlign="left";
-	if(!conn_autocomplete)
-	{
-		conn.placeholder = "Use Search \u2192";
-		conn.style.textAlign="right";
-	}
-	vals_check();
+	if(!conn.value)
+		okay = false;
+	send_button.disabled = !okay;
 }
-function conn_inp_val(elem)
-{
-	let conn_found_fl = false;
-	elem.value = elem.value.replace(/\s/g, '');
-	elem.style.color = 'black';
-	sensor_search.disabled = false;
-	if(!elem.value)
-	{
-		for(let i=2; i<link_data.length; i++)
-			link_data[i].disabled = true;
-		return;
-	}
-	for(let i=0; i<curr_iso_channels.length; i++)
-	{
-		if(elem.value == curr_iso_channels[i].conn ||
-     	   curr_iso_channels[i].anchor == sel_dev_anchor)
-		{
-			elem.style.color='red';
-			sel_dev_anchor = '';
-			for(let i=2; i<link_data.length; i++)
-				link_data[i].disabled = true;
-			vals_check();
-			return;
-		}
-	}
-	if(conn_autocomplete)
-	{
-		for(let i=0; i<conn_autocomplete.data.src.length; i++)
-		{
-			if(elem.value == conn_autocomplete.data.src[i].sensorUserId)
-			{
-				conn_found_fl = true;
-				unit_inp.value = conn_autocomplete.data.src[i].unit;
-			}
-		}
-	}
-	if(!conn_found_fl)
-	{
-		elem.style.color='red';
-		sel_dev_anchor = '';
-		for(let i=2; i<link_data.length; i++)
-			link_data[i].disabled = true;
-		vals_check();
-		return;
-	}
-	//Enable input fields.
-	for(let i=2; i<link_data.length; i++)
-	{
-		link_data[i].disabled = false;
-		//If type is not MDAQ disable unit_inp.
-		if(i==link_data.length-1 && type.selectedIndex != 2)
-			link_data[i].disabled = true;
-	}
-	post_fix.disabled = false;
-	if(curr_iso_standards.iso_standard_xml)
-	{	//Populate ISOname_autocomplete.
-		let recommented_ISOChannels = curr_iso_standards.get_isostandard_by_unit(unit_inp.value);
-		if(recommented_ISOChannels)
-		{
-			ISOname_autocomplete = new autoComplete({
-				selector: "#iso_name",
-				data: {
-					src: recommented_ISOChannels,
-					key: ["iso_code_and_desc"]
-				},
-				resultItem: {
-					highlight: {render: true}
-				},
-				onSelection: function(fb){
-					post_fix.selectedIndex=0;
-					iso_name.value = fb.selection.value.attributes.iso_code;
-					desc.value = fb.selection.value.attributes.description;
-					min.value = fb.selection.value.attributes.min;
-					max.value = fb.selection.value.attributes.max;
-					unit_inp.value = fb.selection.value.attributes.unit;
-					vals_check();
-				}
-			});
-		}
-	}
-	vals_check();
-	//Disable sensor_search
-	sensor_search.disabled = true;
-	if(search_win && !search_win.closed)
-		search_win.close();
-}
-function iso_name_val(elem)
-{
-	elem.value = elem.value.replace(/[.\s]/g, '');
-	if(!elem.value)
-	{
-		post_fix.selectedIndex = 0;
-		desc.value = '';
-		min.value = '';
-		max.value = '';
-		if(unit_inp.disabled == false)
-			unit_inp.value = '';
-	}
-	vals_check();
-}
-
-function sensor_search_func()
-{
-	if(!search_win || search_win.closed)
-	{
-		search_win = PopupCenter("./dev_search.html"+"?q="+makeid(), "", 400, 500);
-		search_win.dev_type = type.value;
-		search_win.curr_iso_channels = curr_iso_channels;
-		search_win.okay_callback_func = function(sel_data){
-			if(!sel_data)
-				return;
-			sel_dev_anchor = sel_data.Anchor;
-			conn.value = sel_data.path;
-			conn.onchange();
-		};
-	}
-	else
-		search_win.focus();
-}
-
-function get_available_devs(_logstats, _type, _ISOchannels)
-{
-	let dev_paths=[];
-	if(!_logstats)
-		return;
-	for(let i=0; i<_logstats.length; i++)
-	{
-		if(_type && !_logstats[i].if_name.includes(_type))
-			continue;
-		if(_logstats[i].sensors.length)
-			dev_paths.push(..._logstats[i].sensors);
-	}
-	if(_ISOchannels)
-	{
-		let c = dev_paths.length
-		for(let i=0; i<dev_paths.length; i++)
-			for(let j=0; j<_ISOchannels.length; j++)
-				if(dev_paths[i] && dev_paths[i].sensorUserId === _ISOchannels[j].conn)
-					dev_paths.splice(i, 1);
-	}
-	return dev_paths;
-}
-
 function send()
 {
-	let new_link_data = {}, post_msg_contents = {COMMAND: "", DATA: []},
+	let mod_link_data = {}, post_msg_contents = {COMMAND: "", DATA: []},
 		post_xhttp = new XMLHttpRequest();
-	new_link_data.ISOChannel = iso_name.value+(post_fix.selectedIndex?('_'+post_fix.value):'');
-	new_link_data.IF_type = type.value;
-	new_link_data.Anchor = sel_dev_anchor;
-	new_link_data.Description = desc.value;
-	new_link_data.Min = min.value;
-	new_link_data.Max = max.value;
-	if(link_data[0].selectedIndex > 1)
-		new_link_data.Unit = unit_inp.value;
-	if(cal_data[0].style.display != "none")
+	mod_link_data.IF_type = curr_config.type;
+	mod_link_data.ISOChannel = curr_config.iso_name;
+	mod_link_data.Description = desc.value;
+	mod_link_data.Min = min.value;
+	mod_link_data.Max = max.value;
+	mod_link_data.Anchor = sel_dev_anchor;
+
+	if(curr_config.type != "SDAQ")
 	{
-		let cal_date_date = new Date(cal_date.value);
-		new_link_data.Cal_date = cal_date_date.getFullYear()+'/'+
-								 pad((cal_date_date.getMonth()+1),2)+'/'+
-								 pad(cal_date_date.getDate(),2);
-		new_link_data.Cal_period = period.value;
+		mod_link_data.Cal_period = period.value;
+		mod_link_data.Unit = unit_inp.value;
+		mod_link_data.Cal_date = cal_date.value.replaceAll('-','/');
 	}
 	post_xhttp.timeout = 2000;
 	post_xhttp.ontimeout = function(){
-		status_tab.value = "Connection to server: Timeout Error";
-		status_tab.style.color='blue';
+		alert("Connection to server: Timeout Error");
 	};
 	post_xhttp.onreadystatechange = function(){
 		if(this.readyState == 4 && this.status == 200)
 		{
 			if(this.getResponseHeader("Content-Type")==="report/text")
 			{
-				status_tab.value = this.responseText;
-				status_tab.style.color='red';
 				console.log(this.responseText);
 				alert(this.responseText);
 			}
@@ -621,18 +466,21 @@ function send()
 			}
 		}
 		else if(this.status == 404)
-		{
-			status_tab.value = "Error 404: Data Not found";
-			status_tab.style.color='red';
-		}
+			alert("Error 404: Data Not found");
 	};
 	//Prepare message contents.
-	post_msg_contents.COMMAND = "ADD";
-	post_msg_contents.DATA.push(new_link_data);
+	post_msg_contents.COMMAND = "MOD";
+	post_msg_contents.DATA.push(mod_link_data);
+	console.log(post_msg_contents);
 	post_xhttp.open("POST", "/morfeas_php/morfeas_web_if.php", true);
 	post_xhttp.send(compress(JSON.stringify(post_msg_contents)));
 }
-*/
+
+window.onbeforeunload = function()
+{
+	if(search_win && !search_win.closed)
+		search_win.close();
+};
 //@license-end
 </script>
 </html>
