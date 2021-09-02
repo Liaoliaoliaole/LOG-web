@@ -227,7 +227,7 @@ else if($requestType == "POST")
 					}
 				}
 				else
-					die("ISOChannel: \"$Channel_to_be_mod->ISOChannel\" Does not exist!!!");
+					die("ISOChannel: \"$Channel_to_be_mod->ISOChannel\" with type:\"$OPC_UA_Config_CHs[$i]->INTERFACE_TYPE\" Does not exist!!!");
 			}
 			break;
 		default: die("Error: Unknown Command!!!");

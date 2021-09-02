@@ -174,7 +174,7 @@ for the JavaScript code in this page.
 "use strict";
 comp_check();
 var	curr_config, curr_logstats_comb, curr_iso_channels;
-var search_win,	sel_dev_anchor, conn_autocomplete;
+var search_win,	sel_dev_anchor, conn_autocomplete, dead_conn_fl=false;
 var sensor_search = document.getElementById("sensor_search"),
 	cal_data = document.getElementsByClassName("cal_data"),
 	send_button = document.getElementById("send_button");
@@ -201,46 +201,7 @@ function mod_win_val_init()
 	max.value = curr_config.max;
 	iso_name.value = curr_config.iso_name;
 	if(curr_config.conn === "-")
-	{
-		conn.disabled = false;
-		sensor_search.disabled = false;
-		console.log(curr_logstats_comb);
-		//Populate conn_autocomplete.
-		let available_dev_paths = get_available_devs(curr_logstats_comb, curr_config.type);
-		if(available_dev_paths)
-		{
-			conn_autocomplete = new autoComplete({
-				selector: "#conn",
-				data: {
-					src: available_dev_paths,
-					key: ["sensorUserId"]
-				},
-				resultItem: {
-					highlight: {render: true}
-				},
-				onSelection: function(fb){
-					conn.value = fb.selection.value.sensorUserId;
-					sel_dev_anchor = fb.selection.value.anchor;
-					conn.style.color = 'black';
-					conn_inp_val(conn);
-				}
-			});
-			switch(curr_config.type)
-			{
-				case  "SDAQ": conn.placeholder = "CAN-if.Addr:XX.CH:XX";break;
-				case  "MDAQ": conn.placeholder = "DEV_NAME.CH:XX.Val:X"; break;
-				case "IOBOX": conn.placeholder = "DEV_NAME.RX:X.CH:XX"; break;
-				case   "MTI": conn.placeholder = "DEV_NAME.Type.CH:XX"; break;
-				case   "NOX": conn.placeholder = "CAN-if.Addr:X.Sensor_name"; break;
-			}
-			conn.style.textAlign="left";
-		}
-		else
-		{
-			conn.placeholder = "Use Search \u2192";
-			conn.style.textAlign="right";
-		}
-	}
+		dead_conn_fl = true;
 	else
 	{
 		conn.value = curr_config.conn;
@@ -273,13 +234,55 @@ function mod_win_val_init()
 			break;
 	}
 }
+function populate_conn_autocomplete()
+{
+	if (!dead_conn_fl || populate_conn_autocomplete.done)
+		return;
+	conn.disabled = false;
+	sensor_search.disabled = false;
+	//Populate conn_autocomplete.
+	let available_dev_paths = get_available_devs(curr_logstats_comb, curr_config.type, curr_iso_channels);
+	if(available_dev_paths)
+	{
+		conn_autocomplete = new autoComplete({
+			selector: "#conn",
+			data: {
+				src: available_dev_paths,
+				key: ["sensorUserId"]
+			},
+			resultItem: {
+				highlight: {render: true}
+			},
+			onSelection: function(fb){
+				conn.value = fb.selection.value.sensorUserId;
+				sel_dev_anchor = fb.selection.value.anchor;
+				conn.style.color = 'black';
+				conn_inp_val(conn);
+			}
+		});
+		switch(curr_config.type)
+		{
+			case  "SDAQ": conn.placeholder = "CAN-if.Addr:XX.CH:XX";break;
+			case  "MDAQ": conn.placeholder = "DEV_NAME.CH:XX.Val:X"; break;
+			case "IOBOX": conn.placeholder = "DEV_NAME.RX:X.CH:XX"; break;
+			case   "MTI": conn.placeholder = "DEV_NAME.Type.CH:XX"; break;
+			case   "NOX": conn.placeholder = "CAN-if.Addr:X.Sensor_name"; break;
+		}
+		conn.style.textAlign="left";
+	}
+	else
+	{
+		conn.placeholder = "Use Search \u2192";
+		conn.style.textAlign="right";
+	}
+	populate_conn_autocomplete.done = true;
+}
 //Callback Functions
 function conn_inp_val(elem)
 {
 	let conn_found_fl = false;
 	elem.value = elem.value.replace(/\s/g, '');
 	elem.style.color = 'black';
-	sensor_search.disabled = false;
 
 	for(let i=0; i<curr_iso_channels.length; i++)
 	{
@@ -288,7 +291,7 @@ function conn_inp_val(elem)
 		{
 			elem.style.color='red';
 			sel_dev_anchor = '';
-			vals_check();
+			send_button.disabled = true;
 			return;
 		}
 	}
@@ -307,7 +310,7 @@ function conn_inp_val(elem)
 	{
 		elem.style.color='red';
 		sel_dev_anchor = '';
-		vals_check();
+		send_button.disabled = true;
 		return;
 	}
 	vals_check();
@@ -402,7 +405,8 @@ function vals_check()
 	let okay = false;
 	if(!desc.value)
 		desc.value = curr_config.desc;
-	if( desc.value != curr_config.desc ||
+	if( conn.value != curr_config.conn ||
+		desc.value != curr_config.desc ||
 	    min.value != curr_config.min  ||
 	    max.value != curr_config.max )
 		okay = true;
@@ -419,12 +423,17 @@ function vals_check()
 				okay = true;
 			break;
 	}
-	if(!conn.value)
+	if(!conn.value || conn.style.color === "red")
 		okay = false;
 	send_button.disabled = !okay;
 }
 function send()
 {
+	if(!sel_dev_anchor)
+	{
+		alert("sel_dev_anchor is Undefined !!!");
+		return;
+	}
 	let mod_link_data = {}, post_msg_contents = {COMMAND: "", DATA: []},
 		post_xhttp = new XMLHttpRequest();
 	mod_link_data.IF_type = curr_config.type;
@@ -471,7 +480,6 @@ function send()
 	//Prepare message contents.
 	post_msg_contents.COMMAND = "MOD";
 	post_msg_contents.DATA.push(mod_link_data);
-	console.log(post_msg_contents);
 	post_xhttp.open("POST", "/morfeas_php/morfeas_web_if.php", true);
 	post_xhttp.send(compress(JSON.stringify(post_msg_contents)));
 }
@@ -480,6 +488,11 @@ window.onbeforeunload = function()
 {
 	if(search_win && !search_win.closed)
 		search_win.close();
+};
+document.onkeydown = function(key)
+{
+	if(key.ctrlKey && key.shiftKey && curr_config.conn !== "-")
+		dead_conn_fl = true;
 };
 //@license-end
 </script>

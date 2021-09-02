@@ -146,18 +146,23 @@ function load_data_to_opcua_config_table(curr_logstats)
 		//Update Logstats to ADD and Edit windows.
 		if(add_wins.length)
 			for(let i=0; i<add_wins.length; i++)
-				add_wins[i].curr_logstats_comb = curr_logstats_comb;
+				if(!add_wins[i].closed)
+					add_wins[i].curr_logstats_comb = curr_logstats_comb;
 		if(edit_wins.length)
 			for(let i=0; i<edit_wins.length; i++)
-				edit_wins[i].curr_logstats_comb = curr_logstats_comb;
+				if(!edit_wins[i].closed)
+				{
+					edit_wins[i].curr_logstats_comb = curr_logstats_comb;
+					if(edit_wins[i].populate_conn_autocomplete)
+						edit_wins[i].populate_conn_autocomplete();
+				}
 		if(import_win && !import_win.closed)
 			import_win.curr_logstats_comb = curr_logstats_comb;
 	}
 }
 function ISOChannel_edit(event, cell)
 {
-	let popup_win = PopupCenter("./ISO_CH_MOD.html"+"?q="+makeid(), cell.value, 620, 430);
-	popup_win.curr_logstats_comb = curr_logstats_comb;
+	let popup_win = PopupCenter("./ISO_CH_MOD.html"+"?q="+makeid(), "", 620, 430);
 	if(cell.hasOwnProperty("_cell"))
 		popup_win.curr_config = cell.getRow().getData();
 	else
