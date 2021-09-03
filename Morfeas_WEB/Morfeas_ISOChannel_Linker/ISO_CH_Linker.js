@@ -35,6 +35,7 @@ function build_opcua_config_table(curr_opcua_config)
 		table_data_entry.order_num = i+1;
 		table_data_entry.iso_name=curr_opcua_config[i].ISO_CHANNEL;
 		table_data_entry.type=curr_opcua_config[i].INTERFACE_TYPE;
+		table_data_entry.dev_type=curr_opcua_config[i].INTERFACE_TYPE
 		table_data_entry.desc=curr_opcua_config[i].DESCRIPTION;
 		table_data_entry.min=curr_opcua_config[i].MIN;
 		table_data_entry.max=curr_opcua_config[i].MAX;
@@ -81,6 +82,7 @@ function load_data_to_opcua_config_table(curr_logstats)
 			{
 				tableData[i].col="black";
 				tableData[i].conn="-";
+				tableData[i].dev_type = tableData[i].type;
 				tableData[i].meas = '-';
 				tableData[i].status = 'OFF-Line';
 				tableData[i].graph = [];
@@ -93,6 +95,7 @@ function load_data_to_opcua_config_table(curr_logstats)
 			tableData[i].status = data.Is_meas_valid?'Okay':data.Error_explanation;
 			if(tableData[i].type==="SDAQ")
 			{
+				tableData[i].dev_type = data.deviceUserIdentifier;
 				if(typeof(data.calibrationDate)==='number' && typeof(data.calibrationPeriod)=='number')
 				{
 					let cal_date = new Date(data.calibrationDate*1000),
