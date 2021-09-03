@@ -242,7 +242,7 @@ function populate_conn_autocomplete()
 	sensor_search.disabled = false;
 	//Populate conn_autocomplete.
 	let available_dev_paths = get_available_devs(curr_logstats_comb, curr_config.type, curr_iso_channels);
-	if(available_dev_paths)
+	if(available_dev_paths && available_dev_paths.length)
 	{
 		conn_autocomplete = new autoComplete({
 			selector: "#conn",
@@ -272,8 +272,8 @@ function populate_conn_autocomplete()
 	}
 	else
 	{
-		conn.placeholder = "Use Search \u2192";
-		conn.style.textAlign="right";
+		conn.placeholder = "No devs available";//"Use Search \u2192";
+		conn.style.textAlign="center";
 	}
 	populate_conn_autocomplete.done = true;
 }
