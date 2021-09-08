@@ -155,6 +155,23 @@ xhttp.onreadystatechange = function()
 			case mode_enum.logstats:
 				try{curr_logstats = JSON.parse(this.responseText);}
 				catch{break;}
+				let curr_logstats_comb = morfeas_logstat_commonizer(curr_logstats);
+				//Update Logstats to ADD and Edit windows.
+				if(add_wins.length)
+					for(let i=0; i<add_wins.length; i++)
+						if(!add_wins[i].closed)
+							add_wins[i].curr_logstats_comb = curr_logstats_comb;
+				if(edit_wins.length)
+					for(let i=0; i<edit_wins.length; i++)
+						if(!edit_wins[i].closed)
+						{
+							edit_wins[i].curr_logstats_comb = curr_logstats_comb;
+							if(edit_wins[i].populate_conn_autocomplete)
+								edit_wins[i].populate_conn_autocomplete();
+						}
+				if(import_win && !import_win.closed)
+					import_win.curr_logstats_comb = curr_logstats_comb;
+				
 				if(isOPC_UA_config_empty)
 				{
 					status_tab.value="";
@@ -165,7 +182,7 @@ xhttp.onreadystatechange = function()
 					let last_update = new Date(curr_logstats.Build_time*1000);
 					status_tab.value = "Last_update: "+last_update.toLocaleDateString()+" "+last_update.toLocaleTimeString();
 					status_tab.style.color='black';
-					load_data_to_opcua_config_table(curr_logstats);
+					load_data_to_opcua_config_table(curr_logstats_comb);
 				}
 				if(curr_logstats.OPCUA_Config_xml_mod && !OPCUA_Config_xml_modified_flag)//Server inform modification of OPCUA config.
 				{

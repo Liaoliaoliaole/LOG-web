@@ -65,13 +65,12 @@ function build_opcua_config_table(curr_opcua_config)
 	}
 	opcua_config_table.setData(tableData);
 }
-function load_data_to_opcua_config_table(curr_logstats)
+function load_data_to_opcua_config_table(curr_logstats_comb)
 {
-	if(!curr_logstats)
+	if(!curr_logstats_comb)
 		return;
 	let tableData = opcua_config_table.getData(),
-		selectedRows_ids = [],
-		curr_logstats_comb = morfeas_logstat_commonizer(curr_logstats);
+		selectedRows_ids = [];
 	if(typeof(curr_logstats_comb)==="object")
 	{
 		let selectedRows = opcua_config_table.getSelectedRows();
@@ -146,21 +145,6 @@ function load_data_to_opcua_config_table(curr_logstats)
 		opcua_config_table.replaceData(tableData);
 		if(selectedRows_ids)
 			opcua_config_table.selectRow(selectedRows_ids);
-		//Update Logstats to ADD and Edit windows.
-		if(add_wins.length)
-			for(let i=0; i<add_wins.length; i++)
-				if(!add_wins[i].closed)
-					add_wins[i].curr_logstats_comb = curr_logstats_comb;
-		if(edit_wins.length)
-			for(let i=0; i<edit_wins.length; i++)
-				if(!edit_wins[i].closed)
-				{
-					edit_wins[i].curr_logstats_comb = curr_logstats_comb;
-					if(edit_wins[i].populate_conn_autocomplete)
-						edit_wins[i].populate_conn_autocomplete();
-				}
-		if(import_win && !import_win.closed)
-			import_win.curr_logstats_comb = curr_logstats_comb;
 	}
 }
 function ISOChannel_edit(event, cell)
