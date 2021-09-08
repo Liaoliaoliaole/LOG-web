@@ -194,6 +194,8 @@ xhttp.onreadystatechange = function()
 					break;
 			}
 		}
+		else
+			console.log(this.responseText);
 		data_req=false;
 	}
 	else if(this.status == 404)
