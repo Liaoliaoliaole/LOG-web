@@ -520,6 +520,7 @@ function vals_check()
 
 function send()
 {
+	let now_time = new Date();
 	let new_link_data = {}, post_msg_contents = {COMMAND: "", DATA: []},
 		post_xhttp = new XMLHttpRequest();
 	new_link_data.ISOChannel = iso_name.value+(post_fix.selectedIndex?('_'+post_fix.value):'');
@@ -528,6 +529,7 @@ function send()
 	new_link_data.Description = desc.value;
 	new_link_data.Min = min.value;
 	new_link_data.Max = max.value;
+
 	if(link_data[0].selectedIndex > 1)
 		new_link_data.Unit = unit_inp.value;
 	if(cal_data[0].style.display != "none")
@@ -538,6 +540,8 @@ function send()
 								 pad(cal_date_date.getDate(),2);
 		new_link_data.Cal_period = period.value;
 	}
+	new_link_data.Build_date_UNIX = Math.trunc(now_time.getTime()/1000);
+	new_link_data.Mod_date_UNIX = Math.trunc((now_time.getTime()/1000)+1);
 	post_xhttp.timeout = 2000;
 	post_xhttp.ontimeout = function(){
 		status_tab.value = "Connection to server: Timeout Error";

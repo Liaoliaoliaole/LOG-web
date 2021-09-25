@@ -164,11 +164,16 @@ else if($requestType == "POST")
 				$newISOChannel->addChild('MIN', $Channel_to_be_add->Min);
 				$newISOChannel->addChild('MAX', $Channel_to_be_add->Max);
 				if(property_exists($Channel_to_be_add, 'Unit'))
-						$newISOChannel->addChild('UNIT', $Channel_to_be_add->Unit);
+					$newISOChannel->addChild('UNIT', $Channel_to_be_add->Unit);
 				if(property_exists($Channel_to_be_add, 'Cal_date'))
-						$newISOChannel->addChild('CAL_DATE', $Channel_to_be_add->Cal_date);
+					$newISOChannel->addChild('CAL_DATE', $Channel_to_be_add->Cal_date);
 				if(property_exists($Channel_to_be_add, 'Cal_period'))
-						$newISOChannel->addChild('CAL_PERIOD', $Channel_to_be_add->Cal_period);
+					$newISOChannel->addChild('CAL_PERIOD', $Channel_to_be_add->Cal_period);
+				if(property_exists($Channel_to_be_add, 'Build_date_UNIX') && property_exists($Channel_to_be_add, 'Mod_date_UNIX'))
+				{
+					$newISOChannel->addChild('BUILD_DATE', $Channel_to_be_add->Build_date_UNIX);
+					$newISOChannel->addChild('MOD_DATE', $Channel_to_be_add->Mod_date_UNIX);
+				}
 			}
 			break;
 		case 'DEL':
@@ -202,11 +207,18 @@ else if($requestType == "POST")
 						break;
 				}
 				if($i<count($OPC_UA_Config))
-				{	
+				{
 					$OPC_UA_Config_CHs[$i]->ANCHOR = $Channel_to_be_mod->Anchor;
 					$OPC_UA_Config_CHs[$i]->MIN = $Channel_to_be_mod->Min;
 					$OPC_UA_Config_CHs[$i]->MAX = $Channel_to_be_mod->Max;
 					$OPC_UA_Config_CHs[$i]->DESCRIPTION = $Channel_to_be_mod->Description;
+					if(property_exists($OPC_UA_Config_CHs[$i], 'BUILD_DATE') && property_exists($Channel_to_be_mod, 'Mod_date_UNIX'))
+					{
+						if(!property_exists($OPC_UA_Config_CHs[$i], 'MOD_DATE'))
+							$OPC_UA_Config_CHs[$i]->addChild('MOD_DATE', $Channel_to_be_mod->Mod_date_UNIX);
+						else
+							$OPC_UA_Config_CHs[$i]->MOD_DATE = $Channel_to_be_mod->Mod_date_UNIX;
+					}
 					if($Channel_to_be_mod->IF_type !== "SDAQ")
 					{
 						if(property_exists($Channel_to_be_mod, 'Unit'))

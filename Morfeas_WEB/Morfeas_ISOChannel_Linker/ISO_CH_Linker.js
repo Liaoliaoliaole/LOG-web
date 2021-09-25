@@ -39,6 +39,7 @@ function build_opcua_config_table(curr_opcua_config)
 		table_data_entry.desc=curr_opcua_config[i].DESCRIPTION;
 		table_data_entry.min=curr_opcua_config[i].MIN;
 		table_data_entry.max=curr_opcua_config[i].MAX;
+
 		if(curr_opcua_config[i].hasOwnProperty('UNIT'))
 			table_data_entry.unit=curr_opcua_config[i].UNIT;
 		if(curr_opcua_config[i].hasOwnProperty('CAL_DATE') && curr_opcua_config[i].hasOwnProperty('CAL_PERIOD'))
@@ -58,7 +59,11 @@ function build_opcua_config_table(curr_opcua_config)
 				table_data_entry.cal_date = curr_opcua_config[i].CAL_DATE;
 				table_data_entry.cal_period = Number(curr_opcua_config[i].CAL_PERIOD);
 		}
-			table_data_entry.unit=curr_opcua_config[i].UNIT;
+		if(curr_opcua_config[i].hasOwnProperty('BUILD_DATE'))
+			table_data_entry.Build_date_UNIX=curr_opcua_config[i].BUILD_DATE;
+		if(curr_opcua_config[i].hasOwnProperty('MOD_DATE'))
+			table_data_entry.Mod_date_UNIX=curr_opcua_config[i].MOD_DATE;
+		table_data_entry.unit=curr_opcua_config[i].UNIT;
 		table_data_entry.anchor = curr_opcua_config[i].ANCHOR;
 		table_data_entry.graph = new Array();
 		tableData.push(table_data_entry);
