@@ -22,9 +22,9 @@
     <th colspan="4" style="font-size: 120%;">Main Menu</th>
   </tr>
   <tr>
-	<td><input type="button" value="Errors" onclick='Show_hide(screen_enum.Logstats);display_mode=mode_enum_L2.Errors;'></td>
-	<td><input type="button" value="Sensors" onclick='Show_hide(screen_enum.Logstats);display_mode=mode_enum_L2.Sensors;'></td>
-	<td><input type="button" value="Details" onclick='Show_hide(screen_enum.Logstats);display_mode=mode_enum_L2.Details;'></td>
+	<td><input type="button" value="Errors" onclick='display_mode=mode_enum_L2.Errors;Show_hide(screen_enum.Logstats);'></td>
+	<td><input type="button" value="Sensors" onclick='display_mode=mode_enum_L2.Sensors;Show_hide(screen_enum.Logstats);'></td>
+	<td><input type="button" value="Details" onclick='display_mode=mode_enum_L2.Details;Show_hide(screen_enum.Logstats);'></td>
 	<td><input type="button" value="System logs" onclick='Show_hide(screen_enum.Loggers)'></td>
   </tr>
 </table>
@@ -89,7 +89,7 @@ const screen_enum = {
 				Loggers_name: 0,
 				Logger_content: 1,
 				Logstats: 2,
-				ISOChannels: 3
+				opcua_config: 3
 			},
 	  mode_enum_L2 = {
 				Sensors: 0,
@@ -137,10 +137,17 @@ function onReady_State_Change()
 				if(is_scroll_at_bottom)
 					window.scrollTo(0,document.body.scrollHeight);
 				break;
-			case mode_enum.ISOChannels:
+			case mode_enum.opcua_config:
+				try{ISOChannels = JSON.parse(this.responseText);}
+				catch{console.log("Parsing error @ opcua_config");break;}
+				request_mode = mode_enum.Logstats;
 				break;
 			case mode_enum.Logstats:
-				logstats = morfeas_logstat_commonizer(this.responseText);
+				try{logstats = JSON.parse(this.responseText);}
+				catch{console.log("Parsing error @ Logstats");break;}
+				if(logstats.OPCUA_Config_xml_mod)
+					request_mode = mode_enum.opcua_config;
+				logstats = morfeas_logstat_commonizer(logstats);
 				if(typeof logstats === 'object')
 				{
 					switch(display_mode)
@@ -177,7 +184,7 @@ function onReady_State_Change()
 										last_row.insertCell().innerHTML = logstats[i].sensors[j].type;
 										last_row.insertCell().innerHTML = logstats[i].sensors[j].deviceUserIdentifier;
 										last_row.insertCell().innerHTML = logstats[i].sensors[j].sensorUserId;
-										last_row.insertCell().innerHTML = "-";
+										last_row.insertCell().innerHTML = find_link(ISOChannels, logstats[i].sensors[j].anchor);
 										meas_cell = last_row.insertCell();
 										let unit = logstats[i].sensors[j].unit?logstats[i].sensors[j].unit:"";
 										if(typeof(logstats[i].sensors[j].avgMeasurement)==='number')
@@ -271,7 +278,7 @@ function Morfeas_request()
 			xhttp.open("GET", "../morfeas_php/morfeas_web_if.php?COMMAND=logstats", true);
 			xhttp.send();
 			break;
-		case mode_enum.ISOChannels:
+		case mode_enum.opcua_config:
 			xhttp.open("GET", "../morfeas_php/morfeas_web_if.php?COMMAND=opcua_config", true);
 			xhttp.send();
 			break;
@@ -291,8 +298,20 @@ function Show_hide(log_set)
 	{
 		document.getElementById("loggers").style.display="none";
 		logstats_disp.style.display="inline";
-		request_mode = mode_enum.Logstats;
+		if(display_mode == mode_enum_L2.Details)
+			request_mode = mode_enum.Logstats;
+		else
+			request_mode = mode_enum.opcua_config;
 	}
+}
+function find_link(_ISOChannels, _anchor)
+{
+	if(!_ISOChannels || !_anchor)
+		return '-';
+	for(let i=0; i<_ISOChannels.length; i++)
+		if(_ISOChannels[i].ANCHOR === _anchor)
+			return _ISOChannels[i].ISO_CHANNEL;
+	return '-';
 }
 //@license-end
 </script>
