@@ -88,7 +88,8 @@ const screen_enum = {
 	  mode_enum = {
 				Loggers_name: 0,
 				Logger_content: 1,
-				Logstats: 2
+				Logstats: 2,
+				ISOChannels: 3
 			},
 	  mode_enum_L2 = {
 				Sensors: 0,
@@ -101,7 +102,7 @@ var display_mode,
 	logstats_disp = document.getElementById("logstats_disp"),
 	status_tab = document.getElementById("status"),
 	log_select = document.getElementById("logger_select"),
-	logstats;
+	logstats, ISOChannels;
 Logger_terminal.innerHTML="";
 status_tab.value = "Morfeas Loggers";
 status_tab.style.color = "black";
@@ -136,6 +137,8 @@ function onReady_State_Change()
 				if(is_scroll_at_bottom)
 					window.scrollTo(0,document.body.scrollHeight);
 				break;
+			case mode_enum.ISOChannels:
+				break;
 			case mode_enum.Logstats:
 				logstats = morfeas_logstat_commonizer(this.responseText);
 				if(typeof logstats === 'object')
@@ -154,6 +157,7 @@ function onReady_State_Change()
 							header_row.insertCell().innerHTML = "<b>Type</b>";
 							header_row.insertCell().innerHTML = "<b>Name/property</b>";
 							header_row.insertCell().innerHTML = "<b>Connection</b>";
+							header_row.insertCell().innerHTML = "<b>Link</b>";
 							header_row.insertCell().innerHTML = "<b>Value</b>";
 							header_row.insertCell().innerHTML = "<b>Status</b>";
 							for(let i=0,order_num=1; i<logstats.length; i++)
@@ -173,6 +177,7 @@ function onReady_State_Change()
 										last_row.insertCell().innerHTML = logstats[i].sensors[j].type;
 										last_row.insertCell().innerHTML = logstats[i].sensors[j].deviceUserIdentifier;
 										last_row.insertCell().innerHTML = logstats[i].sensors[j].sensorUserId;
+										last_row.insertCell().innerHTML = "-";
 										meas_cell = last_row.insertCell();
 										let unit = logstats[i].sensors[j].unit?logstats[i].sensors[j].unit:"";
 										if(typeof(logstats[i].sensors[j].avgMeasurement)==='number')
@@ -246,27 +251,30 @@ function onTimeout()
 window.setInterval(Morfeas_request, 1000);
 function Morfeas_request()
 {
-	if(request_mode == mode_enum.Loggers_name)
+	switch(request_mode)
 	{
-		xhttp.open("GET", "../morfeas_php/morfeas_web_if.php?COMMAND=loggers", true);
-		xhttp.send();
-		return;
-	}
-	else if(request_mode == mode_enum.Logger_content)
-	{
-		if(log_select.selectedIndex)
-		{
-			xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + log_select.value + "?q="+makeid(), true);
-			xhttp.overrideMimeType("text/html");
+		case mode_enum.Loggers_name:
+			xhttp.open("GET", "../morfeas_php/morfeas_web_if.php?COMMAND=loggers", true);
 			xhttp.send();
-		}
-		else
-			Logger_terminal.innerHTML="";
-	}
-	else if(request_mode == mode_enum.Logstats)
-	{
-		xhttp.open("GET", "../morfeas_php/morfeas_web_if.php?COMMAND=logstats", true);
-		xhttp.send();
+			return;
+		case mode_enum.Logger_content:
+			if(log_select.selectedIndex)
+			{
+				xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + log_select.value + "?q="+makeid(), true);
+				xhttp.overrideMimeType("text/html");
+				xhttp.send();
+			}
+			else
+				Logger_terminal.innerHTML="";
+			break;
+		case mode_enum.Logstats:
+			xhttp.open("GET", "../morfeas_php/morfeas_web_if.php?COMMAND=logstats", true);
+			xhttp.send();
+			break;
+		case mode_enum.ISOChannels:
+			xhttp.open("GET", "../morfeas_php/morfeas_web_if.php?COMMAND=opcua_config", true);
+			xhttp.send();
+			break;
 	}
 }
 function Show_hide(log_set)

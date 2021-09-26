@@ -60,9 +60,9 @@ function build_opcua_config_table(curr_opcua_config)
 				table_data_entry.cal_period = Number(curr_opcua_config[i].CAL_PERIOD);
 		}
 		if(curr_opcua_config[i].hasOwnProperty('BUILD_DATE'))
-			table_data_entry.Build_date_UNIX=curr_opcua_config[i].BUILD_DATE;
+			table_data_entry.Build_date = new Date(curr_opcua_config[i].BUILD_DATE*1000);
 		if(curr_opcua_config[i].hasOwnProperty('MOD_DATE'))
-			table_data_entry.Mod_date_UNIX=curr_opcua_config[i].MOD_DATE;
+			table_data_entry.Mod_date = new Date(curr_opcua_config[i].MOD_DATE*1000);
 		table_data_entry.unit=curr_opcua_config[i].UNIT;
 		table_data_entry.anchor = curr_opcua_config[i].ANCHOR;
 		table_data_entry.graph = new Array();
@@ -328,6 +328,34 @@ function ISOChannels_delete_post(data_tb)
 	post_msg_contents.DATA = data_tb;
 	post_xhttp.open("POST", "/morfeas_php/morfeas_web_if.php", true);
 	post_xhttp.send(compress(JSON.stringify(post_msg_contents)));
+}
+function ISOChannel_tooltip(cell)
+{
+	if(!cell)
+		return;
+	let data = cell._cell.row.data, ret = "";
+
+	if(data.hasOwnProperty('Build_date'))
+	{
+		ret += "Build_date: ";
+		ret += pad((data.Build_date.getMonth()+1),2)+'/';
+		ret += pad((data.Build_date.getDate()+1),2)+'/';
+		ret += data.Build_date.getFullYear()+' ';
+		ret += pad((data.Build_date.getHours()+1),2)+':'
+		ret += pad((data.Build_date.getMinutes()+1),2)+':';
+		ret += pad((data.Build_date.getSeconds()+1),2)+'\n';
+	}
+	if(data.hasOwnProperty('Mod_date'))
+	{
+		ret += "Mod_date:";
+		ret += pad((data.Mod_date.getMonth()+1),2)+'/';
+		ret += pad((data.Mod_date.getDate()+1),2)+'/';
+		ret += data.Mod_date.getFullYear()+' ';
+		ret += pad((data.Mod_date.getHours()+1),2)+':'
+		ret += pad((data.Mod_date.getMinutes()+1),2)+':';
+		ret += pad((data.Mod_date.getSeconds()+1),2)+'\n';
+	}
+	return ret;
 }
 
 var ISOChannels_menu = [
