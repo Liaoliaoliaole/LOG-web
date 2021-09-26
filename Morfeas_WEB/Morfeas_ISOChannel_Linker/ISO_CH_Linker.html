@@ -239,6 +239,15 @@ document.onkeydown = function(key)
 {
 	if(key.key === "Escape")
 		opcua_config_table.deselectRow();
+	if(key.ctrlKey && key.altKey)
+	{
+		switch(key.key)
+		{
+			case 'a': ISOChannel_add(); break;
+			case 'i': ISOChannels_import(); break;
+			case 'e': ISOChannels_export_all(); break;
+		}
+	}
 };
 function close_all_popup()
 {

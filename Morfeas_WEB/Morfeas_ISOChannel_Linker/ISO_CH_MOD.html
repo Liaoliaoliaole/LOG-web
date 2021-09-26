@@ -493,7 +493,7 @@ window.onbeforeunload = function()
 };
 document.onkeydown = function(key)
 {
-	if(key.ctrlKey && key.shiftKey && curr_config.conn !== "-")
+	if(key.ctrlKey && key.altKey && key.key == 'r' && curr_config.conn !== "-")
 		dead_conn_fl = true;
 };
 //@license-end
