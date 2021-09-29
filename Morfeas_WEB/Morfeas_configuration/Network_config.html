@@ -286,13 +286,14 @@ function get_new_hostname(new_config)
 		delete new_config.hostname;
 	else
 	{
-		var illegal_chars = new RegExp('[\\/:*?"<>|. ]|^-|-$|^\d');
+		var illegal_chars = new RegExp("^[0-9]+|[\\/:*?\"<>|. ]|^-+$");
 		if(!(hostname.value.length)||hostname.value.length>=16||
 		   illegal_chars.test(hostname.value))
 		{
 			alert("Hostname is Invalid!!!\n"+
 				  "Must contain ONLY:\n"+
-				  "Latin letters and numbers");
+				  "Latin letters and numbers\n"+
+				  "Must NOT start with letter");
 			return -1;
 		}
 		new_config.hostname=hostname.value;
