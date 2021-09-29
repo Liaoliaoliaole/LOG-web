@@ -71,13 +71,13 @@ function makeid()
 function ip_addr_val(ip_addr)
 {
 	const patt= new RegExp(/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/);
-	return patt.test(ip_addr)?true:false;
+	return patt.test(ip_addr);
 }
 
 function DEV_NAME_val(DEV_NAME)
 {
-	const patt= new RegExp(/[^[a-zA-Z0-9_-]]*/);
-	return patt.test(DEV_NAME)?false:true;
+	const patt= new RegExp(/^[0-9]+|[^[a-zA-Z0-9_-]]*/);
+	return !patt.test(DEV_NAME);
 }
 
 function is_canIF_inuse(selected_can_if_val, _Morfeas_config_XML)
@@ -165,7 +165,7 @@ function compress(data, debug_info)
 	}
 	if(word !== "")
 		result += word;
-	result = String.fromCharCode(dictOffset) + String.fromCharCode(dictionary_size)+ result + String.fromCharCode((checksum&0xFF)+0x20);//+0x20 to avoid control characters 
+	result = String.fromCharCode(dictOffset) + String.fromCharCode(dictionary_size)+ result + String.fromCharCode((checksum&0xFF)+0x20);//+0x20 to avoid control characters
 	if(debug_info)
 	{
 		var tack = performance.now()
