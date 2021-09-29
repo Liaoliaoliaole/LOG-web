@@ -36,7 +36,7 @@ td.bold{
 </span>
 <br>
 <div class="content">
-	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:7in;">
+	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:5.2in;">
 	  <tr>
 		<th colspan="6" style="font-weight: bold; font-size: xx-large">
 			<img src="./art/Morfeas_logo_yellow.png" width="100" height="100">
@@ -53,7 +53,7 @@ td.bold{
 		<td><button type="button" onclick='PopupCenter("/morfeas_NOX_web_if/NOXsPortal.html"+"?q="+makeid(),"","1024","768")'>NOXs<br>Portal</td>
 		<td><button type="button" onclick='PopupCenter("/morfeas_CPAD_web_if/CPADsPortal.html"+"?q="+makeid(),"","1024","768")' disabled>CPADs<br>Portal</td>
 	  </tr>
-	  <tr>
+	  <tr style="height: .9in;">
 		<td><button type="button" onclick='PopupCenter("/morfeas_Loggers/Morfeas_Loggers.html"+"?q="+makeid(),"","1024","768")'>
 			<span title="System Loggers">
 				<img src="./art/logger.svg" class="bsize">

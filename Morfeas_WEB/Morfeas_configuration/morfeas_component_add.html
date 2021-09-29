@@ -146,7 +146,7 @@ function inp_validate(elem)
 	}
 	else if(elem.id === "DEV_NAME")
 	{
-		if(!DEV_NAME_val(elem.value))
+		if(!isNaN(elem.value.charAt(0)) || !DEV_NAME_val(elem.value))
 		{
 			elem.value = "";
 			alert("DEV_NAME contains illegal characters");

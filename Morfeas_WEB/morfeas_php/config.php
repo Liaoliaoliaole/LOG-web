@@ -446,6 +446,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$local_Morfeas_config->documentElement->appendChild($new_config);
 				$local_Morfeas_config->loadXML($local_Morfeas_config->saveXML());
 				$local_Morfeas_config->save($opc_ua_config_dir.'Morfeas_config.xml') or die('Server: Unable to write Morfeas_config.xml');
+				exec('rm -r /mnt/ramdisk/Morfeas_Loggers/*');
 				exec('sudo systemctl restart Morfeas_system.service');
 				header('Content-Type: report/json');
 				echo '{"report":"Okay"}';
