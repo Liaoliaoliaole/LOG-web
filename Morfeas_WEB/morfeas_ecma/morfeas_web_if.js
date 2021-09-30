@@ -466,6 +466,23 @@ function get_from_common_logstats_by_anchor(logstats, type, anchor)
 	}
 	return false;
 }
+function get_from_common_logstats_by_IPv4(logstats, type, ip)
+{
+	if(!logstats || !ip ||
+	   !logstats.length || !type)
+		return false;
+	
+	for(let i=0; i<logstats.length; i++)
+	{
+		if(!logstats[i].connections || !logstats[i].connections.length || !logstats[i].if_name.includes(type))
+			continue;
+		for(let j=0; j<logstats[i].connections.length; j++)
+			if(logstats[i].connections[j].name === "IPv4_address")
+				if(logstats[i].connections[j].value === ip)
+					return logstats[i];
+	}
+	return false;
+}
 function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 {
 	function is_anchor_in_use(Anchor)

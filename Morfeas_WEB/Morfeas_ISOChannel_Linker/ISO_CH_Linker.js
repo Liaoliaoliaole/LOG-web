@@ -85,11 +85,29 @@ function load_data_to_opcua_config_table(curr_logstats_comb)
 			if(!data)
 			{
 				tableData[i].col="black";
-				tableData[i].conn="-";
 				tableData[i].dev_type = tableData[i].type;
 				tableData[i].meas = '-';
-				tableData[i].status = 'OFF-Line';
+				tableData[i].status = "OFF-Line";
 				tableData[i].graph = [];
+				if(tableData[i].dev_type === "SDAQ")
+				{
+					let anchor_parts = tableData[i].anchor.split('.');
+					anchor_parts[0] = parseInt(anchor_parts[0]).toString(16).toUpperCase();
+					tableData[i].conn = "0x"+anchor_parts[0]+'.'+anchor_parts[1];
+				}
+				else if(tableData[i].dev_type !== "SDAQ" && tableData[i].dev_type != "NOX")
+				{
+					let anchor_parts = tableData[i].anchor.split('.'), ip = [], logstat;
+					for(let i=0; i<4; i++)
+						ip[i] = ((anchor_parts[0]>>(8*i))&0xff);
+					ip = ip.join('.');
+					tableData[i].conn = '('+ip+').'+anchor_parts[1]+'.'+anchor_parts[2];
+					logstat = get_from_common_logstats_by_IPv4(curr_logstats_comb, tableData[i].type, ip);
+					if(logstat && logstat.connections[3].value === "Okay")
+						tableData[i].status = "Disconnected";
+				}
+				else
+					tableData[i].conn=tableData[i].anchor;
 				continue;
 			}
 			tableData[i].conn = data.sensorUserId;
@@ -336,25 +354,9 @@ function ISOChannel_tooltip(cell)
 	let data = cell._cell.row.data, ret = "";
 
 	if(data.hasOwnProperty('Build_date'))
-	{
-		ret += "Build_date: ";
-		ret += pad((data.Build_date.getMonth()+1),2)+'/';
-		ret += pad((data.Build_date.getDate()+1),2)+'/';
-		ret += data.Build_date.getFullYear()+' ';
-		ret += pad((data.Build_date.getHours()+1),2)+':'
-		ret += pad((data.Build_date.getMinutes()+1),2)+':';
-		ret += pad((data.Build_date.getSeconds()+1),2)+'\n';
-	}
+		ret += "Build_date: "+data.Build_date.toLocaleDateString()+" "+data.Build_date.toLocaleTimeString()+'\n';
 	if(data.hasOwnProperty('Mod_date'))
-	{
-		ret += "Mod_date:";
-		ret += pad((data.Mod_date.getMonth()+1),2)+'/';
-		ret += pad((data.Mod_date.getDate()+1),2)+'/';
-		ret += data.Mod_date.getFullYear()+' ';
-		ret += pad((data.Mod_date.getHours()+1),2)+':'
-		ret += pad((data.Mod_date.getMinutes()+1),2)+':';
-		ret += pad((data.Mod_date.getSeconds()+1),2)+'\n';
-	}
+		ret += "Mod_date: "+data.Mod_date.toLocaleDateString()+" "+data.Mod_date.toLocaleTimeString()+'\n';
 	return ret;
 }
 

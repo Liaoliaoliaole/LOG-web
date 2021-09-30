@@ -200,7 +200,7 @@ function mod_win_val_init()
 	min.value = curr_config.min;
 	max.value = curr_config.max;
 	iso_name.value = curr_config.iso_name;
-	if(curr_config.conn === "-")
+	if(curr_config.status === "OFF-Line" || curr_config.status === "Disconnected")
 		dead_conn_fl = true;
 	else
 	{
