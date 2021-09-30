@@ -107,7 +107,7 @@ function load_data_to_opcua_config_table(curr_logstats_comb)
 						tableData[i].status = "Disconnected";
 				}
 				else
-					tableData[i].conn=tableData[i].anchor;
+					tableData[i].conn=tableData[i].anchor.toUpperCase();
 				continue;
 			}
 			tableData[i].conn = data.sensorUserId;
