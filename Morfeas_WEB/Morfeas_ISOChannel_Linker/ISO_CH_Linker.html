@@ -21,8 +21,28 @@
 	<table style="margin-bottom:.075in;">
 		<tr>
 			<td>
-				<input id="filter_value" type="text" placeholder="ISOChannel Search" onkeyup="filter_func(this);">
-				<button id="filter_clear" onclick="filter_clear();">&#x1f9f9;</button>
+				<div>
+					<select id="filter_field" onchange="filter_func()">
+						<option value="iso_name">ISOChannel</option>
+						<option value="conn">Connection</option>
+						<option value="desc">Description</option>
+						<option value="meas">Value</option>
+						<option value="min">Min</option>
+						<option value="max">Max</option>
+					</select>
+					<select id="filter_type" onchange="filter_func()">
+						<option value="like">like</option>
+						<option value="regex">regex</option>
+						<option value="=">==</option>
+						<option value="<"><</option>
+						<option value="<="><=</option>
+						<option value=">">></option>
+						<option value=">=">>=</option>
+						<option value="!=">!=</option>
+					</select>
+					<input id="filter_value" type="text" size="10" placeholder="Search" onkeyup="filter_func()">
+					<button id="filter_clear" onclick="filter_clear();">&#x1f9f9;</button>
+				</div>
 			</td>
 		</tr>
 	</table>
@@ -118,16 +138,23 @@ var opcua_config_table = new Tabulator("#opcua_config_table",
 });
 function filter_func(elem)
 {
-	if(!elem.value)
+	let filter_field = document.getElementById("filter_field").value,
+		filter_type  = document.getElementById("filter_type").value,
+		filter_value = document.getElementById("filter_value").value;
+
+	if(!filter_value)
 	{
 		opcua_config_table.clearFilter(true);
 		return;
 	}
-	opcua_config_table.setFilter("iso_name", "like", elem.value);
+	opcua_config_table.setFilter(filter_field, filter_type, filter_value);
 }
 function filter_clear()
 {
+	document.getElementById("filter_field").selectedIndex = 0;
+	document.getElementById("filter_type").selectedIndex = 0;
 	document.getElementById("filter_value").value = "";
+
 	opcua_config_table.clearFilter(true);
 	opcua_config_table.clearSort(true);
 	opcua_config_table.deselectRow();

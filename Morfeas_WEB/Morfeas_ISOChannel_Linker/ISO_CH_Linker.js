@@ -37,8 +37,8 @@ function build_opcua_config_table(curr_opcua_config)
 		table_data_entry.type=curr_opcua_config[i].INTERFACE_TYPE;
 		table_data_entry.dev_type=curr_opcua_config[i].INTERFACE_TYPE
 		table_data_entry.desc=curr_opcua_config[i].DESCRIPTION;
-		table_data_entry.min=curr_opcua_config[i].MIN;
-		table_data_entry.max=curr_opcua_config[i].MAX;
+		table_data_entry.min=Number(curr_opcua_config[i].MIN);
+		table_data_entry.max=Number(curr_opcua_config[i].MAX);
 
 		if(curr_opcua_config[i].hasOwnProperty('UNIT'))
 			table_data_entry.unit=curr_opcua_config[i].UNIT;
@@ -356,7 +356,7 @@ function ISOChannel_tooltip(cell)
 	if(data.hasOwnProperty('Build_date'))
 		ret += "Build_date: "+data.Build_date.toLocaleDateString()+" "+data.Build_date.toLocaleTimeString()+'\n';
 	if(data.hasOwnProperty('Mod_date'))
-		ret += "Mod_date: "+data.Mod_date.toLocaleDateString()+" "+data.Mod_date.toLocaleTimeString()+'\n';
+		ret += " Mod_date: "+data.Mod_date.toLocaleDateString()+" "+data.Mod_date.toLocaleTimeString()+'\n';
 	return ret;
 }
 
