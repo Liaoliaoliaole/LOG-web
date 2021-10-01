@@ -22,7 +22,7 @@
 		<tr>
 			<td>
 				<div>
-					<select id="filter_field" onchange="filter_func()">
+					<select id="filter_field" onchange="filter_field_func(this);filter_func()" autocomplete="off">
 						<option value="iso_name">ISOChannel</option>
 						<option value="conn">Connection</option>
 						<option value="desc">Description</option>
@@ -30,15 +30,15 @@
 						<option value="min">Min</option>
 						<option value="max">Max</option>
 					</select>
-					<select id="filter_type" onchange="filter_func()">
+					<select id="filter_type" onchange="filter_func()" autocomplete="off">
 						<option value="like">like</option>
 						<option value="regex">regex</option>
-						<option value="=">==</option>
-						<option value="<"><</option>
-						<option value="<="><=</option>
-						<option value=">">></option>
-						<option value=">=">>=</option>
-						<option value="!=">!=</option>
+						<option value="=" hidden>==</option>
+						<option value="<" hidden><</option>
+						<option value="<=" hidden><=</option>
+						<option value=">" hidden>></option>
+						<option value=">=" hidden>>=</option>
+						<option value="!=" hidden>!=</option>
 					</select>
 					<input id="filter_value" type="text" size="10" placeholder="Search" onkeyup="filter_func()">
 					<button id="filter_clear" onclick="filter_clear();">&#x1f9f9;</button>
@@ -136,10 +136,32 @@ var opcua_config_table = new Tabulator("#opcua_config_table",
 		{title:"Description", field:"desc", headerSort:false, responsive:4},
 	]
 });
-function filter_func(elem)
+function filter_field_func(elem)
+{
+	let filter_type = document.getElementById("filter_type"), i;
+
+	if(elem.selectedIndex>3 && filter_type.selectedIndex<=1)
+	{
+
+		for(i=0; i<2 ; i++)
+			filter_type.options[i].hidden=true;
+		filter_type.selectedIndex = 2;
+		for(i=i; i<filter_type.options.length ; i++)
+			filter_type.options[i].hidden=false;
+	}
+	else if(elem.selectedIndex<=3 && filter_type.selectedIndex>1)
+	{
+		for(i=0; i<2 ; i++)
+			filter_type.options[i].hidden=false;
+		filter_type.selectedIndex = 0;
+		for(i=i; i<filter_type.options.length ; i++)
+			filter_type.options[i].hidden=true;
+	}
+}
+function filter_func()
 {
 	let filter_field = document.getElementById("filter_field").value,
-		filter_type  = document.getElementById("filter_type").value,
+		filter_type  = document.getElementById("filter_type"),
 		filter_value = document.getElementById("filter_value").value;
 
 	if(!filter_value)
@@ -147,7 +169,7 @@ function filter_func(elem)
 		opcua_config_table.clearFilter(true);
 		return;
 	}
-	opcua_config_table.setFilter(filter_field, filter_type, filter_value);
+	opcua_config_table.setFilter(filter_field, filter_type.value, filter_value);
 }
 function filter_clear()
 {
