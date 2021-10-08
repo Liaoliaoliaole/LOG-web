@@ -22,64 +22,29 @@ through which recipients can access the Corresponding Source.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
-function data_plot(SDAQnet_data)
+"use strict";
+var Det_devs = SDAQnet_stats_disp_init("Det_devs"),
+	Bus_util = SDAQnet_stats_disp_init("Bus_util"),
+	Bus_Voltage = SDAQnet_stats_disp_init("Bus_Voltage"),
+	Bus_Amperage = SDAQnet_stats_disp_init("Bus_Amperage");
+
+function data_update(SDAQnet_data)
 {
-	var Data = {
-		labels: [],
-		datasets: [{
-					  label: "Acceleration",
-					  fill: false,
-					  lineTension: 0.2,
-					  borderColor: "rgba(75,192,192,1)",
-					  borderDashOffset: 0.0,
-					  pointBorderWidth: 0,
-					  pointHoverRadius: 0,
-					  pointHoverBorderWidth: 0,
-					  pointRadius: 0,
-					  pointHitRadius: 0,
-					  data: []
-				  }]
-		};
-        var options = {
-			  animation: false,
-			  maintainAspectRatio: true,
-              responsive: true,
-              tooltips:{
-			  enabled:false
-			  },
-			  scales: {
-                  xAxes: [{
-					 scaleLabel: {
-                          display: false,
-						  labelString: 'Time (msec)'
-                      },
-					 gridLines: {
-						display: true,
-						drawBorder : true
-					  },
-					  ticks: {
-						drawTicks: false,
-					    beginAtZero : true,
-						autoSkip : false
-					  }
-
-                  }],
-                  yAxes: [{
-                      display: true,
-                      type: 'linear',
-                      scaleLabel: {
-                          display: true,
-                          labelString: 'Acceleration (g)'
-                      },
-					  ticks: {
-					  max: 500,
-					  min: -500,
-					}
-                  }]
-              }
-          };
-
-	var SDAQnet_stats = document.getElementById("SDAQnet_stats");
+	let SDAQnet_stats = document.getElementsByName("SDAQnet_stats");
+	
+	if(!SDAQnet_data)
+		return;
+	console.log(SDAQnet_data);
+	for(let i=0; i<SDAQnet_stats.length; i++)
+	{
+		if(i<2)
+			SDAQnet_stats[i].hidden = false;
+		else 
+			SDAQnet_stats[i].hidden = SDAQnet_data.hasOwnProperty('Electrics')?false:true;
+	}
+	Det_devs.setValue(SDAQnet_data.Detected_SDAQs.toString());
+	Bus_util.setValue(SDAQnet_data.BUS_Utilization.toString()+'%');
+	/*
 	var SDAQs_list = document.getElementById("SDAQs_list");
 	if(!data_plot.prev)
 		data_plot.prev={};
@@ -101,7 +66,30 @@ function data_plot(SDAQnet_data)
 	{
 		//console.log(sel_sdaq);
 	}
+	*/
 }
+
+function SDAQnet_stats_disp_init(name)
+{
+	let SDAQnet_stats_disp;
+	if(!name)
+		return;
+	SDAQnet_stats_disp = new SegmentDisplay(name);
+	SDAQnet_stats_disp.pattern         = "##";
+	SDAQnet_stats_disp.displayAngle    = 6;
+	SDAQnet_stats_disp.digitHeight     = 20;
+	SDAQnet_stats_disp.digitWidth      = 14;
+	SDAQnet_stats_disp.digitDistance   = 2.5;
+	SDAQnet_stats_disp.segmentWidth    = 2;
+	SDAQnet_stats_disp.segmentDistance = 0.3;
+	SDAQnet_stats_disp.segmentCount    = 7;
+	SDAQnet_stats_disp.cornerType      = 3;
+	SDAQnet_stats_disp.colorOn         = "black";
+	SDAQnet_stats_disp.colorOff        = "white";
+	SDAQnet_stats_disp.draw();
+	return SDAQnet_stats_disp;
+}
+
 function SDAQ_dev_list_tree(listNode, SDAQs_data)
 {
 	if(!SDAQs_data)
