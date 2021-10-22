@@ -239,7 +239,7 @@ function morfeas_logstat_commonizer(logstats)
 			new_data_table_entry.connections.push(new connection("CPU_temp", logstat.MTI_status.MTI_CPU_temp.toFixed(1), "°C"));
 			new_data_table_entry.connections.push(new connection("Battery state", logstat.MTI_status.MTI_charge_status));
 			if(logstat.MTI_status.MTI_charge_status !== "Charging" && logstat.MTI_status.MTI_charge_status !== "Full")
-				new_data_table_entry.connections.push(new connection("Battery capacity", logstat.MTI_status.MTI_batt_capacity));
+				new_data_table_entry.connections.push(new connection("Battery capacity", logstat.MTI_status.MTI_batt_capacity.toFixed(0), "%"));
 			new_data_table_entry.connections.push(new connection("Radio_mode", logstat.MTI_status.Tele_Device_type));
 			new_data_table_entry.connections.push(new connection("RF Channel", logstat.MTI_status.Radio_CH));
 			if(logstat.MTI_status.Tele_Device_type !== "RMSW/MUX")
