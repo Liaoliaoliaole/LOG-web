@@ -108,7 +108,7 @@ function morfeas_logstat_commonizer(logstats)
 		//Load system's status
 		new_data_table_entry.sensors = null;
 		if(logstat.CPU_temp)
-			new_data_table_entry.connections.push(new connection("CPU_temp", logstat.CPU_temp.toFixed(1), "°C"));
+			new_data_table_entry.connections.push(new connection("CPU_temp", logstat.CPU_temp.toFixed(1), "°F"));
 		new_data_table_entry.connections.push(new connection("CPU_Util", logstat.CPU_Util.toFixed(2), "%"));
 		new_data_table_entry.connections.push(new connection("RAM_Util", logstat.RAM_Util.toFixed(2), "%"));
 		new_data_table_entry.connections.push(new connection("Disk_Util", logstat.Disk_Util.toFixed(2), "%"));
