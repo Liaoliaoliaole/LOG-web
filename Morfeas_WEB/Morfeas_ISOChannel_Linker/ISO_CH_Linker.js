@@ -249,15 +249,45 @@ function ISOChannels_export_all_selected()
 			ISOChannel_entry.UNIT = tableData[i].unit;
 			if(tableData[i].valid_until)
 			{
-				ISOChannel_entry.CAL_DATE = tableData[i].cal_date.getFullYear()+'/'
-										   +(tableData[i].cal_date.getMonth()+1)+'/'
-										   +tableData[i].cal_date.getDate();
+				ISOChannel_entry.CAL_DATE = tableData[i].cal_date;
 				ISOChannel_entry.CAL_PERIOD = tableData[i].cal_period;
 			}
 		}
 		ISOChannels_tbl.push(ISOChannel_entry);
 	}
 	Morfeas_ISOChannels_export(ISOChannels_tbl, "Selection");
+}
+function ISOChannels_export_all_visible()
+{
+	let tableData = opcua_config_table.getData("active"),
+		ISOChannels_tbl = [];
+
+	console.log(tableData);
+
+	if(!tableData.length)
+		return;
+	for(let i=0; i<tableData.length; i++)
+	{
+		let ISOChannel_entry = {};
+
+		ISOChannel_entry.ISO_CHANNEL = tableData[i].iso_name;
+		ISOChannel_entry.INTERFACE_TYPE = tableData[i].type;
+		ISOChannel_entry.ANCHOR = tableData[i].anchor;
+		ISOChannel_entry.DESCRIPTION = tableData[i].desc;
+		ISOChannel_entry.MIN = tableData[i].min;
+		ISOChannel_entry.MAX = tableData[i].max;
+		if(tableData[i].type !== "SDAQ")
+		{
+			ISOChannel_entry.UNIT = tableData[i].unit;
+			if(tableData[i].valid_until)
+			{
+				ISOChannel_entry.CAL_DATE = tableData[i].cal_date;
+				ISOChannel_entry.CAL_PERIOD = tableData[i].cal_period;
+			}
+		}
+		ISOChannels_tbl.push(ISOChannel_entry);
+	}
+	Morfeas_ISOChannels_export(ISOChannels_tbl, "Visible");
 }
 function Morfeas_ISOChannels_export(ISOChannels_tbl, exp_type)
 {
@@ -294,6 +324,27 @@ function ISOChannel_delete_curr(event, row)
 function ISOChannels_delete_all_selected()
 {
 	let data = opcua_config_table.getSelectedData(),
+		del_ISOChannels_tbl = [];
+
+	if(data.length && confirm(data.length+" ISOChannel"+(data.length>1?'s':'')+" will be deleted\nContinue?"))
+	{
+		for(let i=0; i<data.length; i++)
+		{
+			let del_ISOChannel = {};
+			del_ISOChannel.ISOChannel = data[i].iso_name;
+			del_ISOChannel.IF_type = data[i].type;
+			del_ISOChannel.Anchor = data[i].anchor;
+			del_ISOChannel.Description = data[i].desc;
+			del_ISOChannel.Min = data[i].min;
+			del_ISOChannel.Max = data[i].max;
+			del_ISOChannels_tbl.push(del_ISOChannel);
+		}
+		ISOChannels_delete_post(del_ISOChannels_tbl);
+	}
+}
+function ISOChannels_delete_all_visible()
+{
+	let data = opcua_config_table.getData("active"),
 		del_ISOChannels_tbl = [];
 
 	if(data.length && confirm(data.length+" ISOChannel"+(data.length>1?'s':'')+" will be deleted\nContinue?"))
@@ -375,6 +426,13 @@ var rowMenu = [
 		menu:[
 			{label:"Export", action:ISOChannels_export_all_selected},
 			{label:"Delete", action:ISOChannels_delete_all_selected}
+		]
+	},
+	{
+		label:"All visible",
+		menu:[
+			{label:"Export", action:ISOChannels_export_all_visible},
+			{label:"Delete", action:ISOChannels_delete_all_visible}
 		]
 	},
 	{label:"Deselect All", action:function(){opcua_config_table.deselectRow();}}
