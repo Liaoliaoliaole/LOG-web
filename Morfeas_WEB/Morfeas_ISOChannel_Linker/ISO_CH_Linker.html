@@ -174,11 +174,11 @@ function filter_func()
 function filter_clear()
 {
 	let i, filter_type = document.getElementById("filter_type");
-	
+
 	for(i=0; i<2 ; i++)
 		filter_type.options[i].hidden=false;
 	for(i=i; i<filter_type.options.length ; i++)
-			filter_type.options[i].hidden=true;	
+			filter_type.options[i].hidden=true;
 	document.getElementById("filter_field").selectedIndex = 0;
 	document.getElementById("filter_type").selectedIndex = 0;
 	document.getElementById("filter_value").value = "";

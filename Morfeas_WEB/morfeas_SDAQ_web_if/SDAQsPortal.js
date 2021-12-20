@@ -28,22 +28,47 @@ var Det_devs = SDAQnet_stats_disp_init("Det_devs"),
 	Bus_Voltage = SDAQnet_stats_disp_init("Bus_Voltage"),
 	Bus_Amperage = SDAQnet_stats_disp_init("Bus_Amperage");
 
-function data_update(SDAQnet_data)
+function data_update(SDAQnet_data, update_tree)
 {
 	let SDAQnet_stats = document.getElementsByName("SDAQnet_stats");
-	
+
 	if(!SDAQnet_data)
 		return;
-	console.log(SDAQnet_data);
+	/*
+	//Update SDAQnet stats
 	for(let i=0; i<SDAQnet_stats.length; i++)
 	{
 		if(i<2)
 			SDAQnet_stats[i].hidden = false;
-		else 
+		else
 			SDAQnet_stats[i].hidden = SDAQnet_data.hasOwnProperty('Electrics')?false:true;
 	}
 	Det_devs.setValue(SDAQnet_data.Detected_SDAQs.toString());
 	Bus_util.setValue(SDAQnet_data.BUS_Utilization.toString()+'%');
+	*/
+	//console.log(SDAQnet_data);
+	if(update_tree)
+	{
+		let SDAQnet_logstat_tree = morfeas_build_dev_tree_from_SDAQ_logstat(SDAQnet_data);
+		//console.log(SDAQnet_logstat_tree);
+		let dev_tree = new TreeView(SDAQnet_logstat_tree, 'Dev_tree');
+		dev_tree.collapseAll();
+		dev_tree.on('collapse', clean_sel_data);
+		dev_tree.on('expand', clean_sel_data);
+		function clean_sel_data(){
+			sel_data_tbl.innerHTML = '';
+			sel_data = {};
+			ok_button.disabled = true;
+		}
+		dev_tree.on('select', function(elem){
+			sel_data_tbl.innerHTML = '';
+			if(elem.data && elem.data.Anchor)
+			{
+				gen_sel_data_table(elem.data)
+				ok_button.disabled = false;
+			}
+		});
+	}
 	/*
 	var SDAQs_list = document.getElementById("SDAQs_list");
 	if(!data_plot.prev)
@@ -89,37 +114,40 @@ function SDAQnet_stats_disp_init(name)
 	SDAQnet_stats_disp.draw();
 	return SDAQnet_stats_disp;
 }
-
-function SDAQ_dev_list_tree(listNode, SDAQs_data)
+function morfeas_build_dev_tree_from_SDAQ_logstat(SDAQ_logstat)
 {
-	if(!SDAQs_data)
+	function get_SDAQ_if_chidren(SDAQ_if_data, if_name)
+	{
+		let SDAQs = [];
+		for(let i=0; i<SDAQ_if_data.length; i++)
+		{
+			let SDAQ = {};
+			SDAQ.name = '(ADDR:'+norm(SDAQ_if_data[i].Address,2)+') '+SDAQ_if_data[i].SDAQ_type;
+			SDAQ.addr = SDAQ_if_data[i].Address;
+			SDAQ.Status = SDAQ_if_data[i].SDAQ_Status;
+			SDAQ.Info = SDAQ_if_data[i].SDAQ_info;
+			SDAQ.Timediff = SDAQ_if_data[i].Timediff;
+			SDAQ.Serial_number = SDAQ_if_data[i].Serial_number;
+			SDAQ.children = [];
+			for(let j=0; j<SDAQ_if_data[i].SDAQ_info.Number_of_channels; j++)
+			{
+				let Channel = {};
+				Channel.name = "CH:"+norm((j+1),2);
+				Channel.Calibration_Data = SDAQ_if_data[i].Calibration_Data[j];
+				Channel.Meas = SDAQ_if_data[i].Meas[j];
+				//Channel.Path = if_name+".ADDR:"+norm(SDAQ.addr,2)+".CH:"+norm(j+1,2);
+				//Channel.Anchor = SDAQ.Serial_number+".CH"+(j+1);
+				SDAQ.children.push(Channel);
+			}
+			SDAQ.expandable = SDAQ.children.length ? true : false;
+			SDAQs.push(SDAQ);
+		}
+		return SDAQs;
+	}
+	//Check for incompatible inputs
+	if(!SDAQ_logstat || typeof(SDAQ_logstat)!=="object")
 		return;
-	for(let i = 0; i<SDAQs_data.length; i++)
-	{
-		let textNode = document.createTextNode(SDAQs_data[i].SDAQ_type+'('+SDAQs_data[i].Address+')'),
-		liNode = document.createElement("LI");
-		liNode.classList.add("caret");
-		liNode.onclick = list_sel_callback;
-		liNode.appendChild(textNode);
-		for(let j=0; j<SDAQs_data[i].Meas.length;j++)
-		{
-			console.log(SDAQs_data[i].Meas[j].Channel);
-		}
-		listNode.appendChild(liNode);
-	}
-}
-function list_sel_callback()
-{
-	var others = document.getElementsByClassName("caret-down");
-	for(let j = 0; j<others.length; j++)
-	{
-		if(others[j] !== this)
-		{
-			others[j].style.fontWeight = "normal";
-			others[j].classList.value = "caret";
-		}
-	}
-	this.classList.value = "caret-down";
-	this.style.fontWeight = "bold";
+	//Logstat to dev_tree converter
+	return get_SDAQ_if_chidren(SDAQ_logstat.SDAQs_data, SDAQ_logstat.CANBus_interface.toUpperCase());
 }
 //@license-end
