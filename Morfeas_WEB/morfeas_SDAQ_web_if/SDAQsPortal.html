@@ -132,14 +132,18 @@ for the JavaScript code in this page.
 					{
 						let SDAQnet_data;
 						try{ SDAQnet_data = JSON.parse(this.responseText); }
-						catch(e)
-						{
+						catch(e){
 							document.getElementById("status").value = "Error: " + e.message;
 							break;
 						}
 						document.getElementById("status").style.color='black';
 						let last_update_time = new Date(SDAQnet_data.logstat_build_date_UNIX*1000);
 						document.getElementById("status").value = "Last Update: "+last_update_time.toLocaleDateString()+' '+last_update_time.toLocaleTimeString();
+						if(SDAQnet_data.Detected_SDAQs!=this.prev_Detected_SDAQs && !SDAQnet_data.Incomplete_SDAQs)
+						{
+							update_tree = true;
+							this.prev_Detected_SDAQs = SDAQnet_data.Detected_SDAQs;
+						}
 						data_update(SDAQnet_data, update_tree);
 						update_tree = false;
 					}
@@ -181,7 +185,7 @@ for the JavaScript code in this page.
 					SDAQnet_stats[i].hidden=true;
 				document.getElementById("status").value = "Select SDAQnet";
 				update_tree=false;
-				//document.getElementById("SDAQs_list").innerHTML="";
+				document.getElementById('Dev_tree').innerHTML="";
 			}
 		}
 	}

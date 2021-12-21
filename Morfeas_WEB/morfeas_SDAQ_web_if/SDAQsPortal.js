@@ -51,23 +51,36 @@ function data_update(SDAQnet_data, update_tree)
 	{
 		let SDAQnet_logstat_tree = morfeas_build_dev_tree_from_SDAQ_logstat(SDAQnet_data);
 		//console.log(SDAQnet_logstat_tree);
-		let dev_tree = new TreeView(SDAQnet_logstat_tree, 'Dev_tree');
-		dev_tree.collapseAll();
-		dev_tree.on('collapse', clean_sel_data);
-		dev_tree.on('expand', clean_sel_data);
-		function clean_sel_data(){
-			sel_data_tbl.innerHTML = '';
-			sel_data = {};
-			ok_button.disabled = true;
-		}
-		dev_tree.on('select', function(elem){
-			sel_data_tbl.innerHTML = '';
-			if(elem.data && elem.data.Anchor)
+		if(SDAQnet_logstat_tree)
+		{
+			let dev_tree = new TreeView(SDAQnet_logstat_tree, 'Dev_tree');
+			dev_tree.collapseAll();
+			dev_tree.on('collapse', clean_sel_data);
+			dev_tree.on('expand', select_callback);
+			dev_tree.on('select', select_callback);
+			function clean_sel_data()
 			{
-				gen_sel_data_table(elem.data)
-				ok_button.disabled = false;
+				/*
+				sel_data_tbl.innerHTML = '';
+				sel_data = {};
+				ok_button.disabled = true;
+				*/
 			}
-		});
+			function select_callback(elem)
+			{
+				console.log(elem);
+				/*
+				sel_data_tbl.innerHTML = '';
+				if(elem.data && elem.data.Anchor)
+				{
+					gen_sel_data_table(elem.data)
+					ok_button.disabled = false;
+				}
+				*/
+			}
+		}
+		else
+			document.getElementById('Dev_tree').innerHTML='';
 	}
 	/*
 	var SDAQs_list = document.getElementById("SDAQs_list");
@@ -145,7 +158,7 @@ function morfeas_build_dev_tree_from_SDAQ_logstat(SDAQ_logstat)
 		return SDAQs;
 	}
 	//Check for incompatible inputs
-	if(!SDAQ_logstat || typeof(SDAQ_logstat)!=="object")
+	if(!SDAQ_logstat || typeof(SDAQ_logstat)!=="object" || !SDAQ_logstat.SDAQs_data)
 		return;
 	//Logstat to dev_tree converter
 	return get_SDAQ_if_chidren(SDAQ_logstat.SDAQs_data, SDAQ_logstat.CANBus_interface.toUpperCase());
