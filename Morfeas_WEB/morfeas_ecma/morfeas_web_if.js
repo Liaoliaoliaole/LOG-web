@@ -172,7 +172,7 @@ function morfeas_logstat_commonizer(logstats)
 			new_data_table_entry.connections.push(new connection("SDAQnet_("+logstat.CANBus_interface+")_outAmperage",
 																		  logstat.Electrics.BUS_amperage.toFixed(2), "A"));
 			new_data_table_entry.connections.push(new connection("SDAQnet_("+logstat.CANBus_interface+")_ShuntTemp",
-																		  logstat.Electrics.BUS_Shunt_Res_temp.toFixed(1), "°C"));
+																		  logstat.Electrics.BUS_Shunt_Res_temp.toFixed(1), "°F"));
 		}
 		//Load Device's sensors
 		if(logstat.Detected_SDAQs)
@@ -370,7 +370,7 @@ function morfeas_logstat_commonizer(logstats)
 			new_data_table_entry.connections.push(new connection("SDAQnet_("+logstat.CANBus_interface+")_outAmperage",
 																		  logstat.Electrics.BUS_amperage.toFixed(2), "A"));
 			new_data_table_entry.connections.push(new connection("SDAQnet_("+logstat.CANBus_interface+")_ShuntTemp",
-																		  logstat.Electrics.BUS_Shunt_Res_temp.toFixed(2), "°C"));
+																		  logstat.Electrics.BUS_Shunt_Res_temp.toFixed(2), "°F"));
 		}
 		//Load Device's sensors
 		if(det_NOx)
