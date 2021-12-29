@@ -56,7 +56,7 @@ function data_update(SDAQnet_data, update_tree)
 			let dev_tree = new TreeView(SDAQnet_logstat_tree, 'Dev_tree');
 			dev_tree.collapseAll();
 			dev_tree.on('collapse', clean_sel_data);
-			dev_tree.on('expand', select_callback);
+			dev_tree.on('expand', clean_sel_data);
 			dev_tree.on('select', select_callback);
 			function clean_sel_data()
 			{
@@ -80,7 +80,7 @@ function data_update(SDAQnet_data, update_tree)
 			}
 		}
 		else
-			document.getElementById('Dev_tree').innerHTML='';
+			document.getElementById('Dev_tree').innerHTML='No SDAQs';
 	}
 	/*
 	var SDAQs_list = document.getElementById("SDAQs_list");
@@ -135,24 +135,42 @@ function morfeas_build_dev_tree_from_SDAQ_logstat(SDAQ_logstat)
 		for(let i=0; i<SDAQ_if_data.length; i++)
 		{
 			let SDAQ = {};
-			SDAQ.name = '(ADDR:'+norm(SDAQ_if_data[i].Address,2)+') '+SDAQ_if_data[i].SDAQ_type;
-			SDAQ.addr = SDAQ_if_data[i].Address;
-			SDAQ.Status = SDAQ_if_data[i].SDAQ_Status;
-			SDAQ.Info = SDAQ_if_data[i].SDAQ_info;
-			SDAQ.Timediff = SDAQ_if_data[i].Timediff;
-			SDAQ.Serial_number = SDAQ_if_data[i].Serial_number;
+			SDAQ.name = "(ADDR:"+norm(SDAQ_if_data[i].Address,2)+") "+SDAQ_if_data[i].SDAQ_type;
+			SDAQ.expandable = true;
 			SDAQ.children = [];
+			//Add Channels
+			let CHs = {};
+			CHs.name = "Channels";
+			CHs.expandable = true;
+			CHs.children = [];
 			for(let j=0; j<SDAQ_if_data[i].SDAQ_info.Number_of_channels; j++)
 			{
-				let Channel = {};
-				Channel.name = "CH:"+norm((j+1),2);
-				Channel.Calibration_Data = SDAQ_if_data[i].Calibration_Data[j];
-				Channel.Meas = SDAQ_if_data[i].Meas[j];
-				//Channel.Path = if_name+".ADDR:"+norm(SDAQ.addr,2)+".CH:"+norm(j+1,2);
-				//Channel.Anchor = SDAQ.Serial_number+".CH"+(j+1);
-				SDAQ.children.push(Channel);
+				let CH = {};
+				CH.name = "CH:"+norm((j+1),2);
+				CHs.children.push(CH);
 			}
-			SDAQ.expandable = SDAQ.children.length ? true : false;
+			SDAQ.children.push(CHs);
+			//Add Channels' calibration data
+			let CHs_cal_data = {};
+			CHs_cal_data.name = "Calibration Data";
+			CHs_cal_data.expandable = true;
+			CHs_cal_data.children = [];
+			for(let j=0; j<SDAQ_if_data[i].SDAQ_info.Number_of_channels; j++)
+			{
+				let CH = {};
+				CH.name = "CH:"+norm((j+1),2);
+				CHs_cal_data.children.push(CH);
+			}
+			SDAQ.children.push(CHs_cal_data);
+			//Add Status
+			let Status = {};
+			Status.name = "Status";
+			SDAQ.children.push(Status);
+			//Add Info
+			let Info = {};
+			Info.name = "Info";
+			SDAQ.children.push(Info);
+			//Push SDAQ to SDAQs tree
 			SDAQs.push(SDAQ);
 		}
 		return SDAQs;

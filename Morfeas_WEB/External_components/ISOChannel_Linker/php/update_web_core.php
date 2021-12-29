@@ -92,7 +92,7 @@ require("../../../Morfeas_env.php");
 require("../../../morfeas_php/Supplementary.php");
 $requestType = $_SERVER['REQUEST_METHOD'];
 $postdata = file_get_contents("php://input");
-$postdata = decompress($postdata);
+//$postdata = decompress($postdata);
 $request = json_decode($postdata);
 if ($requestType == "POST") {
     $localServerConfigs = json_decode(json_encode(simplexml_load_file($opc_ua_config_dir.'Update_config.xml')));
