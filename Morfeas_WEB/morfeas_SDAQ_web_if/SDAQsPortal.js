@@ -45,8 +45,8 @@ function data_update(SDAQnet_data, update_tree)
 	}
 	Det_devs.setValue(SDAQnet_data.Detected_SDAQs.toString());
 	Bus_util.setValue(SDAQnet_data.BUS_Utilization.toString()+'%');
-	*/
 	//console.log(SDAQnet_data);
+	*/
 	if(update_tree)
 	{
 		let SDAQnet_logstat_tree = morfeas_build_dev_tree_from_SDAQ_logstat(SDAQnet_data);
