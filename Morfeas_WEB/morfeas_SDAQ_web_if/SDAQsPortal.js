@@ -23,7 +23,8 @@ through which recipients can access the Corresponding Source.
 for the JavaScript code in this page.
 */
 "use strict";
-var Det_devs = SDAQnet_stats_disp_init("Det_devs"),
+var dev_tree,
+	Det_devs = SDAQnet_stats_disp_init("Det_devs"),
 	Bus_util = SDAQnet_stats_disp_init("Bus_util"),
 	Bus_Voltage = SDAQnet_stats_disp_init("Bus_Voltage"),
 	Bus_Amperage = SDAQnet_stats_disp_init("Bus_Amperage");
@@ -53,7 +54,7 @@ function data_update(SDAQnet_data, update_tree)
 		//console.log(SDAQnet_logstat_tree);
 		if(SDAQnet_logstat_tree)
 		{
-			let dev_tree = new TreeView(SDAQnet_logstat_tree, 'Dev_tree');
+			dev_tree = new TreeView(SDAQnet_logstat_tree, 'Dev_tree');
 			dev_tree.collapseAll();
 			dev_tree.on('collapse', clean_sel_data);
 			dev_tree.on('expand', clean_sel_data);
