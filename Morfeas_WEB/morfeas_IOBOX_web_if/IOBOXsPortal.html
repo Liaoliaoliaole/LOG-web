@@ -21,7 +21,7 @@
 	</table>
 	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;">
 		<tr>
-			<th colspan="5" style="font-size: 200%;">IOBOX IOBOX Portal</th>
+			<th colspan="5" style="font-size: 200%;">IOBOX Portal</th>
 		</tr>
 		<tr>
 			<td colspan="4"><input id="status" style="text-align:center;" type="textbox" size="45" readonly></td>
@@ -120,7 +120,7 @@ xhttp.onreadystatechange = function()
 				{
 					if(resp.logstats_names[i].includes("IOBOX"))
 					{
-						var opt = document.createElement("option");
+						let opt = document.createElement("option");
 						opt.text = resp.logstats_names[i].slice(14, resp.logstats_names[i].indexOf("."));
 						selector.add(opt);
 					}
@@ -219,8 +219,12 @@ function populate_IOBOX_tables(IOBOX_data)
 		for(let i=0; i<RXs_t.length; i++)
 		{
 			let RX_data = IOBOX_data["RX"+(i+1)];
+			RXs_t[i].innerHTML='';
 			if(typeof(RX_data)==="string")
-				RXs_t[i].innerHTML="<b>RX"+(i+1)+": "+RX_data+'</b>';
+			{
+				let cell = RXs_t[i].insertRow(0).insertCell(0);
+				cell.innerHTML="<b>RX"+(i+1)+": "+RX_data+"</b>";
+			}
 			else
 			{
 				RXs_t[i].innerHTML="";
@@ -246,27 +250,6 @@ function populate_IOBOX_tables(IOBOX_data)
 				}
 			}
 		}
-		/*
-		let CHs_head=[], Values=[];
-		CH_meas_table.innerHTML="";
-		CH_meas_table.style.display="table";
-		CHs_head.push("");
-		for(let i=1; i<=8; i++)
-			CHs_head.push("CH_"+i);
-		generateTableHead(CH_meas_table, CHs_head);
-		for(let i=1; i<=3; i++)
-		{
-			let CHs_values = ["Value_"+i+":"];
-			for(let j=0; j<8; j++)
-			{
-				let curr_value = IOBOX_data.IOBOX_Channels[j].Warnings["Is_Value"+i+"_valid"]?IOBOX_data.IOBOX_Channels[j].Values["Value"+i].toFixed(3):"-";
-				CHs_values.push(curr_value);
-			}
-			Values.push(CHs_values);
-			let table_row = CH_meas_table.insertRow();
-			generateTable_row(table_row, Values[i-1]);
-		}
-		*/
 	}
 	else
 		CH_meas_tables.style.display="none";
