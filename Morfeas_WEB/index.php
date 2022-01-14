@@ -74,7 +74,7 @@ td.bold{
 				<img src="./art/morfeas_gear.png" class="bsize">
 			</span>
 		</td>
-		<td><button type="button" onclick='PopupCenter("/Morfeas_configuration/Network_config.html"+"?q="+makeid(),"","600","350")'>
+		<td><button type="button" onclick='PopupCenter("/Morfeas_configuration/Network_config.html"+"?q="+makeid(),"","550","390")'>
 			<span title="Network Configuration">
 				<img src="./art/eth.png" class="bsize">
 			</span>
