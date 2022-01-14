@@ -27,6 +27,13 @@ input.global_style{
 		<input style="width:16;" type="text" id="hostname">
 	</td>
   </tr>
+  <tr name="mac_fields">
+    <th colspan="2">Ethernet Identifier</th>
+  </tr>
+  <tr name="mac_fields">
+	<td>MAC Address:</td>
+	<td id="mac"></td>
+  </tr>
   <tr>
     <th colspan="2">Internet Configuration</th>
   </tr>
@@ -153,6 +160,14 @@ function default_config(_config)
 {
 	if(!_config)
 		return;
+	if(_config.mac && typeof(_config.mac)==='string')
+		mac.innerHTML = '<b>'+_config.mac.toUpperCase()+'</b>';
+	else
+	{
+		let mac_fields = document.getElementsByName("mac_fields");
+		for(let i=0; i<mac_fields.length; i++)
+			mac_fields[i].style.display = "none";
+	}
 	hostname.value = _config.hostname;
 	if(_config.ntp)
 		for(let i=0;i<4;i++)
@@ -200,6 +215,7 @@ function val(inp)
 }
 //DOM const
 const hostname=document.getElementById("hostname"),
+	  mac=document.getElementById("mac"),
 	  mode=document.getElementById("mode"),
 	  ip=document.getElementsByName("ip"),
 	  mask=document.getElementById("mask"),

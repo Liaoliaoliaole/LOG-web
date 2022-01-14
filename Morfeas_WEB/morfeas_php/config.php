@@ -100,6 +100,14 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			return 1;
 		}
 	}
+	function getMACaddr($if_name)
+	{
+		if(!exec("ip link show $if_name", $output, $retval))
+			return NULL;
+		if($output = explode(' ', $output[1]))
+			return $output[5];
+		return NULL;
+	}
 	function get_timesyncd_ntp()
 	{
 		if(!($timesyncd_config_file=file_get_contents("/etc/systemd/timesyncd.conf")))
@@ -350,6 +358,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					$conf->parser($eth_if_name) or Die("Server: Parsing of configuration file failed!!!");
 					$currConfig = new stdClass();
 					$currConfig->hostname=gethostname();
+					if(($mac=getMACaddr($eth_if_name)))	
+						$currConfig->mac=$mac;
 					if(($currConfig->mode=$conf->mode)==='Static')
 					{
 						$currConfig->ip=$conf->ip;
