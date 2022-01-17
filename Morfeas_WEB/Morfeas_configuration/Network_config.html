@@ -133,7 +133,7 @@ function canif_table_constractor(can_ifs)
 		//Add title, (CAN-if Name)
 		td = document.createElement("td");
 		td.setAttribute("name","can_ifs_names");
-		textnode = document.createTextNode(can_ifs[i].if_Name);
+		textnode = document.createTextNode(can_ifs[i].if_Name.toUpperCase());
 		td.appendChild(textnode);
 		tr.appendChild(td);
 		//Add Select element with available option bitRates
