@@ -151,19 +151,25 @@ document.onkeydown = function(key){
 };
 function shutdown()
 {
-	var xhttp = new XMLHttpRequest();
-	xhttp.open("POST", "../morfeas_php/config.php", true);
-	xhttp.setRequestHeader("Content-type", "shutdown");
-	xhttp.send();
-	alert("Shudown executed. Close all related windows!!!");
+	if(confirm("System going to shutdown"))
+	{
+		var xhttp = new XMLHttpRequest();
+		xhttp.open("POST", "../morfeas_php/config.php", true);
+		xhttp.setRequestHeader("Content-type", "shutdown");
+		xhttp.send();
+		alert("Shudown executed. Close all related windows!!!");
+	}
 }
 
 function reboot()
 {
-	var xhttp = new XMLHttpRequest();
-	xhttp.open("POST", "../morfeas_php/config.php", true);
-	xhttp.setRequestHeader("Content-type", "reboot");
-	xhttp.send();
+	if(confirm("System going to Reboot"))
+	{
+		var xhttp = new XMLHttpRequest();
+		xhttp.open("POST", "../morfeas_php/config.php", true);
+		xhttp.setRequestHeader("Content-type", "reboot");
+		xhttp.send();
+	}
 }
 //@license-end
 </script>
