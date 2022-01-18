@@ -1,5 +1,5 @@
 # Documentation of Morfeas WEB UI
-This directory contains the source for the Documentation of the Morfeas WEB UI Project. The source is written in LaTex.
+This directory contains the source for the Documentation of the Morfeas WEB UI. The source is written in LaTex.
 
 ### Requirements
 For compilation of this project the following dependencies required.
@@ -18,4 +18,4 @@ The compiled documentation located under the **./build-doc** directory.
 * **Sam Harry Tzavaras** - *Initial work*
 
 ## License
-The source code of the Documentation of Morfeas project is licensed under FDLv1.3 or later - see the [License](../../../fdl-1.3.md) file for details.
+The source code of the Documentation for Morfeas WEB UI is licensed under FDLv1.3 or later - see the [License](../../../fdl-1.3.md) file for details.
