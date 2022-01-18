@@ -1,4 +1,4 @@
-# Documentation of Morfeas-Core
+# Documentation of Morfeas WEB UI
 This directory contains the source for the Documentation of the Morfeas WEB UI Project. The source is written in LaTex.
 
 ### Requirements
