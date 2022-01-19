@@ -50,14 +50,13 @@ img.bsize{
 			<td colspan="4"><input id="status" style="text-align:center;" type="textbox" size="45" readonly></td>
 		</tr>
 	</table>
-	<table id ="main_menu" style="margin:auto;text-align:center;margin-bottom:.075in;width:3in;display:none">
+	<table id ="main_menu" style="margin:auto;text-align:center;margin-bottom:.075in;width:2.5in;display:none">
 		<tr>
-			<th colspan="3" style="font-size: 120%;">Main Menu</th>
+			<th colspan="2" style="font-size: 120%;">Main Menu</th>
 		</tr>
 		<tr>
 			<td><input type="button" value="RF Devices" onclick='Show_hide(screen_enum.RF_DEVs)'></td>
-			<td><input type="button" value="State" onclick='Show_hide(screen_enum.MTI_status_tab)'></td>
-			<td><input type="button" value="Graph" onclick='Show_hide(screen_enum.Graph_tab)'></td>
+			<td><input type="button" value="MTI's State" onclick='Show_hide(screen_enum.MTI_status_tab)'></td>
 		</tr>
 	</table>
 	<div id ="RF_DEVs" style="margin:auto;display:none;">
@@ -173,9 +172,6 @@ img.bsize{
 			</tr>
 		</table>
 	</div>
-	<div id ="Graph_tab" style="margin:auto;text-align:center;display:none;">
-		<canvas  id="Plot_Chart" height="120">No canvas Support</canvas>
-	</div>
 	<footer style="bottom:0;width:99%;">
 		<p>Author: Sam Harry Tzavaras &#169; 12019-12021<br>
 		<a href="../LICENSE">License: AGPLv3</a><br>
@@ -216,8 +212,7 @@ const mode_enum = {
 };
 const screen_enum = {
   MTI_status_tab: 1,
-  RF_DEVs: 2,
-  Graph_tab: 3
+  RF_DEVs: 2
 };
 //Init of Elements
 document.getElementById("status").value="Select a device";
@@ -284,7 +279,6 @@ xhttp.onreadystatechange = function()
 							batt_and_rssid[i].style.display="none"
 						document.getElementById("MTI_status_tab").style.display="none";
 						document.getElementById("RF_DEVs").style.display="none";
-						document.getElementById("Graph_tab").style.display="none";
 						MTI_status.style.display="none";
 					}
 					status_box.value='Connection: '+MTI_data.Connection_status;
@@ -362,7 +356,6 @@ function Show_hide(log_set)
 {
 	document.getElementById("MTI_status_tab").style.display="none";
 	document.getElementById("RF_DEVs").style.display="none";
-	document.getElementById("Graph_tab").style.display="none";
 	switch(log_set)
 	{
 		case screen_enum.MTI_status_tab:
@@ -371,9 +364,6 @@ function Show_hide(log_set)
 		case screen_enum.RF_DEVs:
 			radio_mode_inited=false;
 			document.getElementById("RF_DEVs").style.display="inline";
-			break;
-		case screen_enum.Graph_tab:
-			document.getElementById("Graph_tab").style.display="inline";
 			break;
 	}
 }
