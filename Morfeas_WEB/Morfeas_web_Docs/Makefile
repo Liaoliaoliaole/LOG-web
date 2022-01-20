@@ -20,11 +20,14 @@ BUILD_dir=build-doc
 WORK_dir=work-doc
 Latex_FLAGS=-pdf -pdflatex="pdflatex -interaction=nonstopmode" -use-make -outdir=$(WORK_dir)
 
-all: $(BUILD_dir)/Morfeas_NOX_if.pdf
+all: $(BUILD_dir)/Morfeas_NOX_if.pdf \
+	 $(BUILD_dir)/Morfeas_configuration.pdf
 
-#Compiling of the document
+#Compiling of the documents
 $(BUILD_dir)/Morfeas_NOX_if.pdf: $(SRC_dir)/Morfeas_NOX_if/*.tex
 	latexmk $(Latex_FLAGS) $(SRC_dir)/Morfeas_NOX_if/Morfeas_NOX_if.tex && mv $(WORK_dir)/*.pdf $(BUILD_dir)/
+$(BUILD_dir)/Morfeas_configuration.pdf: $(SRC_dir)/Morfeas_configuration/*.tex
+	latexmk $(Latex_FLAGS) $(SRC_dir)/Morfeas_configuration/Morfeas_configuration.tex && mv $(WORK_dir)/*.pdf $(BUILD_dir)/
 
 tree:
 	mkdir -p $(BUILD_dir) $(WORK_dir)
