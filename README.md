@@ -41,7 +41,7 @@ $ sudo chmod +x ./install.sh
 $ ./install.sh
 ``` -->
 ## Documentation
-The documentation of the project located at [Morfeas_WEB_Docs](./docs/Morfeas_WEB_Docs).
+The documentation of the project located at [Morfeas_WEB_Docs](./Docs/Morfeas_WEB_Docs).
 
 # License
 The subproject license under [AGPLv3](./Morfeas_WEB/LICENSE) or later

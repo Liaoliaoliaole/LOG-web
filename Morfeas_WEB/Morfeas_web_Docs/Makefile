@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License           #
 # along with this program; If not, see <https://www.gnu.org/licenses/>.       #
 ###############################################################################
+
 SRC_dir=src
 BUILD_dir=build-doc
 WORK_dir=work-doc
@@ -25,9 +26,9 @@ all: $(BUILD_dir)/Morfeas_NOX_if.pdf \
 
 #Compiling of the documents
 $(BUILD_dir)/Morfeas_NOX_if.pdf: $(SRC_dir)/Morfeas_NOX_if/*.tex
-	latexmk $(Latex_FLAGS) $(SRC_dir)/Morfeas_NOX_if/Morfeas_NOX_if.tex && mv $(WORK_dir)/*.pdf $(BUILD_dir)/
+	latexmk $(Latex_FLAGS) $(SRC_dir)/Morfeas_NOX_if/Morfeas_NOX_if.tex && mv $(WORK_dir)/Morfeas_NOX_if.pdf $(BUILD_dir)/
 $(BUILD_dir)/Morfeas_configuration.pdf: $(SRC_dir)/Morfeas_configuration/*.tex
-	latexmk $(Latex_FLAGS) $(SRC_dir)/Morfeas_configuration/Morfeas_configuration.tex && mv $(WORK_dir)/*.pdf $(BUILD_dir)/
+	latexmk $(Latex_FLAGS) $(SRC_dir)/Morfeas_configuration/Morfeas_configuration.tex && mv $(WORK_dir)/Morfeas_configuration.pdf $(BUILD_dir)/
 
 tree:
 	mkdir -p $(BUILD_dir) $(WORK_dir)
