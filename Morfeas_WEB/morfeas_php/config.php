@@ -48,6 +48,19 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			if(!file_exists('/etc/network/interfaces.d/'.$if_name))
 			{
 				$this->mode="DHCP";
+				//Get configured IP
+				if(exec("ip addr show $if_name", $output, $retval))
+				{
+					if($output = explode(' ', $output[2]))
+						$this->ip_conf = $output[5];
+				}
+				//Get configured Gateway
+				unset($output);
+				if(exec("ip route", $output, $retval))
+				{
+					if($output = explode(' ', $output[0]))
+						$this->gate_conf = $output[2];
+				}
 				return 1;
 			}
 			else
@@ -358,13 +371,20 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					$conf->parser($eth_if_name) or Die("Server: Parsing of configuration file failed!!!");
 					$currConfig = new stdClass();
 					$currConfig->hostname=gethostname();
-					if(($mac=getMACaddr($eth_if_name)))	
+					if(($mac=getMACaddr($eth_if_name)))
 						$currConfig->mac=$mac;
 					if(($currConfig->mode=$conf->mode)==='Static')
 					{
 						$currConfig->ip=$conf->ip;
 						$currConfig->mask=$conf->mask;
 						$currConfig->gate=$conf->gate;
+					}
+					else
+					{
+						if(isset($conf->ip_conf))
+							$currConfig->ip_conf=$conf->ip_conf;
+						if(isset($conf->gate_conf))
+							$currConfig->gate_conf=$conf->gate_conf;
 					}
 					$currConfig->ntp=get_timesyncd_ntp();
 					if(($CAN_ifs=getCANifs()))

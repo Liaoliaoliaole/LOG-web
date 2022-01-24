@@ -65,6 +65,14 @@ input.global_style{
 		<input class="global_style" name="gateway">
 	</td>
   </tr>
+  <tr name="static_config">
+	<td>Network IP</td>
+	<td id="conf_ip"></td>
+  </tr>
+  <tr name="static_config">
+	<td>Gateway</td>
+	<td id="conf_gateway"></td>
+  </tr>
   <tr>
     <th colspan="2">NTP Configuration</th>
   </tr>
@@ -111,6 +119,8 @@ function static_conf(visible)
 	var static_config=document.getElementsByName("static_config");
 	static_config[0].style.visibility=visible?"visible":"collapse";
 	static_config[1].style.visibility=visible?"visible":"collapse";
+	static_config[2].style.visibility=visible?"collapse":"visible";
+	static_config[3].style.visibility=visible?"collapse":"visible";
 }
 function canif_table_constractor(can_ifs)
 {
@@ -186,6 +196,8 @@ function default_config(_config)
 			break;
 		case "DHCP":
 			static_conf(false);
+			document.getElementById("conf_ip").innerHTML = _config.ip_conf ? '<b>'+_config.ip_conf+'</b>':'-';
+			document.getElementById("conf_gateway").innerHTML = _config.gate_conf ? '<b>'+_config.gate_conf+'</b>':'-';
 			mode.selectedIndex = 1;
 			break;
 	}
