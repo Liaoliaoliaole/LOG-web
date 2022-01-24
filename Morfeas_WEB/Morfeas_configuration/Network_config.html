@@ -65,11 +65,11 @@ input.global_style{
 		<input class="global_style" name="gateway">
 	</td>
   </tr>
-  <tr name="static_config">
+  <tr name="static_config" style="visibility:collapse;">
 	<td>Network IP</td>
 	<td id="conf_ip"></td>
   </tr>
-  <tr name="static_config">
+  <tr name="static_config" style="visibility:collapse;">
 	<td>Gateway</td>
 	<td id="conf_gateway"></td>
   </tr>
@@ -114,13 +114,13 @@ for the JavaScript code in this page.
 */
 "use strict";
 comp_check();
-function static_conf(visible)
+function static_conf(visible, dhcp_conf)
 {
 	var static_config=document.getElementsByName("static_config");
 	static_config[0].style.visibility=visible?"visible":"collapse";
 	static_config[1].style.visibility=visible?"visible":"collapse";
-	static_config[2].style.visibility=visible?"collapse":"visible";
-	static_config[3].style.visibility=visible?"collapse":"visible";
+	static_config[2].style.visibility=!visible&&dhcp_conf?"visible":"collapse";
+	static_config[3].style.visibility=!visible&&dhcp_conf?"visible":"collapse";
 }
 function canif_table_constractor(can_ifs)
 {
@@ -195,7 +195,7 @@ function default_config(_config)
 			mask.value=_config.mask;
 			break;
 		case "DHCP":
-			static_conf(false);
+			static_conf(false, (_config.ip_conf && _config.gate_conf));
 			document.getElementById("conf_ip").innerHTML = _config.ip_conf ? '<b>'+_config.ip_conf+'</b>':'-';
 			document.getElementById("conf_gateway").innerHTML = _config.gate_conf ? '<b>'+_config.gate_conf+'</b>':'-';
 			mode.selectedIndex = 1;
