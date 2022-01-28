@@ -4,7 +4,7 @@ this \includegraphics[height=.125in]{../art/eth.png} symbol.
 At figure \ref{fig:net_conf} shown an example of the network configuration utility.
 \begin{figure}[h]
 \centering
-	\includegraphics[width=2.5in,angle=0]{../art/Morfeas_web_if/network_config.png}
+	\fbox{\includegraphics[width=2.5in,angle=0]{../art/Morfeas_web_if/network_config.png}}
 	\caption{Morfeas WEB Utility for Network Configuration}
 	\label{fig:net_conf}
 \end{figure}
@@ -16,7 +16,7 @@ At table \ref{tab:net_conf} present the values and purpose of the configuration 
 			\hline
 			\textbf{Value} & \textbf{Purpose}\\
 			\hline
-			Hostname & Network and local name for Discovery services (avahi, samba, etc)\\
+			Hostname & Name for discovery services (avahi, samba, etc)\\
 			\hline
 			MAC Address & Identifier of the Ethernet interface\\
 			\hline
@@ -26,6 +26,8 @@ At table \ref{tab:net_conf} present the values and purpose of the configuration 
 			Gateway & Gateway's IP address (In static mode only)\\
 			\hline
 			NTP IP & IP address of the local network time protocol server\\
+			\hline
+			SDAQNet(CAN-ifs) & Configuration of the bitrate for each available can-if\\
 			\hline
 		\end{tabular}
 		\caption{Network configuration values}
