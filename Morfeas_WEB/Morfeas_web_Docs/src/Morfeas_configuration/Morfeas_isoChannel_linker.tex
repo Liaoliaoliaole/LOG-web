@@ -68,7 +68,7 @@ To add a new ISO Channel the ISOChannels menu can be used (figure \ref{fig:ISOCH
 	\label{fig:ISOCH_menu}
 \end{figure}
 
-By giving the ``Add ISOChannel" command (from menu or shortcut) a new window will appear (figure \ref{fig:ISOCH_new_link}).
+By giving the ``Add ISOChannel" command (from menu or shortcut) a new window with the ``Link Creator" will appear (figure \ref{fig:ISOCH_new_link}).
 
 \begin{figure}[h]
 \centering
@@ -77,3 +77,51 @@ By giving the ``Add ISOChannel" command (from menu or shortcut) a new window wil
 	\label{fig:ISOCH_new_link}
 \end{figure}
 
+The ``Link Creator" window request from the user to enter the information and attributes that related to the ISO Channel.
+That's are: Type, Sensor's Path, ISO Code, Description, Min, Max and Unit.\\
+The ``Type" entry is determinate the type of the sensor.
+The ``Sensor's Path" is the logical path to the sensor, this determinated accordingly to the type of it.
+For example for SDAQ type the path is constructed like ``CAN-f.Addr:XX.CH:XX".
+In any case the ``Link Creator" will provide a hint related to the ``Type", or a message in case that no devices are available.
+If the entry of ``Sensor's Path" is invalid will become red.
+Also at the right of the ``Sensor's Path" entry is a button with a magnification glass on,
+where if it clicked will open the ``Device Search" utility window (figure \ref{fig:Device_Search}).
+The ``Device Search" utility provide a tree with the available sensors of the selected ``Type".
+Any valid selection from the ``Device Search" utility will fill the ``Sensor's Path" entry.\\
+
+The ``ISO Code" entry is specified the name of the ISO Channel.
+The utility also hinting and autofill this and the following entries with values from the ``ISO Standard".
+However, in manual entry the user is responsible to fill all the entries.\\
+
+The ``Unit" entry is some of the values of the ``Type" entry will autofilled with the value that the sensor reporting.\\
+
+If all the entries is validly filled the ``Send" button will become available, and on click will send and the ISOChannel.
+
+\begin{figure}[h]
+\centering
+	\fbox{\includegraphics[width=2.5in,angle=0]{../art/Morfeas_web_if/Dev_search_win.png}}
+	\caption{Device Search utility}
+	\label{fig:Device_Search}
+\end{figure}
+
+\newpage
+\subsection{Edit ISO Channels}
+The request of edit for an ISO Channel can be done by two ways.
+Either by double click on the ISO Channel name,
+or by right click (figure \ref{fig:right_click}) on the ISOChannel name and then click ``Edit".
+
+\begin{figure}[h]
+\centering
+	\includegraphics[width=1in,angle=0]{../art/Morfeas_web_if/right_click.png}
+	\caption{ISO Channel Right Click menu}
+	\label{fig:right_click}
+\end{figure}
+
+After the request of ISO Channel Edit, a new window (figure \ref{fig:edit_link}) with the ``Edit Link" utility will be open.
+
+\begin{figure}[h]
+\centering
+	\fbox{\includegraphics[width=3.5in,angle=0]{../art/Morfeas_web_if/Edit_link.png}}
+	\caption{ISO Channel Edit Link Utility}
+	\label{fig:edit_link}
+\end{figure}
