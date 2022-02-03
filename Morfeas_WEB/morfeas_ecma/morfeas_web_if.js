@@ -471,7 +471,7 @@ function get_from_common_logstats_by_IPv4(logstats, type, ip)
 	if(!logstats || !ip ||
 	   !logstats.length || !type)
 		return false;
-	
+
 	for(let i=0; i<logstats.length; i++)
 	{
 		if(!logstats[i].connections || !logstats[i].connections.length || !logstats[i].if_name.includes(type))
@@ -748,6 +748,8 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 }
 function import_from_file_validator(inp_obj, logger)
 {
+	const types = ["SDAQ", "MDAQ", "IOBOX", "MTI", "NOX"];
+	
 	if(!logger)
 	{
 		console.log("input argument logger is Undefined!!!")
@@ -788,7 +790,29 @@ function import_from_file_validator(inp_obj, logger)
 			logger.value+="Error: Element "+i+" have invalid contents!!!\n";
 			return;
 		}
-
+		
+		if(inp_obj[i].ISO_CHANNEL.length>=20)
+		{
+			logger.value+="Error: \"ISO_CHANNEL\" property of Element "+i+" have length >=20!!!\n";
+			return;
+		}
+		let i_t=0;
+		while(i_t<types.length)
+		{
+			if(inp_obj[i].INTERFACE_TYPE === types[i_t])
+				break;
+			i_t++;
+		}
+		if(i_t>=types.length)
+		{
+			logger.value+="Error: \"INTERFACE_TYPE\" property of Element "+i+" is invalid!!!\n";
+			return;
+		}
+		if(inp_obj[i].MAX < inp_obj[i].MIN)
+		{
+			logger.value+="Error: \"MAX\" property of Element "+i+" is less than \"MIN\"!!!\n";
+			return;
+		}
 		if(inp_obj[i].hasOwnProperty('UNIT') && !inp_obj[i].UNIT)
 		{
 			logger.value+="Error: \"UNIT\" property of Element "+i+" is empty!!!\n";
@@ -825,6 +849,18 @@ function import_from_file_validator(inp_obj, logger)
 				logger.value+="Error: \"CAL_PERIOD\" property of Element "+i+" is out of range!!!\n";
 				return;
 			}
+		}
+	}
+	if(inp_obj.length>1)//Enter if more than one elements is in the array.
+	{	//Check for duplicated ISOChannel.
+		for(let i=0; i<inp_obj.length-1; i++)
+		{
+			for(let j=i+1; j<inp_obj.length; j++)
+				if(inp_obj[i].ISO_CHANNEL === inp_obj[j].ISO_CHANNEL)
+				{
+					logger.value+="Error: \"ISO_CHANNEL\": \""+inp_obj[i].ISO_CHANNEL+"\" found multiple times!!!\n";
+					return;
+				}
 		}
 	}
 	return true;
