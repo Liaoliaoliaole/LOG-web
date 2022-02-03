@@ -58,7 +58,7 @@ The shorting can be restored by clicking the filter clean button (broom).
 	\end{center}
 \end{table}
 
-\subsection{Add new ISO Channel}
+\subsection{Add a new ISO Channel}
 To add a new ISO Channel the ISOChannels menu can be used (figure \ref{fig:ISOCH_menu}) or the shortcut \textbf{Ctrl}+\textbf{Alt}+\textbf{A}.
 
 \begin{figure}[h]
@@ -105,7 +105,7 @@ If all the entries is validly filled the ``Send" button will become available, a
 \end{figure}
 
 \newpage
-\subsection{Edit ISO Channels}
+\subsection{Edit an ISO Channel}
 The request of edit for an ISO Channel can be done by two ways.
 Either by double click on the ISO Channel name,
 or by right click (figure \ref{fig:right_click}) on the ISOChannel name and then click ``Edit".
@@ -117,7 +117,9 @@ or by right click (figure \ref{fig:right_click}) on the ISOChannel name and then
 	\label{fig:right_click}
 \end{figure}
 
-After the request of ISO Channel Edit, a new window (figure \ref{fig:edit_link}) with the ``Edit Link" utility will be open.
+After the request of ISO Channel Edit, a new window (figure \ref{fig:edit_link}) with the ``Edit Link" utility will open.
+The field that are available for edit are: Description, Min, Max, and Calibration date, calibration period, unit, if are specified from sensor type.
+Also, if the ISO Channel that is under edit was in ``OFF-Line/Disconnected" state the Sensor's Path will be also available.
 
 \begin{figure}[h]
 \centering
@@ -125,3 +127,30 @@ After the request of ISO Channel Edit, a new window (figure \ref{fig:edit_link})
 	\caption{ISO Channel Edit Link Utility}
 	\label{fig:edit_link}
 \end{figure}
+
+\newpage
+\subsection{Delete ISO Channel(s)}
+The deletion of one ore more ISO Channel from the table done in two ways, by selection and as group.
+The by selection deletion done doing right click on the ISO Channel name that going to be deleted and select ``Delete".\\
+
+The as group deletion, done in two ways, by selected group and by visible group.
+The selection of a group required first to make a selection group by clicking on the ISO Channel's row.
+Then right click on any table's row, click on ``All selected" and then ``Delete".
+Un-selection done by hitting ``\textbf{ESC}" key, or clicking on the filter clean button (broom).\\
+
+The deletion of visible group have purpose to delete all the visible ISO Channel rows of the table.
+Suppose that some filter have been applied before, then right click on some row, click "All visible" and then ``Delete".\\
+
+In any case, after of a deletion request a verification message will appear before the execution of the deletion.
+
+\subsection{Export ISO Channels}
+Exporting functionality of the Morfeas ISO Channel Linker Utility is the creation of an JSON file,
+that contains the ISO Channels of the table or a selection. This file will save in the local computer by the browser.
+
+To export all the ISO channels, use the menu of the ISO Channel column, and Click ``Export All".
+To export a selection of ISO channel it can use either a the ``All visible" (in combination with filtering), 
+or the ``All selected" from the right click menu of the ISO Channel table.\\ 
+
+For each case the exported file will be named accordingly to the selected operation together with the created date.
+
+\subsection{Import ISO Channels}
