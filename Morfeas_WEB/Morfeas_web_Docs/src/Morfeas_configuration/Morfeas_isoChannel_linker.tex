@@ -133,7 +133,7 @@ Also, if the ISO Channel that is under edit was in ``OFF-Line/Disconnected" stat
 The deletion of one ore more ISO Channel from the table done in two ways, by selection and as group.
 The by selection deletion done doing right click on the ISO Channel name that going to be deleted and select ``Delete".\\
 
-The as group deletion, done in two ways, by selected group and by visible group.
+The ``As group" deletion, done in two ways, by selected group and by visible group.
 The selection of a group required first to make a selection group by clicking on the ISO Channel's row.
 Then right click on any table's row, click on ``All selected" and then ``Delete".
 Un-selection done by hitting ``\textbf{ESC}" key, or clicking on the filter clean button (broom).\\
@@ -141,16 +141,30 @@ Un-selection done by hitting ``\textbf{ESC}" key, or clicking on the filter clea
 The deletion of visible group have purpose to delete all the visible ISO Channel rows of the table.
 Suppose that some filter have been applied before, then right click on some row, click "All visible" and then ``Delete".\\
 
-In any case, after of a deletion request a verification message will appear before the execution of the deletion.
+In any case, before of a deletion request a verification message will appear.
 
 \subsection{Export ISO Channels}
 Exporting functionality of the Morfeas ISO Channel Linker Utility is the creation of an JSON file,
 that contains the ISO Channels of the table or a selection. This file will save in the local computer by the browser.
 
-To export all the ISO channels, use the menu of the ISO Channel column, and Click ``Export All".
-To export a selection of ISO channel it can use either a the ``All visible" (in combination with filtering), 
-or the ``All selected" from the right click menu of the ISO Channel table.\\ 
+To export all the ISO channels, use the menu of the ISO Channel column (figure \ref{fig:ISOCH_menu}),
+ and Click ``Export All" or the shortcut \textbf{Ctrl}+\textbf{Alt}+\textbf{E}.
+To export a selection of ISO channel it can use either a the ``All visible" (in combination with filtering),
+or the ``All selected" (by had did a click selection) from the right click menu of the ISO Channel table (figure \ref{fig:right_click}).\\
 
 For each case the exported file will be named accordingly to the selected operation together with the created date.
 
 \subsection{Import ISO Channels}
+The import of JSON file with ISOChannels can be done either from the ISOChannels column menu (figure \ref{fig:ISOCH_menu})
+or by the shortcut \textbf{Ctrl}+\textbf{Alt}+\textbf{I}.
+a new window with the import utility will be appeared (figure \ref{fig:imp_win}).
+\begin{figure}[h]
+\centering
+	\fbox{\includegraphics[width=2.5in,angle=0]{../art/Morfeas_web_if/import_win.png}}
+	\caption{ISO Channel Import Utility}
+	\label{fig:imp_win}
+\end{figure}
+
+From the import utility you select the file to be import by the ``Browse" button.
+After the user's selection the validation procedure will start and the result of it will print in the logger.
+In case that the validation pass with success the ``Upload" button will become available.
