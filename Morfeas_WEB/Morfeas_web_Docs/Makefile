@@ -37,7 +37,7 @@ delete-the-tree:
 	rm -f -r $(WORK_dir) $(BUILD_dir)
 
 clean:
-	rm -f $(WORK_dir)/* $(BUILD_dir)/*
+	rm -f $(WORK_dir)/* $(BUILD_dir)/*.pdf
 
 .PHONY: all clean clean-tree tree
 
