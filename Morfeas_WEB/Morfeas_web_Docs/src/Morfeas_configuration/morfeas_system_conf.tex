@@ -47,15 +47,16 @@ For any change there to be applied need to be saved before with the ``Save" butt
 
 \newpage
 \subsection{``ISOStandards"}
-The ``ISOStandards" show an instance of the current ISOStandard file as table.
+The ``ISOStandards" tab show an instance of the current ISOStandard file as table.
 The table have five columns with titles: ``NAME", ``DESCRIPTION", ``UNIT", ``MAX", ``MIN".
-
+Every row of the table contains the field data of each ISO Standard, sourced from the ISOStandards file. 
+The ISOStandards file is a XML file structured as shown at listing \ref{lst:ISOStandard}.
 
 \begin{lstlisting}[frame=single,caption=Structure of ISOstandard file,label=lst:ISOStandard]
 <?xml version="1.0" encoding="UTF-8"?>
 <root>
   <points>
-    <ISOStandard_name_tag>
+    <ISOStandard_name_tag> <!-- Up to 20 Characters -->
       <description>Description of ISOStandard</description>
       <unit>Default Unit</unit>
       <max>Maximum value</max>
