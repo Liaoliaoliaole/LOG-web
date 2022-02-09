@@ -49,7 +49,7 @@ For any change there to be applied need to be saved before with the ``Save" butt
 \subsection{``ISOStandards"}
 The ``ISOStandards" tab show an instance of the current ISOStandard file as table.
 The table have five columns with titles: ``NAME", ``DESCRIPTION", ``UNIT", ``MAX", ``MIN".
-Every row of the table contains the field data of each ISO Standard, sourced from the ISOStandards file. 
+Every row of the table contains the field data of each ISO Standard, sourced from the ISOStandards file.
 The ISOStandards file is a XML file structured as shown at listing \ref{lst:ISOStandard}.
 
 \begin{lstlisting}[frame=single,caption=Structure of ISOstandard file,label=lst:ISOStandard]
@@ -68,6 +68,22 @@ The ISOStandards file is a XML file structured as shown at listing \ref{lst:ISOS
 \end{lstlisting}
 
 \subsection{``Up/DownLoad"}
+The ``Up/DownLoad" (figure \ref{fig:sys_conf_up_down}) is the last tab of the ``Morfeas System configuration" utility.
+It have purpose to the allow the user to upload and download the ISOStandards file and the Morfeas system configuration in mbl file form.\\
+
+\noindent
+The ISOStandards file that will be uploaded must have be structured as shown at listing \ref{lst:ISOStandard}.
+The file selected by the ``Browse" button at the ISOStandard Up/DownLoad section.
+After of a successful selection the file will be validated against the standard,
+and after of a successful validation will be ready to be Upload to the server.
+For download of the current ISOChannels file from the server the Download button of the ISOStandard Up/DownLoad section can be used.\\
+
+\noindent
+The ``Morfeas Bundle Up/Download" section of the ``Up/DownLoad" tab used to get and/or set the configuration of the Morfeas system.
+This done by the mbl (Morfeas BundLe) files, which are a custom made format file that contain the Morfeas system's components and them configuration
+together with the lastly configured ISOChannels, in a single archived file.\\
+A mbl file can be selected by the ``Browse" button at the ``Morfeas Bundle Up/Download" section, and be Uploaded to the server by the ``Upload" button.\\
+The ``Download" button of the ``Morfeas Bundle Up/Download" section download to the local system a new mbl file (Named as Hostname\_Date-of-creation).
 
 \begin{figure}[h]
 \centering
