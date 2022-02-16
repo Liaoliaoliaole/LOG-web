@@ -1,0 +1,76 @@
+\documentclass{article}
+\usepackage{ucs}
+\usepackage[utf8x]{inputenc}
+\usepackage[greek,english]{babel}
+\usepackage{dirtree}
+\usepackage{lmodern}
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{xfrac}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage[]{pdfpages}
+\usepackage{multicol}
+\usepackage{gensymb}
+\usepackage{textcomp}
+\usepackage{caption}
+\usepackage{graphicx}
+\usepackage[colorlinks=true,linkcolor=black]{hyperref}
+\usepackage{varwidth}
+\usepackage{listings}
+\usepackage[bottom]{footmisc}
+\usepackage[most]{tcolorbox}
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Morfeas WEB-UI}
+\chead{Reference Guides}
+\rhead{Page \thepage}
+\rfoot{Page \thepage}
+
+\newtcolorbox{tree_box}[1][]{%
+	sharp corners,
+	enhanced,
+	breakable,
+	colback=white,
+	#1
+}
+
+%Title declaration
+\title{Morfeas WEB User Guide\\IOBOX-if/Portal}
+\author{}
+\date{}
+\begin{document}
+%Title page
+\clearpage
+\begin{figure}
+\centering
+  \includegraphics[width=2in]{../../Morfeas_WEB/art/Morfeas_logo_yellow.png}
+\end{figure}
+\maketitle
+\thispagestyle{empty}
+%License page
+\newpage
+\section{License}
+Copyright (C)  12022  Sam Harry Tzavaras.\\
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+A copy of the license is included at the LICENSE file.
+
+%History page
+\section{Change History}
+Feb 16,12022 : Sam Harry Tzavaras -- Initial Work.
+
+%Contents page
+\newpage
+\tableofcontents
+\listoffigures
+%Document's sections
+\newpage
+\input{./src/Morfeas_IOBOX_if/Introduction}
+\input{./src/Morfeas_IOBOX_if/Installation}
+\input{./src/Morfeas_IOBOX_if/Morfeas_IOBOX_if_UI}
+\end{document}
