@@ -39,7 +39,7 @@
 		onclick="request_mode = mode_enum.Loggers_name;">
 	</td>
 	<td style="text-align:right;">Logger:
-		<select id="logger_select" onchange="request_mode = 1;">
+		<select id="logger_select" onchange="logger_ref_req = false;">
 			<option value='0'>None</option>
 		</select>
 	</td>
@@ -102,7 +102,7 @@ var display_mode,
 	logstats_disp = document.getElementById("logstats_disp"),
 	status_tab = document.getElementById("status"),
 	log_select = document.getElementById("logger_select"),
-	logstats, ISOChannels;
+	logstats, ISOChannels, logger_ref_req = false;
 Logger_terminal.innerHTML="";
 status_tab.value = "Morfeas Loggers";
 status_tab.style.color = "black";
@@ -130,8 +130,7 @@ function onReady_State_Change()
 				}
 				break;
 			case mode_enum.Logger_content:
-				//console.log(this);
-				//if(xhttp.getResponseHeader('Content-Type')==="Logger_file/text")
+				if(this.getResponseHeader("Content-Type") === "Logger/text" || !logger_ref_req)
 				{
 					status_tab.value = "Morfeas Loggers";
 					status_tab.style.color = 'black';
@@ -139,7 +138,10 @@ function onReady_State_Change()
 					Logger_terminal.innerHTML = morfeas_opcua_logger_colorizer(this.responseText);
 					if(is_scroll_at_bottom)
 						window.scrollTo(0,document.body.scrollHeight);
+					logger_ref_req = true;
 				}
+				else if(this.getResponseHeader("Content-Type") === "report/text")
+					status_tab.value = this.responseText;
 				break;
 			case mode_enum.opcua_config:
 				try{ISOChannels = JSON.parse(this.responseText);}
@@ -271,8 +273,13 @@ function Morfeas_request()
 		case mode_enum.Logger_content:
 			if(log_select.selectedIndex)
 			{
-				xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + log_select.value + "?q="+makeid(), true);
-				xhttp.overrideMimeType("text/html");
+				if(!logger_ref_req)
+				{
+					xhttp.open("GET", "/ramdisk/Morfeas_Loggers/" + log_select.value + "?q="+makeid(), true);
+					xhttp.overrideMimeType("text/html");
+				}
+				else
+					xhttp.open("GET", "../morfeas_php/morfeas_web_if.php?COMMAND=get_logger_if_updated&LOGGER_NAME=" + log_select.value + "&q="+makeid(), true);
 				xhttp.send();
 			}
 			else

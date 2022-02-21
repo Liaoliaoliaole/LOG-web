@@ -94,7 +94,7 @@ if($requestType == "GET")
 			case "get_logger_if_updated":
 				if(array_key_exists("LOGGER_NAME", $_GET))
 				{
-					$logger_file = "/mnt/ramdisk/Morfeas_Loggers/".$_GET["LOGGER_NAME"];
+					$logger_file = $ramdisk_path.'Morfeas_Loggers/'.$_GET["LOGGER_NAME"];
 					if (file_exists($logger_file))
 					{
 						if(filemtime($logger_file)>(time()-4))//Check if Logger file have been modified at least 4 seconds before.
@@ -109,7 +109,7 @@ if($requestType == "GET")
 						}
 					}
 					else
-						echo 'Logger file Not found!!!';
+						echo $logger_file;//'Logger file Not found!!!';
 				}
 				return;
 			case "opcua_config":
