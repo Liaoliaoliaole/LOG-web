@@ -91,6 +91,27 @@ if($requestType == "GET")
 						echo json_encode($loggers_names);
 				}
 				return;
+			case "get_logger_if_updated":
+				if(array_key_exists("LOGGER_NAME", $_GET))
+				{
+					$logger_file = "/mnt/ramdisk/Morfeas_Loggers/".$_GET["LOGGER_NAME"];
+					if (file_exists($logger_file))
+					{
+						if(filemtime($logger_file)>(time()-4))//Check if Logger file have been modified at least 4 seconds before.
+						{
+							header('Content-Type: Logger/text');
+							echo file_get_contents($logger_file);
+						}
+						else
+						{
+							header('Content-Type: application/json');
+							echo json_encode(false);
+						}
+					}
+					else
+						echo 'Logger file Not found!!!';
+				}
+				return;
 			case "opcua_config":
 				header('Content-Type: application/json');
 				$OPCUA_Config_xml = simplexml_load_file($opc_ua_config_dir."OPC_UA_Config.xml") or die("{}");
