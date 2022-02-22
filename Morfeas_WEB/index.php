@@ -21,39 +21,34 @@ td.bold{
     font-weight: bold;
 }
 .content{
-  top: 50%;
-  left: 50%;
-  margin: auto;
+	top: 50%;
+	left: 50%;
+	margin: auto;
 }
+button{width:100px;}
 
-button{
-    width:100px;
-}
-
-.portal_button{
-  cursor: pointer;
-}
+.portal_button{cursor: pointer;}
 
 .dropdown{
-  position: relative;
-  display: inline-block;
+	position: relative;
+	display: inline-block;
 }
 
 .dropdown-content{
-  cursor: pointer;
-  display: none;
-  position: absolute;
-  background-color: #f1f1f1;
-  min-width: 160px;
-  overflow: auto;
-  z-index: 1;
+	cursor: pointer;
+	display: none;
+	position: absolute;
+	background-color: #f1f1f1;
+	min-width: 160px;
+	overflow: auto;
+	z-index: 1;
 }
 
 .dropdown-content a {
-  color: black;
-  padding: 12px 16px;
-  text-decoration: none;
-  display: block;
+	color: black;
+	padding: 12px 16px;
+	text-decoration: none;
+	display: block;
 }
 
 .dropdown a:hover {background-color: #ddd;}
