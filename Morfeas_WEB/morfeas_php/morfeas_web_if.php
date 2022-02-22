@@ -97,7 +97,7 @@ if($requestType == "GET")
 					$logger_file = $ramdisk_path.'Morfeas_Loggers/'.$_GET["LOGGER_NAME"];
 					if (file_exists($logger_file))
 					{
-						if(filemtime($logger_file)>(time()-4))//Check if Logger file have been modified at least 4 seconds before.
+						if(filemtime($logger_file)>(time()-2))//Check if Logger file have been modified at least 2 seconds before.
 						{
 							header('Content-Type: Logger/text');
 							echo file_get_contents($logger_file);
