@@ -130,7 +130,8 @@ function onReady_State_Change()
 				}
 				break;
 			case mode_enum.Logger_content:
-				if(this.getResponseHeader("Content-Type") === "Logger/text" || !logger_ref_req)
+				if(this.getResponseHeader("Content-Type") === "Logger/text" 
+				   || (!logger_ref_req && this.getResponseHeader("Content-Type") !== "application/json"))
 				{
 					status_tab.value = "Morfeas Loggers";
 					status_tab.style.color = 'black';
@@ -141,7 +142,11 @@ function onReady_State_Change()
 					logger_ref_req = true;
 				}
 				else if(this.getResponseHeader("Content-Type") === "report/text")
+				{
 					status_tab.value = this.responseText;
+					status_tab.style.color='red';
+					logger_ref_req = false
+				}
 				break;
 			case mode_enum.opcua_config:
 				try{ISOChannels = JSON.parse(this.responseText);}
