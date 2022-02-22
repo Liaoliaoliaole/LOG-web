@@ -26,6 +26,10 @@ td.bold{
   margin: auto;
 }
 
+button{
+    width:100px;
+}
+
 .portal_button{
   cursor: pointer;
 }
@@ -67,7 +71,7 @@ td.bold{
 </span>
 <br>
 <div class="content">
-	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:5.2in;">
+	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:6.2in;">
 	  <tr>
 		<th colspan="5" style="font-weight: bold; font-size: xx-large">
 			<img src="./art/Morfeas_logo_yellow.png" width="100" height="100">
