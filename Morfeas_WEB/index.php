@@ -108,10 +108,10 @@ button{width:100px;}
 		</td>
 		<td>
 			<div class="dropdown">
-				<button class="portal_button" onclick="show_portals_list()">
+				<button class="portal_button" name="portal_btn" onclick="toggle_portals_list()">
 					<span title="Morfeas Components Portal">
-						<img src="./art/portal.png" class="bsize">
-						<p><b>Morfeas<br>Portals</b></p>
+						<img src="./art/portal.png" class="bsize" name="portal_btn">
+						<p name="portal_btn"><b name="portal_btn">Morfeas<br>Portals</b></p>
 					</span>
 				</button>
 				<div id="portals_dropdown" class="dropdown-content">
@@ -182,24 +182,22 @@ for the JavaScript code in this page.
 "use strict";
 comp_check();
 
-function show_portals_list()
+function toggle_portals_list()
 {
 	document.getElementById("portals_dropdown").classList.toggle("show");
+}
+function hide_portals_list()
+{
+	var dropdowns = document.getElementsByClassName("dropdown-content");
+	for (let i = 0; i < dropdowns.length; i++)
+		if (dropdowns[i].classList.contains('show'))
+			dropdowns[i].classList.remove('show');
 }
 
 window.onclick = function(event)
 {
-	if (!event.target.matches('.portal_button'))
-	{
-		var dropdowns = document.getElementsByClassName("dropdown-content");
-		var i;
-		for (i = 0; i < dropdowns.length; i++)
-		{
-			var openDropdown = dropdowns[i];
-			if (openDropdown.classList.contains('show'))
-				openDropdown.classList.remove('show');
-		}
-	}
+	if((!event.target.attributes.name && event.target.attributes.name!=="portal_btn"))
+		hide_portals_list();
 }
 
 document.onkeyup = res_to_norm;
@@ -219,6 +217,8 @@ document.onkeydown = function(key){
 		ISOCH[0].style.display = "none";
 		ISOCH[1].style.display = "table-cell";
 	}
+	else if(key.key === "Escape")
+		hide_portals_list();
 };
 function shutdown()
 {
