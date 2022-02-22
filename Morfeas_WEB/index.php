@@ -109,10 +109,10 @@ button{width:100px;}
 		<td>
 			<div class="dropdown">
 				<button class="portal_button" onclick="show_portals_list()">
-				<span title="Morfeas Components Portal">
-					<img src="./art/portal.png" class="bsize">
-					<p><b>Morfeas<br>Portals</b></p>
-				</span>
+					<span title="Morfeas Components Portal">
+						<img src="./art/portal.png" class="bsize">
+						<p><b>Morfeas<br>Portals</b></p>
+					</span>
 				</button>
 				<div id="portals_dropdown" class="dropdown-content">
 					<a onclick='PopupCenter("/morfeas_SDAQ_web_if/SDAQsPortal.html"+"?q="+makeid(),"","1024","768")'>SDAQs</a>
