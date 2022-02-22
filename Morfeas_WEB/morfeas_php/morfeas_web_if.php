@@ -74,6 +74,7 @@ if($requestType == "GET")
 			case "logstats_names":
 				if($logstats = array_diff(scandir($ramdisk_path), array('..', '.', 'Morfeas_Loggers')))
 				{	//Read only Morfeas JSON logstat files
+					$logstats_combined = new stdClass;
 					foreach($logstats as $logstat)
 						if(preg_match("/^logstat_.+\.json$/i", $logstat))
 							$logstats_combined->logstats_names[] = $logstat;
