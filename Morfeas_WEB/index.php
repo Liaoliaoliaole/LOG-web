@@ -25,6 +25,37 @@ td.bold{
   left: 50%;
   margin: auto;
 }
+
+.portal_button{
+  cursor: pointer;
+}
+
+.dropdown{
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content{
+  cursor: pointer;
+  display: none;
+  position: absolute;
+  background-color: #f1f1f1;
+  min-width: 160px;
+  overflow: auto;
+  z-index: 1;
+}
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown a:hover {background-color: #ddd;}
+
+.show {display: block;}
+
 </style>
 </head>
 <body>
@@ -38,55 +69,74 @@ td.bold{
 <div class="content">
 	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:5.2in;">
 	  <tr>
-		<th colspan="6" style="font-weight: bold; font-size: xx-large">
+		<th colspan="5" style="font-weight: bold; font-size: xx-large">
 			<img src="./art/Morfeas_logo_yellow.png" width="100" height="100">
 		</th>
 	  </tr>
 	  <tr>
-		<th colspan="6" style="font-weight: bold; font-size: xx-large">Morfeas WEB<br>(<?php echo gethostname();?>)</th>
+		<th colspan="5" style="font-weight: bold; font-size: xx-large">Morfeas WEB<br>(<?php echo gethostname();?>)</th>
 	  </tr>
-	  <tr>
-		<td><button type="button" onclick='PopupCenter("/morfeas_SDAQ_web_if/SDAQsPortal.html"+"?q="+makeid(),"","1024","768")'>SDAQs<br>Portal</td>
-		<td><button type="button" onclick='PopupCenter("/morfeas_MDAQ_web_if/MDAQsPortal.html"+"?q="+makeid(),"","1024","768")'>MDAQs<br>Portal</td>
-		<td><button type="button" onclick='PopupCenter("/morfeas_IOBOX_web_if/IOBOXsPortal.html"+"?q="+makeid(),"","1024","768")'>IOBOXs<br>Portal</td>
-		<td><button type="button" onclick='PopupCenter("/morfeas_MTI_web_if/MTIsPortal.html"+"?q="+makeid(),"","1024","768")'>MTIs<br>Portal</td>
-		<td><button type="button" onclick='PopupCenter("/morfeas_NOX_web_if/NOXsPortal.html"+"?q="+makeid(),"","1024","768")'>NOXs<br>Portal</td>
-		<td><button type="button" onclick='PopupCenter("/morfeas_CPAD_web_if/CPADsPortal.html"+"?q="+makeid(),"","1024","768")' disabled>CPADs<br>Portal</td>
-	  </tr>
-	  <tr style="height: .9in;">
+	  <tr style="height:1.3in;">
 		<td><button type="button" onclick='PopupCenter("/morfeas_Loggers/Morfeas_Loggers.html"+"?q="+makeid(),"","1024","768")'>
 			<span title="System Loggers">
 				<img src="./art/logger.svg" class="bsize">
+				<p><b>System<br>Loggers</b></p>
 			</span>
 		</td>
 		<td name="ISOCH"><button type="button" onclick='PopupCenter("/Morfeas_ISOChannel_Linker/ISO_CH_Linker.html"+"?q="+makeid(),"","1280","1024")'>
 			<span title="Morfeas ISOChannel Linker">
 				<img src="./art/anchor.png" class="bsize">
+				<p><b>ISOChannel<br>Linker</b></p>
 			</span>
 		</td>
 		<td name="ISOCH" style="display:none;"><button type="button" onclick='PopupCenter("/External_components/ISOChannel_Linker/html/","","1280","1024")'>
 			<span title="Old ISOChannel Linker">
 				<img src="./art/Anchor_wapise.png" class="bsize">
+				<p><b>ISOChannel<br>Linker</b></p>
 			</span>
 		</td>
 		<td><button type="button" onclick='PopupCenter("/Morfeas_configuration/Morfeas_System_config.html"+"?q="+makeid(),"","1024","768")'>
-			<span title="System Configuration">
+			<span title="Morfeas System Configuration">
 				<img src="./art/morfeas_gear.png" class="bsize">
+				<p><b>System<br>Configuration</b></p>
 			</span>
 		</td>
 		<td><button type="button" onclick='PopupCenter("/Morfeas_configuration/Network_config.html"+"?q="+makeid(),"","550","390")'>
 			<span title="Network Configuration">
 				<img src="./art/eth.png" class="bsize">
+				<p><b>Network<br>Configuration</b></p>
 			</span>
 		</td>
+		<td>
+			<div class="dropdown">
+				<button class="portal_button" onclick="show_portals_list()">
+				<span title="Morfeas Components Portal">
+					<img src="./art/portal.png" class="bsize">
+					<p><b>Morfeas<br>Portals</b></p>
+				</span>
+				</button>
+				<div id="portals_dropdown" class="dropdown-content">
+					<a onclick='PopupCenter("/morfeas_SDAQ_web_if/SDAQsPortal.html"+"?q="+makeid(),"","1024","768")'>SDAQs</a>
+					<a onclick='PopupCenter("/morfeas_MDAQ_web_if/MDAQsPortal.html"+"?q="+makeid(),"","1024","768")'>MDAQs</a>
+					<a onclick='PopupCenter("/morfeas_IOBOX_web_if/IOBOXsPortal.html"+"?q="+makeid(),"","1024","768")'>IOBOXs</a>
+					<a onclick='PopupCenter("/morfeas_MTI_web_if/MTIsPortal.html"+"?q="+makeid(),"","1024","768")'>MTIs</a>
+					<a onclick='PopupCenter("/morfeas_NOX_web_if/NOXsPortal.html"+"?q="+makeid(),"","1024","768")'>NOXs</a>
+				</div>
+			</div>
+		</td>
+	  </tr>
+	  <tr>
+		<td colspan="3"></td>
 		<td><button type="button" onclick='reboot()'>
 			<span title="Reboot">
 				<img src="./art/reboot.png" class="bsize">
+				<p><b>System<br>Reboot</b></p>
 			</span>
 		</td>
 		<td><button type="button" onclick='shutdown()'>
 			<span title="Shutdown">
 				<img src="./art/shutdown.png" class="bsize">
+				<p><b>System<br>Shutdown</b></p>
 			</span>
 		</td>
 	  </tr>
@@ -94,7 +144,7 @@ td.bold{
 </div>
 <footer id="footer">
 	<div style="float:left;">
-		Author: Sam Harry Tzavaras &#169; 12019-12021<br>
+		Author: Sam Harry Tzavaras &#169; 12019-12022<br>
 		<a href="LICENSE">License: AGPLv3</a><br>
 		<a onclick='PopupCenter("/External_components/Credits.html","","750","300")'href="./">Credits</a>
 	</div>
@@ -111,7 +161,7 @@ td.bold{
 @licstart  The following is the entire license notice for the
 JavaScript code in this page.
 
-Copyright (C) 12019-12021  Sam Harry Tzavaras
+Copyright (C) 12019-12022  Sam Harry Tzavaras
 
 The JavaScript code in this page is free software: you can
 redistribute it and/or modify it under the terms of the GNU
@@ -131,6 +181,27 @@ through which recipients can access the Corresponding Source.
 for the JavaScript code in this page.
 */
 comp_check();
+
+function show_portals_list()
+{
+	document.getElementById("portals_dropdown").classList.toggle("show");
+}
+
+window.onclick = function(event)
+{
+	if (!event.target.matches('.portal_button'))
+	{
+		var dropdowns = document.getElementsByClassName("dropdown-content");
+		var i;
+		for (i = 0; i < dropdowns.length; i++)
+		{
+			var openDropdown = dropdowns[i];
+			if (openDropdown.classList.contains('show'))
+				openDropdown.classList.remove('show');
+		}
+	}
+}
+
 document.onkeyup = res_to_norm;
 document.onfocus = res_to_norm;
 function res_to_norm(){

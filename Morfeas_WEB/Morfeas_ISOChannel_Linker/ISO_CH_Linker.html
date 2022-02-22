@@ -23,6 +23,7 @@
 			<td>
 				<div>
 					<select id="filter_field" onchange="filter_field_func(this);filter_func()" autocomplete="off">
+						<option value="default">Default</option>
 						<option value="iso_name">ISOChannel</option>
 						<option value="conn">Connection</option>
 						<option value="desc">Description</option>
@@ -140,7 +141,7 @@ function filter_field_func(elem)
 {
 	let filter_type = document.getElementById("filter_type"), i;
 
-	if(elem.selectedIndex>3 && filter_type.selectedIndex<=1)
+	if(elem.selectedIndex>4 && filter_type.selectedIndex<=1)
 	{
 
 		for(i=0; i<2 ; i++)
@@ -149,7 +150,7 @@ function filter_field_func(elem)
 		for(i=i; i<filter_type.options.length ; i++)
 			filter_type.options[i].hidden=false;
 	}
-	else if(elem.selectedIndex<=3 && filter_type.selectedIndex>1)
+	else if(elem.selectedIndex<=4 && filter_type.selectedIndex>1)
 	{
 		for(i=0; i<2 ; i++)
 			filter_type.options[i].hidden=false;
@@ -169,7 +170,15 @@ function filter_func()
 		opcua_config_table.clearFilter(true);
 		return;
 	}
-	opcua_config_table.setFilter(filter_field, filter_type.value, filter_value);
+	if(filter_field === "default")
+	{
+		opcua_config_table.setFilter([[
+			{field:"iso_name", type:filter_type.value, value:filter_value},
+			{field:"desc", type:filter_type.value, value:filter_value}
+		]]);
+	}
+	else
+		opcua_config_table.setFilter(filter_field, filter_type.value, filter_value);
 }
 function filter_clear()
 {
