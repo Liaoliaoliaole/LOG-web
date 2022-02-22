@@ -253,12 +253,14 @@ function onReady_State_Change()
 	{
 		status_tab.value = "Error 404: Data Not found";
 		status_tab.style.color='red';
+		logger_ref_req = false
 	}
 };
 function onTimeout()
 {
   status_tab.value = "Connection to server: Timeout Error";
   status_tab.style.color='blue';
+  logger_ref_req = false
 };
 //Request Timer
 window.setInterval(Morfeas_request, 1000);
