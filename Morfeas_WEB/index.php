@@ -179,6 +179,7 @@ through which recipients can access the Corresponding Source.
 @licend  The above is the entire license notice
 for the JavaScript code in this page.
 */
+"use strict";
 comp_check();
 
 function show_portals_list()
