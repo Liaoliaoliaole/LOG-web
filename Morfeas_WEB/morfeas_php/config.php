@@ -18,6 +18,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 */
 	require("../Morfeas_env.php");
 	require("./Supplementary.php");
+	require("./morfeas_ftp_backup.php");
 	function _ip2long($ip_str)
 	{
 		$ip=ip2long($ip_str) or die("Server: ip2long() failed!!!");
@@ -479,7 +480,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					}
 					else
 						exec("rm -f $opc_ua_config_dir/FTP_backup_conf.json");
-				}					
+				}
 				header('Content-Type: application/json');
 				echo '{"report":"Okay"}';
 				return;
@@ -499,8 +500,24 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$local_Morfeas_config->documentElement->appendChild($new_config);
 				$local_Morfeas_config->loadXML($local_Morfeas_config->saveXML());
 				$local_Morfeas_config->save($opc_ua_config_dir.'Morfeas_config.xml') or die('Server: Unable to write Morfeas_config.xml');
-				exec('rm -r /mnt/ramdisk/Morfeas_Loggers/*');
+				//exec('rm -fr /mnt/ramdisk/Morfeas_Loggers/*');
 				exec('sudo systemctl restart Morfeas_system.service');
+				if(file_exists($opc_ua_config_dir."FTP_backup_conf.json"))
+				{
+					$FTP_backup_conf=file_get_contents($opc_ua_config_dir."FTP_backup_conf.json");
+					$FTP_backup_conf=json_decode($FTP_backup_conf);
+					if(isset($FTP_backup_conf->addr, $FTP_backup_conf->username, $FTP_backup_conf->password))
+					{					
+						if(!morfeas_ftp_mbl_backup($FTP_backup_conf->addr,
+												   $FTP_backup_conf->username,
+												   $FTP_backup_conf->password,
+												   gethostname().'_'.date("Y_d_m_G_i_s"),
+												   bundle_make()))
+							die("Error: FTP Backup Failed!!!");
+					}
+					else
+						die("Error: FTP backup config is invalid!!!");
+				}
 				header('Content-Type: report/json');
 				echo '{"report":"Okay"}';
 				return;

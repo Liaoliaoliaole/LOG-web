@@ -499,8 +499,8 @@ function get_new_FTP_backup(new_config)
 	}
 	if((ftp_serv_en.checked && !config.FTP_backup_server)||
 	   (ftp_serv_en.checked && config.FTP_backup_server &&
-	    (config.FTP_backup_server.addr!=ftp_serv_host.value || 
-		 config.FTP_backup_server.username!=ftp_serv_user.value || 
+	    (config.FTP_backup_server.addr!=ftp_serv_host.value ||
+		 config.FTP_backup_server.username!=ftp_serv_user.value ||
 		 config.FTP_backup_server.password!=ftp_serv_pass.value)))
 	{
 		new_config.FTP_backup_server.addr=ftp_serv_host.value;
