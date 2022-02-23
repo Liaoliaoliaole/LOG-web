@@ -389,6 +389,18 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					$currConfig->ntp=get_timesyncd_ntp();
 					if(($CAN_ifs=getCANifs()))
 						$currConfig->CAN_ifs=$CAN_ifs;
+					if(file_exists($opc_ua_config_dir."FTP_backup_conf.json"))
+					{
+						$FTP_backup_conf=file_get_contents($opc_ua_config_dir.'FTP_backup_conf.json');
+						$FTP_backup_conf=json_decode($FTP_backup_conf);
+						if(isset($FTP_backup_conf->addr, $FTP_backup_conf->username, $FTP_backup_conf->password))
+						{
+							$currConfig->FTP_backup_server = new stdClass();
+							$currConfig->FTP_backup_server->host = $FTP_backup_conf->addr;
+							$currConfig->FTP_backup_server->user = $FTP_backup_conf->username;
+							$currConfig->FTP_backup_server->pass = $FTP_backup_conf->password;
+						}
+					}
 					header('Content-Type: application/json');
 					echo json_encode($currConfig);
 					return;
@@ -457,6 +469,17 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 						exec('sudo systemctl restart Morfeas_system.service');
 					}
 				}
+				if(property_exists($new_config,"FTP_backup_server"))
+				{
+					if(($FTP_backup_conf=json_encode($new_config->FTP_backup_server)))
+					if($FTP_backup_conf !== '"delete"')
+					{
+						if(file_put_contents($opc_ua_config_dir."FTP_backup_conf.json", $FTP_backup_conf)===false)
+							die("Error: Can't write FTP_backup_conf.json!!!");
+					}
+					else
+						exec("rm -f $opc_ua_config_dir/FTP_backup_conf.json");
+				}					
 				header('Content-Type: application/json');
 				echo '{"report":"Okay"}';
 				return;

@@ -74,6 +74,27 @@ input.global_style{
 	<td id="conf_gateway"></td>
   </tr>
   <tr>
+    <th colspan="2">FTP Backup Server <input type="checkbox" id="ftp_backup_en" onchange="ftp_backup_en_fn(this);"></th>
+  </tr>
+  <tr>
+    <td>Hostname</td>
+	<td>
+		<input style="width:16;" type="text" id="ftp_backup_host" disabled>
+	</td>
+  </tr>
+  <tr>
+    <td>Username</td>
+	<td>
+		<input style="width:16;" type="text" id="ftp_backup_user" disabled>
+	</td>
+  </tr>
+   <tr>
+    <td>Password</td>
+	<td>
+		<input style="width:16;" type="text" id="ftp_backup_pass" disabled>
+	</td>
+  </tr>
+  <tr>
     <th colspan="2">NTP Configuration</th>
   </tr>
   <tr>
@@ -201,6 +222,23 @@ function default_config(_config)
 			mode.selectedIndex = 1;
 			break;
 	}
+	if(_config.hasOwnProperty("FTP_backup_server"))
+	{
+		ftp_serv_en.checked = true;
+		ftp_serv_host.value=_config.FTP_backup_server.host;
+		ftp_serv_user.value=_config.FTP_backup_server.user;
+		ftp_serv_pass.value=_config.FTP_backup_server.pass;
+		ftp_serv_host.disabled=false;
+		ftp_serv_user.disabled=false;
+		ftp_serv_pass.disabled=false;
+	}
+	else
+	{
+		ftp_serv_en.checked = false;
+		ftp_serv_host.disabled=true;
+		ftp_serv_user.disabled=true;
+		ftp_serv_pass.disabled=true;
+	}
 	if(_config.hasOwnProperty("CAN_ifs"))
 	{
 		if(config.CAN_ifs.length)
@@ -232,7 +270,11 @@ const hostname=document.getElementById("hostname"),
 	  ip=document.getElementsByName("ip"),
 	  mask=document.getElementById("mask"),
 	  gateway=document.getElementsByName("gateway"),
-	  ntp=document.getElementsByName("ntp");
+	  ntp=document.getElementsByName("ntp"),
+	  ftp_serv_en=document.getElementById("ftp_backup_en"),
+	  ftp_serv_host=document.getElementById("ftp_backup_host"),
+	  ftp_serv_user=document.getElementById("ftp_backup_user"),
+	  ftp_serv_pass=document.getElementById("ftp_backup_pass");
 //Set Limits
 for(let i=0;i<4;i++)
 {
@@ -291,12 +333,13 @@ xhttp.send();
 
 function Send_config()
 {
-	var new_config={hostname:"",mode:"",ip:0,mask:0,gate:0,ntp:0,CAN_ifs:[]};
+	var new_config={hostname:"",mode:"",ip:0,mask:0,gate:0,ntp:0,CAN_ifs:[],FTP_backup_server:{addr:"",username:"",password:""}};
 
 	if(get_new_hostname(new_config)) return;
 	if(get_new_mode(new_config)) return;
 	if(get_new_ntp(new_config)) return;
 	if(get_new_CANifs(new_config)) return;
+	if(get_new_FTP_backup(new_config)) return;
 	if(!(Object.keys(new_config).length))
 	{
 		alert("Nothing to commit!!!");
@@ -371,7 +414,7 @@ function get_new_mode(new_config)
 		mask_num>>=1;
 	}
 	if(!(~mask_num & new_config.ip)||(mask_num | new_config.ip) === -1 ||
-	  !(0xFF000000 & new_config.ip)||((new_config.ip>>24)&0x000000FF) === 0xFF)
+	   !(0xFF000000 & new_config.ip)||((new_config.ip>>24)&0x000000FF) === 0xFF)
 	{
 		alert("IP address is invalid!!!");
 		return -1;
@@ -423,7 +466,7 @@ function get_new_CANifs(new_config)
 		delete new_config.CAN_ifs;
 		return 0;
 	}
-	for(let i=0,j=0; i<CAN_ifs_names.length;i++)
+	for(let i=0,j=0; i<CAN_ifs_names.length; i++)
 	{
 		if(config.CAN_ifs[i].bitrate !== CAN_ifs_bitrate[i].value*1000)
 		{
@@ -436,6 +479,52 @@ function get_new_CANifs(new_config)
 	if(!new_config.CAN_ifs.length)
 		delete new_config.CAN_ifs;
 	return 0;
+}
+function get_new_FTP_backup(new_config)
+{
+	if(ftp_serv_en.checked && (!ftp_serv_host.value || !ftp_serv_user.value || !ftp_serv_user.value))
+	{
+		if(!ftp_serv_host.value)
+			alert("FTP Backup Server's Hostname is EMPTY!!!");
+		else if(!ftp_serv_user.value)
+			alert("FTP Backup Server's Username is EMPTY!!!");
+		else if(!ftp_serv_user.value)
+			alert("FTP Backup Server's Password is EMPTY!!!");
+		return -1;
+	}
+	if(!ftp_serv_en.checked && config.FTP_backup_server)
+	{
+		new_config.FTP_backup_server = "delete";
+		return 0;
+	}
+	if((ftp_serv_en.checked && !config.FTP_backup_server)||
+	   (ftp_serv_en.checked && config.FTP_backup_server &&
+	    (config.FTP_backup_server.addr!=ftp_serv_host.value || 
+		 config.FTP_backup_server.username!=ftp_serv_user.value || 
+		 config.FTP_backup_server.password!=ftp_serv_pass.value)))
+	{
+		new_config.FTP_backup_server.addr=ftp_serv_host.value;
+		new_config.FTP_backup_server.username=ftp_serv_user.value;
+		new_config.FTP_backup_server.password=ftp_serv_pass.value;
+	}
+	else
+		delete new_config.FTP_backup_server;
+	return 0;
+}
+function ftp_backup_en_fn(el)
+{
+	if(el.checked)
+	{
+		ftp_serv_host.disabled=false;
+		ftp_serv_user.disabled=false;
+		ftp_serv_pass.disabled=false;
+	}
+	else
+	{
+		ftp_serv_host.disabled=true;
+		ftp_serv_user.disabled=true;
+		ftp_serv_pass.disabled=true;
+	}
 }
 //@license-end
 </script>

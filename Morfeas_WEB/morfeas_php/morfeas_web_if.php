@@ -18,6 +18,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 */
 require("../Morfeas_env.php");
 require("./Supplementary.php");
+require("./morfeas_ftp_backup.php");
 define("usr_comp","COMMAND");
 $ramdisk_path="/mnt/ramdisk/";
 
@@ -272,6 +273,26 @@ else if($requestType == "POST")
 	$dom->formatOutput = true;
 	$dom->loadXML($OPC_UA_Config->asXML());
 	$dom->save($opc_ua_config_dir."OPC_UA_Config.xml") or die("Error: Unable to write OPC_UA_Config.xml file!!!");
+	if(file_exists($opc_ua_config_dir."FTP_backup_conf.json"))
+	{
+		$FTP_backup_conf=file_get_contents($opc_ua_config_dir."FTP_backup_conf.json");
+		$FTP_backup_conf=json_decode($FTP_backup_conf);
+		if(isset($FTP_backup_conf->addr, $FTP_backup_conf->username, $FTP_backup_conf->password))
+		{
+			$bundle=new stdClass();
+			$bundle->OPC_UA_config=$dom->saveXML();
+			$bundle->Morfeas_config=file_get_contents($opc_ua_config_dir."Morfeas_config.xml");
+			$bundle->Checksum=crc32($bundle->OPC_UA_config.$bundle->Morfeas_config);
+			if(!morfeas_ftp_mbl_backup($FTP_backup_conf->addr,
+									   $FTP_backup_conf->username,
+									   $FTP_backup_conf->password,
+									   gethostname().'_'.date("Y_d_m_G_i_s"),
+									   gzencode(json_encode($bundle))))
+				die("Error: FTP Backup Failed!!!");
+		}
+		else
+			die("Error: FTP backup config is invalid!!!");
+	}
 	header('Content-Type: application/json');
 	die("{\"success\":true}");
 }
