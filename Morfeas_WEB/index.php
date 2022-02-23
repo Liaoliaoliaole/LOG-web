@@ -100,7 +100,7 @@ button{width:100px;}
 				<p><b>System<br>Configuration</b></p>
 			</span>
 		</td>
-		<td><button type="button" onclick='PopupCenter("/Morfeas_configuration/Network_config.html"+"?q="+makeid(),"","550","390")'>
+		<td><button type="button" onclick='PopupCenter("/Morfeas_configuration/Network_config.html"+"?q="+makeid(),"","500","500")'>
 			<span title="Network Configuration">
 				<img src="./art/eth.png" class="bsize">
 				<p><b>Network<br>Configuration</b></p>
