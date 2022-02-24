@@ -26,6 +26,9 @@ At figure \ref{fig:net_conf} shown an example of the network configuration utili
 			Network IP & IP address and subnet range bits (In static mode only)\\
 			Gateway & Gateway's IP address (In static mode only)\\
 			\hline
+			FTP Backup server Hostname/IP & Hostname/IP of the Backup FTP server\\
+			Username/Password & Credentials of the R/W account for FTP Backup server\\
+			\hline
 			NTP IP & IP address of the local network time protocol server\\
 			\hline
 			SDAQNet(CAN-ifs) & Configuration of the bitrate for each available native can-if\\
@@ -37,6 +40,12 @@ At figure \ref{fig:net_conf} shown an example of the network configuration utili
 \end{table}
 
 At table \ref{tab:net_conf} present the values and purpose of the configuration fields of the utility.
+The Backup FTP server if it's be activated required three variables, Hostname/IP,
+Username and Password of the dedicated R/W FTP account.
+This functionality, attempt to save in the FTP server backups (in mbl files) of the ``Morfeas System",
+in every change of the OPC-UA nodeset or when any new Morfeas component is added or modified.
+
+\par
 The two buttons at the bottom of the utility window(Load last, Set),
 have purpose to send the current configuration to the device (Set),
 and reload the last configuration from the device (Load Last).
