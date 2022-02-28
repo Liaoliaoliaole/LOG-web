@@ -545,6 +545,30 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				else
 					die("Server: Bundle does not have valid content");
 				return;
+			case "FTP_backup_test":
+				$data = decompress($RX_data) or die("Server: Decompression failed!!!");
+				$ftp_ser_test = json_decode($data) or die("Server: JSON Decode failed!!!");
+				if(property_exists($ftp_ser_test, "ftp_serv_host_val")&&$ftp_ser_test->ftp_serv_host_val&&
+				   property_exists($ftp_ser_test, "ftp_serv_user_val")&&$ftp_ser_test->ftp_serv_user_val&&
+				   property_exists($ftp_ser_test, "ftp_serv_pass_val")&&$ftp_ser_test->ftp_serv_pass_val)
+				{
+					if(!filter_var($ftp_ser_test->ftp_serv_host_val, FILTER_VALIDATE_IP))
+					{
+						if(gethostbyname($ftp_ser_test->ftp_serv_host_val)===$ftp_ser_test->ftp_serv_host_val)
+							die("Error: Hostname can't be reached!!!");
+					}
+					if(morfeas_ftp_mbl_backup($ftp_ser_test->ftp_serv_host_val,
+											  $ftp_ser_test->ftp_serv_user_val,
+											  $ftp_ser_test->ftp_serv_pass_val,
+											  gethostname().'_'.date("Y_d_m_G_i_s"),
+											  bundle_make()))
+						die("FTP Backup success!!!");
+					else
+						die("Error: FTP Backup Failed!!!");
+				}
+				else		
+					die("Error: Property missing!!!");
+				return;
 			case "reboot":
 				exec('sudo reboot');
 				return;

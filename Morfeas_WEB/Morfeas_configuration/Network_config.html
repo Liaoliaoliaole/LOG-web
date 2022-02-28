@@ -92,6 +92,7 @@ input.global_style{
     <td>Password</td>
 	<td>
 		<input style="width:16;" type="text" id="ftp_backup_pass" disabled>
+		<input type='button' id='ftp_backup_test' value='Test' onclick='ftp_test_bt()' disabled>
 	</td>
   </tr>
   <tr>
@@ -231,6 +232,7 @@ function default_config(_config)
 		ftp_serv_host.disabled=false;
 		ftp_serv_user.disabled=false;
 		ftp_serv_pass.disabled=false;
+		ftp_serv_test.disabled=false;
 	}
 	else
 	{
@@ -238,6 +240,7 @@ function default_config(_config)
 		ftp_serv_host.disabled=true;
 		ftp_serv_user.disabled=true;
 		ftp_serv_pass.disabled=true;
+		ftp_serv_test.disabled=true;
 	}
 	if(_config.hasOwnProperty("CAN_ifs"))
 	{
@@ -274,7 +277,8 @@ const hostname=document.getElementById("hostname"),
 	  ftp_serv_en=document.getElementById("ftp_backup_en"),
 	  ftp_serv_host=document.getElementById("ftp_backup_host"),
 	  ftp_serv_user=document.getElementById("ftp_backup_user"),
-	  ftp_serv_pass=document.getElementById("ftp_backup_pass");
+	  ftp_serv_pass=document.getElementById("ftp_backup_pass"),
+	  ftp_serv_test=document.getElementById("ftp_backup_test");
 //Set Limits
 for(let i=0;i<4;i++)
 {
@@ -321,7 +325,7 @@ xhttp.onreadystatechange = function()
 	else if(this.status == 500)
 		alert("FATAL Error on server!!!");
 };
-xhttp.ontimeout = function (e)
+xhttp.ontimeout = function(e)
 {
 	alert("Device configured and Rebooted\n"+
 		  "Refresh all the related Windows");
@@ -482,13 +486,13 @@ function get_new_CANifs(new_config)
 }
 function get_new_FTP_backup(new_config)
 {
-	if(ftp_serv_en.checked && (!ftp_serv_host.value || !ftp_serv_user.value || !ftp_serv_user.value))
+	if(ftp_serv_en.checked && (!ftp_serv_host.value || !ftp_serv_user.value || !ftp_serv_pass.value))
 	{
 		if(!ftp_serv_host.value)
 			alert("FTP Backup Server's Hostname is EMPTY!!!");
 		else if(!ftp_serv_user.value)
 			alert("FTP Backup Server's Username is EMPTY!!!");
-		else if(!ftp_serv_user.value)
+		else if(!ftp_serv_pass.value)
 			alert("FTP Backup Server's Password is EMPTY!!!");
 		return -1;
 	}
@@ -518,13 +522,32 @@ function ftp_backup_en_fn(el)
 		ftp_serv_host.disabled=false;
 		ftp_serv_user.disabled=false;
 		ftp_serv_pass.disabled=false;
+		ftp_serv_test.disabled=false;
 	}
 	else
 	{
 		ftp_serv_host.disabled=true;
 		ftp_serv_user.disabled=true;
 		ftp_serv_pass.disabled=true;
+		ftp_serv_test.disabled=true;
 	}
+}
+function ftp_test_bt()
+{
+	if(ftp_serv_en.checked && (!ftp_serv_host.value || !ftp_serv_user.value || !ftp_serv_pass.value))
+	{
+		if(!ftp_serv_host.value)
+			alert("FTP Backup Server's Hostname is EMPTY!!!");
+		else if(!ftp_serv_user.value)
+			alert("FTP Backup Server's Username is EMPTY!!!");
+		else if(!ftp_serv_pass.value)
+			alert("FTP Backup Server's Password is EMPTY!!!");
+		return;
+	}
+	let ftp_serv_test = {ftp_serv_host_val:ftp_serv_host.value, ftp_serv_user_val:ftp_serv_user.value, ftp_serv_pass_val:ftp_serv_pass.value};
+	xhttp.open("POST", "../morfeas_php/config.php", true);
+	xhttp.setRequestHeader("Content-type", "FTP_backup_test");
+	xhttp.send(compress(JSON.stringify(ftp_serv_test)));
 }
 //@license-end
 </script>
