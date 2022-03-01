@@ -77,7 +77,7 @@ button{width:100px;}
 	  </tr>
 	  <tr style="height:1.3in;">
 		<td><button type="button" onclick='PopupCenter("/morfeas_Loggers/Morfeas_Loggers.html"+"?q="+makeid(),"","1024","768")'>
-			<span title="System Loggers">
+			<span title="Morfeas System Loggers">
 				<img src="./art/logger.svg" class="bsize">
 				<p><b>System<br>Loggers</b></p>
 			</span>
