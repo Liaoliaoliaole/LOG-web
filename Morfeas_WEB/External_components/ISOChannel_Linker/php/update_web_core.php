@@ -1,6 +1,6 @@
 <?php
 /*
-File: update_web_core.php PHP Script for the Morfeas_Web. External part for the Morfeas_project.
+File: update_web_core.php PHP Script. External part for the Morfeas_project.
 Copyright (C) 12019-12021  skycode
 
 	This program is free software: you can redistribute it and/or modify
