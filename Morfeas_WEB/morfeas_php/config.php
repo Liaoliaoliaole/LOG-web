@@ -46,7 +46,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			{
 				$ip_output = json_decode($output[0]);
 				$c = count($ip_output);
-				for($i=0; !property_exists($ip_output[$i],'addr_info') && $i<$c; $i++);
+				for($i=0; !property_exists($ip_output[$i], 'addr_info') && $i<$c; $i++);
 				if($i<$c)
 					$this->ip_conf = $ip_output[$i]->addr_info[0]->local;
 			}
@@ -56,7 +56,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			{
 				$ip_output = json_decode($output[0]);
 				$c = count($ip_output);
-				for($i=0; !property_exists($ip_output[$i],'gateway') && $i<$c; $i++);
+				for($i=0; !property_exists($ip_output[$i], 'gateway') && $i<$c; $i++);
 				if($i<$c)
 					$this->gate_conf = $ip_output[$i]->gateway;
 			}
