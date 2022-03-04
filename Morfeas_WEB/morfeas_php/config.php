@@ -45,16 +45,20 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			if(exec("ip -j addr show $if_name", $output, $retval))
 			{
 				$ip_output = json_decode($output[0]);
-				for($i=0; !property_exists($ip_output[$i],'addr_info'); $i++);
-				$this->ip_conf = $ip_output[$i]->addr_info[0]->local;
+				$c = count($ip_output);
+				for($i=0; !property_exists($ip_output[$i],'addr_info') && $i<$c; $i++);
+				if($i<$c)
+					$this->ip_conf = $ip_output[$i]->addr_info[0]->local;
 			}
 			//Get configured Gateway
 			unset($output);
 			if(exec("ip -j route", $output, $retval))
 			{
 				$ip_output = json_decode($output[0]);
-				for($i=0; !property_exists($ip_output[$i],'gateway'); $i++);
-				$this->gate_conf = $ip_output[$i]->gateway;
+				$c = count($ip_output);
+				for($i=0; !property_exists($ip_output[$i],'gateway') && $i<$c; $i++);
+				if($i<$c)
+					$this->gate_conf = $ip_output[$i]->gateway;
 			}
 		}
 		function parser($if_name)
