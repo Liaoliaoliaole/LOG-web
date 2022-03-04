@@ -40,6 +40,21 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 		public $ip;
 		public $mask;
 		public $gate;
+		private function get_dhcp_ip($if_name)
+		{	//Get configured IP
+			if(exec("ip -j addr show $if_name", $output, $retval))
+			{
+				$ip_output = json_decode($output[0]);
+				$this->ip_conf = $ip_output[0]->addr_info[0]->local;
+			}
+			//Get configured Gateway
+			unset($output);
+			if(exec("ip -j route", $output, $retval))
+			{
+				$ip_output = json_decode($output[0]);
+				$this->gate_conf = $ip_output[0]->gateway;
+			}
+		}
 		function parser($if_name)
 		{
 			if(!$if_name)
@@ -49,19 +64,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			if(!file_exists('/etc/network/interfaces.d/'.$if_name))
 			{
 				$this->mode="DHCP";
-				//Get configured IP
-				if(exec("ip addr show $if_name", $output, $retval))
-				{
-					if($output = explode(' ', $output[2]))
-						$this->ip_conf = $output[5];
-				}
-				//Get configured Gateway
-				unset($output);
-				if(exec("ip route", $output, $retval))
-				{
-					if($output = explode(' ', $output[0]))
-						$this->gate_conf = $output[2];
-				}
+				$this->get_dhcp_ip($if_name);
 				return 1;
 			}
 			else
@@ -108,7 +111,10 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					return null;
 			}
 			else if(array_search("iface $if_name inet dhcp", $eth_if))
+			{
 				$this->mode="DHCP";
+				$this->get_dhcp_ip($if_name);
+			}
 			else
 				return null;
 			return 1;
@@ -192,9 +198,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			die('Server: Value of $new_config->mode is Invalid!!!!');
 		if($new_config->mode==="DHCP")
 		{
-			$if_config= "auto $eth_if_name\n".
-					    "iface $eth_if_name inet dhcp\n".
-						"allow-hotplug $eth_if_name\n";
+			unlink("/etc/network/interfaces.d/$eth_if_name") or die('Server: Unable to configure network!!!');
+			return;
 		}
 		else
 		{
@@ -507,7 +512,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					$FTP_backup_conf=file_get_contents($opc_ua_config_dir."FTP_backup_conf.json");
 					$FTP_backup_conf=json_decode($FTP_backup_conf);
 					if(isset($FTP_backup_conf->addr, $FTP_backup_conf->username, $FTP_backup_conf->password))
-					{					
+					{
 						if(!morfeas_ftp_mbl_backup($FTP_backup_conf->addr,
 												   $FTP_backup_conf->username,
 												   $FTP_backup_conf->password,
@@ -566,7 +571,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					else
 						die("Error: FTP Backup Failed!!!");
 				}
-				else		
+				else
 					die("Error: Property missing!!!");
 				return;
 			case "reboot":
