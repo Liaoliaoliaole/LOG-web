@@ -200,8 +200,11 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			die('Server: Value of $new_config->mode is Invalid!!!!');
 		if($new_config->mode==="DHCP")
 		{
-			unlink("/etc/network/interfaces.d/$eth_if_name") or die('Server: Unable to configure network!!!');
-			return;
+			//unlink("/etc/network/interfaces.d/$eth_if_name") or die('Server: Unable to configure network!!!');
+			//return;
+			$if_config= "auto $eth_if_name\n".
+					    "iface $eth_if_name inet dhcp\n".
+						"allow-hotplug $eth_if_name\n";
 		}
 		else
 		{
