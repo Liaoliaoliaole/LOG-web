@@ -44,7 +44,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 		{	//Get configured IP
 			if(exec("ip -j addr show $if_name", $output, $retval))
 			{
-				$ip_output = json_decode($output[0]);
+				if(($ip_output = json_decode($output[0])) == NULL)
+					return;
 				$c = count($ip_output);
 				for($i=0; !property_exists($ip_output[$i], 'addr_info') && $i<$c; $i++);
 				if($i<$c)
@@ -54,7 +55,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			unset($output);
 			if(exec("ip -j route", $output, $retval))
 			{
-				$ip_output = json_decode($output[0]);
+				if(($ip_output = json_decode($output[0])) == NULL)
+					return;
 				$c = count($ip_output);
 				for($i=0; !property_exists($ip_output[$i], 'gateway') && $i<$c; $i++);
 				if($i<$c)
@@ -407,7 +409,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					if(file_exists($opc_ua_config_dir."FTP_backup_conf.json"))
 					{
 						$FTP_backup_conf=file_get_contents($opc_ua_config_dir.'FTP_backup_conf.json');
-						$FTP_backup_conf=json_decode($FTP_backup_conf);
+						$FTP_backup_conf=json_decode($FTP_backup_conf) or die("Server: JSON Decode of FTP_backup_conf failed");
 						if(isset($FTP_backup_conf->addr, $FTP_backup_conf->username, $FTP_backup_conf->password))
 						{
 							$currConfig->FTP_backup_server = new stdClass();
@@ -519,7 +521,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				if(file_exists($opc_ua_config_dir."FTP_backup_conf.json"))
 				{
 					$FTP_backup_conf=file_get_contents($opc_ua_config_dir."FTP_backup_conf.json");
-					$FTP_backup_conf=json_decode($FTP_backup_conf);
+					$FTP_backup_conf=json_decode($FTP_backup_conf) or die("Server: JSON Decode of FTP_backup_conf failed");
 					if(isset($FTP_backup_conf->addr, $FTP_backup_conf->username, $FTP_backup_conf->password))
 					{
 						if(!morfeas_ftp_mbl_backup($FTP_backup_conf->addr,
