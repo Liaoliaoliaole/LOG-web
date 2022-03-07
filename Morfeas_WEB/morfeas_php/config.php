@@ -49,7 +49,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$c = count($ip_output);
 				for($i=0; !property_exists($ip_output[$i], 'addr_info') && $i<$c; $i++);
 				if($i<$c)
-					$this->ip_conf = $ip_output[$i]->addr_info[0]->local;
+					$this->dhcp_ip_conf = $ip_output[$i]->addr_info[0]->local;
 			}
 			//Get configured Gateway
 			unset($output);
@@ -60,7 +60,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$c = count($ip_output);
 				for($i=0; !property_exists($ip_output[$i], 'gateway') && $i<$c; $i++);
 				if($i<$c)
-					$this->gate_conf = $ip_output[$i]->gateway;
+					$this->dhcp_gate_conf = $ip_output[$i]->gateway;
 			}
 		}
 		function parser($if_name)
