@@ -42,7 +42,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 		public $gate;
 		private function get_dhcp_ip($if_name)
 		{	//Get configured IP
-			if(exec("ip -j addr show $if_name", $output, $retval))
+			if(exec("ip -j addr show $if_name", $output))
 			{
 				if(($ip_output = json_decode($output[0])) == NULL)
 					return;
@@ -53,7 +53,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			}
 			//Get configured Gateway
 			unset($output);
-			if(exec("ip -j route", $output, $retval))
+			if(exec("ip -j route", $output))
 			{
 				if(($ip_output = json_decode($output[0])) == NULL)
 					return;
@@ -130,7 +130,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 	}
 	function getMACaddr($if_name)
 	{
-		if(exec("ip -j link show $if_name", $output, $retval))
+		if(exec("ip -j link show $if_name", $output))
 		{
 			if(($ip_output = json_decode($output[0])) == NULL)
 				return NULL;
