@@ -217,7 +217,7 @@ function default_config(_config)
 			mask.value=_config.mask;
 			break;
 		case "DHCP":
-			static_conf(false, (_config.dhcp_ip_conf && _config.gate_conf));
+			static_conf(false, (_config.dhcp_ip_conf && _config.dhcp_gate_conf));
 			document.getElementById("conf_ip").innerHTML = _config.dhcp_ip_conf ? '<b>'+_config.dhcp_ip_conf+'</b>':'-';
 			document.getElementById("conf_gateway").innerHTML = _config.dhcp_gate_conf ? '<b>'+_config.dhcp_gate_conf+'</b>':'-';
 			mode.selectedIndex = 1;

@@ -404,10 +404,10 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					}
 					else
 					{
-						if(isset($conf->ip_conf))
-							$currConfig->ip_conf=$conf->ip_conf;
-						if(isset($conf->gate_conf))
-							$currConfig->gate_conf=$conf->gate_conf;
+						if(isset($conf->dhcp_ip_conf))
+							$currConfig->dhcp_ip_conf=$conf->dhcp_ip_conf;
+						if(isset($conf->dhcp_gate_conf))
+							$currConfig->dhcp_gate_conf=$conf->dhcp_gate_conf;
 					}
 					$currConfig->ntp=get_timesyncd_ntp();
 					if(($CAN_ifs=getCANifs()))
