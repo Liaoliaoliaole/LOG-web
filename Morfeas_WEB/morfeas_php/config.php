@@ -130,10 +130,15 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 	}
 	function getMACaddr($if_name)
 	{
-		if(!exec("ip link show $if_name", $output, $retval))
-			return NULL;
-		if($output = explode(' ', $output[1]))
-			return $output[5];
+		if(exec("ip -j link show $if_name", $output, $retval))
+		{
+			if(($ip_output = json_decode($output[0])) == NULL)
+				return NULL;
+			$c = count($ip_output);
+			for($i=0; !property_exists($ip_output[$i], 'address') && $i<$c; $i++);
+			if($i<$c)
+				return $ip_output[$i]->address;
+		}
 		return NULL;
 	}
 	function get_timesyncd_ntp()
