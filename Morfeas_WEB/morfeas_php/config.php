@@ -174,7 +174,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$ret[$i]=new stdClass();
 				$ret[$i]->if_Name=$names[$i];
 				$if_details=Array();
-				exec("ip -det link show ".$names[$i], $if_details);
+				if(!exec("ip -det link show ".$names[$i], $if_details))
+					continue;
 				$if_details = preg_replace('/\s{2,}/', '', $if_details);
 				if(explode(' ', $if_details[2])[0]==="can")
 					$ret[$i]->bitrate=(int)explode(' ', $if_details[3])[1];
