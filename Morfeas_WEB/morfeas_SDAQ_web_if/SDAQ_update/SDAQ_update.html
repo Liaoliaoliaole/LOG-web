@@ -8,6 +8,7 @@
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
 <title>Morfeas SDAQ Firmware Update</title>
 </head>
+	<b id="p_title"></b><br>
 	<input type="file" id="SDAQ_fw_upload" accept=".hex">
 	<input type="button" value="Upload" onclick="SDAQ_fw_upload(SDAQnet, SDAQaddr)">
 <body>
@@ -44,7 +45,8 @@ for the JavaScript code in this page.
 		SDAQaddr = getUrlParam("SDAQaddr");
 	if(!SDAQnet || !SDAQaddr)
 		window.close('','_parent','');
-
+	
+	document.getElementById('p_title').innerHTML="Firmware Update ("+SDAQnet.toUpperCase()+'.ADDR:'+SDAQaddr+')';
 	//AJAX response handler
 	var xhttp = new XMLHttpRequest();
 	xhttp.timeout = 10000;
