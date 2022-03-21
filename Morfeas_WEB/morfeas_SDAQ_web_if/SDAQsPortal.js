@@ -69,7 +69,19 @@ function data_update(SDAQnet_data, update_tree)
 			}
 			function select_callback(elem)
 			{
-				console.log(elem);
+				//console.log(elem);
+				switch(elem.data.name)
+				{
+					case "Calibration table":
+						if(elem.data.if_name && elem.data.SDAQaddr && elem.data.Max_cal_point)
+						{
+							cal_table_wins.push(PopupCenter("/morfeas_SDAQ_web_if/SDAQ_cal_config/SDAQ_cal_config.html"
+															+"?SDAQnet="+elem.data.if_name
+															+"&SDAQaddr="+elem.data.SDAQaddr
+															+"&q="+makeid(),"","850",elem.data.Max_cal_point>8?"780":"570"));
+						}
+						break;
+				}
 				/*
 				sel_data_tbl.innerHTML = '';
 				if(elem.data && elem.data.Anchor)
@@ -162,6 +174,13 @@ function morfeas_build_dev_tree_from_SDAQ_logstat(SDAQ_logstat)
 				CH.name = "CH:"+norm((j+1),2);
 				CHs_cal_data.children.push(CH);
 			}
+			//Add Calibration table edit link.
+			let cal_table = {};
+			cal_table.name = "Calibration table";
+			cal_table.if_name = if_name;
+			cal_table.SDAQaddr = SDAQ_if_data[i].Address;
+			cal_table.Max_cal_point = SDAQ_if_data[i].SDAQ_info.Max_cal_point;
+			CHs_cal_data.children.push(cal_table);
 			SDAQ.children.push(CHs_cal_data);
 			//Add Status
 			let Status = {};
@@ -180,6 +199,6 @@ function morfeas_build_dev_tree_from_SDAQ_logstat(SDAQ_logstat)
 	if(!SDAQ_logstat || typeof(SDAQ_logstat)!=="object" || !SDAQ_logstat.SDAQs_data)
 		return;
 	//Logstat to dev_tree converter
-	return get_SDAQ_if_chidren(SDAQ_logstat.SDAQs_data, SDAQ_logstat.CANBus_interface.toUpperCase());
+	return get_SDAQ_if_chidren(SDAQ_logstat.SDAQs_data, SDAQ_logstat.CANBus_interface);
 }
 //@license-end

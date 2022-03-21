@@ -62,7 +62,7 @@
 			</td>
 		</tr>
 		<tr>
-			<td>	
+			<td>
 				<textarea id="SDAQ_data_stats" style="resize:none;" rows="10" cols="50" readonly></textarea>
 			</td>
 			<!--<canvas id="data_plot_canvas" width="600" height="400" style="border:1px solid #000000;"></canvas>-->
@@ -111,6 +111,7 @@ for the JavaScript code in this page.
 	};
 	var data_req=false, update_tree=false;
 	var request_mode = mode_enum.SDAQnet_name;
+	var cal_table_wins = [];
 
 	//AJAX response handler
 	var xhttp = new XMLHttpRequest();
@@ -197,6 +198,15 @@ for the JavaScript code in this page.
 			}
 		}
 	}
+	//Close popup windows
+	function close_all_popup()
+	{
+		if(cal_table_wins.length)
+			for(let i=0; i<cal_table_wins.length; i++)
+				if(!cal_table_wins[i].closed)
+					cal_table_wins[i].close();
+	};
+	window.onbeforeunload = close_all_popup;
 //@license-end
 </script>
 </html>
