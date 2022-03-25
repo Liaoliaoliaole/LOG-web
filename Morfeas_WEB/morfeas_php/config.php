@@ -215,8 +215,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			//unlink("/etc/network/interfaces.d/$eth_if_name") or die('Server: Unable to configure network!!!');
 			//return;
 			$if_config= "auto $eth_if_name\n".
-					    "iface $eth_if_name inet dhcp\n".
-						"allow-hotplug $eth_if_name\n";
+						"allow-hotplug $eth_if_name\n".
+					    "iface $eth_if_name inet dhcp\n";
 		}
 		else
 		{
@@ -246,9 +246,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 						"allow-hotplug $eth_if_name\n".
 						"iface $eth_if_name inet static\n".
 						"address $new_ip/$new_mask\n".
-						"gateway $new_gate\n".
-						"dns-nameservers $new_gate\n".
-						"dns-nameservers 8.8.8.8\n";
+						"gateway $new_gate\n";
 		}
 		file_put_contents("/etc/network/interfaces.d/$eth_if_name",$if_config)or die("Server: Can't create new Network configuration file!!!");
 	}
