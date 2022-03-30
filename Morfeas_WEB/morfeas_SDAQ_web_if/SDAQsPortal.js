@@ -55,7 +55,6 @@ function data_update(SDAQnet_data, update_tree)
 		if(SDAQnet_logstat_tree)
 		{
 			dev_tree = new TreeView(SDAQnet_logstat_tree, 'Dev_tree');
-			dev_tree.collapseAll();
 			dev_tree.on('collapse', clean_sel_data);
 			dev_tree.on('expand', clean_sel_data);
 			dev_tree.on('select', select_callback);
@@ -69,17 +68,23 @@ function data_update(SDAQnet_data, update_tree)
 			}
 			function select_callback(elem)
 			{
-				//console.log(elem);
+				console.log(elem);
 				switch(elem.data.name)
 				{
 					case "Calibration table":
 						if(elem.data.if_name && elem.data.SDAQaddr && elem.data.Max_cal_point)
 						{
-							cal_table_wins.push(PopupCenter("/morfeas_SDAQ_web_if/SDAQ_cal_config/SDAQ_cal_config.html"
-															+"?SDAQnet="+elem.data.if_name
-															+"&SDAQaddr="+elem.data.SDAQaddr
-															+"&q="+makeid(),"","850",elem.data.Max_cal_point>8?"780":"570"));
+							cal_table_wins.push(PopupCenter("/morfeas_SDAQ_web_if/SDAQ_cal_config/SDAQ_cal_config.html"+
+															"?SDAQnet="+elem.data.if_name+
+															"&SDAQaddr="+elem.data.SDAQaddr+
+															"&q="+makeid(),"","850",elem.data.Max_cal_point>8?"780":"570"));
 						}
+						break;
+					case "Status":
+						break;
+					case "Info":
+						break;
+					default:
 						break;
 				}
 				/*
@@ -160,19 +165,10 @@ function morfeas_build_dev_tree_from_SDAQ_logstat(SDAQ_logstat)
 			{
 				let CH = {};
 				CH.name = "CH:"+norm((j+1),2);
+				CH.data_table_pos = i;
+				CH.SDAQ_SN = SDAQ_if_data[i].Serial_number;
+				CH.channel = j;
 				CHs.children.push(CH);
-			}
-			SDAQ.children.push(CHs);
-			//Add Channels' calibration data
-			let CHs_cal_data = {};
-			CHs_cal_data.name = "Calibration Data";
-			CHs_cal_data.expandable = true;
-			CHs_cal_data.children = [];
-			for(let j=0; j<SDAQ_if_data[i].SDAQ_info.Number_of_channels; j++)
-			{
-				let CH = {};
-				CH.name = "CH:"+norm((j+1),2);
-				CHs_cal_data.children.push(CH);
 			}
 			//Add Calibration table edit link.
 			let cal_table = {};
@@ -180,15 +176,19 @@ function morfeas_build_dev_tree_from_SDAQ_logstat(SDAQ_logstat)
 			cal_table.if_name = if_name;
 			cal_table.SDAQaddr = SDAQ_if_data[i].Address;
 			cal_table.Max_cal_point = SDAQ_if_data[i].SDAQ_info.Max_cal_point;
-			CHs_cal_data.children.push(cal_table);
-			SDAQ.children.push(CHs_cal_data);
+			CHs.children.push(cal_table);
+			SDAQ.children.push(CHs);
 			//Add Status
 			let Status = {};
 			Status.name = "Status";
+			Status.data_table_pos = i;
+			Status.SDAQ_SN = SDAQ_if_data[i].Serial_number;
 			SDAQ.children.push(Status);
 			//Add Info
 			let Info = {};
 			Info.name = "Info";
+			Info.data_table_pos = i;
+			Info.SDAQ_SN = SDAQ_if_data[i].Serial_number;
 			SDAQ.children.push(Info);
 			//Push SDAQ to SDAQs tree
 			SDAQs.push(SDAQ);
