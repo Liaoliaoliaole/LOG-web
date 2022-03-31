@@ -118,17 +118,20 @@ function data_update(SDAQnet_data, update_tree)
 					for(let j in selected_SDAQ.SDAQ_info)
 						data.push([j, selected_SDAQ.SDAQ_info[j]])
 					generateTable(table, data);
-					for(let j=0; table.rows.length; j++)
+					if(selected_SDAQ.SDAQ_type !== "Pseudo_SDAQ")
 					{
-						if(table.rows[j].innerText.includes("firm_rev"))
+						for(let j=0; table.rows.length; j++)
 						{
-							table.rows[j].onclick = function(){
-								up_firm_wins.push(PopupCenter("/morfeas_SDAQ_web_if/SDAQ_update/SDAQ_update.html"+
-															  "?SDAQnet="+SDAQnet_data.CANBus_interface+
-															  "&SDAQaddr="+selected_SDAQ.Address+
-															  "&q="+makeid(), "", "340", "65"));
-							};
-							break;
+							if(table.rows[j].innerText.includes("firm_rev"))
+							{
+								table.rows[j].onclick = function(){
+									up_firm_wins.push(PopupCenter("/morfeas_SDAQ_web_if/SDAQ_update/SDAQ_update.html"+
+																  "?SDAQnet="+SDAQnet_data.CANBus_interface+
+																  "&SDAQaddr="+selected_SDAQ.Address+
+																  "&q="+makeid(), "", "340", "65"));
+								};
+								break;
+							}
 						}
 					}
 					break;
