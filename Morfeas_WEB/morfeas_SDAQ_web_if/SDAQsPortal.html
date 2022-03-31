@@ -16,6 +16,14 @@
 	height: 4in;
 	width: 2.25in;
 }
+.meas_stat_info_tab_div{
+	border-style: double;
+	border-spacing: 50% 2em;
+	margin: 0 auto;
+	overflow-y: auto;
+	height: 2in;
+	width: 4.25in;
+}
 </style>
 <title>Morfeas SDAQ Portal</title>
 </head>
@@ -58,7 +66,7 @@
 				<div class="tree_div" id="Dev_tree"></div>
 			</td>
 			<td>
-				<textarea id="SDAQ_data_stats" style="resize:none;" rows="10" cols="50" readonly></textarea>
+				<table class="meas_stat_info_tab_div" id="meas_stat_info_table"></table>
 			</td>
 		</tr>
 		<tr>
@@ -111,7 +119,7 @@ for the JavaScript code in this page.
 	};
 	var data_req=false, update_tree=false;
 	var request_mode = mode_enum.SDAQnet_name;
-	var cal_table_wins = [];
+	var cal_table_wins = [], up_firm_wins = [];
 
 	//AJAX response handler
 	var xhttp = new XMLHttpRequest();
@@ -205,6 +213,10 @@ for the JavaScript code in this page.
 			for(let i=0; i<cal_table_wins.length; i++)
 				if(!cal_table_wins[i].closed)
 					cal_table_wins[i].close();
+		if(up_firm_wins.length)
+			for(let i=0; i<up_firm_wins.length; i++)
+				if(!up_firm_wins[i].closed)
+					up_firm_wins[i].close();
 	};
 	window.onbeforeunload = close_all_popup;
 //@license-end

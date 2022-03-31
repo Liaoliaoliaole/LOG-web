@@ -186,15 +186,20 @@ function pad(str, max)//from number-pad-zero.js
 	return str.length < max ? pad("0" + str, max) : str;
 }
 
-function generateTableHead(table, data)
+function generateTableHead(table, data, coll)
 {
 	let thead = table.createTHead();
 	let row = thead.insertRow();
 	for(let key of data)
 	{
 		let th = document.createElement("th");
-		let text = document.createTextNode(key);
-		th.appendChild(text);
+		if(coll && !isNaN(coll))
+		{
+			let attr_colspan = document.createAttribute("colspan");
+			attr_colspan.value=coll;
+			th.setAttributeNode(attr_colspan);
+		}
+		th.appendChild(document.createTextNode(key));
 		row.appendChild(th);
 	}
 }

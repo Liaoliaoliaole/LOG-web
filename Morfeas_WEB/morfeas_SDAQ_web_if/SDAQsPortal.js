@@ -55,20 +55,17 @@ function data_update(SDAQnet_data, update_tree)
 		if(SDAQnet_logstat_tree)
 		{
 			dev_tree = new TreeView(SDAQnet_logstat_tree, 'Dev_tree');
-			dev_tree.on('collapse', clean_sel_data);
-			dev_tree.on('expand', clean_sel_data);
+			dev_tree.on('collapseAll', clean_sel_data);
+			//dev_tree.on('collapse', clean_sel_data);
 			dev_tree.on('select', select_callback);
 			function clean_sel_data()
 			{
-				/*
-				sel_data_tbl.innerHTML = '';
-				sel_data = {};
-				ok_button.disabled = true;
-				*/
+				document.getElementById("meas_stat_info_table").innerHTML="";
+				data_update.selection = undefined;
 			}
 			function select_callback(elem)
 			{
-				console.log(elem);
+				//console.log(elem);
 				switch(elem.data.name)
 				{
 					case "Calibration table":
@@ -81,8 +78,8 @@ function data_update(SDAQnet_data, update_tree)
 						}
 						break;
 					case "Status":
-						break;
 					case "Info":
+						data_update.selection = elem.data;
 						break;
 					default:
 						break;
@@ -98,8 +95,55 @@ function data_update(SDAQnet_data, update_tree)
 			}
 		}
 		else
+		{
 			document.getElementById('Dev_tree').innerHTML='No SDAQs';
+			data_update.selection = {};
+		}
 	}
+	if(data_update.selection)
+	{
+		var table = document.getElementById("meas_stat_info_table");
+
+		if(SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos] &&
+		   SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos].Serial_number === data_update.selection.SDAQ_SN)
+		{
+			let selected_SDAQ = SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos], data = [];
+			table.innerHTML = "";
+
+			//console.log(SDAQnet_data);
+			switch(data_update.selection.name)
+			{
+				case "Info":
+					generateTableHead(table, ["Info for "+selected_SDAQ.SDAQ_type+"(ADDR:"+norm(selected_SDAQ.Address,2)+")"], 2);
+					for(let j in selected_SDAQ.SDAQ_info)
+						data.push([j, selected_SDAQ.SDAQ_info[j]])
+					generateTable(table, data);
+					for(let j=0; table.rows.length; j++)
+					{
+						if(table.rows[j].innerText.includes("firm_rev"))
+						{
+							table.rows[j].onclick = function(){
+								up_firm_wins.push(PopupCenter("/morfeas_SDAQ_web_if/SDAQ_update/SDAQ_update.html"+
+															  "?SDAQnet="+SDAQnet_data.CANBus_interface+
+															  "&SDAQaddr="+selected_SDAQ.Address+
+															  "&q="+makeid(), "", "340", "65"));
+							};
+							break;
+						}
+					}
+					break;
+				case "Status":
+					generateTableHead(table, ["Status of "+selected_SDAQ.SDAQ_type+"(ADDR:"+norm(selected_SDAQ.Address,2)+")"], 2);
+					for(let j in selected_SDAQ.SDAQ_Status)
+						data.push([j, selected_SDAQ.SDAQ_Status[j]])
+					generateTable(table, data);
+					break;
+				default: return;
+			}
+		}
+		//console.log(data_update.selection);
+	}
+
 	/*
 	var SDAQs_list = document.getElementById("SDAQs_list");
 	if(!data_plot.prev)
