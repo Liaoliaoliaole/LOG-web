@@ -43,7 +43,7 @@ function data_update(SDAQnet_data, update_tree)
 		else
 			SDAQnet_stats[i].hidden = SDAQnet_data.hasOwnProperty('Electrics')?false:true;
 	}
-	Det_devs.innerHTML = "Detected SDAQs: "+SDAQnet_data.Detected_SDAQs;
+	Det_devs.innerHTML = "Detected SDAQs: "+SDAQnet_data.Detected_SDAQs+'/'+SDAQnet_data.Incomplete_SDAQs;
 	Bus_util.innerHTML = "Bus Util: "+SDAQnet_data.BUS_Utilization.toFixed(2)+'%';
 	if(SDAQnet_data.hasOwnProperty('Electrics'))
 	{
@@ -102,7 +102,8 @@ function data_update(SDAQnet_data, update_tree)
 		var table = document.getElementById("stat_info_table"),
 			meas_table = document.getElementById("meas_table");
 
-		if(SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos] &&
+		if(SDAQnet_data.hasOwnProperty('SDAQs_data') &&
+		   SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos] &&
 		   SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos].Serial_number === data_update.selection.SDAQ_SN)
 		{
 			let selected_SDAQ = SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos],
