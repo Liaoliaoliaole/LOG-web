@@ -48,7 +48,7 @@ function data_update(SDAQnet_data, update_tree)
 	if(SDAQnet_data.hasOwnProperty('Electrics'))
 	{
 		Bus_Voltage.innerHTML = "Bus Voltage: "+SDAQnet_data.Electrics.BUS_voltage.toFixed(2)+'V';
-		Bus_Amperage.innerHTML = "Bus current: "+(SDAQnet_data.Electrics.BUS_amperage*1000).toFixed(2)+'mA';
+		Bus_Amperage.innerHTML = "Bus current: "+SDAQnet_data.Electrics.BUS_amperage.toFixed(2)+'A';
 	}
 	//console.log(SDAQnet_data);
 	
