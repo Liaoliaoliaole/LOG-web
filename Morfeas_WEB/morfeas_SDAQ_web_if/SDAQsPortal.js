@@ -23,19 +23,18 @@ through which recipients can access the Corresponding Source.
 for the JavaScript code in this page.
 */
 "use strict";
-var dev_tree,
-	Det_devs = SDAQnet_stats_disp_init("Det_devs"),
-	Bus_util = SDAQnet_stats_disp_init("Bus_util"),
-	Bus_Voltage = SDAQnet_stats_disp_init("Bus_Voltage"),
-	Bus_Amperage = SDAQnet_stats_disp_init("Bus_Amperage");
+var dev_tree;
 
 function data_update(SDAQnet_data, update_tree)
 {
-	let SDAQnet_stats = document.getElementsByName("SDAQnet_stats");
+	let SDAQnet_stats = document.getElementsByName("SDAQnet_stats"),
+		Det_devs = document.getElementById("Det_devs"),
+		Bus_util = document.getElementById("Bus_util"),
+		Bus_Voltage = document.getElementById("Bus_Voltage"),
+		Bus_Amperage = document.getElementById("Bus_Amperage");
 
 	if(!SDAQnet_data)
 		return;
-	/*
 	//Update SDAQnet stats
 	for(let i=0; i<SDAQnet_stats.length; i++)
 	{
@@ -44,14 +43,19 @@ function data_update(SDAQnet_data, update_tree)
 		else
 			SDAQnet_stats[i].hidden = SDAQnet_data.hasOwnProperty('Electrics')?false:true;
 	}
-	Det_devs.setValue(SDAQnet_data.Detected_SDAQs.toString());
-	Bus_util.setValue(SDAQnet_data.BUS_Utilization.toString()+'%');
+	Det_devs.innerHTML = "Detected SDAQs: "+SDAQnet_data.Detected_SDAQs;
+	Bus_util.innerHTML = "Bus Util: "+SDAQnet_data.BUS_Utilization.toFixed(2)+'%';
+	if(SDAQnet_data.hasOwnProperty('Electrics'))
+	{
+		Bus_Voltage.innerHTML = "Bus Voltage: "+SDAQnet_data.Electrics.BUS_voltage.toFixed(2)+'V';
+		Bus_Amperage.innerHTML = "Bus current: "+(SDAQnet_data.Electrics.BUS_amperage*1000).toFixed(2)+'mA';
+	}
 	//console.log(SDAQnet_data);
-	*/
+	
 	if(update_tree)
 	{
 		let SDAQnet_logstat_tree = morfeas_build_dev_tree_from_SDAQ_logstat(SDAQnet_data);
-		//console.log(SDAQnet_logstat_tree);
+
 		if(SDAQnet_logstat_tree)
 		{
 			dev_tree = new TreeView(SDAQnet_logstat_tree, 'Dev_tree');
@@ -60,12 +64,12 @@ function data_update(SDAQnet_data, update_tree)
 			dev_tree.on('select', select_callback);
 			function clean_sel_data()
 			{
-				document.getElementById("meas_stat_info_table").innerHTML="";
+				document.getElementById("stat_info_table").innerHTML="";
+				document.getElementById("meas_table").innerHTML="";
 				data_update.selection = undefined;
 			}
 			function select_callback(elem)
 			{
-				//console.log(elem);
 				switch(elem.data.name)
 				{
 					case "Calibration table":
@@ -79,44 +83,38 @@ function data_update(SDAQnet_data, update_tree)
 						break;
 					case "Status":
 					case "Info":
+					default:
 						data_update.selection = elem.data;
 						break;
-					default:
-						break;
 				}
-				/*
-				sel_data_tbl.innerHTML = '';
-				if(elem.data && elem.data.Anchor)
-				{
-					gen_sel_data_table(elem.data)
-					ok_button.disabled = false;
-				}
-				*/
 			}
 		}
 		else
 		{
 			document.getElementById('Dev_tree').innerHTML='No SDAQs';
+			document.getElementById("stat_info_table").innerHTML="";
+			document.getElementById("meas_table").innerHTML="";
 			data_update.selection = {};
 		}
 	}
 	if(data_update.selection)
 	{
-		var table = document.getElementById("meas_stat_info_table");
+		var table = document.getElementById("stat_info_table"),
+			meas_table = document.getElementById("meas_table"),
+			selected_SDAQ = SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos],
+			data = [];
 
 		if(SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos] &&
 		   SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos].Serial_number === data_update.selection.SDAQ_SN)
 		{
-			let selected_SDAQ = SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos], data = [];
 			table.innerHTML = "";
-
-			//console.log(SDAQnet_data);
+			meas_table.innerHTML = "";
 			switch(data_update.selection.name)
 			{
 				case "Info":
 					generateTableHead(table, ["Info for "+selected_SDAQ.SDAQ_type+"(ADDR:"+norm(selected_SDAQ.Address,2)+")"], 2);
 					for(let j in selected_SDAQ.SDAQ_info)
-						data.push([j, selected_SDAQ.SDAQ_info[j]])
+						data.push([j, selected_SDAQ.SDAQ_info[j]]);
 					generateTable(table, data);
 					if(selected_SDAQ.SDAQ_type !== "Pseudo_SDAQ")
 					{
@@ -138,60 +136,77 @@ function data_update(SDAQnet_data, update_tree)
 				case "Status":
 					generateTableHead(table, ["Status of "+selected_SDAQ.SDAQ_type+"(ADDR:"+norm(selected_SDAQ.Address,2)+")"], 2);
 					for(let j in selected_SDAQ.SDAQ_Status)
-						data.push([j, selected_SDAQ.SDAQ_Status[j]])
+						data.push([j, selected_SDAQ.SDAQ_Status[j]]);
 					generateTable(table, data);
 					break;
-				default: return;
+				default:
+					//Build Table for Calibration Data
+					if((data = Build_cal_data_array(SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos].Calibration_Data[data_update.selection.channel])))
+					{
+						generateTableHead(table, ["Calibration data for "+selected_SDAQ.SDAQ_type+
+												  "(ADDR:"+norm(selected_SDAQ.Address, 2)+"):CH"+
+												  norm(data_update.selection.channel+1, 2)], 2);
+						generateTable(table, data);
+					}
+					//Build Table for Measurements
+					if((data = Build_meas_array(SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos].Meas[data_update.selection.channel])))
+					{
+						generateTableHead(meas_table, ["Measurement of "+selected_SDAQ.SDAQ_type+
+													   "(ADDR:"+norm(selected_SDAQ.Address, 2)+"):CH"+
+													   norm(data_update.selection.channel+1, 2)], 2);
+						generateTable(meas_table, data);
+					}
+					break;
 			}
 		}
-		//console.log(data_update.selection);
 	}
-
-	/*
-	var SDAQs_list = document.getElementById("SDAQs_list");
-	if(!data_plot.prev)
-		data_plot.prev={};
-	SDAQnet_stats.innerHTML="Det_devs:"+SDAQnet_data.Detected_SDAQs+
-							" Bus_util: "+SDAQnet_data.BUS_Utilization+'%';
-	if(SDAQnet_data.hasOwnProperty('Electrics'))
-		SDAQnet_stats.innerHTML+=" Bus_voltage: "+SDAQnet_data.Electrics.BUS_voltage+"V"+" Bus_Amperage: "+SDAQnet_data.Electrics.BUS_amperage+"A"
-	if(data_plot.prev.amount!=SDAQnet_data.Detected_SDAQs || data_plot.prev.bus!=SDAQnet_data.CANBus_interface || !SDAQs_list.innerHTML)
-	{
-		//var SDAQ_Data_Chart = new Chart.Line("data_plot_canvas");
-		SDAQs_list.innerHTML="";
-		if(SDAQnet_data.SDAQs_data)
-			SDAQ_dev_list_tree(SDAQs_list, SDAQnet_data.SDAQs_data);
-		data_plot.prev.amount=SDAQnet_data.Detected_SDAQs;
-		data_plot.prev.bus=SDAQnet_data.CANBus_interface;
-	}
-	var sel_sdaq=document.getElementsByClassName("caret-down");
-	if(sel_sdaq.length)
-	{
-		//console.log(sel_sdaq);
-	}
-	*/
 }
 
-function SDAQnet_stats_disp_init(name)
+function Build_cal_data_array(CH_cal_data)
 {
-	let SDAQnet_stats_disp;
-	if(!name)
+	var ret = [], cal_date;
+
+	if(!CH_cal_data)
 		return;
-	SDAQnet_stats_disp = new SegmentDisplay(name);
-	SDAQnet_stats_disp.pattern         = "##";
-	SDAQnet_stats_disp.displayAngle    = 6;
-	SDAQnet_stats_disp.digitHeight     = 20;
-	SDAQnet_stats_disp.digitWidth      = 14;
-	SDAQnet_stats_disp.digitDistance   = 2.5;
-	SDAQnet_stats_disp.segmentWidth    = 2;
-	SDAQnet_stats_disp.segmentDistance = 0.3;
-	SDAQnet_stats_disp.segmentCount    = 7;
-	SDAQnet_stats_disp.cornerType      = 3;
-	SDAQnet_stats_disp.colorOn         = "black";
-	SDAQnet_stats_disp.colorOff        = "white";
-	SDAQnet_stats_disp.draw();
-	return SDAQnet_stats_disp;
+	if(CH_cal_data.Is_calibrated)
+	{
+		ret.push(["SDAQ's Channel:", CH_cal_data.Channel]);
+		cal_date = new Date(CH_cal_data.Calibration_date_UNIX*1000);
+		ret.push(["Calibration Date:", cal_date.toLocaleDateString()]);
+		ret.push(["Valid for:", CH_cal_data.Calibration_period+" Month"+(CH_cal_data.Calibration_period>1?'s':'')]);
+		ret.push(["Calibration Unit:", '"'+CH_cal_data.Unit+'"']);
+		return ret;
+	}
+	else
+		return [["No Calibration data for Channel "+ CH_cal_data.Channel]];
 }
+function Build_meas_array(CH_meas_data)
+{
+	var ret = [];
+
+	if(!CH_meas_data)
+		return;
+	if(!CH_meas_data.Channel_Status.Channel_status_val)
+	{
+		ret.push(["Measurements group Average:", !isNaN(CH_meas_data.Meas_avg)?CH_meas_data.Meas_avg.toFixed(3)+' '+CH_meas_data.Unit:'-']);
+		ret.push(["Measurements group max:", !isNaN(CH_meas_data.Meas_max)?CH_meas_data.Meas_max.toFixed(3)+' '+CH_meas_data.Unit:'-']);
+		ret.push(["Measurements group min:", !isNaN(CH_meas_data.Meas_min)?CH_meas_data.Meas_min.toFixed(3)+' '+CH_meas_data.Unit:'-']);
+		if(!isNaN(CH_meas_data.Meas_max)&&!isNaN(CH_meas_data.Meas_min))
+			ret.push(["Measurements group range:", (CH_meas_data.Meas_max-CH_meas_data.Meas_min).toFixed(3)+' '+CH_meas_data.Unit]);
+		return ret;
+	}
+	else
+	{
+		if(CH_meas_data.Channel_Status.No_Sensor)
+			ret.push(["No Sensor"]);
+		if(CH_meas_data.Channel_Status.Out_of_Range)
+			ret.push(["Out of calibration range"]);
+		if(CH_meas_data.Channel_Status.Over_Range)
+			ret.push(["Input over range"]);
+		return ret;
+	}
+}
+
 function morfeas_build_dev_tree_from_SDAQ_logstat(SDAQ_logstat)
 {
 	function get_SDAQ_if_chidren(SDAQ_if_data, if_name)

@@ -28,26 +28,18 @@
 <title>Morfeas SDAQ Portal</title>
 </head>
 <body>
-	<table style="margin:left;">
-	  <tr>
-		<td style="text-align:right;">SDAQnet:
+	<table style="margin:center;">
+	<tr>
+		<td style="text-align:center;">SDAQnet:
 			<select id="SDAQnet_name_sel" onchange="request_mode = mode_enum.SDAQnet_contents; update_tree=true">
 				<option value='0'>None</option>
 			</select>
 		</td>
-		<td name="SDAQnet_stats" hidden>
-			<canvas id="Det_devs" width="50" height="75"></canvas>
-		</td hidden>
-		<td name="SDAQnet_stats" hidden>
-			<canvas id="Bus_util" width="50" height="75"></canvas>
-		</td>
-		<td name="SDAQnet_stats" hidden>
-			<canvas id="Bus_Voltage" width="50" height="75"></canvas>
-		</td>
-		<td name="SDAQnet_stats" hidden>
-			<canvas id="Bus_Amperage" width="50" height="75"></canvas>
-		</td>
-	  </tr>
+		<td id="Det_devs" name="SDAQnet_stats" hidden></td>
+		<td id="Bus_util" name="SDAQnet_stats" hidden></td>
+		<td id="Bus_Voltage" name="SDAQnet_stats" hidden></td>
+		<td id="Bus_Amperage" name="SDAQnet_stats" hidden></td>
+	</tr>
 	</table>
 	<table style="margin:auto;text-align:center;margin-bottom:.075in;width:5in;">
 		<tr>
@@ -66,12 +58,12 @@
 				<div class="tree_div" id="Dev_tree"></div>
 			</td>
 			<td>
-				<table class="meas_stat_info_tab_div" id="meas_stat_info_table"></table>
+				<table class="meas_stat_info_tab_div" id="stat_info_table"></table>
 			</td>
 		</tr>
 		<tr>
 			<td>
-				<textarea id="SDAQ_data_stats" style="resize:none;" rows="10" cols="50" readonly></textarea>
+				<table class="meas_stat_info_tab_div" id="meas_table"></table>
 			</td>
 			<!--<canvas id="data_plot_canvas" width="600" height="400" style="border:1px solid #000000;"></canvas>-->
 		</tr>
@@ -81,7 +73,6 @@
 		<a href="../LICENSE">License: AGPLv3</a><br>
 	</footer>
 </body>
-<script src="../External_components/SegmentDisplay/segment-display.js"></script>
 <script src="../External_components/js-treeview/dist/treeview.min.js"></script>
 <script src='../morfeas_ecma/morfeas_web_if.js'></script>
 <script src="../morfeas_ecma/common.js"></script>
@@ -203,6 +194,8 @@ for the JavaScript code in this page.
 				document.getElementById("status").value = "Select SDAQnet";
 				update_tree=false;
 				document.getElementById('Dev_tree').innerHTML="";
+				document.getElementById("stat_info_table").innerHTML="";
+				document.getElementById("meas_table").innerHTML="";
 			}
 		}
 	}
