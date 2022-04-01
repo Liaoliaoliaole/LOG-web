@@ -100,13 +100,14 @@ function data_update(SDAQnet_data, update_tree)
 	if(data_update.selection)
 	{
 		var table = document.getElementById("stat_info_table"),
-			meas_table = document.getElementById("meas_table"),
-			selected_SDAQ = SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos],
-			data = [];
+			meas_table = document.getElementById("meas_table");
 
 		if(SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos] &&
 		   SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos].Serial_number === data_update.selection.SDAQ_SN)
 		{
+			let selected_SDAQ = SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos],
+				data = [];
+			
 			table.innerHTML = "";
 			meas_table.innerHTML = "";
 			switch(data_update.selection.name)
