@@ -188,8 +188,10 @@ function Build_meas_array(CH_meas_data)
 
 	if(!CH_meas_data)
 		return;
-	if(!CH_meas_data.Channel_Status.Channel_status_val)
+	if(!CH_meas_data.Channel_Status.Channel_status_val || CH_meas_data.Channel_Status.Channel_status_val == 2)
 	{
+		if(CH_meas_data.Channel_Status.Out_of_Range)
+			ret.push(["Calculation Error:", "Out of calibration range"]);
 		ret.push(["Measurements group Average:", !isNaN(CH_meas_data.Meas_avg)?CH_meas_data.Meas_avg.toFixed(3)+' '+CH_meas_data.Unit:'-']);
 		ret.push(["Measurements group max:", !isNaN(CH_meas_data.Meas_max)?CH_meas_data.Meas_max.toFixed(3)+' '+CH_meas_data.Unit:'-']);
 		ret.push(["Measurements group min:", !isNaN(CH_meas_data.Meas_min)?CH_meas_data.Meas_min.toFixed(3)+' '+CH_meas_data.Unit:'-']);
@@ -200,11 +202,9 @@ function Build_meas_array(CH_meas_data)
 	else
 	{
 		if(CH_meas_data.Channel_Status.No_Sensor)
-			ret.push(["No Sensor"]);
-		if(CH_meas_data.Channel_Status.Out_of_Range)
-			ret.push(["Out of calibration range"]);
+			ret.push(["Input Error:", "No Sensor"]);
 		if(CH_meas_data.Channel_Status.Over_Range)
-			ret.push(["Input over range"]);
+			ret.push(["Input Error:", "Over range"]);
 		return ret;
 	}
 }
