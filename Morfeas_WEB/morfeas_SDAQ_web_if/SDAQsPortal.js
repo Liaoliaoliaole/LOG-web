@@ -51,7 +51,7 @@ function data_update(SDAQnet_data, update_tree)
 		Bus_Amperage.innerHTML = "Bus current: "+SDAQnet_data.Electrics.BUS_amperage.toFixed(2)+'A';
 	}
 	//console.log(SDAQnet_data);
-	
+
 	if(update_tree)
 	{
 		let SDAQnet_logstat_tree = morfeas_build_dev_tree_from_SDAQ_logstat(SDAQnet_data);
@@ -108,7 +108,7 @@ function data_update(SDAQnet_data, update_tree)
 		{
 			let selected_SDAQ = SDAQnet_data.SDAQs_data[data_update.selection.data_table_pos],
 				data = [];
-			
+
 			table.innerHTML = "";
 			meas_table.innerHTML = "";
 			switch(data_update.selection.name)
@@ -128,7 +128,7 @@ function data_update(SDAQnet_data, update_tree)
 									up_firm_wins.push(PopupCenter("/morfeas_SDAQ_web_if/SDAQ_update/SDAQ_update.html"+
 																  "?SDAQnet="+SDAQnet_data.CANBus_interface+
 																  "&SDAQaddr="+selected_SDAQ.Address+
-																  "&q="+makeid(), "", "340", "65"));
+																  "&q="+makeid(), "", "410", "170"));
 								};
 								break;
 							}
