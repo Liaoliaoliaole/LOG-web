@@ -207,7 +207,7 @@ function Build_meas_array(CH_meas_data)
 				ret.push(["Measurements group range:", (CH_meas_data.Meas_max-CH_meas_data.Meas_min).toFixed(3)+' '+CH_meas_data.Unit]);
 			}
 			if(!isNaN(CH_meas_data.Last_Meas))
-				ret.push(["Measurements group deviation:", (100.0*(CH_meas_data.Meas_avg - CH_meas_data.Last_Meas)/CH_meas_data.Meas_avg).toFixed(2)+'%']);
+				ret.push(["Measurements deviation:", (100.0*(CH_meas_data.Meas_avg - CH_meas_data.Last_Meas)/CH_meas_data.Meas_avg).toFixed(2)+'%']);
 		}
 		return ret;
 	}
