@@ -192,11 +192,13 @@ function Build_meas_array(CH_meas_data)
 	{
 		if(CH_meas_data.Channel_Status.Out_of_Range)
 			ret.push(["Calculation Error:", "Out of calibration range"]);
-		ret.push(["Measurements group Average:", !isNaN(CH_meas_data.Meas_avg)?CH_meas_data.Meas_avg.toFixed(3)+' '+CH_meas_data.Unit:'-']);
-		ret.push(["Measurements group max:", !isNaN(CH_meas_data.Meas_max)?CH_meas_data.Meas_max.toFixed(3)+' '+CH_meas_data.Unit:'-']);
-		ret.push(["Measurements group min:", !isNaN(CH_meas_data.Meas_min)?CH_meas_data.Meas_min.toFixed(3)+' '+CH_meas_data.Unit:'-']);
+		ret.push(["Measurements group average:", !isNaN(CH_meas_data.Meas_avg)?CH_meas_data.Meas_avg.toFixed(3)+' '+CH_meas_data.Unit:'-']);
 		if(!isNaN(CH_meas_data.Meas_max)&&!isNaN(CH_meas_data.Meas_min))
+		{
+			ret.push(["Measurements group max:", !isNaN(CH_meas_data.Meas_max)?CH_meas_data.Meas_max.toFixed(3)+' '+CH_meas_data.Unit:'-']);
+			ret.push(["Measurements group min:", !isNaN(CH_meas_data.Meas_min)?CH_meas_data.Meas_min.toFixed(3)+' '+CH_meas_data.Unit:'-']);
 			ret.push(["Measurements group range:", (CH_meas_data.Meas_max-CH_meas_data.Meas_min).toFixed(3)+' '+CH_meas_data.Unit]);
+		}
 		ret.push(["Measurements group deviation:", !isNaN(CH_meas_data.Meas_dev)?CH_meas_data.Meas_dev.toFixed(2)+'%':'-']);
 		return ret;
 	}
