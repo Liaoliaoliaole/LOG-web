@@ -172,11 +172,16 @@ function Build_cal_data_array(CH_cal_data)
 		return;
 	if(CH_cal_data.Is_calibrated)
 	{
-		ret.push(["SDAQ's Channel:", CH_cal_data.Channel]);
-		cal_date = new Date(CH_cal_data.Calibration_date_UNIX*1000);
-		ret.push(["Calibration Date:", cal_date.toLocaleDateString()]);
-		ret.push(["Valid for:", CH_cal_data.Calibration_period+" Month"+(CH_cal_data.Calibration_period>1?'s':'')]);
-		ret.push(["Calibration Unit:", '"'+CH_cal_data.Unit+'"']);
+		if(CH_cal_data.Amount_of_points)
+		{
+			ret.push(["SDAQ's Channel:", CH_cal_data.Channel]);
+			cal_date = new Date(CH_cal_data.Calibration_date_UNIX*1000);
+			ret.push(["Calibration Date:", cal_date.toLocaleDateString()]);
+			ret.push(["Valid for:", CH_cal_data.Calibration_period+" Month"+(CH_cal_data.Calibration_period>1?'s':'')]);
+			ret.push(["Calibration Unit:", '"'+CH_cal_data.Unit+'"']);
+		}
+		else
+			ret.push(["Calibration not used"]);
 		return ret;
 	}
 	else
@@ -193,13 +198,17 @@ function Build_meas_array(CH_meas_data)
 		if(CH_meas_data.Channel_Status.Out_of_Range)
 			ret.push(["Calculation Error:", "Out of calibration range"]);
 		ret.push(["Measurements group average:", !isNaN(CH_meas_data.Meas_avg)?CH_meas_data.Meas_avg.toFixed(3)+' '+CH_meas_data.Unit:'-']);
-		if(!isNaN(CH_meas_data.Meas_max)&&!isNaN(CH_meas_data.Meas_min))
+		if(!isNaN(CH_meas_data.Meas_avg))
 		{
-			ret.push(["Measurements group max:", !isNaN(CH_meas_data.Meas_max)?CH_meas_data.Meas_max.toFixed(3)+' '+CH_meas_data.Unit:'-']);
-			ret.push(["Measurements group min:", !isNaN(CH_meas_data.Meas_min)?CH_meas_data.Meas_min.toFixed(3)+' '+CH_meas_data.Unit:'-']);
-			ret.push(["Measurements group range:", (CH_meas_data.Meas_max-CH_meas_data.Meas_min).toFixed(3)+' '+CH_meas_data.Unit]);
+			if(!isNaN(CH_meas_data.Meas_max)&&!isNaN(CH_meas_data.Meas_min))
+			{
+				ret.push(["Measurements group max:", CH_meas_data.Meas_max.toFixed(3)+' '+CH_meas_data.Unit]);
+				ret.push(["Measurements group min:", CH_meas_data.Meas_min.toFixed(3)+' '+CH_meas_data.Unit]);
+				ret.push(["Measurements group range:", (CH_meas_data.Meas_max-CH_meas_data.Meas_min).toFixed(3)+' '+CH_meas_data.Unit]);
+			}
+			if(!isNaN(CH_meas_data.Last_Meas))
+				ret.push(["Measurements group deviation:", (100.0*(CH_meas_data.Meas_avg - CH_meas_data.Last_Meas)/CH_meas_data.Meas_avg).toFixed(2)+'%']);
 		}
-		ret.push(["Measurements group deviation:", !isNaN(CH_meas_data.Meas_dev)?CH_meas_data.Meas_dev.toFixed(2)+'%':'-']);
 		return ret;
 	}
 	else
