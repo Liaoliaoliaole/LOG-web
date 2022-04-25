@@ -118,7 +118,7 @@ function load_data_to_opcua_config_table(curr_logstats_comb)
 			if(tableData[i].type==="SDAQ")
 			{
 				tableData[i].dev_type = data.deviceUserIdentifier;
-				if(typeof(data.calibrationDate)==='number' && typeof(data.calibrationPeriod)=='number')
+				if(!isNaN(data.calibrationDate) && !isNaN(data.calibrationPeriod) && data.calibrationDate)
 				{
 					let cal_date = new Date(data.calibrationDate*1000),
 						valid_until = new Date(cal_date.setMonth(cal_date.getMonth()+data.calibrationPeriod));
@@ -132,7 +132,11 @@ function load_data_to_opcua_config_table(curr_logstats_comb)
 					tableData[i].cal_period = data.calibrationPeriod;
 				}
 				else
+				{
 					tableData[i].cal_date=null;
+					tableData[i].valid_until=null;
+					tableData[i].cal_period=null;
+				}
 			}
 			else if(tableData[i].valid_until)
 			{
@@ -145,7 +149,7 @@ function load_data_to_opcua_config_table(curr_logstats_comb)
 					}
 				}
 			}
-			if(typeof(data.avgMeasurement)==='number' && data.Is_meas_valid)
+			if(!isNaN(data.avgMeasurement) && data.Is_meas_valid)
 			{
 				tableData[i].meas = data.avgMeasurement.toFixed(3)+' '+tableData[i].unit;
 				if(tableData[i].graph.length>=GRAPH_LENGTH)
