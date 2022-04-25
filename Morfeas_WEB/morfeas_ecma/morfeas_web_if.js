@@ -209,7 +209,9 @@ function morfeas_logstat_commonizer(logstats)
 						logstat.CANBus_interface.toUpperCase()+".ADDR:"+norm(logstat.SDAQs_data[i].Address,2)+".CH:"+norm(logstat.SDAQs_data[i].Meas[j].Channel,2),
 						logstat.SDAQs_data[i].Serial_number+".CH"+logstat.SDAQs_data[i].Meas[j].Channel,
 						logstat.SDAQs_data[i].Meas[j].Unit,
-						logstat.SDAQs_data[i].Calibration_Data[j].Calibration_date_UNIX,
+						(logstat.SDAQs_data[i].Calibration_Data[j].Is_calibrated && 
+						 logstat.SDAQs_data[i].Calibration_Data[j].Amount_of_points)?
+							logstat.SDAQs_data[i].Calibration_Data[j].Calibration_date_UNIX:undefined,
 						logstat.SDAQs_data[i].Calibration_Data[j].Calibration_period,
 						meas_val,
 						!(logstat.SDAQs_data[i].Meas[j].Channel_Status.Channel_status_val),
