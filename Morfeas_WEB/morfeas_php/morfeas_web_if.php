@@ -235,13 +235,6 @@ else if($requestType == "POST")
 					$OPC_UA_Config_CHs[$i]->MIN = $Channel_to_be_mod->Min;
 					$OPC_UA_Config_CHs[$i]->MAX = $Channel_to_be_mod->Max;
 					$OPC_UA_Config_CHs[$i]->DESCRIPTION = $Channel_to_be_mod->Description;
-					if(property_exists($OPC_UA_Config_CHs[$i], 'BUILD_DATE') && property_exists($Channel_to_be_mod, 'Mod_date_UNIX'))
-					{
-						if(!property_exists($OPC_UA_Config_CHs[$i], 'MOD_DATE'))
-							$OPC_UA_Config_CHs[$i]->addChild('MOD_DATE', $Channel_to_be_mod->Mod_date_UNIX);
-						else
-							$OPC_UA_Config_CHs[$i]->MOD_DATE = $Channel_to_be_mod->Mod_date_UNIX;
-					}
 					if($Channel_to_be_mod->IF_type !== "SDAQ")
 					{
 						if(property_exists($Channel_to_be_mod, 'Unit'))
@@ -259,6 +252,13 @@ else if($requestType == "POST")
 								$OPC_UA_Config_CHs[$i]->addChild('CAL_PERIOD', $Channel_to_be_mod->Cal_period);
 							else
 								$OPC_UA_Config_CHs[$i]->CAL_PERIOD = $Channel_to_be_mod->Cal_period;
+					}
+					if(property_exists($OPC_UA_Config_CHs[$i], 'BUILD_DATE') && property_exists($Channel_to_be_mod, 'Mod_date_UNIX'))
+					{
+						if(!property_exists($OPC_UA_Config_CHs[$i], 'MOD_DATE'))
+							$OPC_UA_Config_CHs[$i]->addChild('MOD_DATE', $Channel_to_be_mod->Mod_date_UNIX);
+						else
+							$OPC_UA_Config_CHs[$i]->MOD_DATE = $Channel_to_be_mod->Mod_date_UNIX;
 					}
 				}
 				else
