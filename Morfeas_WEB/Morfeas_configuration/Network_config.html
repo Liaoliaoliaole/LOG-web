@@ -297,7 +297,7 @@ mask.max=30;mask.min=4;
 mask.onchange = function(){val(this)};
 //AJAX object for configuration receive and send
 var config=null, xhttp = new XMLHttpRequest();
-xhttp.timeout = 5000;
+xhttp.timeout = 10000;
 xhttp.onreadystatechange = function()
 {
 	if(this.readyState == 4 && this.status == 200)
