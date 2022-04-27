@@ -266,8 +266,6 @@ function ISOChannels_export_all_visible()
 	let tableData = opcua_config_table.getData("active"),
 		ISOChannels_tbl = [];
 
-	console.log(tableData);
-
 	if(!tableData.length)
 		return;
 	for(let i=0; i<tableData.length; i++)
@@ -413,6 +411,21 @@ function ISOChannel_tooltip(cell)
 	if(data.hasOwnProperty('Mod_date'))
 		ret += " Mod_date: "+data.Mod_date.toLocaleDateString()+" "+data.Mod_date.toLocaleTimeString()+'\n';
 	return ret;
+}
+function valid_until_tooltip(cell)
+{
+	if(!cell)
+		return;
+	let data = cell._cell.row.data;
+
+	if(data.valid_until && data.cal_period)
+	{
+		let last_cal = new Date(data.valid_until);
+		last_cal.setMonth(last_cal.getMonth()-Number(data.cal_period));
+		return  "Last Calibration: "+last_cal.toLocaleDateString()+'\n'+
+				"Re-Calibration every: "+data.cal_period+' Month'+(data.cal_period>1?'s':'');
+	}
+	return;
 }
 
 var ISOChannels_menu = [
