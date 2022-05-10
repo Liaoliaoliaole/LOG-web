@@ -44,13 +44,12 @@ function build_opcua_config_table(curr_opcua_config)
 			table_data_entry.unit=curr_opcua_config[i].UNIT;
 		if(curr_opcua_config[i].hasOwnProperty('CAL_DATE') && curr_opcua_config[i].hasOwnProperty('CAL_PERIOD'))
 		{
-				let cal_date_split = curr_opcua_config[i].CAL_DATE.split('/'),
-					cal_date = new Date(0);
+				let cal_date_split = curr_opcua_config[i].CAL_DATE.split('/'), cal_date = new Date(0);
 				cal_date.setFullYear(Number(cal_date_split[0]),
 									 Number(cal_date_split[1])-1,
 									 Number(cal_date_split[2]));
 				let	valid_until = new Date(cal_date.setMonth(cal_date.getMonth()+Number(curr_opcua_config[i].CAL_PERIOD)));
-				if(new Date() >= valid_until)
+				if(Date.now() >= valid_until.getTime())
 				{
 					table_data_entry.col = "orange";
 					table_data_entry.status = "Cal not valid";
@@ -122,7 +121,7 @@ function load_data_to_opcua_config_table(curr_logstats_comb)
 				{
 					let cal_date = new Date(data.calibrationDate*1000),
 						valid_until = new Date(cal_date.setMonth(cal_date.getMonth()+data.calibrationPeriod));
-					if(new Date() >= valid_until)
+					if(Date.now() >= valid_until.getTime())
 					{
 						tableData[i].col="orange";
 						tableData[i].status = "Cal not valid";
@@ -142,7 +141,7 @@ function load_data_to_opcua_config_table(curr_logstats_comb)
 			{
 				if(typeof(tableData[i].valid_until.getMonth)==='function')
 				{
-					if(new Date() >= tableData[i].valid_until)
+					if(Date.now() >= tableData[i].valid_until.getTime())
 					{
 						tableData[i].col="orange";
 						tableData[i].status = "Cal not valid";
