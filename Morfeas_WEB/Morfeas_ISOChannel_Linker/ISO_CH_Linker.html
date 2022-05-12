@@ -58,7 +58,7 @@
 <script src="../External_components/jquery/dist/jquery.min.js"></script>
 <script src="../External_components/sparkline/dist/jquery.sparkline.min.js"></script>
 <script src="../External_components/tabulator/dist/js/tabulator.min.js"></script>
-<script src="../External_components/moment/dist/moment.min.js"></script>
+<script src="../External_components/moment/dist/moment-with-locales.min.js"></script>
 <script src='../morfeas_ecma/common.js'></script>
 <script src='../morfeas_ecma/morfeas_web_if.js'></script>
 <script src='./ISO_CH_Linker.js'></script>
@@ -105,7 +105,7 @@ var data_req=false, isOPC_UA_config_empty = true,
 	edit_wins = [], add_wins = [], import_win;
 
 const cal_date_format_params = {
-    outputFormat: moment(new Date()).localeData().longDateFormat('L'),
+    outputFormat: moment.localeData().longDateFormat('L'),
     invalidPlaceholder:"-"
 };
 var hist_graph_formatter = function(cell, formatterParams, onRendered){
