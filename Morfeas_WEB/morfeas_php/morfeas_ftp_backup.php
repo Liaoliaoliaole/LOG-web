@@ -16,10 +16,10 @@ Copyright (C) 12022-12023  Sam harry Tzavaras
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-	function morfeas_ftp_mbl_backup($ftp_server_hostname, $ftp_user_name, $ftp_user_pass, $file_name, $data)
+	function morfeas_ftp_mbl_backup($ftp_server_hostname, $ftp_user_name, $ftp_user_pass, $dir_name, $file_name, $data)
 	{
 		$timeout = 200;
-		$sys_hostname = gethostname();
+		$sys_hostname = $dir_name ? $dir_name : gethostname();
 		$ret = true;
 
 		if(!($ftp = ftp_connect($ftp_server_hostname, 21, $timeout)))//try to open FTP conn @Port:21

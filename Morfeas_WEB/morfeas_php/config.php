@@ -421,6 +421,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 							$currConfig->FTP_backup_server->host = $FTP_backup_conf->addr;
 							$currConfig->FTP_backup_server->user = $FTP_backup_conf->username;
 							$currConfig->FTP_backup_server->pass = $FTP_backup_conf->password;
+							if(property_exists($FTP_backup_conf, "dir_name") && isset($FTP_backup_conf->dir_name))
+								$currConfig->FTP_backup_server->dir_name = $FTP_backup_conf->dir_name;
 						}
 					}
 					header('Content-Type: application/json');
@@ -529,9 +531,13 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					$FTP_backup_conf=json_decode($FTP_backup_conf) or die("Server: JSON Decode of FTP_backup_conf failed");
 					if(isset($FTP_backup_conf->addr, $FTP_backup_conf->username, $FTP_backup_conf->password))
 					{
+						$dir_name = "";
+						if(property_exists($FTP_backup_conf, "dir_name") && isset($FTP_backup_conf->dir_name))
+							$dir_name = $FTP_backup_conf->dir_name;
 						if(!morfeas_ftp_mbl_backup($FTP_backup_conf->addr,
 												   $FTP_backup_conf->username,
 												   $FTP_backup_conf->password,
+												   $dir_name,
 												   gethostname().'_'.date("Y_d_m_G_i_s"),
 												   bundle_make()))
 							die("Error: FTP Backup Failed!!!");
@@ -578,9 +584,13 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 						if(gethostbyname($ftp_ser_test->ftp_serv_host_val)===$ftp_ser_test->ftp_serv_host_val)
 							die("Error: Hostname can't be reached!!!");
 					}
+					$dir_name = "";
+					if(property_exists($ftp_ser_test, "dir_name"))
+						$dir_name = $ftp_ser_test->dir_name;
 					if(morfeas_ftp_mbl_backup($ftp_ser_test->ftp_serv_host_val,
 											  $ftp_ser_test->ftp_serv_user_val,
 											  $ftp_ser_test->ftp_serv_pass_val,
+											  $dir_name,
 											  gethostname().'_'.date("Y_d_m_G_i_s"),
 											  bundle_make()))
 						die("FTP Backup success!!!");
