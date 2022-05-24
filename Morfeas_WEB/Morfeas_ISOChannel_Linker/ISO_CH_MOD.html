@@ -451,7 +451,7 @@ function send()
 		mod_link_data.Unit = unit_inp.value;
 		mod_link_data.Cal_date = cal_date.value.replaceAll('-','/');
 	}
-	post_xhttp.timeout = 2000;
+	post_xhttp.timeout = 5000;
 	post_xhttp.ontimeout = function(){
 		alert("Connection to server: Timeout Error");
 	};

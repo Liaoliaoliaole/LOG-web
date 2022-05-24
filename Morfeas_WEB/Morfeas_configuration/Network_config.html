@@ -77,6 +77,12 @@ input.global_style{
     <th colspan="2">FTP Backup Server <input type="checkbox" id="ftp_backup_en" onchange="ftp_backup_en_fn(this);"></th>
   </tr>
   <tr>
+    <td>Root Dir</td>
+	<td>
+		<input style="width:16;" placeholder="Optional" type="text" id="ftp_backup_dir_name" disabled>
+	</td>
+  </tr>
+  <tr>
     <td>Hostname</td>
 	<td>
 		<input style="width:16;" type="text" id="ftp_backup_host" disabled>
@@ -229,10 +235,13 @@ function default_config(_config)
 		ftp_serv_host.value=_config.FTP_backup_server.host;
 		ftp_serv_user.value=_config.FTP_backup_server.user;
 		ftp_serv_pass.value=_config.FTP_backup_server.pass;
+		if(_config.FTP_backup_server.hasOwnProperty("dir_name"))
+			ftp_serv_dir_name.value=_config.FTP_backup_server.dir_name;
 		ftp_serv_host.disabled=false;
 		ftp_serv_user.disabled=false;
 		ftp_serv_pass.disabled=false;
 		ftp_serv_test.disabled=false;
+		ftp_serv_dir_name.disabled=false;
 	}
 	else
 	{
@@ -241,6 +250,7 @@ function default_config(_config)
 		ftp_serv_user.disabled=true;
 		ftp_serv_pass.disabled=true;
 		ftp_serv_test.disabled=true;
+		ftp_serv_dir_name.disabled=true;
 	}
 	if(_config.hasOwnProperty("CAN_ifs"))
 	{
@@ -278,6 +288,7 @@ const hostname=document.getElementById("hostname"),
 	  ftp_serv_host=document.getElementById("ftp_backup_host"),
 	  ftp_serv_user=document.getElementById("ftp_backup_user"),
 	  ftp_serv_pass=document.getElementById("ftp_backup_pass"),
+	  ftp_serv_dir_name=document.getElementById("ftp_backup_dir_name"),
 	  ftp_serv_test=document.getElementById("ftp_backup_test");
 //Set Limits
 for(let i=0;i<4;i++)
@@ -510,6 +521,8 @@ function get_new_FTP_backup(new_config)
 		new_config.FTP_backup_server.addr=ftp_serv_host.value;
 		new_config.FTP_backup_server.username=ftp_serv_user.value;
 		new_config.FTP_backup_server.password=ftp_serv_pass.value;
+		if(ftp_serv_dir_name.value)
+			new_config.FTP_backup_server.dir_name=ftp_serv_dir_name.value;
 	}
 	else
 		delete new_config.FTP_backup_server;
@@ -523,6 +536,7 @@ function ftp_backup_en_fn(el)
 		ftp_serv_user.disabled=false;
 		ftp_serv_pass.disabled=false;
 		ftp_serv_test.disabled=false;
+		ftp_serv_dir_name.disabled=false;
 	}
 	else
 	{
@@ -530,6 +544,7 @@ function ftp_backup_en_fn(el)
 		ftp_serv_user.disabled=true;
 		ftp_serv_pass.disabled=true;
 		ftp_serv_test.disabled=true;
+		ftp_serv_dir_name.disabled=true;
 	}
 }
 function ftp_test_bt()
@@ -544,10 +559,12 @@ function ftp_test_bt()
 			alert("FTP Backup Server's Password is EMPTY!!!");
 		return;
 	}
-	let ftp_serv_test = {ftp_serv_host_val:ftp_serv_host.value, ftp_serv_user_val:ftp_serv_user.value, ftp_serv_pass_val:ftp_serv_pass.value};
+	let ftp_serv_test_obj = {ftp_serv_host_val:ftp_serv_host.value, ftp_serv_user_val:ftp_serv_user.value, ftp_serv_pass_val:ftp_serv_pass.value};
+	if(ftp_serv_dir_name.value)
+		ftp_serv_test_obj.dir_name = ftp_serv_dir_name.value;
 	xhttp.open("POST", "../morfeas_php/config.php", true);
 	xhttp.setRequestHeader("Content-type", "FTP_backup_test");
-	xhttp.send(compress(JSON.stringify(ftp_serv_test)));
+	xhttp.send(compress(JSON.stringify(ftp_serv_test_obj)));
 }
 //@license-end
 </script>

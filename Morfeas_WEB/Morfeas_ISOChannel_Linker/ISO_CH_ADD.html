@@ -542,7 +542,7 @@ function send()
 	}
 	new_link_data.Build_date_UNIX = Math.trunc(now_time.getTime()/1000);
 	new_link_data.Mod_date_UNIX = Math.trunc((now_time.getTime()/1000)+1);
-	post_xhttp.timeout = 2000;
+	post_xhttp.timeout = 5000;
 	post_xhttp.ontimeout = function(){
 		status_tab.value = "Connection to server: Timeout Error";
 		status_tab.style.color='blue';
