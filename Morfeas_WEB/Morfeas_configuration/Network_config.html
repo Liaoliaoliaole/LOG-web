@@ -40,7 +40,7 @@ input.global_style{
   <tr>
 	<td>Mode</td>
 	<td>
-		<select id="mode" onchange="static_conf(!this.selectedIndex);">
+		<select id="mode" onchange="static_conf(!this.selectedIndex)">
 			<option value="Static">Static</option>
 			<option value="DHCP">DHCP</option>
 		</select>
@@ -74,12 +74,12 @@ input.global_style{
 	<td id="conf_gateway"></td>
   </tr>
   <tr>
-    <th colspan="2">FTP Backup Server <input type="checkbox" id="ftp_backup_en" onchange="ftp_backup_en_fn(this);"></th>
+    <th colspan="2">FTP Backup Server <input type="checkbox" id="ftp_backup_en" onchange="ftp_backup_en_fn(this)"></th>
   </tr>
   <tr>
     <td>Root Dir</td>
 	<td>
-		<input style="width:16;" placeholder="Optional" type="text" id="ftp_backup_dir_name" disabled>
+		<input style="width:16;" placeholder="Optional" type="text" id="ftp_backup_dir_name" oninput="root_dir_val(this)"disabled>
 	</td>
   </tr>
   <tr>
@@ -251,6 +251,10 @@ function default_config(_config)
 		ftp_serv_pass.disabled=true;
 		ftp_serv_test.disabled=true;
 		ftp_serv_dir_name.disabled=true;
+		ftp_serv_host.value="";
+		ftp_serv_user.value="";
+		ftp_serv_pass.value="";
+		ftp_serv_dir_name.value="";
 	}
 	if(_config.hasOwnProperty("CAN_ifs"))
 	{
@@ -275,6 +279,10 @@ function val(inp)
 		inp.value=inp.max;
 	else if(Number(inp.value)<inp.min)
 		inp.value=inp.min;
+}
+function root_dir_val(e)
+{
+	e.value = e.value.replace(/[\\\.\/|*?&;$%@"`'<>()+,\s]/g, '');
 }
 //DOM const
 const hostname=document.getElementById("hostname"),
