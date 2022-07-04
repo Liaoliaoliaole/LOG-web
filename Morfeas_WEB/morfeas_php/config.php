@@ -284,14 +284,14 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 	}
 	function new_CANif_config($new_CAN_if)
 	{
-		$CAN_if_config_file = file_get_contents('/etc/network/interfaces.d/'.$new_CAN_if->if_Name)or die("Server: Can't read configuration file for ".$new_CAN_if->if_Name);
+		$CAN_if_config_file = file_get_contents('/etc/network/interfaces.d/'.strtolower($new_CAN_if->if_Name))or die("Server: Can't read configuration file for ".$new_CAN_if->if_Name);
 		$CAN_if_config=explode("\n",$CAN_if_config_file);
 		$pre_up_line_comp=explode(" ",$CAN_if_config[2]);
 		$bitrate_key=array_search("bitrate", $pre_up_line_comp)or die("Server: Error Unable to find bitrate_key!!!");
 		$pre_up_line_comp[$bitrate_key+1]=$new_CAN_if->bitrate;
 		$CAN_if_config[2]=implode(" ",$pre_up_line_comp);
 		$CAN_if_config_file=implode("\n",$CAN_if_config);
-		file_put_contents('/etc/network/interfaces.d/'.$new_CAN_if->if_Name,$CAN_if_config_file)or die("Server: Can't write configuration file for ".$new_CAN_if->if_Name);
+		file_put_contents('/etc/network/interfaces.d/'.strtolower($new_CAN_if->if_Name), $CAN_if_config_file)or die("Server: Can't write configuration file for ".$new_CAN_if->if_Name);
 	}
 	function new_morfeas_config_val($new_morfeas_config)
 	{
@@ -486,7 +486,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 						foreach($new_config->CAN_ifs as $CAN_if)
 						{
 							new_CANif_config($CAN_if);
-							$CAN_if_name=$CAN_if->if_Name;$CAN_if_bitrate=$CAN_if->bitrate;
+							$CAN_if_name=strtolower($CAN_if->if_Name);$CAN_if_bitrate=$CAN_if->bitrate;
 							exec("sudo ip link set $CAN_if_name down");
 							exec("sudo ip link set $CAN_if_name up type can bitrate $CAN_if_bitrate");
 						}
