@@ -2,11 +2,14 @@
 
 autoComplete.js usage guide in detailed steps
 
+***
+
 ## Steps
+
+***
 
 ### 1. HTML
 
-***
 
 Add an [`<input>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input) or [`<textarea>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/textarea) tag to your html page:
 
@@ -28,11 +31,11 @@ Add an [`<input>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/inp
 <textarea id="autoComplete" rows="4" cols="50" maxlength="2048" tabindex="1">
 ```
 <!-- tabs:end -->
-> <div class="ps-icon ps-icon-bubble"></div><strong>Tip:</strong> wrap < input > or < textarea > inside < div class="autoComplete_wrapper" > to make sure results list always attached and aligned.
+
+***
 
 ### 2. Script
 
-****
 
 1. Import `autoComplete.js` library to your project
 
@@ -41,7 +44,7 @@ Add an [`<input>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/inp
 
 ```html
 <body>
-    <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@{{version}}/dist/js/autoComplete.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@{{version}}/dist/autoComplete.min.js"></script>
 </body>
 ```
 #### ** Javascript **
@@ -64,7 +67,7 @@ import autoComplete from "@tarekraafat/autocomplete.js";
 
 ```html
 <body>
-    <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@{{version}}/dist/js/autoComplete.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@{{version}}/dist/autoComplete.min.js"></script>
 
     <script>
         const autoCompleteJS = new autoComplete({ config });
@@ -77,6 +80,8 @@ import autoComplete from "@tarekraafat/autocomplete.js";
 // CommonJS
 const autoComplete = require("@tarekraafat/autocomplete.js");
 
+const autoCompleteJS = new autoComplete({ config });
+
 /* OR */
 
 // ES6 modules
@@ -87,6 +92,7 @@ const autoCompleteJS = new autoComplete({ config });
 <!-- tabs:end -->
 
 3. Set your `autoComplete.js` instance [configurations](/configuration.md)
+> Note: [data.src](/configuration.md?id=data-required) config is **required**
 
 <!-- tabs:start -->
 #### ** Basic **
@@ -114,18 +120,23 @@ const autoCompleteJS = new autoComplete({ config });
     selector: "#autoComplete",
     placeHolder: "Search for Food...",
     data: {
-        src: ["Sauce - Thousand Island", "Wild Boar - Tenderloin", "Goat - Whole Cut"]
+        src: ["Sauce - Thousand Island", "Wild Boar - Tenderloin", "Goat - Whole Cut"],
+        cache: true,
     },
     resultsList: {
-        noResults: (list, query) => {
-            // Create "No Results" message list element
-            const message = document.createElement("li");
-            message.setAttribute("class", "no_result");
-            // Add message text content
-            message.innerHTML = `<span>Found No Results for "${query}"</span>`;
-            // Add message list element to the list
-            list.appendChild(message);
+        element: (list, data) => {
+            if (!data.results.length) {
+                // Create "No Results" message element
+                const message = document.createElement("div");
+                // Add class to the created element
+                message.setAttribute("class", "no_result");
+                // Add message text content
+                message.innerHTML = `<span>Found No Results for "${data.query}"</span>`;
+                // Append message element to the results list
+                list.prepend(message);
+            }
         },
+        noResults: true,
     },
     resultItem: {
         highlight: {
@@ -136,12 +147,25 @@ const autoCompleteJS = new autoComplete({ config });
 ```
 
 <!-- tabs:end -->
-> Note: [data.src](/configuration.md?id=data-required) config is **required**
+> <i class="ps-icon ps-icon-warning"></i> Security Alert:
+> 
+> `autoComplete.js` does not sanitize/manipulate the user's input data query, mainly for flexibility purposes.
+>
+> Hence, it is advisable to use any trusted sanitization method/strategy/library with the [`query`](https://tarekraafat.github.io/autoComplete.js/#/configuration?id=query-optional) API method<br>
+> to reduce the risk of `Cross-Frame Scripting (XFS)` or `Cross-Site Scripting (XSS)` attacks.
+>
+>
+>
+> Recommended sanitization Libraries:<br>
+> 1- [DOMPurify](https://github.com/cure53/DOMPurify)<br>
+> 2- [js-xss](https://github.com/leizongmin/js-xss)<br>
+> 3- [sanitize-html](https://github.com/apostrophecms/sanitize-html)<br>
+> 4- [escape-goat](https://github.com/sindresorhus/escape-goat)
 
+***
 
 ### 3. Style
 
-***
 
 Add the `autoComplete.js` stylesheet inside the `HEAD` tag
 
@@ -165,16 +189,20 @@ Add the `autoComplete.js` stylesheet inside the `HEAD` tag
 
 ## Demo
 
-***
+<br><br>
 
 <div class="autoComplete_wrapper">
-    <input type="search" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off" autocapitalize="off" id="autoComplete">
+    <input type="text" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off" autocapitalize="off" id="autoComplete">
 </div>
 
 <br><br>
 
 <details>
   <summary>Full Demo Code Snippet</summary>
+
+<!-- tabs:start -->
+
+#### ** Basic **
 
 ```html
 <!DOCTYPE html>
@@ -186,32 +214,26 @@ Add the `autoComplete.js` stylesheet inside the `HEAD` tag
 
 <body>
     <div class="autoComplete_wrapper">
-        <input type="search" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off" autocapitalize="off" id="autoComplete">
+        <input id="autoComplete" type="search" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off" autocapitalize="off">
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@{{version}}/dist/js/autoComplete.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@{{version}}/dist/autoComplete.min.js"></script>
     <script>
-        new autoComplete({
-            selector: "#autoComplete",
+        const autoCompleteJS = new autoComplete({
             placeHolder: "Search for Food...",
             data: {
-                src: ["Sauce - Thousand Island", "Wild Boar - Tenderloin", "Goat - Whole Cut"]
-            },
-            resultsList: {
-                noResults: (list, query) => {
-                    // Create "No Results" message element
-                    const message = document.createElement("div");
-                    // Add class to the created element
-                    message.setAttribute("class", "no_result");
-                    // Add message text content
-                    message.innerHTML = `<span>Found No Results for "${query}"</span>`;
-                    // Append message element to the results list
-                    list.appendChild(message);
-                },
+                src: ["Sauce - Thousand Island", "Wild Boar - Tenderloin", "Goat - Whole Cut"],
+                cache: true,
             },
             resultItem: {
-                highlight: {
-                    render: true
+                highlight: true
+            },
+            events: {
+                input: {
+                    selection: (event) => {
+                        const selection = event.detail.selection.value;
+                        autoCompleteJS.input.value = selection;
+                    }
                 }
             }
         });
@@ -221,29 +243,98 @@ Add the `autoComplete.js` stylesheet inside the `HEAD` tag
 </html>
 ```
 
+#### ** Advanced **
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@{{version}}/dist/css/autoComplete.min.css">
+</head>
+
+<body>
+    <div class="autoComplete_wrapper">
+        <input id="autoComplete" type="search" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off" autocapitalize="off">
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@{{version}}/dist/autoComplete.min.js"></script>
+    <script>
+        const autoCompleteJS = new autoComplete({
+            selector: "#autoComplete",
+            placeHolder: "Search for Food...",
+            data: {
+                src: ["Sauce - Thousand Island", "Wild Boar - Tenderloin", "Goat - Whole Cut"],
+                cache: true,
+            },
+            resultsList: {
+                element: (list, data) => {
+                    if (!data.results.length) {
+                        // Create "No Results" message element
+                        const message = document.createElement("div");
+                        // Add class to the created element
+                        message.setAttribute("class", "no_result");
+                        // Add message text content
+                        message.innerHTML = `<span>Found No Results for "${data.query}"</span>`;
+                        // Append message element to the results list
+                        list.prepend(message);
+                    }
+                },
+                noResults: true,
+            },
+            resultItem: {
+                highlight: true
+            },
+            events: {
+                input: {
+                    selection: (event) => {
+                        const selection = event.detail.selection.value;
+                        autoCompleteJS.input.value = selection;
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
+```
+
+<!-- tabs:end -->
+
 </details>
 
 <script>
-    new autoComplete({
-        selector: "#autoComplete",
+    const autoCompleteJS = new autoComplete({
         placeHolder: "Search for Food...",
         data: {
-            src: ["Sauce - Thousand Island", "Wild Boar - Tenderloin", "Goat - Whole Cut"]
+            src: ["Sauce - Thousand Island", "Wild Boar - Tenderloin", "Goat - Whole Cut"],
+            cache: true,
         },
         resultsList: {
-            noResults: (list, query) => {
-                // Create "No Results" message list element
-                const message = document.createElement("li");
-                message.setAttribute("class", "no_result");
-                // Add message text content
-                message.innerHTML = `<span>Found No Results for "${query}"</span>`;
-                // Add message list element to the list
-                list.appendChild(message);
+            element: (list, data) => {
+                if (!data.results.length) {
+                    // Create "No Results" message element
+                    const message = document.createElement("div");
+                    // Add class to the created element
+                    message.setAttribute("class", "no_result");
+                    // Add message text content
+                    message.innerHTML = `<span>Found No Results for "${data.query}"</span>`;
+                    // Append message element to the results list
+                    list.prepend(message);
+                }
             },
+            noResults: true,
         },
         resultItem: {
-            highlight: {
-                render: true
+            highlight: true
+        },
+        events: {
+            input: {
+                selection: (event) => {
+                    const selection = event.detail.selection.value;
+                    autoCompleteJS.input.value = selection;
+                }
             }
         }
     });

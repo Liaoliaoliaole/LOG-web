@@ -3,10 +3,10 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GitHub package.json version](https://img.shields.io/github/package-json/v/TarekRaafat/autoComplete.js)](https://badge.fury.io/gh/tarekraafat%2FautoComplete.js)
 [![npm](https://img.shields.io/npm/v/@tarekraafat/autocomplete.js)](https://badge.fury.io/js/%40tarekraafat%2Fautocomplete.js)
-![GitHub top language](https://img.shields.io/github/languages/top/TarekRaafat/autoComplete.js?color=yellow)
-![\[Zero Dependencies\]()](https://img.shields.io/badge/Dependencies-0-blue.svg)
-![\[Size\]()](https://img.shields.io/badge/Size-10%20KB-green.svg)
-![Maintained](https://img.shields.io/badge/Maintained%3F-yes-success)
+![100% Javascript](https://img.shields.io/github/languages/top/TarekRaafat/autoComplete.js?color=yellow)
+![Zero Dependencies](https://img.shields.io/badge/Dependencies-0-blue.svg)
+[![Minified Size](https://badgen.net/bundlephobia/min/@tarekraafat/autocomplete.js@latest)](https://bundlephobia.com/package/@tarekraafat/autocomplete.js@latest)
+![Yes Maintained](https://img.shields.io/badge/Maintained%3F-yes-success)
 [![](https://data.jsdelivr.com/v1/package/npm/@tarekraafat/autocomplete.js/badge)](https://www.jsdelivr.com/package/npm/@tarekraafat/autocomplete.js)
 ![npm](https://img.shields.io/npm/dm/@tarekraafat/autocomplete.js?label=npm)
 [![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/TarekRaafat/autoComplete.js)
@@ -21,20 +21,24 @@
 <br>
 <br>
 
-> Simple autocomplete pure vanilla Javascript library. :rocket:  <a href="https://tarekraafat.github.io/autoComplete.js/demo/" target="\_blank">Live Demo</a> **v9.1**
+> Simple autocomplete pure vanilla Javascript library. :rocket:  <a href="https://tarekraafat.github.io/autoComplete.js/demo/" target="\_blank">Live Demo</a> **v10**
 
-autoComplete.js is a simple pure vanilla Javascript library that's progressively designed for speed, high versatility and seamless integration with a wide range of projects & systems. <sub><sup>(Made for a better developer experience)</sub></pub>
+autoComplete.js is a simple, pure vanilla Javascript library progressively designed for speed, high versatility, and seamless integration with a wide range of projects & systems. <sub><sup>(Made for a better developer experience)</sub></pub>
 
 ## Features
 
--   Pure Vanilla Javascript
--   Zero Dependencies
--   Simple & Easy to use
--   Extremely Lightweight
--   Blazing Fast
--   Versatile
--   Hackable & Highly Customizable
--   Well Documented
+-  Pure Vanilla Javascript
+-  Zero Dependencies
+-  Simple & Lightweight
+-  Powerful Search Engine with two different modes
+-  Diacritics Support
+-  Debounce Support
+-  Life Cycle Events
+-  Useful plugin API
+-  WAI-ARIA Compliant
+-  Highly Customizable
+-  Works on anything <small>(`<input>`, `<textarea>` and `contentEditable` elements)</small>
+-  Well Documented
 
 [![autoComplete.js Code Example](./docs/img/autoComplete.init.png "autoComplete.js Code Example")](https://codepen.io/tarekraafat/pen/rQopdW?editors=0010)
 
@@ -47,13 +51,13 @@ autoComplete.js is a simple pure vanilla Javascript library that's progressively
 `JS`
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@9.1.1/dist/js/autoComplete.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
 ```
 
 `CSS`
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@9.1.1/dist/css/autoComplete.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/css/autoComplete.min.css">
 ```
 #### Package Manager
 

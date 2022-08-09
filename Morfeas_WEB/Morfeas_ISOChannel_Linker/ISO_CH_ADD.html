@@ -272,7 +272,11 @@ function type_selector_changed(sel)
 			selector: "#conn",
 			data: {
 				src: available_dev_paths,
-				key: ["sensorUserId"]
+				key: ["sensorUserId"],
+				cache: true
+			},
+			resultsList: {
+				maxResults: 128
 			},
 			resultItem: {
 				highlight: {render: true}
@@ -390,6 +394,9 @@ function conn_inp_val(elem)
 				data: {
 					src: recommented_ISOChannels,
 					key: ["iso_code_and_desc"]
+				},
+				resultsList: {
+					maxResults: 128
 				},
 				resultItem: {
 					highlight: {render: true}

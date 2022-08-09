@@ -23,11 +23,13 @@
 
 #autoComplete_list {
   position: absolute;
+  max-height: 226px;
+  overflow-y: scroll;
   top: 100%;
   left: 0;
   right: 0;
   padding: 0;
-  margin: 10px 0;
+  margin: 0.5rem 0 0 0;
   border-radius: 0.6rem;
   background-color: #fff;
   box-shadow: 0 3px 6px rgba(149, 157, 165, 0.15);
