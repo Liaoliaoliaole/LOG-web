@@ -252,7 +252,6 @@ function get_available_devs(_logstats, _type, _ISOchannels)
 		if(_logstats[i].sensors.length)
 			dev_paths.push(..._logstats[i].sensors);
 	}
-	console.log(dev_paths);
 	if(_ISOchannels)
 	{
 		for(let i=0; i<dev_paths.length; i++)
@@ -268,7 +267,6 @@ function get_available_devs(_logstats, _type, _ISOchannels)
 			}
 		}
 	}
-	console.log(dev_paths)
 	return dev_paths;
 }
 //@license-end
