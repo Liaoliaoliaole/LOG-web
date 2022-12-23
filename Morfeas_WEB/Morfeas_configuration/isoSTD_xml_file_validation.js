@@ -29,29 +29,34 @@ function isoSTD_xml_file_val(selected_files)
 		xml_inp = xml_inp.replace(/>[ \s\r\n]*</g,"><");
 		var removed_elements = new Array();
 		var _isoSTD_xml = (new DOMParser()).parseFromString(xml_inp, "text/xml");
+		let prog_bar=document.getElementById("prog_bar");
+		let prog=document.getElementById("prog");
+
+		prog_bar.value=0;
+		prog.innerHTML='';
 		if(_isoSTD_xml.firstElementChild.nodeName ==="parsererror")
 		{
-			alert("XML Parsing Error!!!");
-			isoSTD_xml_str = ""; selected_files.value="";
+			alert("XML Parsing Error!!!\nFor more details check console");
+			selected_files.value="";
+			selected_files.disabled=false;
 			return;
 		}
 		if(_isoSTD_xml.firstChild.nodeName !== "root")
 		{
 			alert("Not \"root\" node");
-			isoSTD_xml_str = ""; selected_files.value="";
+			selected_files.value="";
+			selected_files.disabled=false;
 			return;
 		}
 		if(_isoSTD_xml.firstChild.firstChild.nodeName !== "points")
 		{
 			alert("Not \"points\" node");
-			isoSTD_xml_str = ""; selected_files.value="";
+			selected_files.value="";
+			selected_files.disabled=false;
 			return;
 		}
 
-		let i = 0;
-		let prog_bar=document.getElementById("prog_bar");
-		let prog=document.getElementById("prog");
-		let isoSTD_points = _isoSTD_xml.firstChild.firstChild;
+		let i = 0, isoSTD_points = _isoSTD_xml.firstChild.firstChild;
 		prog_bar.max=isoSTD_points.childElementCount;
 
 		//function that checking nodes for errors
@@ -130,11 +135,11 @@ function isoSTD_xml_file_val(selected_files)
 							if(names_cnt.desc)
 								rem_elem_obj.Reason = "Elements \"description\"missing!!!";
 							else if(names_cnt.unit)
-								rem_elem_obj.Reason = "Elements \"unit\"of node missing!!!";
+								rem_elem_obj.Reason = "Elements \"unit\" missing!!!";
 							else if(names_cnt.max)
-								rem_elem_obj.Reason = "Elements \"max\"of node missing!!!";
+								rem_elem_obj.Reason = "Elements \"max\" missing!!!";
 							else if(names_cnt.min)
-								rem_elem_obj.Reason = "Elements \"min\"of node missing!!!";
+								rem_elem_obj.Reason = "Elements \"min\" missing!!!";
 						}
 						removed_elements.push(rem_elem_obj);
 						isoSTD_points.removeChild(gtbd_node);
@@ -185,7 +190,7 @@ function isoSTD_xml_file_val(selected_files)
 				}
 			})();
 		});
-		isoSTD_xml_str = "";
+		var isoSTD_xml_str = "";
 		promise.then(function () {
 				let isoSTD_xml_str_uncomp = (new XMLSerializer()).serializeToString(_isoSTD_xml);
 				isoSTD_xml_str = compress(isoSTD_xml_str_uncomp);
