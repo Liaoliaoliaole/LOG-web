@@ -209,7 +209,7 @@ function morfeas_logstat_commonizer(logstats)
 						logstat.CANBus_interface.toUpperCase()+".ADDR:"+norm(logstat.SDAQs_data[i].Address,2)+".CH:"+norm(logstat.SDAQs_data[i].Meas[j].Channel,2),
 						logstat.SDAQs_data[i].Serial_number+".CH"+logstat.SDAQs_data[i].Meas[j].Channel,
 						logstat.SDAQs_data[i].Meas[j].Unit,
-						(logstat.SDAQs_data[i].Calibration_Data[j].Is_calibrated && 
+						(logstat.SDAQs_data[i].Calibration_Data[j].Is_calibrated &&
 						 logstat.SDAQs_data[i].Calibration_Data[j].Amount_of_points)?
 							logstat.SDAQs_data[i].Calibration_Data[j].Calibration_date_UNIX:undefined,
 						logstat.SDAQs_data[i].Calibration_Data[j].Calibration_period,
@@ -751,7 +751,7 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 function import_from_file_validator(inp_obj, logger)
 {
 	const types = ["SDAQ", "MDAQ", "IOBOX", "MTI", "NOX"];
-	
+
 	if(!logger)
 	{
 		console.log("input argument logger is Undefined!!!")
@@ -792,7 +792,7 @@ function import_from_file_validator(inp_obj, logger)
 			logger.value+="Error: Element "+i+" have invalid contents!!!\n";
 			return;
 		}
-		
+
 		if(inp_obj[i].ISO_CHANNEL.length>=20)
 		{
 			logger.value+="Error: \"ISO_CHANNEL\" property of Element "+i+" have length >=20!!!\n";
@@ -910,7 +910,7 @@ var iso_standard = {
 			{
 				if(!unit || unit === xml.children[i].children[1].textContent)
 				{
-					let elem = new Object({iso_code:"",attributes:{description:"",unit:"",max:"",min:""}});
+					let elem = new Object({iso_code_and_desc:"",attributes:{description:"",unit:"",max:"",min:""}});
 					elem.iso_code_and_desc=xml.children[i].nodeName+' | '+xml.children[i].children[0].textContent;
 					elem.attributes.iso_code=xml.children[i].nodeName;
 					elem.attributes.description=xml.children[i].children[0].textContent;
