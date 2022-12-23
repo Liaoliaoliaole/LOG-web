@@ -242,6 +242,7 @@ function download(filename, contains, data_type)
 function get_available_devs(_logstats, _type, _ISOchannels)
 {
 	let dev_paths=[];
+
 	if(!_logstats)
 		return;
 	for(let i=0; i<_logstats.length; i++)
@@ -251,14 +252,23 @@ function get_available_devs(_logstats, _type, _ISOchannels)
 		if(_logstats[i].sensors.length)
 			dev_paths.push(..._logstats[i].sensors);
 	}
+	console.log(dev_paths);
 	if(_ISOchannels)
 	{
-		let c = dev_paths.length
 		for(let i=0; i<dev_paths.length; i++)
+		{
 			for(let j=0; j<_ISOchannels.length; j++)
-				if(dev_paths[i] && dev_paths[i].sensorUserId === _ISOchannels[j].conn)
+			{
+				if(dev_paths[i].sensorUserId === _ISOchannels[j].conn)
+				{
 					dev_paths.splice(i, 1);
+					i--;
+					break;
+				}
+			}
+		}
 	}
+	console.log(dev_paths)
 	return dev_paths;
 }
 //@license-end
