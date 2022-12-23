@@ -513,16 +513,16 @@ function vals_check()
 
 	status_tab.value = !type.selectedIndex?"Select Type":"Define sensor's path and ISO Code";
 	status_tab.style.color='black';
-	if(Number(min.value)>Number(max.value))
-	{
-		status_tab.value = "Error: Min > Max";
-		status_tab.style.color='red';
-		okay = false;
-	}
 	if(conn.value && iso_name.value && desc.value &&
 	   min.value && max.value && unit_inp.value)
 		okay = true;
-	send_button.disabled = !okay;
+	if(min.value && max.value && Number(min.value)>=Number(max.value))
+	{
+		status_tab.value = "Error: Min >= Max";
+		status_tab.style.color='red';
+		okay = false;
+	}
+	send_button.disabled = !(okay);
 }
 
 function send()

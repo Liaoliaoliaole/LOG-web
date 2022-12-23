@@ -53,7 +53,7 @@ function isoSTD_xml_file_val(selected_files)
 		let prog=document.getElementById("prog");
 		let isoSTD_points = _isoSTD_xml.firstChild.firstChild;
 		prog_bar.max=isoSTD_points.childElementCount;
-		
+
 		//function that checking nodes for errors
 		var promise = new Promise(function(resolve, reject){(
 			function check()
@@ -67,7 +67,7 @@ function isoSTD_xml_file_val(selected_files)
 				//Check for duplicate Nodes
 				if(isoSTD_points.getElementsByTagName(gtbd_node.nodeName).length>1)
 				{
-					reject("Node \""+isoSTD_points.childNodes[i].nodeName+"\" found multiple times"); 
+					reject("Node \""+isoSTD_points.childNodes[i].nodeName+"\" found multiple times");
 					return;
 				}
 
@@ -77,7 +77,6 @@ function isoSTD_xml_file_val(selected_files)
 					rem_elem_obj.Reason = "Too long name (>="+ISOSTD_NODE_MAX_LENGTH+")";
 					removed_elements.push(rem_elem_obj);
 					isoSTD_points.removeChild(gtbd_node);
-					i--;
 				}
 				//Check for empty Node and remove
 				else if(!isoSTD_points.childNodes[i].childNodes.length)
@@ -85,29 +84,60 @@ function isoSTD_xml_file_val(selected_files)
 					rem_elem_obj.Reason = "Node without components";
 					removed_elements.push(rem_elem_obj);
 					isoSTD_points.removeChild(gtbd_node);
-					i--;
 				}
-				//Check for Node with only invalid components and remove it
+				//Check and remove Node's order, nodes with only invalid components and nodes with not valid Names.
 				else if(isoSTD_points.childNodes[i].childNodes.length)
 				{
-					let invalid_cnt=0;
+					let invalid_cnt=0, invalid_order_cnt=0, names_cnt={desc:1,unit:1,max:1,min:1,total:4};//total is four for the four elements
 					for(let j=0; j<isoSTD_points.childNodes[i].childElementCount; j++)
 					{
 						let node = isoSTD_points.childNodes[i].childNodes[j];
 						switch(node.nodeName)
 						{
-							case "description": case "unit": case "max": case "min":
+							case "description":
+								names_cnt.total=!(--names_cnt.desc)?names_cnt.total-1:names_cnt.total;
+								if(j!=0)
+									invalid_order_cnt++;
+								break;
+							case "unit":
+								names_cnt.total=!(--names_cnt.unit)?names_cnt.total-1:names_cnt.total;
+								if(j!=1)
+									invalid_order_cnt++;
+								break;
+							case "max":
+								names_cnt.total=!(--names_cnt.max)?names_cnt.total-1:names_cnt.total;
+								if(j!=2)
+									invalid_order_cnt++;
+								break;
+							case "min":
+								names_cnt.total=!(--names_cnt.min)?names_cnt.total-1:names_cnt.total;
+								if(j!=3)
+									invalid_order_cnt++;
 								break;
 							default:
 								invalid_cnt++;
+								break;
 						}
 					}
-					if(invalid_cnt === isoSTD_points.childNodes[i].childElementCount)
+					if(invalid_cnt === isoSTD_points.childNodes[i].childElementCount || invalid_order_cnt || names_cnt.total)
 					{
-						rem_elem_obj.Reason = "Node with only invalid components";
+						if(invalid_cnt === isoSTD_points.childNodes[i].childElementCount)
+							rem_elem_obj.Reason = "Node with only invalid components";
+						else if(invalid_order_cnt)
+							rem_elem_obj.Reason = "Elements are NOT in order!!!";
+						else
+						{
+							if(names_cnt.desc)
+								rem_elem_obj.Reason = "Elements \"description\"missing!!!";
+							else if(names_cnt.unit)
+								rem_elem_obj.Reason = "Elements \"unit\"of node missing!!!";
+							else if(names_cnt.max)
+								rem_elem_obj.Reason = "Elements \"max\"of node missing!!!";
+							else if(names_cnt.min)
+								rem_elem_obj.Reason = "Elements \"min\"of node missing!!!";
+						}
 						removed_elements.push(rem_elem_obj);
 						isoSTD_points.removeChild(gtbd_node);
-						i--;
 					}
 				}
 				//Check components of node and remove invalid
@@ -131,7 +161,7 @@ function isoSTD_xml_file_val(selected_files)
 						case "min":
 							if(isNaN(node.textContent)||!node.textContent)
 							{
-								reject(isoSTD_points.childNodes[i].nodeName+'.'+node.nodeName+" is NAN"); 
+								reject(isoSTD_points.childNodes[i].nodeName+'.'+node.nodeName+" is NAN");
 								return;
 							}
 							break;
@@ -171,9 +201,10 @@ function isoSTD_xml_file_val(selected_files)
 				}
 				document.getElementById("isoSTD_xml_file").disabled = false;
 			})
-			.catch(function (errorMessage) 
+			.catch(function (errorMessage)
 			{
-				alert(errorMessage);
+				alert(errorMessage+"\n(for more check console's report)");
+				console.log(errorMessage);
 				isoSTD_xml_str = ""; selected_files.value="";
 				prog.innerHTML=" Failed";
 				document.getElementById("isoSTD_xml_file").disabled = false;
