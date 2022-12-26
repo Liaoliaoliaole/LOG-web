@@ -258,7 +258,8 @@ function get_available_devs(_logstats, _type, _ISOchannels)
 		{
 			for(let j=0; j<_ISOchannels.length; j++)
 			{
-				if(dev_paths[i].sensorUserId === _ISOchannels[j].conn)
+				if(_ISOchannels[j].type === _type &&
+				   dev_paths[i].sensorUserId === _ISOchannels[j].conn)
 				{
 					dev_paths.splice(i, 1);
 					i--;

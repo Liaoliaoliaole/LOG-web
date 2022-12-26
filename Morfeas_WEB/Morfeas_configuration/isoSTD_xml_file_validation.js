@@ -93,29 +93,30 @@ function isoSTD_xml_file_val(selected_files)
 				//Check and remove Node's order, nodes with only invalid components and nodes with not valid Names.
 				else if(isoSTD_points.childNodes[i].childNodes.length)
 				{
-					let invalid_cnt=0, invalid_order_cnt=0, names_cnt={desc:1,unit:1,max:1,min:1,total:4};//total is four for the four elements
+					let names_cnt={description:1,unit:1,max:1,min:1};//Counter for valid elements in Node under investigation.
+					let invalid_cnt=0, invalid_order_cnt=0, total = Object.keys(names_cnt).length;
 					for(let j=0; j<isoSTD_points.childNodes[i].childElementCount; j++)
 					{
 						let node = isoSTD_points.childNodes[i].childNodes[j];
 						switch(node.nodeName)
 						{
 							case "description":
-								names_cnt.total=!(--names_cnt.desc)?names_cnt.total-1:names_cnt.total;
+								total=!(--names_cnt.description)?total-1:total;
 								if(j!=0)
 									invalid_order_cnt++;
 								break;
 							case "unit":
-								names_cnt.total=!(--names_cnt.unit)?names_cnt.total-1:names_cnt.total;
+								total=!(--names_cnt.unit)?total-1:total;
 								if(j!=1)
 									invalid_order_cnt++;
 								break;
 							case "max":
-								names_cnt.total=!(--names_cnt.max)?names_cnt.total-1:names_cnt.total;
+								total=!(--names_cnt.max)?total-1:total;
 								if(j!=2)
 									invalid_order_cnt++;
 								break;
 							case "min":
-								names_cnt.total=!(--names_cnt.min)?names_cnt.total-1:names_cnt.total;
+								total=!(--names_cnt.min)?total-1:total;
 								if(j!=3)
 									invalid_order_cnt++;
 								break;
@@ -124,7 +125,7 @@ function isoSTD_xml_file_val(selected_files)
 								break;
 						}
 					}
-					if(invalid_cnt === isoSTD_points.childNodes[i].childElementCount || invalid_order_cnt || names_cnt.total)
+					if(invalid_cnt === isoSTD_points.childNodes[i].childElementCount || invalid_order_cnt || total)
 					{
 						if(invalid_cnt === isoSTD_points.childNodes[i].childElementCount)
 							rem_elem_obj.Reason = "Node with only invalid components";
@@ -132,7 +133,7 @@ function isoSTD_xml_file_val(selected_files)
 							rem_elem_obj.Reason = "Elements are NOT in order!!!";
 						else
 						{
-							if(names_cnt.desc)
+							if(names_cnt.description)
 								rem_elem_obj.Reason = "Elements \"description\"missing!!!";
 							else if(names_cnt.unit)
 								rem_elem_obj.Reason = "Elements \"unit\" missing!!!";

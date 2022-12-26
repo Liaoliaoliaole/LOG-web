@@ -206,12 +206,12 @@ else if($requestType == "POST")
 			{
 				for($i=0; $i<$OPC_UA_Config_cnt; $i++)
 				{
-					if($Channel_to_be_deleted->ISOChannel == $OPC_UA_Config_CHs[$i]->ISO_CHANNEL
-					   && $Channel_to_be_deleted->IF_type == $OPC_UA_Config_CHs[$i]->INTERFACE_TYPE
-					   && $Channel_to_be_deleted->Anchor == $OPC_UA_Config_CHs[$i]->ANCHOR
-					   && $Channel_to_be_deleted->Min == $OPC_UA_Config_CHs[$i]->MIN
-					   && $Channel_to_be_deleted->Max == $OPC_UA_Config_CHs[$i]->MAX
-					   && $Channel_to_be_deleted->Description == $OPC_UA_Config_CHs[$i]->DESCRIPTION)
+					if($Channel_to_be_deleted->ISOChannel == $OPC_UA_Config_CHs[$i]->ISO_CHANNEL &&
+					   $Channel_to_be_deleted->IF_type == $OPC_UA_Config_CHs[$i]->INTERFACE_TYPE &&
+					   $Channel_to_be_deleted->Anchor == $OPC_UA_Config_CHs[$i]->ANCHOR &&
+					   $Channel_to_be_deleted->Min == $OPC_UA_Config_CHs[$i]->MIN &&
+					   $Channel_to_be_deleted->Max == $OPC_UA_Config_CHs[$i]->MAX &&
+					   $Channel_to_be_deleted->Description == $OPC_UA_Config_CHs[$i]->DESCRIPTION)
 					   {
 							unset($OPC_UA_Config->CHANNEL[$i]);
 							$OPC_UA_Config_cnt--;
