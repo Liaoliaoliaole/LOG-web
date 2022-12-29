@@ -426,6 +426,18 @@ function valid_until_tooltip(cell)
 	}
 	return;
 }
+function Limits_tooltip(cell)
+{
+	if(!cell)
+		return;
+	let data = cell._cell.row.data;
+
+	//console.log(data);
+	if(data.limit_low && data.limit_high)
+		return  "Limit Low: "+data.limit_low+'\n'+
+				"Limit High: "+data.limit_high;
+	return;
+}
 
 var ISOChannels_menu = [
 	{label:"Add ISOChannel", action:ISOChannel_add},
