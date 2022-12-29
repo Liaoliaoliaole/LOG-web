@@ -94,6 +94,30 @@
 				</input>
 			</td>
 		</tr>
+		<tr>
+			<td>
+				<label for="limit_low">Limit Low:</label>
+			</td>
+			<td>
+				<input id="limit_low"
+					   type="number"
+					   size="5"
+					   onchange="limits_check(this)">
+				</input>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<label for="limit_high">Limit High:</label>
+			</td>
+			<td>
+				<input id="limit_high"
+					   type="number"
+					   size="5"
+					   onchange="limits_check(this)">
+				</input>
+			</td>
+		</tr>
 		<tr name="date_period_unit">
 			<td>
 				<label for="cal_date">Cal Date:</label>
@@ -184,6 +208,8 @@ var type = document.getElementById("type_selector"),
 	desc = document.getElementById("desc"),
 	min = document.getElementById("min"),
 	max = document.getElementById("max"),
+	limit_low = document.getElementById("limit_low"),
+	limit_high = document.getElementById("limit_high"),
 	unit_inp = document.getElementById("unit"),
 	cal_date = document.getElementById("cal_date"),
 	period = document.getElementById("period");
@@ -199,6 +225,8 @@ function mod_win_val_init()
 	desc.value = curr_config.desc;
 	min.value = curr_config.min;
 	max.value = curr_config.max;
+	limit_high.value = curr_config.hasOwnProperty("limit_high") ? curr_config.limit_high : max.value;
+	limit_low.value = curr_config.hasOwnProperty("limit_low") ? curr_config.limit_low : min.value;
 	iso_name.value = curr_config.iso_name;
 	if(curr_config.status === "OFF-Line" || curr_config.status === "Disconnected")
 		dead_conn_fl = true;
@@ -233,6 +261,7 @@ function mod_win_val_init()
 			period.value = curr_config.cal_period?curr_config.cal_period : 12;
 			break;
 	}
+	vals_check();
 }
 function populate_conn_autocomplete()
 {
@@ -354,6 +383,27 @@ function min_max_check(elem)
 	}
 	vals_check();
 }
+function limits_check(elem)
+{
+	if(isNaN(elem.valueAsNumber))
+		elem.value = 0;
+	switch(elem.id)
+	{
+		case "limit_low":
+			if(Number(elem.value) > Number(limit_high.value))
+				elem.value = limit_high.value;
+			else if(Number(elem.value) < Number(min.value))
+				elem.value = min.value;
+			break;
+		case "limit_high":
+			if(Number(elem.value) < Number(limit_low.value))
+				elem.value = limit_low.value;
+			else if(Number(elem.value) > Number(max.value))
+				elem.value = max.value;
+			break;
+	}
+	vals_check();
+}
 function cal_date_changed(elem)
 {
 	let date_min, date_max, curr_value;
@@ -408,7 +458,9 @@ function vals_check()
 	if( conn.value != curr_config.conn ||
 		desc.value != curr_config.desc ||
 	    min.value != curr_config.min  ||
-	    max.value != curr_config.max )
+	    max.value != curr_config.max ||
+	    limit_low.value != curr_config.limit_low ||
+	    limit_high.value != curr_config.limit_high )
 		okay = true;
 	switch(curr_config.type)
 	{
@@ -441,6 +493,8 @@ function send()
 	mod_link_data.Description = desc.value;
 	mod_link_data.Min = min.value;
 	mod_link_data.Max = max.value;
+	mod_link_data.Limit_high = limit_high.value;
+	mod_link_data.Limit_low = limit_low.value;
 	mod_link_data.Anchor = sel_dev_anchor;
 
 	if(curr_config.hasOwnProperty('Build_date') && curr_config.hasOwnProperty('Mod_date'))

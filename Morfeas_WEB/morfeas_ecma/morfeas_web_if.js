@@ -906,17 +906,23 @@ var iso_standard = {
 		if(this.iso_standard_xml.xml_data)
 		{
 			let ret = [], xml=this.iso_standard_xml.xml_data;
+
 			for(let i=0; i<xml.children.length; i++)
 			{
-				if(!unit || unit === xml.children[i].children[1].textContent)
+				let child = xml.children[i];
+				if(!unit || unit === child.getElementsByTagName("unit")[0].textContent)
 				{
 					let elem = new Object({iso_code_and_desc:"",attributes:{description:"",unit:"",max:"",min:""}});
-					elem.iso_code_and_desc=xml.children[i].nodeName+' | '+xml.children[i].children[0].textContent;
+					elem.iso_code_and_desc = child.nodeName + ' | ' + child.getElementsByTagName("description")[0].textContent;
 					elem.attributes.iso_code=xml.children[i].nodeName;
-					elem.attributes.description=xml.children[i].children[0].textContent;
-					elem.attributes.unit=xml.children[i].children[1].textContent;
-					elem.attributes.max=xml.children[i].children[2].textContent;
-					elem.attributes.min=xml.children[i].children[3].textContent;
+					elem.attributes.description=child.getElementsByTagName("description")[0].textContent;
+					elem.attributes.unit=child.getElementsByTagName("unit")[0].textContent;
+					elem.attributes.max=child.getElementsByTagName("max")[0].textContent;
+					elem.attributes.min=child.getElementsByTagName("min")[0].textContent;
+					if(child.getElementsByTagName("limit_high").length)
+						elem.attributes.limit_high = child.getElementsByTagName("limit_high")[0].textContent;
+					if(child.getElementsByTagName("limit_low").length)
+						elem.attributes.limit_low = child.getElementsByTagName("limit_low")[0].textContent;
 					ret.push(elem);
 				}
 			}

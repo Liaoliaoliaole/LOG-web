@@ -40,6 +40,10 @@ function build_opcua_config_table(curr_opcua_config)
 		table_data_entry.min=Number(curr_opcua_config[i].MIN);
 		table_data_entry.max=Number(curr_opcua_config[i].MAX);
 
+		if(curr_opcua_config[i].hasOwnProperty('LIMIT_HIGH'))
+			table_data_entry.limit_high=curr_opcua_config[i].LIMIT_HIGH;
+		if(curr_opcua_config[i].hasOwnProperty('LIMIT_LOW'))
+			table_data_entry.limit_low=curr_opcua_config[i].LIMIT_LOW;
 		if(curr_opcua_config[i].hasOwnProperty('UNIT'))
 			table_data_entry.unit=curr_opcua_config[i].UNIT;
 		if(curr_opcua_config[i].hasOwnProperty('CAL_DATE') && curr_opcua_config[i].hasOwnProperty('CAL_PERIOD'))
@@ -200,12 +204,11 @@ function ISOChannels_import()
 	import_win = PopupCenter("./ISO_CH_IMPORT.html"+"?q="+makeid(), "", 500, 450);
 	import_win.curr_iso_channels = opcua_config_table.getData();
 }
-function ISOChannels_export_all()
+function _ISOChannel_export_constractor(tableData)
 {
-	let tableData = opcua_config_table.getData(),
-		ISOChannels_tbl = [];
+	let ISOChannels_tbl = [];
 
-	if(!tableData.length)
+	if(!tableData || !tableData.length)
 		return;
 	for(let i=0; i<tableData.length; i++)
 	{
@@ -217,6 +220,10 @@ function ISOChannels_export_all()
 		ISOChannel_entry.DESCRIPTION = tableData[i].desc;
 		ISOChannel_entry.MIN = tableData[i].min;
 		ISOChannel_entry.MAX = tableData[i].max;
+		if(tableData[i].hasOwnProperty('limit_high'))
+			ISOChannel_entry.LIMIT_HIGH = tableData[i].limit_high;
+		if(tableData[i].hasOwnProperty('limit_low'))
+			ISOChannel_entry.LIMIT_LOW = tableData[i].limit_low;
 		if(tableData[i].type !== "SDAQ")
 		{
 			ISOChannel_entry.UNIT = tableData[i].unit;
@@ -228,70 +235,40 @@ function ISOChannels_export_all()
 		}
 		ISOChannels_tbl.push(ISOChannel_entry);
 	}
+	return ISOChannels_tbl;
+}
+
+function ISOChannels_export_all()
+{
+	let tableData = opcua_config_table.getData(),ISOChannels_tbl;
+
+	if(!tableData.length)
+		return;
+	ISOChannels_tbl = _ISOChannel_export_constractor(tableData);
 	Morfeas_ISOChannels_export(ISOChannels_tbl, "All");
 }
 function ISOChannels_export_all_selected()
 {
-	let tableData = opcua_config_table.getSelectedData(),
-		ISOChannels_tbl = [];
+	let tableData = opcua_config_table.getSelectedData(),ISOChannels_tbl;
 
 	if(!tableData.length)
 		return;
-	for(let i=0; i<tableData.length; i++)
-	{
-		let ISOChannel_entry = {};
-
-		ISOChannel_entry.ISO_CHANNEL = tableData[i].iso_name;
-		ISOChannel_entry.INTERFACE_TYPE = tableData[i].type;
-		ISOChannel_entry.ANCHOR = tableData[i].anchor;
-		ISOChannel_entry.DESCRIPTION = tableData[i].desc;
-		ISOChannel_entry.MIN = tableData[i].min;
-		ISOChannel_entry.MAX = tableData[i].max;
-		if(tableData[i].type !== "SDAQ")
-		{
-			ISOChannel_entry.UNIT = tableData[i].unit;
-			if(tableData[i].valid_until)
-			{
-				ISOChannel_entry.CAL_DATE = tableData[i].cal_date;
-				ISOChannel_entry.CAL_PERIOD = tableData[i].cal_period;
-			}
-		}
-		ISOChannels_tbl.push(ISOChannel_entry);
-	}
+	ISOChannels_tbl = _ISOChannel_export_constractor(tableData);
 	Morfeas_ISOChannels_export(ISOChannels_tbl, "Selection");
 }
 function ISOChannels_export_all_visible()
 {
-	let tableData = opcua_config_table.getData("active"),
-		ISOChannels_tbl = [];
+	let tableData = opcua_config_table.getData("active"),ISOChannels_tbl;
 
 	if(!tableData.length)
 		return;
-	for(let i=0; i<tableData.length; i++)
-	{
-		let ISOChannel_entry = {};
-
-		ISOChannel_entry.ISO_CHANNEL = tableData[i].iso_name;
-		ISOChannel_entry.INTERFACE_TYPE = tableData[i].type;
-		ISOChannel_entry.ANCHOR = tableData[i].anchor;
-		ISOChannel_entry.DESCRIPTION = tableData[i].desc;
-		ISOChannel_entry.MIN = tableData[i].min;
-		ISOChannel_entry.MAX = tableData[i].max;
-		if(tableData[i].type !== "SDAQ")
-		{
-			ISOChannel_entry.UNIT = tableData[i].unit;
-			if(tableData[i].valid_until)
-			{
-				ISOChannel_entry.CAL_DATE = tableData[i].cal_date;
-				ISOChannel_entry.CAL_PERIOD = tableData[i].cal_period;
-			}
-		}
-		ISOChannels_tbl.push(ISOChannel_entry);
-	}
+	ISOChannels_tbl = _ISOChannel_export_constractor(tableData);
 	Morfeas_ISOChannels_export(ISOChannels_tbl, "Visible");
 }
 function Morfeas_ISOChannels_export(ISOChannels_tbl, exp_type)
 {
+	if(!ISOChannels_tbl)
+		return;
 	if(typeof(exp_type)!=="string")
 		exp_type = '';
 	else
@@ -302,6 +279,18 @@ function Morfeas_ISOChannels_export(ISOChannels_tbl, exp_type)
 	download(filename, JSON.stringify(ISOChannels_tbl, null, '\t'), "application/json;charset=utf-8");
 }
 
+function _ISOChannel_del_constructor(data)
+{
+	let del_ISOChannel = {};
+
+	del_ISOChannel.ISOChannel = data.iso_name;
+	del_ISOChannel.IF_type = data.type;
+	del_ISOChannel.Anchor = data.anchor;
+	del_ISOChannel.Description = data.desc;
+	del_ISOChannel.Min = data.min;
+	del_ISOChannel.Max = data.max;
+	return del_ISOChannel;
+}
 function ISOChannel_delete_curr(event, row)
 {
 	if(!row)
@@ -311,14 +300,7 @@ function ISOChannel_delete_curr(event, row)
 
 	if(confirm("The ISOChannel \""+data.iso_name+"\" will be deleted\nContinue?"))
 	{
-		let del_ISOChannel = {};
-		del_ISOChannel.ISOChannel = data.iso_name;
-		del_ISOChannel.IF_type = data.type;
-		del_ISOChannel.Anchor = data.anchor;
-		del_ISOChannel.Description = data.desc;
-		del_ISOChannel.Min = data.min;
-		del_ISOChannel.Max = data.max;
-		del_ISOChannels_tbl.push(del_ISOChannel);
+		del_ISOChannels_tbl.push(_ISOChannel_del_constructor(data));
 		ISOChannels_delete_post(del_ISOChannels_tbl);
 	}
 }
@@ -330,16 +312,7 @@ function ISOChannels_delete_all_selected()
 	if(data.length && confirm(data.length+" ISOChannel"+(data.length>1?'s':'')+" will be deleted\nContinue?"))
 	{
 		for(let i=0; i<data.length; i++)
-		{
-			let del_ISOChannel = {};
-			del_ISOChannel.ISOChannel = data[i].iso_name;
-			del_ISOChannel.IF_type = data[i].type;
-			del_ISOChannel.Anchor = data[i].anchor;
-			del_ISOChannel.Description = data[i].desc;
-			del_ISOChannel.Min = data[i].min;
-			del_ISOChannel.Max = data[i].max;
-			del_ISOChannels_tbl.push(del_ISOChannel);
-		}
+			del_ISOChannels_tbl.push(_ISOChannel_del_constructor(data[i]));
 		ISOChannels_delete_post(del_ISOChannels_tbl);
 	}
 }
@@ -351,16 +324,7 @@ function ISOChannels_delete_all_visible()
 	if(data.length && confirm(data.length+" ISOChannel"+(data.length>1?'s':'')+" will be deleted\nContinue?"))
 	{
 		for(let i=0; i<data.length; i++)
-		{
-			let del_ISOChannel = {};
-			del_ISOChannel.ISOChannel = data[i].iso_name;
-			del_ISOChannel.IF_type = data[i].type;
-			del_ISOChannel.Anchor = data[i].anchor;
-			del_ISOChannel.Description = data[i].desc;
-			del_ISOChannel.Min = data[i].min;
-			del_ISOChannel.Max = data[i].max;
-			del_ISOChannels_tbl.push(del_ISOChannel);
-		}
+			del_ISOChannels_tbl.push(_ISOChannel_del_constructor(data[i]));
 		ISOChannels_delete_post(del_ISOChannels_tbl);
 	}
 }
@@ -426,16 +390,24 @@ function valid_until_tooltip(cell)
 	}
 	return;
 }
-function Limits_tooltip(cell)
+function Limit_high_tooltip(cell)
 {
 	if(!cell)
 		return;
 	let data = cell._cell.row.data;
 
-	//console.log(data);
 	if(data.limit_low && data.limit_high)
-		return  "Limit Low: "+data.limit_low+'\n'+
-				"Limit High: "+data.limit_high;
+		return "Limit High: "+data.limit_high;
+	return;
+}
+function Limit_low_tooltip(cell)
+{
+	if(!cell)
+		return;
+	let data = cell._cell.row.data;
+
+	if(data.limit_low && data.limit_high)
+		return  "Limit Low: "+data.limit_low;
 	return;
 }
 

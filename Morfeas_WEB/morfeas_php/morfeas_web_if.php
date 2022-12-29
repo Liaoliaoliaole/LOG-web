@@ -197,6 +197,10 @@ else if($requestType == "POST")
 					$newISOChannel->addChild('BUILD_DATE', $Channel_to_be_add->Build_date_UNIX);
 					$newISOChannel->addChild('MOD_DATE', $Channel_to_be_add->Mod_date_UNIX);
 				}
+				if(property_exists($Channel_to_be_add, 'Limit_high'))
+					$newISOChannel->addChild('LIMIT_HIGH', $Channel_to_be_add->Limit_high);
+				if(property_exists($Channel_to_be_add, 'Limit_low'))
+					$newISOChannel->addChild('LIMIT_LOW', $Channel_to_be_add->Limit_low);
 			}
 			break;
 		case 'DEL':
@@ -238,20 +242,26 @@ else if($requestType == "POST")
 					if($Channel_to_be_mod->IF_type !== "SDAQ")
 					{
 						if(property_exists($Channel_to_be_mod, 'Unit'))
+						{
 							if(!property_exists($OPC_UA_Config_CHs[$i], 'UNIT'))
 								$OPC_UA_Config_CHs[$i]->addChild('UNIT', $Channel_to_be_mod->Unit);
 							else
 								$OPC_UA_Config_CHs[$i]->UNIT = $Channel_to_be_mod->Unit;
+						}
 						if(property_exists($Channel_to_be_mod, 'Cal_date'))
+						{
 							if(!property_exists($OPC_UA_Config_CHs[$i], 'CAL_DATE'))
 								$OPC_UA_Config_CHs[$i]->addChild('CAL_DATE', $Channel_to_be_mod->Cal_date);
 							else
 								$OPC_UA_Config_CHs[$i]->CAL_DATE = $Channel_to_be_mod->Cal_date;
+						}
 						if(property_exists($Channel_to_be_mod, 'Cal_period'))
+						{
 							if(!property_exists($OPC_UA_Config_CHs[$i], 'CAL_PERIOD'))
 								$OPC_UA_Config_CHs[$i]->addChild('CAL_PERIOD', $Channel_to_be_mod->Cal_period);
 							else
 								$OPC_UA_Config_CHs[$i]->CAL_PERIOD = $Channel_to_be_mod->Cal_period;
+						}
 					}
 					if(property_exists($OPC_UA_Config_CHs[$i], 'BUILD_DATE') && property_exists($Channel_to_be_mod, 'Mod_date_UNIX'))
 					{
@@ -259,6 +269,20 @@ else if($requestType == "POST")
 							$OPC_UA_Config_CHs[$i]->addChild('MOD_DATE', $Channel_to_be_mod->Mod_date_UNIX);
 						else
 							$OPC_UA_Config_CHs[$i]->MOD_DATE = $Channel_to_be_mod->Mod_date_UNIX;
+					}
+					if(property_exists($Channel_to_be_mod, 'Limit_high'))
+					{
+						if(!property_exists($OPC_UA_Config_CHs[$i], 'LIMIT_HIGH'))
+							$OPC_UA_Config_CHs[$i]->addChild('LIMIT_HIGH', $Channel_to_be_mod->Limit_high);
+						else
+							$OPC_UA_Config_CHs[$i]->LIMIT_HIGH = $Channel_to_be_mod->Limit_high;
+					}
+					if(property_exists($Channel_to_be_mod, 'Limit_low'))
+					{
+						if(!property_exists($OPC_UA_Config_CHs[$i], 'LIMIT_LOW'))
+							$OPC_UA_Config_CHs[$i]->addChild('LIMIT_LOW', $Channel_to_be_mod->Limit_low);
+						else
+							$OPC_UA_Config_CHs[$i]->LIMIT_LOW = $Channel_to_be_mod->Limit_low;
 					}
 				}
 				else

@@ -117,6 +117,34 @@
 				</input>
 			</td>
 		</tr>
+
+		<tr>
+			<td>
+				<label for="limit_low">Limit Low:</label>
+			</td>
+			<td>
+				<input name="link_data"
+					   id="limit_low"
+					   type="number"
+					   size="5"
+					   onchange="vals_check(this)">
+				</input>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<label for="limit_high">Limit High:</label>
+			</td>
+			<td>
+				<input name="link_data"
+					   id="limit_high"
+					   type="number"
+					   size="5"
+					   onchange="vals_check(this)">
+				</input>
+			</td>
+		</tr>
+
 		<tr class="cal_data">
 			<td>
 				<label for="cal_date">Cal Date:</label>
@@ -218,6 +246,8 @@ var type = document.getElementById("type_selector"),
 	desc = document.getElementById("desc"),
 	min = document.getElementById("min"),
 	max = document.getElementById("max"),
+	limit_low = document.getElementById("limit_low"),
+	limit_high = document.getElementById("limit_high"),
 	unit_inp = document.getElementById("unit"),
 	cal_date = document.getElementById("cal_date"),
 	period = document.getElementById("period");
@@ -408,6 +438,8 @@ function conn_inp_val(elem)
 					min.value = fb.selection.value.attributes.min;
 					max.value = fb.selection.value.attributes.max;
 					unit_inp.value = fb.selection.value.attributes.unit;
+					limit_high.value = fb.selection.value.attributes.limit_high?fb.selection.value.attributes.limit_high:max.value;
+					limit_low.value = fb.selection.value.attributes.limit_low?fb.selection.value.attributes.limit_low:min.value;
 					vals_check();
 				}
 			});
@@ -514,11 +546,30 @@ function vals_check()
 	status_tab.value = !type.selectedIndex?"Select Type":"Define sensor's path and ISO Code";
 	status_tab.style.color='black';
 	if(conn.value && iso_name.value && desc.value &&
-	   min.value && max.value && unit_inp.value)
+	   min.value && max.value && unit_inp.value &&
+	   limit_high.value && limit_low.value)
 		okay = true;
-	if(min.value && max.value && Number(min.value)>=Number(max.value))
+	if((min.value && max.value && limit_high.value && limit_low.value) && (
+	   Number(min.value)>=Number(max.value) ||
+	   Number(limit_low.value)>=Number(limit_high.value) ||
+	   Number(limit_low.value)<Number(min.value) ||
+	   Number(limit_high.value)>Number(max.value) ||
+       Number(limit_high.value)<Number(min.value) ||
+       Number(limit_low.value)>Number(max.value)))
 	{
-		status_tab.value = "Error: Min >= Max";
+		if(Number(min.value)>=Number(max.value))
+			status_tab.value = "Error: Min >= Max";
+		else if(Number(limit_low.value)<Number(min.value))
+			status_tab.value = "Error: Limit low < Min";
+		else if(Number(limit_high.value)>Number(max.value))
+			status_tab.value = "Error: Limit High > Max";
+		else if(Number(limit_high.value)<Number(min.value))
+			status_tab.value = "Error: Limit High < Min";
+		else if(Number(limit_low.value)>Number(max.value))
+			status_tab.value = "Error: Limit Low > Max";
+		else if(Number(limit_low.value)>=Number(limit_high.value))
+			status_tab.value = "Error: Limit Low >= Limit High";
+
 		status_tab.style.color='red';
 		okay = false;
 	}
@@ -536,6 +587,8 @@ function send()
 	new_link_data.Description = desc.value;
 	new_link_data.Min = min.value;
 	new_link_data.Max = max.value;
+	new_link_data.Limit_high = limit_high.value;
+	new_link_data.Limit_low = limit_low.value;
 
 	if(link_data[0].selectedIndex > 1)
 		new_link_data.Unit = unit_inp.value;
