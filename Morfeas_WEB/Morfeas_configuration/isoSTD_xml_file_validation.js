@@ -165,6 +165,8 @@ function isoSTD_xml_file_val(selected_files)
 							break;
 						case "max":
 						case "min":
+						case "limit_high":
+						case "limit_low":
 							if(isNaN(node.textContent)||!node.textContent)
 							{
 								reject(isoSTD_points.childNodes[i].nodeName+'.'+node.nodeName+" is NAN");
@@ -191,7 +193,7 @@ function isoSTD_xml_file_val(selected_files)
 				}
 			})();
 		});
-		var isoSTD_xml_str = "";
+		isoSTD_xml_str = ""; //external variable from Morfeas_System_config.js
 		promise.then(function () {
 				let isoSTD_xml_str_uncomp = (new XMLSerializer()).serializeToString(_isoSTD_xml);
 				isoSTD_xml_str = compress(isoSTD_xml_str_uncomp);
