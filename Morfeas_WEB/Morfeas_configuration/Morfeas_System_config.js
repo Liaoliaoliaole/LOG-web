@@ -231,20 +231,31 @@ function morfeas_comp_table(args_table, _newConfigXML_node, _currConfigXML_Node)
 function isoSTD_develop(table, ISOstd_xml)
 {
 	table.innerHTML="";
-	var nRow = table.insertRow(0);
-	nRow.insertCell(0).innerHTML="NAME";
-	for(let i=0; i<ISOstd_xml.childNodes[0].childNodes.length; i++)
-		nRow.insertCell(i+1).innerHTML=ISOstd_xml.childNodes[0].childNodes[i].nodeName.toUpperCase();
+	var nRow = table.insertRow(0), i=0, row_count=1, max_len=0, node_elem_with_biggest_len = 0;
+
+	for(i=0; i<ISOstd_xml.childNodes.length; i++)
+	{
+		if(max_len < ISOstd_xml.childNodes[i].childNodes.length)
+		{
+			max_len = ISOstd_xml.childNodes[i].childNodes.length;
+			node_elem_with_biggest_len = i;
+		}
+	}
+	nRow.insertCell(0).innerHTML="<b>#</b>";
+	nRow.insertCell(1).innerHTML="NAME";
+	for(i=0; i<ISOstd_xml.childNodes[node_elem_with_biggest_len].childNodes.length; i++)
+		nRow.insertCell(i+2).innerHTML=ISOstd_xml.childNodes[node_elem_with_biggest_len].childNodes[i].nodeName.toUpperCase();
 	//Add isoSTD elements to the table
-	for(let i=0, row_count=1; i<ISOstd_xml.childNodes.length; i++)
+	for(i=0; i<ISOstd_xml.childNodes.length; i++)
 	{
 		if(ISOstd_xml.childNodes[i].nodeType == Node.ELEMENT_NODE)
 		{
 			nRow = table.insertRow(row_count);
-			nRow.insertCell(0).innerHTML=ISOstd_xml.childNodes[i].nodeName;
+			nRow.insertCell(0).innerHTML="<b>"+(i+1)+"</b>";
+			nRow.insertCell(1).innerHTML=ISOstd_xml.childNodes[i].nodeName;
 			for(let j=0; j<ISOstd_xml.childNodes[i].childNodes.length; j++)
 			{
-				nRow.insertCell(j+1).innerHTML=ISOstd_xml.childNodes[i].childNodes[j].textContent;
+				nRow.insertCell(j+2).innerHTML=ISOstd_xml.childNodes[i].childNodes[j].textContent;
 			}
 			row_count++;
 		}
