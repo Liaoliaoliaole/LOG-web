@@ -49,7 +49,10 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$c = count($ip_output);
 				for($i=0; !property_exists($ip_output[$i], 'addr_info') && $i<$c; $i++);
 				if($i<$c)
+				{
 					$this->dhcp_ip_conf = $ip_output[$i]->addr_info[0]->local;
+					$this->dhcp_prefix_conf = $ip_output[$i]->addr_info[0]->prefixlen;
+				}
 			}
 			//Get configured Gateway
 			unset($output);
@@ -405,6 +408,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					{
 						if(isset($conf->dhcp_ip_conf))
 							$currConfig->dhcp_ip_conf=$conf->dhcp_ip_conf;
+						if(isset($conf->dhcp_prefix_conf))
+							$currConfig->dhcp_prefix_conf=$conf->dhcp_prefix_conf;
 						if(isset($conf->dhcp_gate_conf))
 							$currConfig->dhcp_gate_conf=$conf->dhcp_gate_conf;
 					}
