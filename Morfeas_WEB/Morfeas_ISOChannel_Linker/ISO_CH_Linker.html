@@ -132,8 +132,8 @@ var opcua_config_table = new Tabulator("#opcua_config_table",
 	 	{title:"Value", field:"meas", width:80, headerSort:false, responsive:0},
 	 	{title:"History", field:"graph", headerSort:false, responsive:0, formatter:hist_graph_formatter},
 		{title:"Valid Until", field:"valid_until", width:80, headerSort:false, responsive:1, formatter:"datetime", formatterParams:cal_date_format_params, tooltip:valid_until_tooltip},
-		{title:"Min", field:"min", headerSort:false, tooltip:Limit_low_tooltip, responsive:2},
-		{title:"Max", field:"max", headerSort:false, tooltip:Limit_high_tooltip, responsive:3},
+		{title:"Min", field:"min", headerSort:false, tooltip:Alarms_tooltip, responsive:2},
+		{title:"Max", field:"max", headerSort:false, tooltip:Alarms_tooltip, responsive:3},
 		{title:"Description", field:"desc", headerSort:false, responsive:4},
 	]
 });

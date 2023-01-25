@@ -78,7 +78,7 @@
 				<input id="min"
 					   type="number"
 					   size="5"
-					   onchange="min_max_check(this)">
+					   onchange="min_max_alarm_checker(this)">
 				</input>
 			</td>
 		</tr>
@@ -90,32 +90,34 @@
 				<input id="max"
 					   type="number"
 					   size="5"
-					   onchange="min_max_check(this)">
+					   onchange="min_max_alarm_checker(this)">
 				</input>
 			</td>
 		</tr>
 		<tr>
 			<td>
-				<label for="limit_low">Limit Low:</label>
+				<label for="alarmLowVal">Alarm Low:</label>
 			</td>
 			<td>
-				<input id="limit_low"
+				<input id="alarmLowVal"
 					   type="number"
 					   size="5"
-					   onchange="limits_check(this)">
+					   onchange="min_max_alarm_checker(this)">
 				</input>
+				<input type="checkbox" id="alarmLow" onchange="alarm_checkbox(this)">
 			</td>
 		</tr>
 		<tr>
 			<td>
-				<label for="limit_high">Limit High:</label>
+				<label for="alarmHighVal">Alarm High:</label>
 			</td>
 			<td>
-				<input id="limit_high"
+				<input id="alarmHighVal"
 					   type="number"
 					   size="5"
-					   onchange="limits_check(this)">
+					   onchange="min_max_alarm_checker(this)">
 				</input>
+				<input type="checkbox" id="alarmHigh" onchange="alarm_checkbox(this)">
 			</td>
 		</tr>
 		<tr name="date_period_unit">
@@ -208,8 +210,10 @@ var type = document.getElementById("type_selector"),
 	desc = document.getElementById("desc"),
 	min = document.getElementById("min"),
 	max = document.getElementById("max"),
-	limit_low = document.getElementById("limit_low"),
-	limit_high = document.getElementById("limit_high"),
+	alarmLowVal = document.getElementById("alarmLowVal"),
+	alarmHighVal = document.getElementById("alarmHighVal"),
+	alarmLow = document.getElementById("alarmLow"),
+	alarmHigh = document.getElementById("alarmHigh"),
 	unit_inp = document.getElementById("unit"),
 	cal_date = document.getElementById("cal_date"),
 	period = document.getElementById("period");
@@ -225,8 +229,35 @@ function mod_win_val_init()
 	desc.value = curr_config.desc;
 	min.value = curr_config.min;
 	max.value = curr_config.max;
-	limit_high.value = curr_config.hasOwnProperty("limit_high") ? curr_config.limit_high : max.value;
-	limit_low.value = curr_config.hasOwnProperty("limit_low") ? curr_config.limit_low : min.value;
+	alarmHighVal.value = curr_config.hasOwnProperty("alarmHighVal") ? curr_config.alarmHighVal : max.value;
+	alarmLowVal.value = curr_config.hasOwnProperty("alarmLowVal") ? curr_config.alarmLowVal : min.value;
+	if(!curr_config.hasOwnProperty("alarmHigh"))
+	{
+		alarmHigh.value = 'no';
+		alarmHighVal.disabled = true;
+	}
+	else
+	{
+		alarmHigh.value = curr_config.alarmHigh;
+		if(curr_config.alarmHigh === 'yes')
+			alarmHigh.checked = true;
+		else
+			alarmHighVal.disabled = true;
+	}
+	if(!curr_config.hasOwnProperty("alarmLow"))
+	{
+		alarmLow.value = 'no';
+		alarmLowVal.disabled = true;
+	}
+	else
+	{
+		alarmLow.value = curr_config.alarmLow;
+		if(curr_config.alarmLow === 'yes')
+			alarmLow.checked = true;
+		else
+			alarmLowVal.disabled = true;
+	}
+
 	iso_name.value = curr_config.iso_name;
 	if(curr_config.status === "OFF-Line" || curr_config.status === "Disconnected")
 		dead_conn_fl = true;
@@ -366,44 +397,38 @@ function sensor_search_func()
 	else
 		search_win.focus();
 }
-function min_max_check(elem)
+function min_max_alarm_checker(elem)
 {
-	if(isNaN(elem.valueAsNumber))
-		elem.value = 0;
 	switch(elem.id)
 	{
 		case "min":
-			if(Number(elem.value) > Number(max.value))
-				elem.value = max.value;
-			break;
-		case "max":
-			if(Number(elem.value) < Number(min.value))
-				elem.value = min.value;
-			break;
-	}
-	vals_check();
-}
-function limits_check(elem)
-{
-	if(isNaN(elem.valueAsNumber))
-		elem.value = 0;
-	switch(elem.id)
-	{
-		case "limit_low":
-			if(Number(elem.value) > Number(limit_high.value))
-				elem.value = limit_high.value;
-			else if(Number(elem.value) < Number(min.value))
-				elem.value = min.value;
-			break;
-		case "limit_high":
-			if(Number(elem.value) < Number(limit_low.value))
-				elem.value = limit_low.value;
+			if(isNaN(elem.valueAsNumber))
+				elem.value = curr_config.min;
 			else if(Number(elem.value) > Number(max.value))
 				elem.value = max.value;
 			break;
+		case "max":
+			if(isNaN(elem.valueAsNumber))
+				elem.value = curr_config.max;
+			else if(Number(elem.value) < Number(min.value))
+				elem.value = min.value;
+			break;
+		case "alarmLowVal":
+			if(isNaN(elem.valueAsNumber))
+				elem.value = curr_config.alarmLowVal?curr_config.alarmLowVal:min.value;
+			else if(Number(elem.value) > Number(alarmHighVal.value))
+				elem.value = curr_config.alarmHighVal;
+			break;
+		case "alarmHighVal":
+			if(isNaN(elem.valueAsNumber))
+				elem.value = curr_config.alarmHighVal?curr_config.alarmHighVal:max.value;
+			else if(Number(elem.value) < Number(alarmLowVal.value))
+				elem.value = curr_config.alarmLowVal;
+			break;
 	}
 	vals_check();
 }
+
 function cal_date_changed(elem)
 {
 	let date_min, date_max, curr_value;
@@ -450,17 +475,29 @@ function period_input_changed(elem)
 	}
 	vals_check();
 }
+function alarm_checkbox(elem)
+{
+	elem.value = elem.checked?'yes':'no';
+	if(elem.id == "alarmLow")
+		alarmLowVal.disabled = !elem.checked;
+	else if(elem.id == "alarmHigh")
+		alarmHighVal.disabled = !elem.checked;
+	vals_check();
+}
 function vals_check()
 {
 	let okay = false;
+
 	if(!desc.value)
 		desc.value = curr_config.desc;
 	if( conn.value != curr_config.conn ||
 		desc.value != curr_config.desc ||
 	    min.value != curr_config.min  ||
 	    max.value != curr_config.max ||
-	    limit_low.value != curr_config.limit_low ||
-	    limit_high.value != curr_config.limit_high )
+	    alarmLowVal.value != curr_config.alarmLowVal ||
+	    alarmHighVal.value != curr_config.alarmHighVal ||
+	    alarmLow.value != curr_config.alarmLow ||
+	    alarmHigh.value != curr_config.alarmHigh)
 		okay = true;
 	switch(curr_config.type)
 	{
@@ -493,8 +530,10 @@ function send()
 	mod_link_data.Description = desc.value;
 	mod_link_data.Min = min.value;
 	mod_link_data.Max = max.value;
-	mod_link_data.Limit_high = limit_high.value;
-	mod_link_data.Limit_low = limit_low.value;
+	mod_link_data.AlarmHighVal = alarmHighVal.value;
+	mod_link_data.AlarmLowVal = alarmLowVal.value;
+	mod_link_data.AlarmHigh = alarmHigh.value;
+	mod_link_data.AlarmLow = alarmLow.value;
 	mod_link_data.Anchor = sel_dev_anchor;
 
 	if(curr_config.hasOwnProperty('Build_date') && curr_config.hasOwnProperty('Mod_date'))

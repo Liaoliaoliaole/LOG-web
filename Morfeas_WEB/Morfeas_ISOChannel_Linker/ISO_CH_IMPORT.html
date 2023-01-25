@@ -149,10 +149,14 @@ function conv_imp_data(inp_data)
 		iso_CH_entry.Max = inp_data[i].MAX;
 		iso_CH_entry.Build_date_UNIX = Math.trunc(now_time.getTime()/1000);
 		iso_CH_entry.Mod_date_UNIX = Math.trunc((now_time.getTime()/1000)+1);
-		if(inp_data[i].hasOwnProperty('LIMIT_HIGH'))
-			iso_CH_entry.Limit_high = inp_data[i].LIMIT_HIGH;
-		if(inp_data[i].hasOwnProperty('LIMIT_LOW'))
-			iso_CH_entry.Limit_low = inp_data[i].LIMIT_LOW;
+		if(inp_data[i].hasOwnProperty('ALARM_HIGH_VAL'))
+			iso_CH_entry.AlarmHighVal = inp_data[i].ALARM_HIGH_VAL;
+		if(inp_data[i].hasOwnProperty('ALARM_LOW_VAL'))
+			iso_CH_entry.AlarmLowVal = inp_data[i].ALARM_LOW_VAL;
+		if(inp_data[i].hasOwnProperty('ALARM_HIGH'))
+			iso_CH_entry.AlarmHigh = inp_data[i].ALARM_HIGH;
+		if(inp_data[i].hasOwnProperty('ALARM_LOW'))
+			iso_CH_entry.AlarmLow = inp_data[i].ALARM_LOW;
 		if(inp_data[i].hasOwnProperty('UNIT'))
 			iso_CH_entry.Unit = inp_data[i].UNIT;
 		if(inp_data[i].hasOwnProperty('CAL_DATE'))

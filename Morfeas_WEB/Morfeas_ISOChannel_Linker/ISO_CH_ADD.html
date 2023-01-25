@@ -117,34 +117,34 @@
 				</input>
 			</td>
 		</tr>
-
 		<tr>
 			<td>
-				<label for="limit_low">Limit Low:</label>
+				<label for="alarmLowVal">Alarm Low:</label>
 			</td>
 			<td>
-				<input name="link_data"
-					   id="limit_low"
+				<input id="alarmLowVal"
 					   type="number"
 					   size="5"
-					   onchange="vals_check(this)">
+					   onchange="vals_check(this)"
+					   disabled>
 				</input>
+				<input type="checkbox" id="alarmLow" name="link_data" onchange="alarm_checkbox(this)">
 			</td>
 		</tr>
 		<tr>
 			<td>
-				<label for="limit_high">Limit High:</label>
+				<label for="alarmHighVal">Alarm High:</label>
 			</td>
 			<td>
-				<input name="link_data"
-					   id="limit_high"
+				<input id="alarmHighVal"
 					   type="number"
 					   size="5"
-					   onchange="vals_check(this)">
+					   onchange="vals_check(this)"
+					   disabled>
 				</input>
+				<input type="checkbox" id="alarmHigh" name="link_data" onchange="alarm_checkbox(this)">
 			</td>
 		</tr>
-
 		<tr class="cal_data">
 			<td>
 				<label for="cal_date">Cal Date:</label>
@@ -246,11 +246,14 @@ var type = document.getElementById("type_selector"),
 	desc = document.getElementById("desc"),
 	min = document.getElementById("min"),
 	max = document.getElementById("max"),
-	limit_low = document.getElementById("limit_low"),
-	limit_high = document.getElementById("limit_high"),
+	alarmLowVal = document.getElementById("alarmLowVal"),
+	alarmHighVal = document.getElementById("alarmHighVal"),
+	alarmLow = document.getElementById("alarmLow"),
+	alarmHigh = document.getElementById("alarmHigh"),
 	unit_inp = document.getElementById("unit"),
 	cal_date = document.getElementById("cal_date"),
 	period = document.getElementById("period");
+var prev_sel;
 
 //Checks and Initialization
 if(!curr_iso_standards || !curr_iso_channels)
@@ -432,14 +435,31 @@ function conn_inp_val(elem)
 					highlight: {render: true}
 				},
 				onSelection: function(fb){
+					prev_sel = fb.selection.value.attributes;
 					post_fix.selectedIndex=0;
-					iso_name.value = fb.selection.value.attributes.iso_code;
-					desc.value = fb.selection.value.attributes.description;
-					min.value = fb.selection.value.attributes.min;
-					max.value = fb.selection.value.attributes.max;
-					unit_inp.value = fb.selection.value.attributes.unit;
-					limit_high.value = fb.selection.value.attributes.limit_high?fb.selection.value.attributes.limit_high:max.value;
-					limit_low.value = fb.selection.value.attributes.limit_low?fb.selection.value.attributes.limit_low:min.value;
+					iso_name.value = prev_sel.iso_code;
+					desc.value = prev_sel.description;
+					min.value = prev_sel.min;
+					max.value = prev_sel.max;
+					unit_inp.value = prev_sel.unit;
+					alarmHighVal.value = prev_sel.alarmHighVal?prev_sel.alarmHighVal:max.value;
+					alarmLowVal.value = prev_sel.alarmLowVal?prev_sel.alarmLowVal:min.value;
+					alarmHigh.value = prev_sel.alarmHigh?prev_sel.alarmHigh:'no';
+					alarmLow.value = prev_sel.alarmLow?prev_sel.alarmLow:'no';
+					if(alarmLow.value === 'no')
+					{
+						alarmHigh.checked = false;
+						alarmHighVal.disabled = true;
+					}
+					else
+						alarmHigh.checked = true;
+					if(alarmLow.value === 'no')
+					{
+						alarmLow.checked = false;
+						alarmLowVal.disabled = true;
+					}
+					else
+						alarmLow.checked = true;
 					vals_check();
 				}
 			});
@@ -456,10 +476,17 @@ function iso_name_val(elem)
 	elem.value = elem.value.replace(/[.\s]/g, '');
 	if(!elem.value)
 	{
+		prev_sel = '';
 		post_fix.selectedIndex = 0;
 		desc.value = '';
 		min.value = '';
 		max.value = '';
+		alarmHighVal.value = '';
+		alarmLowVal.value = '';
+		alarmHigh.value = 'no';
+		alarmLow.value = 'no';
+		alarmHigh.checked = false;
+		alarmLow.checked = false;
 		if(unit_inp.disabled == false)
 			unit_inp.value = '';
 	}
@@ -519,6 +546,15 @@ function period_input_changed(elem)
 	}
 	vals_check();
 }
+function alarm_checkbox(elem)
+{
+	elem.value = elem.checked?'yes':'no';
+	if(elem.id == "alarmLow")
+		alarmLowVal.disabled = !elem.checked;
+	else if(elem.id == "alarmHigh")
+		alarmHighVal.disabled = !elem.checked;
+	vals_check();
+}
 
 function sensor_search_func()
 {
@@ -545,31 +581,32 @@ function vals_check()
 
 	status_tab.value = !type.selectedIndex?"Select Type":"Define sensor's path and ISO Code";
 	status_tab.style.color='black';
+
+	if(!unit_inp.value)
+		unit_inp.value = prev_sel?prev_sel.unit:'';
+	if(!desc.value)
+		desc.value = prev_sel?prev_sel.description:'';
+	if(isNaN(min.valueAsNumber))
+		min.value = prev_sel?prev_sel.min:0;
+	if(isNaN(max.valueAsNumber))
+		max.value = prev_sel?prev_sel.max:0;
+	if(isNaN(alarmLowVal.valueAsNumber))
+		alarmLowVal.value = (prev_sel && prev_sel.alarmLowVal) ? prev_sel.alarmLowVal : min.value;
+	if(isNaN(alarmHighVal.valueAsNumber))
+		alarmHighVal.value = (prev_sel && prev_sel.alarmHighVal) ? prev_sel.alarmHighVal : max.value;
 	if(conn.value && iso_name.value && desc.value &&
 	   min.value && max.value && unit_inp.value &&
-	   limit_high.value && limit_low.value)
+	   !isNaN(min.valueAsNumber) && !isNaN(max.valueAsNumber) &&
+	   alarmHighVal.value && alarmLowVal.value &&
+	   !isNaN(alarmHighVal.valueAsNumber) && !isNaN(alarmLowVal.valueAsNumber))
 		okay = true;
-	if((min.value && max.value && limit_high.value && limit_low.value) && (
-	   Number(min.value)>=Number(max.value) ||
-	   Number(limit_low.value)>=Number(limit_high.value) ||
-	   Number(limit_low.value)<Number(min.value) ||
-	   Number(limit_high.value)>Number(max.value) ||
-       Number(limit_high.value)<Number(min.value) ||
-       Number(limit_low.value)>Number(max.value)))
+	if((min.value && max.value && alarmHighVal.value && alarmLowVal.value) &&
+	   (Number(min.value)>Number(max.value) || Number(alarmLowVal.value)>Number(alarmHighVal.value)))
 	{
-		if(Number(min.value)>=Number(max.value))
-			status_tab.value = "Error: Min >= Max";
-		else if(Number(limit_low.value)<Number(min.value))
-			status_tab.value = "Error: Limit low < Min";
-		else if(Number(limit_high.value)>Number(max.value))
-			status_tab.value = "Error: Limit High > Max";
-		else if(Number(limit_high.value)<Number(min.value))
-			status_tab.value = "Error: Limit High < Min";
-		else if(Number(limit_low.value)>Number(max.value))
-			status_tab.value = "Error: Limit Low > Max";
-		else if(Number(limit_low.value)>=Number(limit_high.value))
-			status_tab.value = "Error: Limit Low >= Limit High";
-
+		if(Number(min.value)>Number(max.value))
+			status_tab.value = "Error: Min > Max";
+		else if(Number(alarmLowVal.value)>Number(alarmHighVal.value))
+			status_tab.value = "Error: Alarm Low > Alarm High";
 		status_tab.style.color='red';
 		okay = false;
 	}
@@ -587,8 +624,10 @@ function send()
 	new_link_data.Description = desc.value;
 	new_link_data.Min = min.value;
 	new_link_data.Max = max.value;
-	new_link_data.Limit_high = limit_high.value;
-	new_link_data.Limit_low = limit_low.value;
+	new_link_data.AlarmHighVal = alarmHighVal.value;
+	new_link_data.AlarmHigh = alarmHigh.value;
+	new_link_data.AlarmLowVal = alarmLowVal.value;
+	new_link_data.AlarmLow = alarmLow.value;
 
 	if(link_data[0].selectedIndex > 1)
 		new_link_data.Unit = unit_inp.value;

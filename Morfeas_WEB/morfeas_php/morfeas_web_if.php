@@ -197,10 +197,14 @@ else if($requestType == "POST")
 					$newISOChannel->addChild('BUILD_DATE', $Channel_to_be_add->Build_date_UNIX);
 					$newISOChannel->addChild('MOD_DATE', $Channel_to_be_add->Mod_date_UNIX);
 				}
-				if(property_exists($Channel_to_be_add, 'Limit_high'))
-					$newISOChannel->addChild('LIMIT_HIGH', $Channel_to_be_add->Limit_high);
-				if(property_exists($Channel_to_be_add, 'Limit_low'))
-					$newISOChannel->addChild('LIMIT_LOW', $Channel_to_be_add->Limit_low);
+				if(property_exists($Channel_to_be_add, 'AlarmHighVal'))
+					$newISOChannel->addChild('ALARM_HIGH_VAL', $Channel_to_be_add->AlarmHighVal);
+				if(property_exists($Channel_to_be_add, 'AlarmLowVal'))
+					$newISOChannel->addChild('ALARM_LOW_VAL', $Channel_to_be_add->AlarmLowVal);
+				if(property_exists($Channel_to_be_add, 'AlarmHigh'))
+					$newISOChannel->addChild('ALARM_HIGH', $Channel_to_be_add->AlarmHigh);
+				if(property_exists($Channel_to_be_add, 'AlarmLow'))
+					$newISOChannel->addChild('ALARM_LOW', $Channel_to_be_add->AlarmLow);
 			}
 			break;
 		case 'DEL':
@@ -270,19 +274,33 @@ else if($requestType == "POST")
 						else
 							$OPC_UA_Config_CHs[$i]->MOD_DATE = $Channel_to_be_mod->Mod_date_UNIX;
 					}
-					if(property_exists($Channel_to_be_mod, 'Limit_high'))
+					if(property_exists($Channel_to_be_mod, 'AlarmHighVal'))
 					{
-						if(!property_exists($OPC_UA_Config_CHs[$i], 'LIMIT_HIGH'))
-							$OPC_UA_Config_CHs[$i]->addChild('LIMIT_HIGH', $Channel_to_be_mod->Limit_high);
+						if(!property_exists($OPC_UA_Config_CHs[$i], 'ALARM_HIGH_VAL'))
+							$OPC_UA_Config_CHs[$i]->addChild('ALARM_HIGH_VAL', $Channel_to_be_mod->AlarmHighVal);
 						else
-							$OPC_UA_Config_CHs[$i]->LIMIT_HIGH = $Channel_to_be_mod->Limit_high;
+							$OPC_UA_Config_CHs[$i]->ALARM_HIGH_VAL = $Channel_to_be_mod->AlarmHighVal;
 					}
-					if(property_exists($Channel_to_be_mod, 'Limit_low'))
+					if(property_exists($Channel_to_be_mod, 'AlarmLowVal'))
 					{
-						if(!property_exists($OPC_UA_Config_CHs[$i], 'LIMIT_LOW'))
-							$OPC_UA_Config_CHs[$i]->addChild('LIMIT_LOW', $Channel_to_be_mod->Limit_low);
+						if(!property_exists($OPC_UA_Config_CHs[$i], 'ALARM_LOW_VAL'))
+							$OPC_UA_Config_CHs[$i]->addChild('ALARM_LOW_VAL', $Channel_to_be_mod->AlarmLowVal);
 						else
-							$OPC_UA_Config_CHs[$i]->LIMIT_LOW = $Channel_to_be_mod->Limit_low;
+							$OPC_UA_Config_CHs[$i]->ALARM_LOW_VAL = $Channel_to_be_mod->AlarmLowVal;
+					}
+					if(property_exists($Channel_to_be_mod, 'AlarmHigh'))
+					{
+						if(!property_exists($OPC_UA_Config_CHs[$i], 'ALARM_HIGH'))
+							$OPC_UA_Config_CHs[$i]->addChild('ALARM_HIGH', $Channel_to_be_mod->AlarmHigh);
+						else
+							$OPC_UA_Config_CHs[$i]->ALARM_HIGH = $Channel_to_be_mod->AlarmHigh;
+					}
+					if(property_exists($Channel_to_be_mod, 'AlarmLow'))
+					{
+						if(!property_exists($OPC_UA_Config_CHs[$i], 'ALARM_LOW'))
+							$OPC_UA_Config_CHs[$i]->addChild('ALARM_LOW', $Channel_to_be_mod->AlarmLow);
+						else
+							$OPC_UA_Config_CHs[$i]->ALARM_LOW = $Channel_to_be_mod->AlarmLow;
 					}
 				}
 				else

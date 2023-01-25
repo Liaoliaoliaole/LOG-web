@@ -40,10 +40,14 @@ function build_opcua_config_table(curr_opcua_config)
 		table_data_entry.min=Number(curr_opcua_config[i].MIN);
 		table_data_entry.max=Number(curr_opcua_config[i].MAX);
 
-		if(curr_opcua_config[i].hasOwnProperty('LIMIT_HIGH'))
-			table_data_entry.limit_high=curr_opcua_config[i].LIMIT_HIGH;
-		if(curr_opcua_config[i].hasOwnProperty('LIMIT_LOW'))
-			table_data_entry.limit_low=curr_opcua_config[i].LIMIT_LOW;
+		if(curr_opcua_config[i].hasOwnProperty('ALARM_HIGH_VAL'))
+			table_data_entry.alarmHighVal=curr_opcua_config[i].ALARM_HIGH_VAL;
+		if(curr_opcua_config[i].hasOwnProperty('ALARM_LOW_VAL'))
+			table_data_entry.alarmLowVal=curr_opcua_config[i].ALARM_LOW_VAL;
+		if(curr_opcua_config[i].hasOwnProperty('ALARM_HIGH'))
+			table_data_entry.alarmHigh=curr_opcua_config[i].ALARM_HIGH;
+		if(curr_opcua_config[i].hasOwnProperty('ALARM_LOW'))
+			table_data_entry.alarmLow=curr_opcua_config[i].ALARM_LOW;
 		if(curr_opcua_config[i].hasOwnProperty('UNIT'))
 			table_data_entry.unit=curr_opcua_config[i].UNIT;
 		if(curr_opcua_config[i].hasOwnProperty('CAL_DATE') && curr_opcua_config[i].hasOwnProperty('CAL_PERIOD'))
@@ -220,10 +224,15 @@ function _ISOChannel_export_constractor(tableData)
 		ISOChannel_entry.DESCRIPTION = tableData[i].desc;
 		ISOChannel_entry.MIN = tableData[i].min;
 		ISOChannel_entry.MAX = tableData[i].max;
-		if(tableData[i].hasOwnProperty('limit_high'))
-			ISOChannel_entry.LIMIT_HIGH = tableData[i].limit_high;
-		if(tableData[i].hasOwnProperty('limit_low'))
-			ISOChannel_entry.LIMIT_LOW = tableData[i].limit_low;
+		if(tableData[i].hasOwnProperty('alarmHighVal'))
+			ISOChannel_entry.ALARM_HIGH_VAL = tableData[i].alarmHighVal;
+		if(tableData[i].hasOwnProperty('alarmLowVal'))
+			ISOChannel_entry.ALARM_LOW_VAL = tableData[i].alarmLowVal;
+		if(tableData[i].hasOwnProperty('alarmHigh'))
+			ISOChannel_entry.ALARM_HIGH = tableData[i].alarmHigh;
+		if(tableData[i].hasOwnProperty('alarmLow'))
+			ISOChannel_entry.ALARM_LOW = tableData[i].alarmLow;
+
 		if(tableData[i].type !== "SDAQ")
 		{
 			ISOChannel_entry.UNIT = tableData[i].unit;
@@ -390,24 +399,15 @@ function valid_until_tooltip(cell)
 	}
 	return;
 }
-function Limit_high_tooltip(cell)
+function Alarms_tooltip(cell)
 {
 	if(!cell)
 		return;
 	let data = cell._cell.row.data;
 
-	if(data.limit_low && data.limit_high)
-		return "Limit High: "+data.limit_high;
-	return;
-}
-function Limit_low_tooltip(cell)
-{
-	if(!cell)
-		return;
-	let data = cell._cell.row.data;
-
-	if(data.limit_low && data.limit_high)
-		return  "Limit Low: "+data.limit_low;
+	if(data.alarmLowVal && data.alarmHighVal)
+		return "Alarm High: "+data.alarmHighVal+'\n'
+			   "Alarm Low: "+data.alarmLowVal;
 	return;
 }
 

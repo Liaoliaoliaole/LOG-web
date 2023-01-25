@@ -919,10 +919,14 @@ var iso_standard = {
 					elem.attributes.unit=child.getElementsByTagName("unit")[0].textContent;
 					elem.attributes.max=child.getElementsByTagName("max")[0].textContent;
 					elem.attributes.min=child.getElementsByTagName("min")[0].textContent;
-					if(child.getElementsByTagName("limit_high").length)
-						elem.attributes.limit_high = child.getElementsByTagName("limit_high")[0].textContent;
-					if(child.getElementsByTagName("limit_low").length)
-						elem.attributes.limit_low = child.getElementsByTagName("limit_low")[0].textContent;
+					if(child.getElementsByTagName("alarmHighVal").length)
+						elem.attributes.alarmHighVal = child.getElementsByTagName("alarmHighVal")[0].textContent;
+					if(child.getElementsByTagName("alarmHigh").length)
+						elem.attributes.alarmHigh = child.getElementsByTagName("alarmHigh")[0].textContent;
+					if(child.getElementsByTagName("alarmLowVal").length)
+						elem.attributes.alarmLowVal = child.getElementsByTagName("alarmLowVal")[0].textContent;
+					if(child.getElementsByTagName("alarmLow").length)
+						elem.attributes.alarmLow = child.getElementsByTagName("alarmLow")[0].textContent;
 					ret.push(elem);
 				}
 			}

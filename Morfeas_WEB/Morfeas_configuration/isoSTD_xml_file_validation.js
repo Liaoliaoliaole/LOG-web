@@ -152,6 +152,8 @@ function isoSTD_xml_file_val(selected_files)
 					let node = isoSTD_points.childNodes[i].childNodes[j];
 					switch(node.nodeName)
 					{
+						case "alarmHigh":
+						case "alarmLow":
 						case "description":
 							if(!node.textContent.length)
 							{
@@ -165,8 +167,8 @@ function isoSTD_xml_file_val(selected_files)
 							break;
 						case "max":
 						case "min":
-						case "limit_high":
-						case "limit_low":
+						case "alarmHighVal":
+						case "alarmLowVal":
 							if(isNaN(node.textContent)||!node.textContent)
 							{
 								reject(isoSTD_points.childNodes[i].nodeName+'.'+node.nodeName+" is NAN");
