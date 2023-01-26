@@ -36,7 +36,7 @@ $loggers = Array();
 
 if($requestType == "GET")
 {
-	if(array_key_exists("COMMAND", $_GET))
+	if(array_key_exists(usr_comp, $_GET))
 	{
 		switch($_GET[usr_comp])
 		{

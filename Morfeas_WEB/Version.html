@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
+<title>Morfeas Version</title>
+</head>
+<body>
+	<div id="ver"></div>
+</body>
+<script src='../morfeas_ecma/common.js'></script>
+<script>
+//@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this page.
+
+Copyright (C) 12019-12023  Sam Harry Tzavaras
+
+The JavaScript code in this page is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU AGPL) as published by the Free Software
+Foundation, either version 3 of the License, or any later version.
+The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+@licend  The above is the entire license notice
+for the JavaScript code in this page.
+*/
+"use strict";
+comp_check();
+
+var ver_div = document.getElementById("ver");
+
+//AJAX response handler
+var xhttp = new XMLHttpRequest();
+xhttp.timeout = 3000;
+xhttp.ontimeout = onTimeout;
+xhttp.onreadystatechange = onReady_State_Change;
+function onReady_State_Change()
+{
+	if(this.readyState == 4 && this.status == 200)
+	{
+		console.log(JSON.stringify(JSON.parse(this.response), null, 2));
+		ver_div.innerHTML = JSON.stringify(JSON.parse(this.response), null, 2);
+	}
+	else if(this.status == 404)
+		alert("Error 404: Data Not found");
+}
+function onTimeout()
+{
+  alert("Connection to server: Timeout Error");
+}
+xhttp.open("GET", "morfeas_php/version.php?Morfeas_Ver=All", true);
+xhttp.send();
+/*
+function syntaxHighlight(json)
+{
+	if(typeof json != 'string')
+		json = JSON.stringify(json, undefined, 2);
+	json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+	function(match)
+		{
+		var cls = 'number';
+		if (/^"/.test(match)) {
+			if (/:$/.test(match)) {
+				cls = 'key';
+			} else {
+				cls = 'string';
+			}
+		} else if (/true|false/.test(match)) {
+			cls = 'boolean';
+		} else if (/null/.test(match)) {
+			cls = 'null';
+		}
+		return '<span class="' + cls + '">' + match + '</span>';
+	});
+}
+*/
+//@license-end
+</script>
+</html>

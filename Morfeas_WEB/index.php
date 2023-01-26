@@ -58,8 +58,12 @@ button{width:100px;}
 </style>
 </head>
 <body>
-<span style="margin:auto; float:right;">
-	<a style="cursor:pointer;color:blue;"
+<span style="margin:auto;">
+	<a style="float:left;cursor:pointer;color:blue;"
+	onclick='PopupCenter("/Version.html"+"?q="+makeid(),"","400","300")'
+	onMouseOver="this.style.color='red'"
+	onMouseOut="this.style.color='blue'">Ver</a>
+	<a style="float:right;cursor:pointer;color:blue;"
 	onclick='PopupCenter("/Morfeas_web_Docs/build-doc/"+"?q="+makeid(),"","1480","800")'
 	onMouseOver="this.style.color='red'"
 	onMouseOut="this.style.color='blue'">Morfeas-WEB Docs</a>

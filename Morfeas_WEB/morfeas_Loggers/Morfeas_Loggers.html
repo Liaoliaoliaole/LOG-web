@@ -130,7 +130,7 @@ function onReady_State_Change()
 				}
 				break;
 			case mode_enum.Logger_content:
-				if(this.getResponseHeader("Content-Type") === "Logger/text" 
+				if(this.getResponseHeader("Content-Type") === "Logger/text"
 				   || (!logger_ref_req && this.getResponseHeader("Content-Type") !== "application/json"))
 				{
 					status_tab.value = "Morfeas Loggers";
@@ -260,13 +260,13 @@ function onReady_State_Change()
 		status_tab.style.color='red';
 		logger_ref_req = false
 	}
-};
+}
 function onTimeout()
 {
   status_tab.value = "Connection to server: Timeout Error";
   status_tab.style.color='blue';
   logger_ref_req = false
-};
+}
 //Request Timer
 window.setInterval(Morfeas_request, 1000);
 function Morfeas_request()
