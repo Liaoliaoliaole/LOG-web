@@ -19,7 +19,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 require("../Morfeas_env.php");
 define("usr_comp","Morfeas_Ver");
 
-$GIT_OUTPUT_FORMAT = '\'{"commit_hash_abbreviated":"%h","commit_hash":"%H","author":"%aN","date_unix":"%at","message": "%B"}\'';
+$GIT_OUTPUT_FORMAT = '\'{"commit_hash_abbreviated":"%h","author":"%aN","date_unix":"%at"}\'';
 
 ob_start("ob_gzhandler");//Enable gzip buffering
 //Disable caching
