@@ -9,7 +9,14 @@
 <title>Morfeas Version</title>
 </head>
 <body>
-	<div id="ver"></div>
+	<table style="margin:auto; text-align:center;">
+		<tr>
+			<td><textarea id="ver" rows="16" cols="50"readonly></textarea></td>
+		</tr>
+		<tr>
+			<td> <button type="button" onclick="window.close();">Close</button> </td>
+		</tr>
+	</table>
 </body>
 <script src='../morfeas_ecma/common.js'></script>
 <script>
@@ -40,7 +47,7 @@ for the JavaScript code in this page.
 "use strict";
 comp_check();
 
-var ver_div = document.getElementById("ver");
+var ver_textbox = document.getElementById("ver"), ver_json;
 
 //AJAX response handler
 var xhttp = new XMLHttpRequest();
@@ -49,10 +56,31 @@ xhttp.ontimeout = onTimeout;
 xhttp.onreadystatechange = onReady_State_Change;
 function onReady_State_Change()
 {
+	let ver_text, date;
 	if(this.readyState == 4 && this.status == 200)
 	{
-		console.log(JSON.stringify(JSON.parse(this.response), null, 2));
-		ver_div.innerHTML = JSON.stringify(JSON.parse(this.response), null, 2);
+		try{
+			ver_json = JSON.parse(this.response);
+			date = new Date(ver_json.Morfeas_web_ver.date_unix*1000);
+			ver_text = "Morfeas WEB\n"+
+					   "\tHash: "+ver_json.Morfeas_web_ver.commit_hash_abbreviated+'\n'+
+					   "\tAuthor: "+ver_json.Morfeas_web_ver.author+'\n'+
+					   "\tDate: "+date.toLocaleDateString()+'\n'
+			if(typeof(ver_json.Morfeas_core_ver)=="string")
+				alert(ver_json.Morfeas_core_ver);
+			else
+			{
+				date = new Date(ver_json.Morfeas_core_ver.date_unix*1000);
+				ver_text += "Morfeas Core\n"+
+						    "\tHash: "+ver_json.Morfeas_core_ver.commit_hash_abbreviated+'\n'+
+						    "\tAuthor: "+ver_json.Morfeas_core_ver.author+'\n'+
+						    "\tDate: "+date.toLocaleDateString()+'\n'
+			}
+			ver_textbox.innerHTML = ver_text;
+		}catch(e){
+			alert(e);
+			window.close();
+		}
 	}
 	else if(this.status == 404)
 		alert("Error 404: Data Not found");
