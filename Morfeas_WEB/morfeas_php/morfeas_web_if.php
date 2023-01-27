@@ -239,69 +239,34 @@ else if($requestType == "POST")
 				}
 				if($i<count($OPC_UA_Config))
 				{
-					$OPC_UA_Config_CHs[$i]->ANCHOR = $Channel_to_be_mod->Anchor;
-					$OPC_UA_Config_CHs[$i]->MIN = $Channel_to_be_mod->Min;
-					$OPC_UA_Config_CHs[$i]->MAX = $Channel_to_be_mod->Max;
-					$OPC_UA_Config_CHs[$i]->DESCRIPTION = $Channel_to_be_mod->Description;
-					if($Channel_to_be_mod->IF_type !== "SDAQ")
-					{
-						if(property_exists($Channel_to_be_mod, 'Unit'))
-						{
-							if(!property_exists($OPC_UA_Config_CHs[$i], 'UNIT'))
-								$OPC_UA_Config_CHs[$i]->addChild('UNIT', $Channel_to_be_mod->Unit);
-							else
-								$OPC_UA_Config_CHs[$i]->UNIT = $Channel_to_be_mod->Unit;
-						}
-						if(property_exists($Channel_to_be_mod, 'Cal_date'))
-						{
-							if(!property_exists($OPC_UA_Config_CHs[$i], 'CAL_DATE'))
-								$OPC_UA_Config_CHs[$i]->addChild('CAL_DATE', $Channel_to_be_mod->Cal_date);
-							else
-								$OPC_UA_Config_CHs[$i]->CAL_DATE = $Channel_to_be_mod->Cal_date;
-						}
-						if(property_exists($Channel_to_be_mod, 'Cal_period'))
-						{
-							if(!property_exists($OPC_UA_Config_CHs[$i], 'CAL_PERIOD'))
-								$OPC_UA_Config_CHs[$i]->addChild('CAL_PERIOD', $Channel_to_be_mod->Cal_period);
-							else
-								$OPC_UA_Config_CHs[$i]->CAL_PERIOD = $Channel_to_be_mod->Cal_period;
-						}
-					}
-					if(property_exists($OPC_UA_Config_CHs[$i], 'BUILD_DATE') && property_exists($Channel_to_be_mod, 'Mod_date_UNIX'))
-					{
-						if(!property_exists($OPC_UA_Config_CHs[$i], 'MOD_DATE'))
-							$OPC_UA_Config_CHs[$i]->addChild('MOD_DATE', $Channel_to_be_mod->Mod_date_UNIX);
-						else
-							$OPC_UA_Config_CHs[$i]->MOD_DATE = $Channel_to_be_mod->Mod_date_UNIX;
-					}
+					//Delete all Channel's children
+					foreach($OPC_UA_Config_CHs[$i]->xpath('*') as $Child)
+						unset($Child[0]);
+					//Add modified Channel children
+					$OPC_UA_Config_CHs[$i]->addChild('ISO_CHANNEL', $Channel_to_be_mod->ISOChannel);
+					$OPC_UA_Config_CHs[$i]->addChild('INTERFACE_TYPE', $Channel_to_be_mod->IF_type);
+					$OPC_UA_Config_CHs[$i]->addChild('ANCHOR', $Channel_to_be_mod->Anchor);
+					$OPC_UA_Config_CHs[$i]->addChild('DESCRIPTION', $Channel_to_be_mod->Description);
+					$OPC_UA_Config_CHs[$i]->addChild('MIN', $Channel_to_be_mod->Min);
+					$OPC_UA_Config_CHs[$i]->addChild('MAX', $Channel_to_be_mod->Max);
+					if(property_exists($Channel_to_be_mod, 'Unit'))
+						$OPC_UA_Config_CHs[$i]->addChild('UNIT', $Channel_to_be_mod->Unit);
+					if(property_exists($Channel_to_be_mod, 'Cal_date'))
+						$OPC_UA_Config_CHs[$i]->addChild('CAL_DATE', $Channel_to_be_mod->Cal_date);
+					if(property_exists($Channel_to_be_mod, 'Cal_period'))
+						$OPC_UA_Config_CHs[$i]->addChild('CAL_PERIOD', $Channel_to_be_mod->Cal_period);
+					if(property_exists($Channel_to_be_mod, 'Build_date_UNIX'))
+						$OPC_UA_Config_CHs[$i]->addChild('BUILD_DATE', $Channel_to_be_mod->Build_date_UNIX);
+					if(property_exists($Channel_to_be_mod, 'Mod_date_UNIX'))
+						$OPC_UA_Config_CHs[$i]->addChild('MOD_DATE', $Channel_to_be_mod->Mod_date_UNIX);
 					if(property_exists($Channel_to_be_mod, 'AlarmHighVal'))
-					{
-						if(!property_exists($OPC_UA_Config_CHs[$i], 'ALARM_HIGH_VAL'))
-							$OPC_UA_Config_CHs[$i]->addChild('ALARM_HIGH_VAL', $Channel_to_be_mod->AlarmHighVal);
-						else
-							$OPC_UA_Config_CHs[$i]->ALARM_HIGH_VAL = $Channel_to_be_mod->AlarmHighVal;
-					}
+						$OPC_UA_Config_CHs[$i]->addChild('ALARM_HIGH_VAL', $Channel_to_be_mod->AlarmHighVal);
 					if(property_exists($Channel_to_be_mod, 'AlarmLowVal'))
-					{
-						if(!property_exists($OPC_UA_Config_CHs[$i], 'ALARM_LOW_VAL'))
-							$OPC_UA_Config_CHs[$i]->addChild('ALARM_LOW_VAL', $Channel_to_be_mod->AlarmLowVal);
-						else
-							$OPC_UA_Config_CHs[$i]->ALARM_LOW_VAL = $Channel_to_be_mod->AlarmLowVal;
-					}
+						$OPC_UA_Config_CHs[$i]->addChild('ALARM_LOW_VAL', $Channel_to_be_mod->AlarmLowVal);
 					if(property_exists($Channel_to_be_mod, 'AlarmHigh'))
-					{
-						if(!property_exists($OPC_UA_Config_CHs[$i], 'ALARM_HIGH'))
-							$OPC_UA_Config_CHs[$i]->addChild('ALARM_HIGH', $Channel_to_be_mod->AlarmHigh);
-						else
-							$OPC_UA_Config_CHs[$i]->ALARM_HIGH = $Channel_to_be_mod->AlarmHigh;
-					}
+						$OPC_UA_Config_CHs[$i]->addChild('ALARM_HIGH', $Channel_to_be_mod->AlarmHigh);
 					if(property_exists($Channel_to_be_mod, 'AlarmLow'))
-					{
-						if(!property_exists($OPC_UA_Config_CHs[$i], 'ALARM_LOW'))
-							$OPC_UA_Config_CHs[$i]->addChild('ALARM_LOW', $Channel_to_be_mod->AlarmLow);
-						else
-							$OPC_UA_Config_CHs[$i]->ALARM_LOW = $Channel_to_be_mod->AlarmLow;
-					}
+						$OPC_UA_Config_CHs[$i]->addChild('ALARM_LOW', $Channel_to_be_mod->AlarmLow);
 				}
 				else
 					die("ISOChannel: \"$Channel_to_be_mod->ISOChannel\" with type:\"$OPC_UA_Config_CHs[$i]->INTERFACE_TYPE\" Does not exist!!!");

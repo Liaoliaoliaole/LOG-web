@@ -537,7 +537,10 @@ function send()
 	mod_link_data.Anchor = sel_dev_anchor;
 
 	if(curr_config.hasOwnProperty('Build_date') && curr_config.hasOwnProperty('Mod_date'))
+	{
+		mod_link_data.Build_date_UNIX = curr_config.Build_date.getTime()/1000;
 		mod_link_data.Mod_date_UNIX = Math.trunc(new Date().getTime()/1000);
+	}
 	if(curr_config.type != "SDAQ")
 	{
 		mod_link_data.Cal_period = period.value;
