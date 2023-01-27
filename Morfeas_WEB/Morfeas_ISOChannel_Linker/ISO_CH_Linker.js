@@ -183,7 +183,7 @@ function load_data_to_opcua_config_table(curr_logstats_comb)
 }
 function ISOChannel_edit(event, cell)
 {
-	let popup_win = PopupCenter("./ISO_CH_MOD.html"+"?q="+makeid(), "", 620, 430);
+	let popup_win = PopupCenter("./ISO_CH_MOD.html"+"?q="+makeid(), "", 600, 440);
 	if(cell.hasOwnProperty("_cell"))
 		popup_win.curr_config = cell.getRow().getData();
 	else
@@ -193,7 +193,7 @@ function ISOChannel_edit(event, cell)
 }
 function ISOChannel_add()
 {
-	let popup_win = PopupCenter("./ISO_CH_ADD.html"+"?q="+makeid(), "", 620, 430);
+	let popup_win = PopupCenter("./ISO_CH_ADD.html"+"?q="+makeid(), "", 600, 440);
 	popup_win.curr_iso_standards = iso_standard;
 	popup_win.curr_iso_channels = opcua_config_table.getData();
 	add_wins.push(popup_win);
