@@ -230,19 +230,18 @@ else if($requestType == "POST")
 		case 'MOD':
 			$OPC_UA_Config_CHs = $OPC_UA_Config->CHANNEL;
 			foreach($Channels->DATA as $Channel_to_be_mod)
-			{
+			{	//Search for channel that will modified
 				for($i=0; $i<count($OPC_UA_Config); $i++)
 				{
 					if($Channel_to_be_mod->ISOChannel == $OPC_UA_Config_CHs[$i]->ISO_CHANNEL &&
 					   $Channel_to_be_mod->IF_type == $OPC_UA_Config_CHs[$i]->INTERFACE_TYPE)
 						break;
 				}
-				if($i<count($OPC_UA_Config))
-				{
-					//Delete all Channel's children
+				if($i<count($OPC_UA_Config)) //Check if Channel is found
+				{	//Delete all Channel's children
 					foreach($OPC_UA_Config_CHs[$i]->xpath('*') as $Child)
 						unset($Child[0]);
-					//Add modified Channel children
+					//Add modified Channel's children
 					$OPC_UA_Config_CHs[$i]->addChild('ISO_CHANNEL', $Channel_to_be_mod->ISOChannel);
 					$OPC_UA_Config_CHs[$i]->addChild('INTERFACE_TYPE', $Channel_to_be_mod->IF_type);
 					$OPC_UA_Config_CHs[$i]->addChild('ANCHOR', $Channel_to_be_mod->Anchor);
