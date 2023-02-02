@@ -442,24 +442,14 @@ function conn_inp_val(elem)
 					min.value = prev_sel.min;
 					max.value = prev_sel.max;
 					unit_inp.value = prev_sel.unit;
-					alarmHighVal.value = prev_sel.alarmHighVal?prev_sel.alarmHighVal:max.value;
-					alarmLowVal.value = prev_sel.alarmLowVal?prev_sel.alarmLowVal:min.value;
 					alarmHigh.value = prev_sel.alarmHigh?prev_sel.alarmHigh:'no';
+					alarmHigh.checked = !(alarmHigh.value === 'no');
 					alarmLow.value = prev_sel.alarmLow?prev_sel.alarmLow:'no';
-					if(alarmHigh.value === 'no')
-					{
-						alarmHigh.checked = false;
-						alarmHighVal.disabled = true;
-					}
-					else
-						alarmHigh.checked = true;
-					if(alarmLow.value === 'no')
-					{
-						alarmLow.checked = false;
-						alarmLowVal.disabled = true;
-					}
-					else
-						alarmLow.checked = true;
+					alarmLow.checked = !(alarmLow.value === 'no');
+					alarmHighVal.value = prev_sel.alarmHighVal?prev_sel.alarmHighVal:max.value;
+					alarmHighVal.disabled = !alarmHigh.checked;
+					alarmLowVal.value = prev_sel.alarmLowVal?prev_sel.alarmLowVal:min.value;
+					alarmLowVal.disabled = !alarmLow.checked;
 					vals_check();
 				}
 			});
