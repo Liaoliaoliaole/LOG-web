@@ -446,7 +446,7 @@ function conn_inp_val(elem)
 					alarmLowVal.value = prev_sel.alarmLowVal?prev_sel.alarmLowVal:min.value;
 					alarmHigh.value = prev_sel.alarmHigh?prev_sel.alarmHigh:'no';
 					alarmLow.value = prev_sel.alarmLow?prev_sel.alarmLow:'no';
-					if(alarmLow.value === 'no')
+					if(alarmHigh.value === 'no')
 					{
 						alarmHigh.checked = false;
 						alarmHighVal.disabled = true;
