@@ -130,7 +130,7 @@ function isoSTD_xml_file_val(selected_files)
 						if(invalid_cnt === isoSTD_points.childNodes[i].childElementCount)
 							rem_elem_obj.Reason = "Node with only invalid components";
 						else if(invalid_order_cnt)
-							rem_elem_obj.Reason = "Elements are NOT in order!!!";
+							rem_elem_obj.Reason = "Elements are NOT in order (description, unit, max, min)!!!";
 						else
 						{
 							if(names_cnt.description)
