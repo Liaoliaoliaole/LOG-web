@@ -108,6 +108,20 @@ const cal_date_format_params = {
     outputFormat: moment.localeData().longDateFormat('L'),
     invalidPlaceholder:"-"
 };
+var value_formatter = function(cell, formatterParams){
+	var value = cell.getValue(),
+    	data = cell.getData();
+
+	if(value && data.alarmHigh && data.alarmLow && data.alarmHighVal && data.alarmLowVal)
+	{
+		if((data.alarmHigh == 'yes' && value>data.alarmHighVal)||
+		   (data.alarmLow  == 'yes' && value<data.alarmLowVal))
+		    return "<span style='color:red; font-weight:bold;'>" + value + "</span>";
+		else
+			return value;
+	}
+	return value;
+};
 var hist_graph_formatter = function(cell, formatterParams, onRendered){
     onRendered(function(){$(cell.getElement()).sparkline(cell.getValue(), {width:"100%", type:"line"});});
 };
@@ -129,7 +143,7 @@ var opcua_config_table = new Tabulator("#opcua_config_table",
 		{title:"Type", field:"dev_type", minWidth:100, responsive:0},
 		{title:"Connection", field:"conn", minWidth:170, responsive:0},
 		{title:"Status", field:"status", minWidth:90, hozAlign:"center", responsive:0},
-	 	{title:"Value", field:"meas", width:80, headerSort:false, responsive:0},
+	 	{title:"Value", field:"meas", width:80, headerSort:false, responsive:0, formatter:value_formatter},
 	 	{title:"History", field:"graph", headerSort:false, responsive:0, formatter:hist_graph_formatter},
 		{title:"Valid Until", field:"valid_until", width:80, headerSort:false, responsive:1, formatter:"datetime", formatterParams:cal_date_format_params, tooltip:valid_until_tooltip},
 		{title:"Min", field:"min", headerSort:false, tooltip:Alarms_tooltip, responsive:2},
@@ -309,6 +323,7 @@ document.onkeydown = function(key)
 		{
 			case 'a': ISOChannel_add(); break;
 			case 'i': ISOChannels_import(); break;
+			case '€':
 			case 'e': ISOChannels_export_all(); break;
 		}
 	}
