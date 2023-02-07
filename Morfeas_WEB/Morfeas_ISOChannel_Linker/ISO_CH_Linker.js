@@ -405,9 +405,9 @@ function Alarms_tooltip(cell)
 		return;
 	let data = cell._cell.row.data;
 
-	if(data.alarmLowVal && data.alarmHighVal)
-		return "Alarm High: "+data.alarmHighVal+'\n'+
-			   "Alarm Low: "+data.alarmLowVal;
+	if(data.alarmLowVal && data.alarmHighVal && data.alarmHigh && data.alarmLow)
+		return "Alarm High: "+data.alarmHighVal+', En: '+data.alarmHigh+'\n'+
+			   "Alarm Low: "+data.alarmLowVal+', En: '+data.alarmLow;
 	return;
 }
 

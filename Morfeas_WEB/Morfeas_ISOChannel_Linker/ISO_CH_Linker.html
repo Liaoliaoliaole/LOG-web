@@ -116,7 +116,7 @@ var value_formatter = function(cell, formatterParams){
 	{
 		if((data.alarmHigh == 'yes' && value>data.alarmHighVal)||
 		   (data.alarmLow  == 'yes' && value<data.alarmLowVal))
-		    return "<span style='color:red; font-weight:bold;'>" + value + "</span>";
+		    return "<span style='color:red'>" + value + "</span>";
 		else
 			return value;
 	}
