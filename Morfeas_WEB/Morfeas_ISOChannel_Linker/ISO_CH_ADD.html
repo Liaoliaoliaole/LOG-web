@@ -128,7 +128,7 @@
 					   onchange="vals_check(this)"
 					   disabled>
 				</input>
-				<input type="checkbox" id="alarmLow" name="link_data" onchange="alarm_checkbox(this)">
+				<input type="checkbox" id="alarmLow" name="link_data" value="no" onchange="alarm_checkbox(this)">
 			</td>
 		</tr>
 		<tr>
@@ -142,7 +142,7 @@
 					   onchange="vals_check(this)"
 					   disabled>
 				</input>
-				<input type="checkbox" id="alarmHigh" name="link_data" onchange="alarm_checkbox(this)">
+				<input type="checkbox" id="alarmHigh" name="link_data" value="no" onchange="alarm_checkbox(this)">
 			</td>
 		</tr>
 		<tr class="cal_data">
@@ -473,8 +473,8 @@ function iso_name_val(elem)
 		max.value = '';
 		alarmHighVal.value = '';
 		alarmLowVal.value = '';
-		alarmHigh.value = 'no';
-		alarmLow.value = 'no';
+		alarmHigh.value = "no";
+		alarmLow.value = "no";
 		alarmHigh.checked = false;
 		alarmLow.checked = false;
 		if(unit_inp.disabled == false)
@@ -615,9 +615,9 @@ function send()
 	new_link_data.Min = min.value;
 	new_link_data.Max = max.value;
 	new_link_data.AlarmHighVal = alarmHighVal.value;
-	new_link_data.AlarmHigh = alarmHigh.value;
+	new_link_data.AlarmHigh = alarmHigh.value?alarmHigh.value:"no";
 	new_link_data.AlarmLowVal = alarmLowVal.value;
-	new_link_data.AlarmLow = alarmLow.value;
+	new_link_data.AlarmLow = alarmLow.value?alarmLow.value:"no";
 
 	if(link_data[0].selectedIndex > 1)
 		new_link_data.Unit = unit_inp.value;
