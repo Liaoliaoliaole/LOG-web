@@ -114,8 +114,12 @@ var value_formatter = function(cell, formatterParams){
 
 	if(value && data.alarmHigh && data.alarmLow && data.alarmHighVal && data.alarmLowVal)
 	{
-		if((data.alarmHigh == 'yes' && value>data.alarmHighVal)||
-		   (data.alarmLow  == 'yes' && value<data.alarmLowVal))
+		let value_num = parseFloat(value),
+			alarmHighVal_num = parseFloat(data.alarmHighVal),
+			alarmLowVal_num = parseFloat(data.alarmLowVal);
+
+		if((data.alarmHigh == 'yes' && value_num>alarmHighVal_num)||
+		   (data.alarmLow  == 'yes' && value_num<alarmLowVal_num))
 		    return "<span style='color:red'>" + value + "</span>";
 		else
 			return value;
