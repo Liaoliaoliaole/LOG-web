@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<link rel="stylesheet" href="../External_components/autoComplete.js/dist/css/autoComplete.01.css">
+<link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico">
+<style>
+.cal_data{display: none;}
+.center_screen{
+	position: absolute;
+	left: 50%;
+	transform: translate(-50%);
+}
+</style>
+<title>Morfeas WEB Multiple Links Creator</title>
+</head>
+<body>
+<div class="center_screen">
+	<table style="margin:auto;text-align:center;margin-bottom:.075in">
+		<tr>
+			<th colspan="5" style="font-size: 200%;">Multiple Links <br>Creator</th>
+		</tr>
+		<tr>
+			<td colspan="4"><input id="status_tab" style="text-align:center;" type="textbox" size="25" value="Select type" readonly></td>
+		</tr>
+	</table>
+	<table style="margin:auto;text-align:left;margin-bottom:.075in;width:90%;">
+		<tr>
+			<td>
+				<label for="type_selector">Type:</label>
+			</td>
+			<td>
+				<select name="link_data" id="type_selector" onchange="type_selector_changed(this);">
+					<option>-</option>
+					<option>SDAQ</option>
+					<option>IOBOX</option>
+				</select>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<label for="conn">Sensor's Path:</label>
+			</td>
+			<td>
+				<div class="autoComplete_wrapper">
+					<input name="link_data"
+						   id="conn"
+						   onchange="conn_inp_val(this);"
+						   size="30"
+						   maxlength="30"
+						   disabled>
+					</input>
+					<button id="sensor_search" onclick="sensor_search_func();" disabled>&#128269;</button>
+				</div>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<label for="iso_name">ISO Code:</label>
+			</td>
+			<td>
+				<div class="autoComplete_wrapper">
+					<input name="link_data"
+						   id="iso_name"
+						   placeHolder="Search..."
+						   onchange="iso_name_val(this);"
+						   onfocusout="vals_check()"
+						   size="20"
+						   maxlength="20"
+						   disabled>_
+					<select id="iso_code_post_fix"
+							onchange="iso_code_post_fix_changed(this);"
+							disabled>
+					</select>
+				</div>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="1"></td>
+			<td>
+				<button id="send_button" onclick="send();" disabled>Send</button>
+				<button onclick="window.close('','_parent','');">Cancel</button>
+			</td>
+		</tr>
+	</table>
+<div>
+</body>
+<script src="../External_components/autoComplete.js/dist/js/autoComplete.min.js"></script>
+<script src='../morfeas_ecma/common.js'></script>
+<script>
+//@license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-v3.0
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this page.
+
+Copyright (C) 12021-12023  Sam Harry Tzavaras
+
+The JavaScript code in this page is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU AGPL) as published by the Free Software
+Foundation, either version 3 of the License, or any later version.
+The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+@licend  The above is the entire license notice
+for the JavaScript code in this page.
+*/
+"use strict";
+comp_check();
+var	curr_iso_channels, curr_iso_standards, curr_logstats_comb;
+var search_win,
+	sel_dev_anchor,
+	conn_autocomplete,
+	ISOname_autocomplete;
+
+//Checks and Initialization
+if(!curr_iso_standards || !curr_iso_channels)
+{
+	if(!curr_iso_standards && curr_iso_channels)
+		alert("No ISOStandard!!!");
+	window.close('','_parent','');
+}
+
+
+//Callback Functions
+function type_selector_changed(sel)
+{
+	sel_dev_anchor = undefined;
+	if(search_win && !search_win.closed)
+		search_win.close();
+	for(let i=1; i<link_data.length; i++)
+	{
+		link_data[i].value = '';
+		link_data[i].disabled = true;
+	}
+	post_fix.disabled = true;
+	if(!sel.selectedIndex)
+	{
+		send_button.disabled = true;
+		sensor_search.disabled = true;
+		unit_inp.disabled = true;
+		conn.placeholder = '';
+		conn.style.textAlign="left";
+		for(let i=0; i<cal_data.length; i++)
+			cal_data[i].style.display = "none";
+		vals_check();
+		return;
+	}
+	link_data[1].disabled=false;
+	sensor_search.disabled = false;
+	//Populate conn_autocomplete.
+	let available_dev_paths = get_available_devs(curr_logstats_comb, sel.value, curr_iso_channels);
+	if(available_dev_paths && available_dev_paths.length)
+	{
+		conn_autocomplete = new autoComplete({
+			selector: "#conn",
+			data: {
+				src: available_dev_paths,
+				key: ["sensorUserId"],
+				cache: true
+			},
+			resultsList: {
+				maxResults: 128
+			},
+			resultItem: {
+				highlight: {render: true}
+			},
+			onSelection: function(fb){
+				conn.value = fb.selection.value.sensorUserId;
+				sel_dev_anchor = fb.selection.value.anchor;
+				conn.style.color = 'black';
+				conn_inp_val(conn);
+			}
+		});
+		switch(sel.value)
+		{
+			case "SDAQ":
+				unit_inp.disabled = true;
+				conn.placeholder = "CAN-if.Addr:XX.CH:XX";
+				for(let i=0; i<cal_data.length; i++)
+					cal_data[i].style.display = "none";
+				break;
+			case "MDAQ":
+				unit_inp.disabled = false;
+			case "IOBOX":
+			case "MTI":
+			case "NOX":
+				if(sel.value != "MDAQ")
+					unit_inp.disabled = true;
+				for(let i=0; i<cal_data.length; i++)
+					cal_data[i].style.display = "table-row";
+				switch(sel.value)
+				{
+					case "MDAQ": conn.placeholder = "DEV_NAME.CH:XX.Val:X"; break;
+					case "IOBOX": conn.placeholder = "DEV_NAME.RX:X.CH:XX"; break;
+					case "MTI": conn.placeholder = "DEV_NAME.Type.CH:XX"; break;
+					case "NOX": conn.placeholder = "CAN-if.Addr:X.Sensor_name"; break;
+				}
+				let now_date = new Date();
+				cal_date.disabled = false;
+				cal_date.value = now_date.getFullYear()+'-'+
+								 pad((now_date.getMonth()+1),2)+'-'+
+								 pad(now_date.getDate(),2);
+				period.disabled = false;
+				period.value = 12;
+				period_input_changed.prev_value = 12;
+		}
+		conn.style.textAlign="left";
+	}
+	else
+	{
+		conn.placeholder = "No devs available"//"Use Search \u2192";
+		conn.style.textAlign="center";
+	}
+	vals_check();
+}
+
+window.onbeforeunload = function()
+{
+	if(search_win && !search_win.closed)
+		search_win.close();
+};
+//@license-end
+</script>
+</html>

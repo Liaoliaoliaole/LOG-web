@@ -198,6 +198,13 @@ function ISOChannel_add()
 	popup_win.curr_iso_channels = opcua_config_table.getData();
 	add_wins.push(popup_win);
 }
+function ISOChannels_add()
+{
+	let popup_win = PopupCenter("./ISO_CHs_ADD.html"+"?q="+makeid(), "", 600, 440);
+	popup_win.curr_iso_standards = iso_standard;
+	popup_win.curr_iso_channels = opcua_config_table.getData();
+	add_wins.push(popup_win);
+}
 function ISOChannels_import()
 {
 	if(import_win && !import_win.closed)
@@ -413,6 +420,7 @@ function Alarms_tooltip(cell)
 
 var ISOChannels_menu = [
 	{label:"Add ISOChannel", action:ISOChannel_add},
+	{label:"Add ISOChannels", action:ISOChannels_add},
 	{separator:true},
 	{label:"Import", action:ISOChannels_import},
 	{label:"Export All", action:ISOChannels_export_all}
