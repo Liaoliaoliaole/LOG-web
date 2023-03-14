@@ -79,6 +79,20 @@
 			</td>
 		</tr>
 		<tr>
+			<td>
+				<label for="range">Range:</label>
+			</td>
+			<td>
+				<input name="link_data"
+					   id="range"
+					   type="number"
+					   size="2"
+					   onchange="vals_check()"
+					   disabled>
+				</input>
+			</td>
+		</tr>
+		<tr>
 			<td colspan="1"></td>
 			<td>
 				<button id="send_button" onclick="send();" disabled>Send</button>
@@ -122,6 +136,13 @@ var search_win,
 	sel_dev_anchor,
 	conn_autocomplete,
 	ISOname_autocomplete;
+
+var post_fix = document.getElementById("iso_code_post_fix"),
+	link_data = document.getElementsByName("link_data"),
+	sensor_search = document.getElementById("sensor_search"),
+	cal_data = document.getElementsByClassName("cal_data"),
+	send_button = document.getElementById("send_button"),
+	status_tab = document.getElementById("status_tab");
 
 //Checks and Initialization
 if(!curr_iso_standards || !curr_iso_channels)
@@ -185,35 +206,14 @@ function type_selector_changed(sel)
 		switch(sel.value)
 		{
 			case "SDAQ":
-				unit_inp.disabled = true;
 				conn.placeholder = "CAN-if.Addr:XX.CH:XX";
 				for(let i=0; i<cal_data.length; i++)
 					cal_data[i].style.display = "none";
 				break;
-			case "MDAQ":
-				unit_inp.disabled = false;
 			case "IOBOX":
-			case "MTI":
-			case "NOX":
-				if(sel.value != "MDAQ")
-					unit_inp.disabled = true;
 				for(let i=0; i<cal_data.length; i++)
 					cal_data[i].style.display = "table-row";
-				switch(sel.value)
-				{
-					case "MDAQ": conn.placeholder = "DEV_NAME.CH:XX.Val:X"; break;
-					case "IOBOX": conn.placeholder = "DEV_NAME.RX:X.CH:XX"; break;
-					case "MTI": conn.placeholder = "DEV_NAME.Type.CH:XX"; break;
-					case "NOX": conn.placeholder = "CAN-if.Addr:X.Sensor_name"; break;
-				}
-				let now_date = new Date();
-				cal_date.disabled = false;
-				cal_date.value = now_date.getFullYear()+'-'+
-								 pad((now_date.getMonth()+1),2)+'-'+
-								 pad(now_date.getDate(),2);
-				period.disabled = false;
-				period.value = 12;
-				period_input_changed.prev_value = 12;
+				conn.placeholder = "DEV_NAME.RX:X.CH:XX";
 		}
 		conn.style.textAlign="left";
 	}
@@ -222,7 +222,6 @@ function type_selector_changed(sel)
 		conn.placeholder = "No devs available"//"Use Search \u2192";
 		conn.style.textAlign="center";
 	}
-	vals_check();
 }
 
 window.onbeforeunload = function()
