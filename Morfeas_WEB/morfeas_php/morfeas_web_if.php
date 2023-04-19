@@ -290,8 +290,8 @@ else if($requestType == "POST")
 			$bundle->Morfeas_config=file_get_contents($opc_ua_config_dir."Morfeas_config.xml");
 			$bundle->Checksum=crc32($bundle->OPC_UA_config.$bundle->Morfeas_config);
 			$dir_name = "";
-			//if(property_exists($FTP_backup_conf, "dir_name"))
-			//	$dir_name = $FTP_backup_conf->dir_name;
+			if(property_exists($FTP_backup_conf, "dir_name"))
+				$dir_name = $FTP_backup_conf->dir_name;
 			if(!morfeas_ftp_mbl_backup($FTP_backup_conf->addr,
 									   $FTP_backup_conf->username,
 									   $FTP_backup_conf->password,
