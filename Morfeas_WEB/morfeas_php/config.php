@@ -40,6 +40,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 		public $ip;
 		public $mask;
 		public $gate;
+		public $dns;
 		private function get_dhcp_ip($if_name)
 		{	//Get configured IP
 			if(exec("ip -j addr show $if_name", $output))
@@ -106,7 +107,9 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 								$netmask<<=1;
 							}
 							if($gateway=substr($eth_if[$key+3],strpos($eth_if[$key+3],"gateway")+strlen("gateway ")))
-							$this->gate=_ip2long($gateway);
+								$this->gate=_ip2long($gateway);
+							if($dns_addrs =substr($eth_if[$key+4],strpos($eth_if[$key+4],"dns-nameservers")+strlen("dns-nameservers ")))
+								$this->dns=_ip2long(explode(' ', $dns_addrs)[0]);
 							return 1;
 						}
 					}
@@ -116,6 +119,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 						$this->ip=_ip2long(substr($ip_str,0,$pos));
 						if($gateway =substr($eth_if[$key+2],strpos($eth_if[$key+2],"gateway")+strlen("gateway ")))
 							$this->gate=_ip2long($gateway);
+						if($dns_addrs =substr($eth_if[$key+3],strpos($eth_if[$key+3],"dns-nameservers")+strlen("dns-nameservers ")))
+							$this->dns=_ip2long(explode(' ', $dns_addrs)[0]);
 					}
 				}
 				else
@@ -244,13 +249,16 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			   !($new_config->gate&~$bit_mask)||($new_config->gate|$bit_mask)===0xFFFFFFFF)
 				die('Server: Gateway is Invalid!!!');
 			$new_gate=long2ip($new_config->gate)or die("Server: Failure at IP conversion!!!");
+			$new_dns=$new_gate;
+			if(property_exists($new_config,"dns"))
+				$new_dns=long2ip($new_config->dns)or die("Server: Failure at IP conversion!!!");
 
 			$if_config= "auto $eth_if_name\n".
 						"allow-hotplug $eth_if_name\n".
 						"iface $eth_if_name inet static\n".
 						"address $new_ip/$new_mask\n".
 						"gateway $new_gate\n".
-						"dns-nameservers $new_gate 127.0.0.1 8.8.8.8\n";
+						"dns-nameservers $new_dns 127.0.0.1 8.8.8.8\n";
 		}
 		file_put_contents("/etc/network/interfaces.d/$eth_if_name",$if_config)or die("Server: Can't create new Network configuration file!!!");
 	}
@@ -403,6 +411,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 						$currConfig->ip=$conf->ip;
 						$currConfig->mask=$conf->mask;
 						$currConfig->gate=$conf->gate;
+						$currConfig->dns=$conf->dns;
 					}
 					else
 					{

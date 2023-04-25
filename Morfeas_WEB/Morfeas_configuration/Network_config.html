@@ -65,6 +65,15 @@ input.global_style{
 		<input class="global_style" name="gateway">
 	</td>
   </tr>
+  <tr name="static_config">
+	<td>DNS addr</td>
+	<td>
+		<input class="global_style" name="dns">.
+		<input class="global_style" name="dns">.
+		<input class="global_style" name="dns">.
+		<input class="global_style" name="dns">
+	</td>
+  </tr>
   <tr name="static_config" style="visibility:collapse;">
 	<td>Network IP</td>
 	<td id="conf_ip"></td>
@@ -147,8 +156,9 @@ function static_conf(visible, dhcp_conf)
 	var static_config=document.getElementsByName("static_config");
 	static_config[0].style.visibility=visible?"visible":"collapse";
 	static_config[1].style.visibility=visible?"visible":"collapse";
-	static_config[2].style.visibility=!visible&&dhcp_conf?"visible":"collapse";
+	static_config[2].style.visibility=visible?"visible":"collapse";
 	static_config[3].style.visibility=!visible&&dhcp_conf?"visible":"collapse";
+	static_config[4].style.visibility=!visible&&dhcp_conf?"visible":"collapse";
 }
 function canif_table_constractor(can_ifs)
 {
@@ -219,6 +229,7 @@ function default_config(_config)
 			{
 				ip[i].value=(_config.ip>>((3-i)*8))&0xff;
 				gateway[i].value=(_config.gate>>((3-i)*8))&0xff;
+				dns[i].value=(_config.dns>>((3-i)*8))&0xff;
 			}
 			mask.value=_config.mask;
 			break;
@@ -291,6 +302,7 @@ const hostname=document.getElementById("hostname"),
 	  ip=document.getElementsByName("ip"),
 	  mask=document.getElementById("mask"),
 	  gateway=document.getElementsByName("gateway"),
+	  dns=document.getElementsByName("dns"),
 	  ntp=document.getElementsByName("ntp"),
 	  ftp_serv_en=document.getElementById("ftp_backup_en"),
 	  ftp_serv_host=document.getElementById("ftp_backup_host"),
@@ -307,6 +319,9 @@ for(let i=0;i<4;i++)
 	gateway[i].type="number";
 	gateway[i].max=255;gateway[i].min=0;
 	gateway[i].oninput = function(){val(this)};
+	dns[i].type="number";
+	dns[i].max=255;gateway[i].min=0;
+	dns[i].oninput = function(){val(this)};
 	ntp[i].type="number";
 	ntp[i].max=255;ntp[i].min=0;
 	ntp[i].oninput = function(){val(this)};
@@ -356,7 +371,7 @@ xhttp.send();
 
 function Send_config()
 {
-	var new_config={hostname:"",mode:"",ip:0,mask:0,gate:0,ntp:0,CAN_ifs:[],FTP_backup_server:{addr:"",username:"",password:""}};
+	var new_config={hostname:"",mode:"",ip:0,mask:0,gate:0,dns:0,ntp:0,CAN_ifs:[],FTP_backup_server:{addr:"",username:"",password:""}};
 
 	if(get_new_hostname(new_config)) return;
 	if(get_new_mode(new_config)) return;
@@ -402,6 +417,7 @@ function get_new_mode(new_config)
 		delete new_config.ip;
 		delete new_config.mask;
 		delete new_config.gate;
+		delete new_config.dns;
 		if(new_config.mode===config.mode)
 			delete new_config.mode;
 		return 0;
@@ -424,10 +440,17 @@ function get_new_mode(new_config)
 			new_config.gate=0;
 			break;
 		}
+		if(dns[i].value=="")
+		{
+			new_config.dns=0;
+			break;
+		}
 		new_config.ip<<=8;
 		new_config.ip+=Number(ip[i].value);
 		new_config.gate<<=8;
 		new_config.gate+=Number(gateway[i].value);
+		new_config.dns<<=8;
+		new_config.dns+=Number(dns[i].value);
 	}
 
 	var mask_num=1<<31;
@@ -447,14 +470,21 @@ function get_new_mode(new_config)
 		alert("Invalid Gateway!!!");
 		return -1;
 	}
+	if(!new_config.dns)
+	{
+		alert("Invalid DNS Address!!!");
+		return -1;
+	}
 	if((new_config.ip == config.ip)&&
 	   (new_config.mask == config.mask)&&
-	   (new_config.gate == config.gate))
+	   (new_config.gate == config.gate)&&
+	   (new_config.dns == config.dns))
 	{
-	   delete new_config.mode;
-	   delete new_config.ip;
-	   delete new_config.mask;
-	   delete new_config.gate
+		delete new_config.mode;
+		delete new_config.ip;
+		delete new_config.mask;
+		delete new_config.gate;
+		delete new_config.dns;
 	}
 	return 0;
 }

@@ -178,7 +178,7 @@ function type_selector_changed(sel)
 		return;
 	}
 	link_data[1].disabled=false;
-	sensor_search.disabled = false;
+	//sensor_search.disabled = false;
 	//Populate conn_autocomplete.
 	let available_dev_paths = get_available_devs(curr_logstats_comb, sel.value, curr_iso_channels);
 	if(available_dev_paths && available_dev_paths.length)
