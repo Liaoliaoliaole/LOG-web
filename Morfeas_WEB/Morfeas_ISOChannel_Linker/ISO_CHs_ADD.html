@@ -72,7 +72,6 @@
 						   maxlength="20"
 						   disabled>_
 					<select id="iso_code_post_fix"
-							onchange="iso_code_post_fix_changed(this);"
 							disabled>
 					</select>
 				</div>
@@ -87,6 +86,8 @@
 					   id="range"
 					   type="number"
 					   size="2"
+					   min=1
+					   max=16
 					   onchange="vals_check()"
 					   disabled>
 				</input>
@@ -135,12 +136,12 @@ var	curr_iso_channels, curr_iso_standards, curr_logstats_comb;
 var search_win,
 	sel_dev_anchor,
 	conn_autocomplete,
-	ISOname_autocomplete;
+	ISOname_autocomplete,
+	unit_inp;
 
 var post_fix = document.getElementById("iso_code_post_fix"),
 	link_data = document.getElementsByName("link_data"),
 	sensor_search = document.getElementById("sensor_search"),
-	cal_data = document.getElementsByClassName("cal_data"),
 	send_button = document.getElementById("send_button"),
 	status_tab = document.getElementById("status_tab");
 
@@ -156,6 +157,104 @@ if(!curr_iso_standards || !curr_iso_channels)
 	window.close('','_parent','');
 }
 
+function vals_check()
+{
+	let okay = false;
+
+	status_tab.value = !type.selectedIndex?"Select Type":"Define sensor's path and ISO Code";
+	status_tab.style.color='black';
+
+	if(conn.value && iso_name.value)
+		okay = true;
+	send_button.disabled = !(okay);
+}
+
+function conn_inp_val(elem)
+{
+	let conn_found_fl = false;
+	elem.value = elem.value.replace(/\s/g, '');
+	elem.style.color = 'black';
+	sensor_search.disabled = false;
+	if(!elem.value)
+	{
+		for(let i=2; i<link_data.length; i++)
+			link_data[i].disabled = true;
+		return;
+	}
+	for(let i=0; i<curr_iso_channels.length; i++)
+	{
+		if(elem.value == curr_iso_channels[i].conn ||
+     	   curr_iso_channels[i].anchor == sel_dev_anchor)
+		{
+			elem.style.color='red';
+			sel_dev_anchor = '';
+			for(let i=2; i<link_data.length; i++)
+				link_data[i].disabled = true;
+			vals_check();
+			return;
+		}
+	}
+	if(conn_autocomplete)
+	{
+		for(let i=0; i<conn_autocomplete.data.src.length; i++)
+		{
+			if(elem.value == conn_autocomplete.data.src[i].sensorUserId)
+			{
+				conn_found_fl = true;
+				unit_inp = conn_autocomplete.data.src[i].unit;
+			}
+		}
+	}
+	if(!conn_found_fl)
+	{
+		elem.style.color='red';
+		sel_dev_anchor = '';
+		for(let i=2; i<link_data.length; i++)
+			link_data[i].disabled = true;
+		vals_check();
+		return;
+	}
+	//Enable input fields.
+	for(let i=2; i<link_data.length; i++)
+	{
+		link_data[i].disabled = false;
+		//If type is not MDAQ disable unit_inp.
+		if(i==link_data.length-1 && type.selectedIndex != 2)
+			link_data[i].disabled = true;
+	}
+	post_fix.disabled = false;
+	if(curr_iso_standards.iso_standard_xml)
+	{	//Populate ISOname_autocomplete.
+		let recommented_ISOChannels = curr_iso_standards.get_isostandard_by_unit(unit_inp);
+		if(recommented_ISOChannels)
+		{
+			ISOname_autocomplete = new autoComplete({
+				selector: "#iso_name",
+				data: {
+					src: recommented_ISOChannels,
+					key: ["iso_code_and_desc"]
+				},
+				resultsList: {
+					maxResults: 128
+				},
+				resultItem: {
+					highlight: {render: true}
+				},
+				onSelection: function(fb){
+					prev_sel = fb.selection.value.attributes;
+					post_fix.selectedIndex=0;
+					iso_name.value = prev_sel.iso_code;
+					vals_check();
+				}
+			});
+		}
+	}
+	vals_check();
+	//Disable sensor_search
+	sensor_search.disabled = true;
+	if(search_win && !search_win.closed)
+		search_win.close();
+}
 
 //Callback Functions
 function type_selector_changed(sel)
@@ -176,8 +275,6 @@ function type_selector_changed(sel)
 		//unit_inp.disabled = true;
 		conn.placeholder = '';
 		conn.style.textAlign="left";
-		for(let i=0; i<cal_data.length; i++)
-			cal_data[i].style.display = "none";
 		vals_check();
 		return;
 	}
@@ -211,19 +308,16 @@ function type_selector_changed(sel)
 		{
 			case "SDAQ":
 				conn.placeholder = "CAN-if.Addr:XX.CH:XX";
-				for(let i=0; i<cal_data.length; i++)
-					cal_data[i].style.display = "none";
 				break;
 			case "IOBOX":
-				for(let i=0; i<cal_data.length; i++)
-					cal_data[i].style.display = "table-row";
 				conn.placeholder = "DEV_NAME.RX:X.CH:XX";
+				break;
 		}
 		conn.style.textAlign="left";
 	}
 	else
 	{
-		conn.placeholder = "No devs available"//"Use Search \u2192";
+		conn.placeholder = "No devs available";
 		conn.style.textAlign="center";
 	}
 }
