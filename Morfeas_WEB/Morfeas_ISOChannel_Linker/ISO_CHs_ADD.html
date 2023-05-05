@@ -156,6 +156,16 @@ if(!curr_iso_standards || !curr_iso_channels)
 		alert("No ISOStandard!!!");
 	window.close('','_parent','');
 }
+//Populate post_fix.
+for(let i=0; i<=20; i++)
+{
+	let text = i?i:'N/A',
+		new_postfix_opt = document.createElement('option'),
+		opt_text = document.createTextNode(text);
+	new_postfix_opt.appendChild(opt_text);
+	new_postfix_opt.setAttribute('value', text);
+	post_fix.appendChild(new_postfix_opt);
+}
 
 function vals_check()
 {
@@ -241,9 +251,8 @@ function conn_inp_val(elem)
 					highlight: {render: true}
 				},
 				onSelection: function(fb){
-					prev_sel = fb.selection.value.attributes;
 					post_fix.selectedIndex=0;
-					iso_name.value = prev_sel.iso_code;
+					iso_name.value = fb.selection.value.attributes.iso_code;
 					vals_check();
 				}
 			});
@@ -254,6 +263,15 @@ function conn_inp_val(elem)
 	sensor_search.disabled = true;
 	if(search_win && !search_win.closed)
 		search_win.close();
+}
+function iso_name_val(elem)
+{
+	elem.value = elem.value.replace(/[.\s]/g, '');
+	if(!elem.value)
+	{
+		post_fix.selectedIndex = 0;
+	}
+	vals_check();
 }
 
 //Callback Functions
