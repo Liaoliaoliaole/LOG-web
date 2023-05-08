@@ -87,8 +87,7 @@
 					   type="number"
 					   size="2"
 					   min=1
-					   max=16
-					   onchange="vals_check()"
+					   onchange="range_check(this); vals_check()"
 					   disabled>
 				</input>
 			</td>
@@ -143,7 +142,8 @@ var post_fix = document.getElementById("iso_code_post_fix"),
 	link_data = document.getElementsByName("link_data"),
 	sensor_search = document.getElementById("sensor_search"),
 	send_button = document.getElementById("send_button"),
-	status_tab = document.getElementById("status_tab");
+	status_tab = document.getElementById("status_tab"),
+	range = document.getElementById("range");
 
 var type = document.getElementById("type_selector"),
 	conn = document.getElementById("conn"),
@@ -173,10 +173,19 @@ function vals_check()
 
 	status_tab.value = !type.selectedIndex?"Select Type":"Define sensor's path and ISO Code";
 	status_tab.style.color='black';
-
-	if(conn.value && iso_name.value)
+	iso_name.style.color = 'black';
+	if(iso_name.value && !curr_iso_standards.iso_standard_xml.xml_data.getElementsByTagName(iso_name.value).length)
+		iso_name.style.color = 'red';
+	if(conn.value && iso_name.value && range.value &&
+	   conn.style.color=='black' && iso_name.style.color=='black')
 		okay = true;
 	send_button.disabled = !(okay);
+}
+
+function range_check(elem)
+{
+	if(elem.valueAsNumber < elem.min)
+		elem.valueAsNumber = elem.min;
 }
 
 function conn_inp_val(elem)
@@ -226,12 +235,7 @@ function conn_inp_val(elem)
 	}
 	//Enable input fields.
 	for(let i=2; i<link_data.length; i++)
-	{
 		link_data[i].disabled = false;
-		//If type is not MDAQ disable unit_inp.
-		if(i==link_data.length-1 && type.selectedIndex != 2)
-			link_data[i].disabled = true;
-	}
 	post_fix.disabled = false;
 	if(curr_iso_standards.iso_standard_xml)
 	{	//Populate ISOname_autocomplete.
@@ -253,6 +257,7 @@ function conn_inp_val(elem)
 				onSelection: function(fb){
 					post_fix.selectedIndex=0;
 					iso_name.value = fb.selection.value.attributes.iso_code;
+					elem.style.color = 'black';
 					vals_check();
 				}
 			});
@@ -268,9 +273,7 @@ function iso_name_val(elem)
 {
 	elem.value = elem.value.replace(/[.\s]/g, '');
 	if(!elem.value)
-	{
 		post_fix.selectedIndex = 0;
-	}
 	vals_check();
 }
 
@@ -359,6 +362,77 @@ function sensor_search_func()
 		search_win.focus();
 }
 
+/*
+//Send function.
+function send()
+{
+	let now_time = new Date();
+	let new_link_data = {}, post_msg_contents = {COMMAND: "", DATA: []},
+		post_xhttp = new XMLHttpRequest();
+	new_link_data.ISOChannel = iso_name.value+(post_fix.selectedIndex?('_'+post_fix.value):'');
+	new_link_data.IF_type = type.value;
+	new_link_data.Anchor = sel_dev_anchor;
+	new_link_data.Description = desc.value;
+	new_link_data.Min = min.value;
+	new_link_data.Max = max.value;
+	new_link_data.AlarmHighVal = alarmHighVal.value;
+	new_link_data.AlarmHigh = alarmHigh.value?alarmHigh.value:"no";
+	new_link_data.AlarmLowVal = alarmLowVal.value;
+	new_link_data.AlarmLow = alarmLow.value?alarmLow.value:"no";
+
+	if(link_data[0].selectedIndex > 1)
+		new_link_data.Unit = unit_inp.value;
+	if(cal_data[0].style.display != "none")
+	{
+		let cal_date_date = new Date(cal_date.value);
+		new_link_data.Cal_date = cal_date_date.getFullYear()+'/'+
+								 pad((cal_date_date.getMonth()+1),2)+'/'+
+								 pad(cal_date_date.getDate(),2);
+		new_link_data.Cal_period = period.value;
+	}
+	new_link_data.Build_date_UNIX = Math.trunc(now_time.getTime()/1000);
+	new_link_data.Mod_date_UNIX = Math.trunc((now_time.getTime()/1000)+1);
+	post_xhttp.timeout = 5000;
+	post_xhttp.ontimeout = function(){
+		status_tab.value = "Connection to server: Timeout Error";
+		status_tab.style.color='blue';
+	};
+	post_xhttp.onreadystatechange = function(){
+		if(this.readyState == 4 && this.status == 200)
+		{
+			if(this.getResponseHeader("Content-Type")==="report/text")
+			{
+				status_tab.value = this.responseText;
+				status_tab.style.color='red';
+				console.log(this.responseText);
+				alert(this.responseText);
+			}
+			else if(this.getResponseHeader("Content-Type")==="application/json")
+			{
+				let report
+				try{report = JSON.parse(this.responseText);}
+				catch{return;}
+				if(report.success)
+				{
+					if(search_win && !search_win.closed)
+						search_win.close();
+					window.close('','_parent','');
+				}
+			}
+		}
+		else if(this.status == 404)
+		{
+			status_tab.value = "Error 404: Data Not found";
+			status_tab.style.color='red';
+		}
+	};
+	//Prepare message contents.
+	post_msg_contents.COMMAND = "ADD";
+	post_msg_contents.DATA.push(new_link_data);
+	post_xhttp.open("POST", "/morfeas_php/morfeas_web_if.php", true);
+	post_xhttp.send(compress(JSON.stringify(post_msg_contents)));
+}
+*/
 window.onbeforeunload = function()
 {
 	if(search_win && !search_win.closed)
