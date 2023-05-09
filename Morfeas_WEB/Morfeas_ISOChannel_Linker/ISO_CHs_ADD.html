@@ -422,7 +422,6 @@ function send()
 		new_link_data.AlarmHigh = ISO_CH_AlarmHigh?ISO_CH_AlarmHigh:"no";
 		new_link_data.AlarmLowVal = ISO_CH_AlarmLowVal?ISO_CH_AlarmLowVal:ISO_CH_min;
 		new_link_data.AlarmLow = ISO_CH_AlarmLow?ISO_CH_AlarmLow:"no";
-		new_link_data.Cal_period = 12;
 		new_link_data.Build_date_UNIX = Math.trunc(now_time.getTime()/1000);
 		new_link_data.Mod_date_UNIX = Math.trunc((now_time.getTime()/1000)+1);
 		post_msg_contents.DATA.push(new_link_data);
