@@ -8,7 +8,6 @@
 <link rel="stylesheet" href="../External_components/autoComplete.js/dist/css/autoComplete.01.css">
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico">
 <style>
-.cal_data{display: none;}
 .center_screen{
 	position: absolute;
 	left: 50%;
@@ -136,7 +135,8 @@ var search_win,
 	sel_dev_anchor,
 	conn_autocomplete,
 	ISOname_autocomplete,
-	unit_inp;
+	unit_inp,
+	available_dev_paths;
 
 var post_fix = document.getElementById("iso_code_post_fix"),
 	link_data = document.getElementsByName("link_data"),
@@ -293,7 +293,6 @@ function type_selector_changed(sel)
 	{
 		send_button.disabled = true;
 		sensor_search.disabled = true;
-		//unit_inp.disabled = true;
 		conn.placeholder = '';
 		conn.style.textAlign="left";
 		vals_check();
@@ -302,7 +301,7 @@ function type_selector_changed(sel)
 	link_data[1].disabled=false;
 	sensor_search.disabled = false;
 	//Populate conn_autocomplete.
-	let available_dev_paths = get_available_devs(curr_logstats_comb, sel.value, curr_iso_channels);
+	available_dev_paths = get_available_devs(curr_logstats_comb, sel.value, curr_iso_channels);
 	if(available_dev_paths && available_dev_paths.length)
 	{
 		conn_autocomplete = new autoComplete({
@@ -362,36 +361,77 @@ function sensor_search_func()
 		search_win.focus();
 }
 
-/*
 //Send function.
 function send()
 {
 	let now_time = new Date();
-	let new_link_data = {}, post_msg_contents = {COMMAND: "", DATA: []},
-		post_xhttp = new XMLHttpRequest();
-	new_link_data.ISOChannel = iso_name.value+(post_fix.selectedIndex?('_'+post_fix.value):'');
-	new_link_data.IF_type = type.value;
-	new_link_data.Anchor = sel_dev_anchor;
-	new_link_data.Description = desc.value;
-	new_link_data.Min = min.value;
-	new_link_data.Max = max.value;
-	new_link_data.AlarmHighVal = alarmHighVal.value;
-	new_link_data.AlarmHigh = alarmHigh.value?alarmHigh.value:"no";
-	new_link_data.AlarmLowVal = alarmLowVal.value;
-	new_link_data.AlarmLow = alarmLow.value?alarmLow.value:"no";
+	let post_msg_contents = {COMMAND: "ADD", DATA: []}, dev_CHs=[],
+		t_iso_name, t_iso_name_num, sensor_path_comp,
+		xml_data = curr_iso_standards.iso_standard_xml.xml_data;
 
-	if(link_data[0].selectedIndex > 1)
-		new_link_data.Unit = unit_inp.value;
-	if(cal_data[0].style.display != "none")
+	sensor_path_comp = conn.value.split('.');
+	console.log(sensor_path_comp);
+	for(let i=0; i<available_dev_paths.length; i++)
+		if(available_dev_paths[i].sensorUserId.includes(sensor_path_comp[0]+'.'+sensor_path_comp[1]))
+			dev_CHs.push(available_dev_paths[i]);
+	console.log(dev_CHs);
+
+	t_iso_name_num = parseInt(iso_name.value.replace(/\D+/g, ''));
+	t_iso_name = iso_name.value.replace(t_iso_name_num, '');
+	for(let i=0; i<range.valueAsNumber; i++)
 	{
-		let cal_date_date = new Date(cal_date.value);
-		new_link_data.Cal_date = cal_date_date.getFullYear()+'/'+
-								 pad((cal_date_date.getMonth()+1),2)+'/'+
-								 pad(cal_date_date.getDate(),2);
-		new_link_data.Cal_period = period.value;
+		let new_link_data = {}, sensor_path, iso_code_data,
+			ISO_CH_name, ISO_CH_Desc, ISO_CH_max, ISO_CH_min,
+			ISO_CH_AlarmHighVal, ISO_CH_AlarmHigh, ISO_CH_AlarmLowVal, ISO_CH_AlarmLow;
+
+		iso_code_data = xml_data.getElementsByTagName(t_iso_name+(t_iso_name_num+i));
+		if(!iso_code_data.length)
+		{
+			alert("Interation: "+(i+1)+"\nError: \""+t_iso_name+(t_iso_name_num+i)+"\" Not found!!!")
+			return;
+		}
+		iso_code_data = iso_code_data[0];
+		ISO_CH_name=iso_code_data.tagName;
+		for(let j=0; j<curr_iso_channels.length; j++)
+		{
+			if(curr_iso_channels[j].iso_name===ISO_CH_name)
+			{
+				alert("Error: \""+ISO_CH_name+"\" Already in Use!!!")
+				return;
+			}
+		}
+		ISO_CH_Desc=iso_code_data.getElementsByTagName("description")[0].textContent;
+		ISO_CH_max=iso_code_data.getElementsByTagName("max")[0].textContent;
+		ISO_CH_min=iso_code_data.getElementsByTagName("min")[0].textContent;
+		if(iso_code_data.getElementsByTagName("alarmHighVal")[0])
+			ISO_CH_AlarmHighVal=iso_code_data.getElementsByTagName("alarmHighVal")[0].textContent;
+		if(iso_code_data.getElementsByTagName("alarmHigh")[0])
+			ISO_CH_AlarmHigh=iso_code_data.getElementsByTagName("alarmHigh")[0].textContent;
+		if(iso_code_data.getElementsByTagName("alarmLowVal")[0])
+			ISO_CH_AlarmLowVal=iso_code_data.getElementsByTagName("alarmLowVal")[0].textContent;
+		if(iso_code_data.getElementsByTagName("alarmLow")[0])
+			ISO_CH_AlarmLow=iso_code_data.getElementsByTagName("alarmLow")[0].textContent;
+
+		//new_link_data.Anchor = dev_anchor;
+		new_link_data.IF_type = type.value;
+		new_link_data.ISOChannel = ISO_CH_name+(post_fix.selectedIndex?('_'+post_fix.value):'');
+		new_link_data.Description = ISO_CH_Desc+(post_fix.selectedIndex?(" Cyl:"+post_fix.value):'');
+		new_link_data.Min = ISO_CH_max;
+		new_link_data.Max = ISO_CH_min;
+		new_link_data.AlarmHighVal = ISO_CH_AlarmHighVal?ISO_CH_AlarmHighVal:ISO_CH_max;
+		new_link_data.AlarmHigh = ISO_CH_AlarmHigh?ISO_CH_AlarmHigh:"no";
+		new_link_data.AlarmLowVal = ISO_CH_AlarmLowVal?ISO_CH_AlarmLowVal:ISO_CH_min;
+		new_link_data.AlarmLow = ISO_CH_AlarmLow?ISO_CH_AlarmLow:"no";
+		new_link_data.Cal_period = 12;
+		new_link_data.Build_date_UNIX = Math.trunc(now_time.getTime()/1000);
+		new_link_data.Mod_date_UNIX = Math.trunc((now_time.getTime()/1000)+1);
+		post_msg_contents.DATA.push(new_link_data);
 	}
-	new_link_data.Build_date_UNIX = Math.trunc(now_time.getTime()/1000);
-	new_link_data.Mod_date_UNIX = Math.trunc((now_time.getTime()/1000)+1);
+
+	console.log(post_msg_contents);
+	/*
+	let post_xhttp = new XMLHttpRequest();
+
 	post_xhttp.timeout = 5000;
 	post_xhttp.ontimeout = function(){
 		status_tab.value = "Connection to server: Timeout Error";
@@ -426,13 +466,11 @@ function send()
 			status_tab.style.color='red';
 		}
 	};
-	//Prepare message contents.
-	post_msg_contents.COMMAND = "ADD";
-	post_msg_contents.DATA.push(new_link_data);
 	post_xhttp.open("POST", "/morfeas_php/morfeas_web_if.php", true);
 	post_xhttp.send(compress(JSON.stringify(post_msg_contents)));
+	*/
 }
-*/
+
 window.onbeforeunload = function()
 {
 	if(search_win && !search_win.closed)
