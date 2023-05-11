@@ -395,7 +395,7 @@ function send()
 		if(j == dev_CHs.length)
 		{
 			let curr_dev_CH=sensor_path_comp[0]+'.'+sensor_path_comp[1]+'.CH:'+pad(sensor_path_comp.first_CH+i,2);
-			alert("Interation: "+(i+1)+"\nError: \""+curr_dev_CH+"\" Not found!!!")
+			alert("Interation: "+(i+1)+"\nError: \""+curr_dev_CH+"\" Not found or already in used!!!")
 			return;
 		}
 
