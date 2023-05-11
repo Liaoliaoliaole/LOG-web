@@ -395,14 +395,14 @@ function send()
 		if(j == dev_CHs.length)
 		{
 			let curr_dev_CH=sensor_path_comp[0]+'.'+sensor_path_comp[1]+'.CH:'+pad(sensor_path_comp.first_CH+i,2);
-			alert("Interation: "+(i+1)+"\nError: \""+curr_dev_CH+"\" Not found or already in used!!!")
+			alert("Interation: "+(i+1)+"\nError: \""+curr_dev_CH+"\" Not found or Already in used!!!");
 			return;
 		}
 
 		iso_code_data = xml_data.getElementsByTagName(t_iso_name+(t_iso_name_num+i));
 		if(!iso_code_data.length)
 		{
-			alert("Interation: "+(i+1)+"\nError: \""+t_iso_name+(t_iso_name_num+i)+"\" Not found!!!")
+			alert("Interation: "+(i+1)+"\nError: \""+t_iso_name+(t_iso_name_num+i)+"\" Not found!!!");
 			return;
 		}
 		iso_code_data = iso_code_data[0];
