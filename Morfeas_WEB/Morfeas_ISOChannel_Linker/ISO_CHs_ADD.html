@@ -370,19 +370,34 @@ function send()
 		xml_data = curr_iso_standards.iso_standard_xml.xml_data;
 
 	sensor_path_comp = conn.value.split('.');
-	console.log(sensor_path_comp);
+	sensor_path_comp.first_CH = parseInt(sensor_path_comp[2].replace(/\D+/g, ''));
 	for(let i=0; i<available_dev_paths.length; i++)
 		if(available_dev_paths[i].sensorUserId.includes(sensor_path_comp[0]+'.'+sensor_path_comp[1]))
 			dev_CHs.push(available_dev_paths[i]);
-	console.log(dev_CHs);
 
 	t_iso_name_num = parseInt(iso_name.value.replace(/\D+/g, ''));
 	t_iso_name = iso_name.value.replace(t_iso_name_num, '');
 	for(let i=0; i<range.valueAsNumber; i++)
 	{
+		let j;
 		let new_link_data = {}, sensor_path, iso_code_data,
 			ISO_CH_name, ISO_CH_Desc, ISO_CH_max, ISO_CH_min,
 			ISO_CH_AlarmHighVal, ISO_CH_AlarmHigh, ISO_CH_AlarmLowVal, ISO_CH_AlarmLow;
+
+		for(j=0; j<dev_CHs.length; j++)
+		{
+			if(dev_CHs[j].sensorUserId == (sensor_path_comp[0]+'.'+sensor_path_comp[1]+'.CH:'+pad(sensor_path_comp.first_CH+i, 2)))
+			{
+				sensor_path = dev_CHs[j];
+				break;
+			}
+		}
+		if(j == dev_CHs.length)
+		{
+			let curr_dev_CH=sensor_path_comp[0]+'.'+sensor_path_comp[1]+'.CH:'+pad(sensor_path_comp.first_CH+i,2);
+			alert("Interation: "+(i+1)+"\nError: \""+curr_dev_CH+"\" Not found!!!")
+			return;
+		}
 
 		iso_code_data = xml_data.getElementsByTagName(t_iso_name+(t_iso_name_num+i));
 		if(!iso_code_data.length)
@@ -392,7 +407,7 @@ function send()
 		}
 		iso_code_data = iso_code_data[0];
 		ISO_CH_name=iso_code_data.tagName;
-		for(let j=0; j<curr_iso_channels.length; j++)
+		for(j=0; j<curr_iso_channels.length; j++)
 		{
 			if(curr_iso_channels[j].iso_name===ISO_CH_name)
 			{
@@ -412,7 +427,7 @@ function send()
 		if(iso_code_data.getElementsByTagName("alarmLow")[0])
 			ISO_CH_AlarmLow=iso_code_data.getElementsByTagName("alarmLow")[0].textContent;
 
-		//new_link_data.Anchor = dev_anchor;
+		new_link_data.Anchor = sensor_path.anchor;
 		new_link_data.IF_type = type.value;
 		new_link_data.ISOChannel = ISO_CH_name+(post_fix.selectedIndex?('_'+post_fix.value):'');
 		new_link_data.Description = ISO_CH_Desc+(post_fix.selectedIndex?(" Cyl:"+post_fix.value):'');
@@ -426,9 +441,6 @@ function send()
 		new_link_data.Mod_date_UNIX = Math.trunc((now_time.getTime()/1000)+1);
 		post_msg_contents.DATA.push(new_link_data);
 	}
-
-	console.log(post_msg_contents);
-	/*
 	let post_xhttp = new XMLHttpRequest();
 
 	post_xhttp.timeout = 5000;
@@ -467,7 +479,6 @@ function send()
 	};
 	post_xhttp.open("POST", "/morfeas_php/morfeas_web_if.php", true);
 	post_xhttp.send(compress(JSON.stringify(post_msg_contents)));
-	*/
 }
 
 window.onbeforeunload = function()
