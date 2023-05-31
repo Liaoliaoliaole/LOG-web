@@ -409,7 +409,7 @@ function send()
 		ISO_CH_name=iso_code_data.tagName;
 		for(j=0; j<curr_iso_channels.length; j++)
 		{
-			if(curr_iso_channels[j].iso_name===ISO_CH_name)
+			if(curr_iso_channels[j].iso_name===(ISO_CH_name+(post_fix.selectedIndex?('_'+post_fix.value):'')))
 			{
 				alert("Error: \""+ISO_CH_name+"\" Already in Use!!!")
 				return;

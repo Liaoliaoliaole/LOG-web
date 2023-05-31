@@ -176,7 +176,8 @@ function load_data_to_opcua_config_table(curr_logstats_comb)
 			for(let i=0; i<selectedRows.length; i++)
 				selectedRows_ids.push(selectedRows[i]._row.data.id);
 		}
-		opcua_config_table.replaceData(tableData);
+		opcua_config_table.updateOrAddData(tableData);
+		//opcua_config_table.replaceData(tableData);
 		if(selectedRows_ids)
 			opcua_config_table.selectRow(selectedRows_ids);
 	}
