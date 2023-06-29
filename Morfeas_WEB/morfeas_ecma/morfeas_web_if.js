@@ -598,7 +598,7 @@ function morfeas_build_dev_tree_from_logstats(logstats, dev_type, curr_ISOCHs)
 				{
 					if_handler.expanded = true;
 					if_handler.children = [];
-					for(let j=1; j<=4; j++)
+					for(let j=1; j<=6; j++)
 					{
 						if(logstats[i]["RX"+j] === "Disconnected")
 							continue;
