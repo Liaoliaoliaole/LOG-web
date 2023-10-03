@@ -431,8 +431,8 @@ function send()
 		new_link_data.IF_type = type.value;
 		new_link_data.ISOChannel = ISO_CH_name;
 		new_link_data.Description = ISO_CH_Desc+(post_fix.selectedIndex?(" Cyl:"+post_fix.value):'');
-		new_link_data.Min = ISO_CH_max;
-		new_link_data.Max = ISO_CH_min;
+		new_link_data.Max = ISO_CH_max;
+		new_link_data.Min = ISO_CH_min;
 		new_link_data.AlarmHighVal = ISO_CH_AlarmHighVal?ISO_CH_AlarmHighVal:ISO_CH_max;
 		new_link_data.AlarmHigh = ISO_CH_AlarmHigh?ISO_CH_AlarmHigh:"no";
 		new_link_data.AlarmLowVal = ISO_CH_AlarmLowVal?ISO_CH_AlarmLowVal:ISO_CH_min;
