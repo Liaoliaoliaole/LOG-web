@@ -185,9 +185,14 @@ function morfeas_logstat_commonizer(logstats)
 				{
 					let error_str='-';
 					let meas_val = logstat.SDAQs_data[i].Meas[j].Meas_avg;
-					if(logstat.SDAQs_data[i].Meas[j].Channel_Status.Channel_status_val)
+					if(logstat.SDAQs_data[i].Meas[j].Channel_Status.Channel_status_val || !(logstat.SDAQs_data[i].Meas[j].CNT))
 					{
-						if(logstat.SDAQs_data[i].Meas[j].Channel_Status.Out_of_Range)
+						if(!(logstat.SDAQs_data[i].Meas[j].CNT))
+						{
+							error_str='Stall';
+							meas_val='-';
+						}
+						else if(logstat.SDAQs_data[i].Meas[j].Channel_Status.Out_of_Range)
 							error_str='Out of Range';
 						else if(logstat.SDAQs_data[i].Meas[j].Channel_Status.No_Sensor)
 						{
@@ -214,7 +219,7 @@ function morfeas_logstat_commonizer(logstats)
 							logstat.SDAQs_data[i].Calibration_Data[j].Calibration_date_UNIX:undefined,
 						logstat.SDAQs_data[i].Calibration_Data[j].Calibration_period,
 						meas_val,
-						!(logstat.SDAQs_data[i].Meas[j].Channel_Status.Channel_status_val),
+						!(logstat.SDAQs_data[i].Meas[j].Channel_Status.Channel_status_val) && (logstat.SDAQs_data[i].Meas[j].CNT)>0,
 						error_str
 					));
 				}
