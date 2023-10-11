@@ -208,6 +208,7 @@ function Build_meas_array(CH_meas_data)
 			}
 			if(!isNaN(CH_meas_data.Last_Meas))
 				ret.push(["Rate of change:", (CH_meas_data.Meas_avg - CH_meas_data.Last_Meas).toFixed(1)+' '+CH_meas_data.Unit+'/s']);
+			ret.push(["Samples CNT:", CH_meas_data.CNT?CH_meas_data.CNT:"Stall (CNT:0)"]);
 		}
 		return ret;
 	}
