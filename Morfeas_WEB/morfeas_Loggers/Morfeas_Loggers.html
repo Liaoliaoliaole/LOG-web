@@ -229,15 +229,17 @@ function onReady_State_Change()
 										last_row.insertCell().innerHTML = logstats[i].connections[j].name.replace("_UNIX", "");
 										if(logstats[i].connections[j].name.includes("UNIX"))
 										{
-											let date_conv = new Date();
-											date_conv.setTime(logstats[i].connections[j].value*1000)
-											last_row.insertCell().innerHTML = date_conv.getFullYear()+"/"+
-																			  (date_conv.getMonth()+1)+"/"+
-																			  date_conv.getDate();
+											if(logstats[i].connections[j].value)
+											{
+												let date_conv = new Date(logstats[i].connections[j].value*1000);
+												last_row.insertCell().innerHTML = date_conv.toLocaleDateString();
+											}
+											else
+												last_row.insertCell().innerHTML = "UnCalibrated";
 										}
 										else
-											last_row.insertCell().innerHTML = logstats[i].connections[j].value
-																			+ (logstats[i].connections[j].unit?logstats[i].connections[j].unit:"");
+											last_row.insertCell().innerHTML = logstats[i].connections[j].value +
+																			 (logstats[i].connections[j].unit?logstats[i].connections[j].unit:"");
 									}
 									logstats_disp.appendChild(details_table);
 								}

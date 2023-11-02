@@ -47,8 +47,9 @@ function data_update(SDAQnet_data, update_tree)
 	Bus_util.innerHTML = "Bus Util: "+SDAQnet_data.BUS_Utilization.toFixed(2)+'%';
 	if(SDAQnet_data.hasOwnProperty('Electrics'))
 	{
-		Bus_Voltage.innerHTML = "Bus Voltage: "+SDAQnet_data.Electrics.BUS_voltage.toFixed(2)+'V';
-		Bus_Amperage.innerHTML = "Bus current: "+SDAQnet_data.Electrics.BUS_amperage.toFixed(2)+'A';
+		let unCal = SDAQnet_data.Electrics.Last_calibration_UNIX ? "" : "unCal"
+		Bus_Voltage.innerHTML = "Bus Voltage: "+SDAQnet_data.Electrics.BUS_voltage.toFixed(2)+'V'+unCal;
+		Bus_Amperage.innerHTML = "Bus current: "+SDAQnet_data.Electrics.BUS_amperage.toFixed(2)+'A'+unCal;
 	}
 	//console.log(SDAQnet_data);
 
