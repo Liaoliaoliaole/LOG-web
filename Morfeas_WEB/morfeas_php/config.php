@@ -509,14 +509,13 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				}
 				if(property_exists($new_config,"FTP_backup_server"))
 				{
-					if(($FTP_backup_conf=json_encode($new_config->FTP_backup_server)))
-					if($FTP_backup_conf !== '"delete"')
+					if(($FTP_backup_conf=json_encode($new_config->FTP_backup_server))!==false)
 					{
-						if(file_put_contents($opc_ua_config_dir."FTP_backup_conf.json", $FTP_backup_conf)===false)
-							die("Error: Can't write FTP_backup_conf.json!!!");
+						if($FTP_backup_conf === '"delete"')
+							exec("rm -f $opc_ua_config_dir/FTP_backup_conf.json");
+						else
+							file_put_contents($opc_ua_config_dir."FTP_backup_conf.json", $FTP_backup_conf) or die("Error: Can't write FTP_backup_conf.json!!!");
 					}
-					else
-						exec("rm -f $opc_ua_config_dir/FTP_backup_conf.json");
 				}
 				header('Content-Type: application/json');
 				echo '{"report":"Okay"}';
