@@ -513,7 +513,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					{
 						if($FTP_backup_conf === '"delete"')
 							exec("rm -f $opc_ua_config_dir/FTP_backup_conf.json");
-						else
+						else if(strlen($FTP_backup_conf))
 							file_put_contents($opc_ua_config_dir."FTP_backup_conf.json", $FTP_backup_conf) or die("Error: Can't write FTP_backup_conf.json!!!");
 					}
 				}
