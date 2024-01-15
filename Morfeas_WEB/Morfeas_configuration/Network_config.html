@@ -561,9 +561,9 @@ function get_new_FTP_backup(new_config)
 		new_config.FTP_backup_server.password=ftp_serv_pass.value;
 		if(ftp_serv_dir_name.value)
 			new_config.FTP_backup_server.dir_name=ftp_serv_dir_name.value;
+		return 0;
 	}
-	else
-		delete new_config.FTP_backup_server;
+	delete new_config.FTP_backup_server;
 	return 0;
 }
 function ftp_backup_en_fn(el)
