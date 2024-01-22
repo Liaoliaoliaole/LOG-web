@@ -279,7 +279,7 @@ else if($requestType == "POST")
 	$dom->formatOutput = true;
 	$dom->loadXML($OPC_UA_Config->asXML());
 	$dom->save($opc_ua_config_dir."OPC_UA_Config.xml") or die("Error: Unable to write OPC_UA_Config.xml file!!!");
-	if(file_exists($opc_ua_config_dir."FTP_backup_conf.json"))
+	if(file_exists($opc_ua_config_dir."FTP_backup_conf.json") && filesize($opc_ua_config_dir."FTP_backup_conf.json"))
 	{
 		$FTP_backup_conf=file_get_contents($opc_ua_config_dir."FTP_backup_conf.json");
 		$FTP_backup_conf=json_decode($FTP_backup_conf);

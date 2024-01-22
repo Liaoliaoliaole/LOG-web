@@ -425,7 +425,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					$currConfig->ntp=get_timesyncd_ntp();
 					if(($CAN_ifs=getCANifs()))
 						$currConfig->CAN_ifs=$CAN_ifs;
-					if(file_exists($opc_ua_config_dir."FTP_backup_conf.json"))
+					if(file_exists($opc_ua_config_dir."FTP_backup_conf.json") && filesize($opc_ua_config_dir."FTP_backup_conf.json"))
 					{
 						$FTP_backup_conf=file_get_contents($opc_ua_config_dir.'FTP_backup_conf.json');
 						$FTP_backup_conf=json_decode($FTP_backup_conf) or die("Server: JSON Decode of FTP_backup_conf failed");
@@ -538,7 +538,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$local_Morfeas_config->save($opc_ua_config_dir.'Morfeas_config.xml') or die('Server: Unable to write Morfeas_config.xml');
 				//exec('rm -fr /mnt/ramdisk/Morfeas_Loggers/*');
 				exec('sudo systemctl restart Morfeas_system.service');
-				if(file_exists($opc_ua_config_dir."FTP_backup_conf.json"))
+				if(file_exists($opc_ua_config_dir."FTP_backup_conf.json") && filesize($opc_ua_config_dir."FTP_backup_conf.json"))
 				{
 					$FTP_backup_conf=file_get_contents($opc_ua_config_dir."FTP_backup_conf.json");
 					$FTP_backup_conf=json_decode($FTP_backup_conf) or die("Server: JSON Decode of FTP_backup_conf failed");
