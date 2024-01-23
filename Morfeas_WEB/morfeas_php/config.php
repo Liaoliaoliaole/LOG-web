@@ -428,7 +428,12 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					if(file_exists($opc_ua_config_dir."FTP_backup_conf.json") && filesize($opc_ua_config_dir."FTP_backup_conf.json"))
 					{
 						$FTP_backup_conf=file_get_contents($opc_ua_config_dir.'FTP_backup_conf.json');
-						$FTP_backup_conf=json_decode($FTP_backup_conf) or die("Server: JSON Decode of FTP_backup_conf failed");
+						$FTP_backup_conf=json_decode($FTP_backup_conf);
+						if($FTP_backup_conf === false)
+						{
+							exec("rm -f $opc_ua_config_dir/FTP_backup_conf.json");
+							die("Server: JSON Decode of FTP_backup_conf failed\n FTP_backup_conf.json removed!!!");
+						}
 						if(isset($FTP_backup_conf->addr, $FTP_backup_conf->username, $FTP_backup_conf->password))
 						{
 							$currConfig->FTP_backup_server = new stdClass();
