@@ -354,7 +354,10 @@ xhttp.onreadystatechange = function()
 			}
 		}
 		else
+		{
 			alert(this.responseText);
+			location.reload(true);
+		}
 	}
 	else if(this.status == 500)
 		alert("FATAL Error on server!!!");
