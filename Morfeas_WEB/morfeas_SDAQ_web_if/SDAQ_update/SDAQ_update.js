@@ -27,7 +27,7 @@ function SDAQ_fw_upload(SDAQnet, SDAQaddr)
 	const fileList = document.getElementById('SDAQ_fw_upload').files;
 	const reader = new FileReader();
 	reader.onerror = function(){alert("File Read Error!!!");};
-	
+
 	if(!SDAQnet || !SDAQaddr)
 		return;
 	if(fileList.length)

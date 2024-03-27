@@ -241,6 +241,16 @@ for the JavaScript code in this page.
 				point_elem_inp.value = SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Points[SDAQ_point_name][SDAQ_point_type];
 				cell.appendChild(point_elem_inp);
 			}
+			let btn_cell = new_point_row.insertCell();
+			var point_elem_calc_btn = document.createElement('button');
+			point_elem_calc_btn.textContent = 'Calc';
+			if(i>=SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Used_Points)
+				point_elem_calc_btn.disabled = true;
+			btn_cell.onclick = function()
+			{
+				alert("Under construction!!!");
+			};
+			btn_cell.appendChild(point_elem_calc_btn);
 			i++;
 		}
 	}
