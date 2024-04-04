@@ -74,6 +74,7 @@ through which recipients can access the Corresponding Source.
 for the JavaScript code in this page.
 */
 	"use strict";
+	var calc_wins = [];
 	document.getElementById("status").value = "Init";
 	var SDAQ_units, SDAQ_cal_data, SDAQ_cal_data_curr, SDAQnet=getUrlParam("SDAQnet"), SDAQaddr=getUrlParam("SDAQaddr");
 	if(!SDAQnet||!SDAQaddr)
@@ -248,7 +249,9 @@ for the JavaScript code in this page.
 				point_elem_calc_btn.disabled = true;
 			btn_cell.onclick = function()
 			{
-				alert("Under construction!!!");
+				let calc_win = PopupCenter("./Calc.html?q="+makeid(), "", "410", "170");
+				calc_wins.parent_row = new_point_row;
+				calc_wins.push(calc_win);
 			};
 			btn_cell.appendChild(point_elem_calc_btn);
 			i++;
@@ -345,6 +348,15 @@ for the JavaScript code in this page.
 		SDAQ_cal_xml_xhttp.open("POST", "/morfeas_php/morfeas_SDAQnet_proxy.php");
 		SDAQ_cal_xml_xhttp.send(compress(post_new_SDAQ_cal));
 	}
+	//Close popup windows
+	function close_all_popup()
+	{
+		if(calc_wins.length)
+			for(let i=0; i<calc_wins.length; i++)
+				if(!calc_wins[i].closed)
+					calc_wins[i].close();
+	};
+	window.onbeforeunload = close_all_popup;
 //@license-end
 </script>
 </html>
