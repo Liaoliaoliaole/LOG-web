@@ -6,7 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
-<title>Morfeas SDAQ Portal</title>
+<title>Morfeas SDAQ Portal Calibration table</title>
 </head>
 <body>
 	Status:<input id="status" style="text-align:center;" type="textbox" size="50" value="Init" readonly>
@@ -249,9 +249,20 @@ for the JavaScript code in this page.
 				point_elem_calc_btn.disabled = true;
 			btn_cell.onclick = function()
 			{
-				let calc_win = PopupCenter("./Calc.html?q="+makeid(), "", "410", "170");
-				calc_wins.parent_row = new_point_row;
-				calc_wins.push(calc_win);
+				let i;
+				for(i=0;i<calc_wins.length;i++)
+				{
+					if(!(calc_wins[i].closed) && calc_wins[i].location && calc_wins[i].location.href.includes(SDAQ_point_name))
+						break;
+				}
+				if(i==calc_wins.length)
+				{
+					let calc_win = PopupCenter("./Calc.html?q="+makeid()+"&p="+SDAQ_point_name, "", "425", "200");
+					calc_win.point_row = new_point_row;
+					calc_wins.push(calc_win);
+				}
+				else
+					calc_wins[i].focus();
 			};
 			btn_cell.appendChild(point_elem_calc_btn);
 			i++;

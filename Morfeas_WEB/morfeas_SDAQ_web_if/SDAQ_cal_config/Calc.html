@@ -6,29 +6,43 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <link rel="shortcut icon" type="image/x-icon" href="/art/Morfeas_logo_yellow.ico"/>
-<title>Morfeas SDAQ Scaling Calculator</title>
+<title>Morfeas SDAQ Scaling for </title>
 </head>
 <body>
-	<table id="SDAQ_info_tbl"></table>
-	<div id="SDAQ_calibration_tables">
-		<table>
-			<tr>
-				<td>
-					<label for="Cal_date">Calibration Date:</label>
-					<input type="date" id="Cal_date" name="Cal_date" max="2255-12-31" min="2000-01-01" oninput="cal_date_reg(this)">
-				</td>
-				<td>
-					<label for="period">Re-Calibration Period (Months):</label>
-					<input type="number" id="period" name="period" max="255" min="1" size="3" onchange="cal_period_reg(this)">
-				</td>
-			</tr>
-		</table>
-		<span title="Save calibration of all channels">
-			<button type="button" onclick="save()">Send</button>
-		</span>
-	</div>
+	<table style=" margin-left: auto; margin-right: auto; text-align:center; vertical-align:middle;">
+		<tr>
+			<td>Base</td>
+			<td>to</td>
+			<td>Target</td>
+		</tr>
+		<tr>
+			<td>
+				<input type="text" id="base_min" name="scale_val" size="6" value=0 onchange="number_val(this)">
+			</td>
+			<td>→</td>
+			<td>
+				<input type="text" id="target_min" name="scale_val" size="6" value=0 onchange="number_val(this)">
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<input type="text" id="base_max" name="scale_val" size="6" value=0 onchange="number_val(this)">
+			</td>
+			<td>→</td>
+			<td>
+				<input type="text" id="target_max" name="scale_val" size="6" value=0 onchange="number_val(this)">
+			</td>
+		</tr>
+		<tr>
+			<td colspan="3">
+				<span title="Send scaling to point">
+					<button type="button" onclick="send()">Send</button>
+				</span>
+			</td>
+		</tr>
+	</table>
 	<footer style="bottom:0;width:99%;">
-		<p>Author: Sam Harry Tzavaras &#169; 12023-12024<br>
+		<p>Author: Sam Harry Tzavaras &#169; 12024-12025<br>
 		<a href="../../LICENSE">License: AGPLv3</a><br>
 	</footer>
 </body>
@@ -39,7 +53,7 @@
 @licstart  The following is the entire license notice for the
 JavaScript code in this page.
 
-Copyright (C) 12019-12021  Sam Harry Tzavaras
+Copyright (C) 12024-12025  Sam Harry Tzavaras
 
 The JavaScript code in this page is free software: you can
 redistribute it and/or modify it under the terms of the GNU
@@ -59,7 +73,41 @@ through which recipients can access the Corresponding Source.
 for the JavaScript code in this page.
 */
 	"use strict";
-	//var parent_row;
+	var point_row, point_name = getUrlParam('p');
+	if(typeof point_row == 'undefined' || typeof point_name == 'undefined')
+		close();
+	document.title += ' '+point_name;
+
+	function number_val(val)
+	{
+		if(isNaN(val.value))
+		{
+			val.value=parseFloat(val.value);
+			if(isNaN(val.value))
+				val.value=0;
+		}
+	}
+	function send()
+	{
+		var base_min=parseFloat(document.getElementById("base_min").value),
+			base_max=parseFloat(document.getElementById("base_max").value),
+			target_min=parseFloat(document.getElementById("target_min").value),
+			target_max=parseFloat(document.getElementById("target_max").value);
+		var offset,gain;
+
+		gain=(target_max-target_min)/(base_max-base_min);
+		offset=target_min-gain*base_min;
+		if(!isNaN(gain)&&!isNaN(offset))
+		{
+			point_row.children[1].children[0].value = target_max;
+			point_row.children[2].children[0].value = 0;
+			point_row.children[3].children[0].value = offset;
+			point_row.children[4].children[0].value = gain;
+			close();
+		}
+		else
+			alert("Calculation failed!!!");
+	}
 //@license-end
 </script>
 </html>
