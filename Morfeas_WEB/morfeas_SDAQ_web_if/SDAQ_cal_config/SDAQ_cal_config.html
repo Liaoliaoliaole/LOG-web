@@ -34,11 +34,8 @@
 			</tr>
 		</table>
 		<table id="SDAQ_cal_points_tbl"></table>
-		<!--<span title="Save current channel's calibration">
-			<button type="button" onclick="save(document.getElementById('CHs').value)">Save</button>
-		</span>-->
 		<span title="Save calibration of all channels">
-			<button type="button" onclick="save()">Save All</button>
+			<button type="button" onclick="save()">Save</button>
 		</span>
 	</div>
 	<footer style="bottom:0;width:99%;">
@@ -76,17 +73,18 @@ for the JavaScript code in this page.
 	"use strict";
 	var calc_wins = [];
 	document.getElementById("status").value = "Init";
-	var SDAQ_units, SDAQ_cal_data, SDAQ_cal_data_curr, SDAQnet=getUrlParam("SDAQnet"), SDAQaddr=getUrlParam("SDAQaddr");
+	var SDAQ_units, SDAQs_logstat, SDAQ_cal_data, SDAQ_cal_data_curr, SDAQnet=getUrlParam("SDAQnet"), SDAQaddr=getUrlParam("SDAQaddr");
 	if(!SDAQnet||!SDAQaddr)
 	{
 		alert("Parameters of GET request missing!!!!");
 		window.close();
 	}
 	//AJAX response handler
-	var SDAQ_units_xhttp = new XMLHttpRequest(), SDAQ_cal_xml_xhttp = new XMLHttpRequest();
-	SDAQ_units_xhttp.timeout = 5000; SDAQ_cal_xml_xhttp.timeout = SDAQ_units_xhttp.timeout;
+	var SDAQ_units_xhttp = new XMLHttpRequest(), SDAQ_cal_xml_xhttp = new XMLHttpRequest(), SDAQ_data_xhttp = new XMLHttpRequest();
+	SDAQ_units_xhttp.timeout = 5000; SDAQ_cal_xml_xhttp.timeout = SDAQ_units_xhttp.timeout = SDAQ_data_xhttp.timeout;
 	SDAQ_units_xhttp.onreadystatechange = xhttp_onreadystatechange; SDAQ_cal_xml_xhttp.onreadystatechange = xhttp_onreadystatechange;
-	SDAQ_units_xhttp.ontimeout = xhttp_timeout; SDAQ_cal_xml_xhttp.ontimeout = xhttp_timeout;
+	SDAQ_data_xhttp.onreadystatechange = xhttp_onreadystatechange;
+	SDAQ_units_xhttp.ontimeout = xhttp_timeout; SDAQ_cal_xml_xhttp.ontimeout = xhttp_timeout; SDAQ_units_xhttp.ontimeout = xhttp_timeout;
 
 	function xhttp_timeout(){document.getElementById("status").value = "Connection Timeout";};
 	function xhttp_onreadystatechange()
@@ -95,6 +93,29 @@ for the JavaScript code in this page.
 		{
 			switch(this.getResponseHeader("Content-Type"))
 			{
+				case "application/json":
+					try{SDAQs_logstat = JSON.parse(this.responseText);}
+					catch(e){
+						document.getElementById("status").value = "Error: " + e.message;
+						break;
+					}
+					if(SDAQs_logstat.SDAQs_data.length)
+					{
+						let sel_CH = (document.getElementById("CHs").selectedIndex)-1,
+							SDAQ_point_name = get_location_UrlParam(this.responseURL, "p");
+						for(let i=0; i<SDAQs_logstat.SDAQs_data.length; i++)
+						{
+							if(SDAQs_logstat.SDAQs_data[i].Address==SDAQaddr)
+							{
+								let SDAQ_meas_avg = SDAQs_logstat.SDAQs_data[i].Meas[sel_CH].Meas_avg;
+								console.log(SDAQ_meas_avg);
+								//TODO set value to correct Point.
+								break;
+							}
+						}
+						console.log(SDAQ_point_name);
+					}
+					break;
 				case "Morfeas_SDAQ_units/json":
 					try{SDAQ_units = JSON.parse(this.responseText);}
 					catch(e){
@@ -242,12 +263,21 @@ for the JavaScript code in this page.
 				point_elem_inp.value = SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Points[SDAQ_point_name][SDAQ_point_type];
 				cell.appendChild(point_elem_inp);
 			}
-			let btn_cell = new_point_row.insertCell();
-			var point_elem_calc_btn = document.createElement('button');
+			//Add Call and zero buttons.
+			let btn_calc_cell = new_point_row.insertCell(),
+				btn_zero_cell = new_point_row.insertCell(),
+			    point_elem_calc_btn = document.createElement('button'),
+			    point_elem_zero_btn = document.createElement('button');
 			point_elem_calc_btn.textContent = 'Calc';
+			point_elem_calc_btn.title = "     Two point scaling\nCalculation for "+SDAQ_point_name;
+			point_elem_zero_btn.textContent = 'Zero';
+			point_elem_zero_btn.title = "Set offset via meas for "+SDAQ_point_name+"\n   (Must Save calc before zero)";
 			if(i>=SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Used_Points)
+			{
 				point_elem_calc_btn.disabled = true;
-			btn_cell.onclick = function()
+				point_elem_zero_btn.disabled = true;
+			}
+			btn_calc_cell.onclick = function()
 			{
 				let i;
 				for(i=0;i<calc_wins.length;i++)
@@ -264,7 +294,13 @@ for the JavaScript code in this page.
 				else
 					calc_wins[i].focus();
 			};
-			btn_cell.appendChild(point_elem_calc_btn);
+			btn_zero_cell.onclick = function()
+			{	//Request SDAQs data
+				SDAQ_cal_xml_xhttp.open("GET", "/ramdisk/logstat_SDAQs_"+SDAQnet+".json"+"?q="+makeid()+"&p="+SDAQ_point_name, true);
+				SDAQ_cal_xml_xhttp.send();
+			};
+			btn_calc_cell.appendChild(point_elem_calc_btn);
+			btn_zero_cell.appendChild(point_elem_zero_btn);
 			i++;
 		}
 	}

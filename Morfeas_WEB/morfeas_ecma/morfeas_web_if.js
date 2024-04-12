@@ -35,7 +35,7 @@ function morfeas_opcua_logger_colorizer(inp)
 	if(inp === undefined)
 		return;
 	ret = inp;
-	ret = ret.replace(/\n/g, "<br>");//tag /n as <br>
+	ret = ret.replace(/\n/g, "<br>");//tag \n as <br>
 	ret = ret.replace(/\x1b\[0m/g, "</a>");
 	ret = ret.replace(/\x1b\[31m/g, "<a style=\"color:red\">");
 	ret = ret.replace(/\x1b\[32m/g, "<a style=\"color:green\">");

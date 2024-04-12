@@ -11,7 +11,7 @@
 <body>
 	<table style=" margin-left: auto; margin-right: auto; text-align:center; vertical-align:middle;">
 		<tr>
-			<td>Base</td>
+			<td>Signal</td>
 			<td>to</td>
 			<td>Target</td>
 		</tr>
@@ -100,9 +100,13 @@ for the JavaScript code in this page.
 		if(!isNaN(gain)&&!isNaN(offset))
 		{
 			point_row.children[1].children[0].value = target_max;
+			point_row.children[1].children[0].onchange()
 			point_row.children[2].children[0].value = 0;
+			point_row.children[2].children[0].onchange()
 			point_row.children[3].children[0].value = offset;
+			point_row.children[3].children[0].onchange()
 			point_row.children[4].children[0].value = gain;
+			point_row.children[4].children[0].onchange()
 			close();
 		}
 		else

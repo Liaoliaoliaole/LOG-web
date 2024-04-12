@@ -41,6 +41,20 @@ function getUrlParam(parameter)
         return getUrlVars()[parameter];
 }
 
+function get_location_UrlParam(location, parameter)
+{
+    function getUrlVars()
+	{
+		var vars = {};
+		var parts = location.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+			vars[key] = value;
+		});
+		return vars;
+	}
+    if(location.indexOf(parameter) > -1)
+        return getUrlVars()[parameter];
+}
+
 function PopupCenter(url, title, w, h)
 {
 	// Fixes dual-screen position
