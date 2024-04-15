@@ -51,7 +51,7 @@
 @licstart  The following is the entire license notice for the
 JavaScript code in this page.
 
-Copyright (C) 12019-12021  Sam Harry Tzavaras
+Copyright (C) 12019-12025  Sam Harry Tzavaras
 
 The JavaScript code in this page is free software: you can
 redistribute it and/or modify it under the terms of the GNU
@@ -107,13 +107,21 @@ for the JavaScript code in this page.
 						{
 							if(SDAQs_logstat.SDAQs_data[i].Address==SDAQaddr)
 							{
-								let SDAQ_meas_avg = SDAQs_logstat.SDAQs_data[i].Meas[sel_CH].Meas_avg;
-								console.log(SDAQ_meas_avg);
-								//TODO set value to correct Point.
+								let SDAQ_meas_avg = SDAQs_logstat.SDAQs_data[i].Meas[sel_CH].Meas_avg,
+									Point_row = document.getElementById("SDAQ_cal_points_tbl").childNodes[7];//.childNodes[1].childNodes[0].innerText;
+								for(let j=0; j<Point_row.children.length; j++)
+								{
+									if(Point_row.childNodes[j].childNodes[0].innerText === SDAQ_point_name)
+									{
+										let offset_cell = Point_row.childNodes[j].childNodes[3].children[0];
+										offset_cell.value = parseFloat(offset_cell.value)-Math.round(SDAQ_meas_avg*10000)/10000 ;
+										offset_cell.onchange();
+										break;
+									}
+								}
 								break;
 							}
 						}
-						console.log(SDAQ_point_name);
 					}
 					break;
 				case "Morfeas_SDAQ_units/json":
@@ -162,7 +170,6 @@ for the JavaScript code in this page.
 						new_opt.text = i;
 						CHs.options.add(new_opt);
 					}
-					//console.log(SDAQ_cal_data);
 					break;
 				case "report/text":
 					alert(this.responseText);
@@ -269,9 +276,11 @@ for the JavaScript code in this page.
 			    point_elem_calc_btn = document.createElement('button'),
 			    point_elem_zero_btn = document.createElement('button');
 			point_elem_calc_btn.textContent = 'Calc';
-			point_elem_calc_btn.title = "     Two point scaling\nCalculation for "+SDAQ_point_name;
+			point_elem_calc_btn.title = "Two point scaling Calculation for "+SDAQ_point_name+
+									    "\n               (Must Save to take effect)";
 			point_elem_zero_btn.textContent = 'Zero';
-			point_elem_zero_btn.title = "Set offset via meas for "+SDAQ_point_name+"\n   (Must Save calc before zero)";
+			point_elem_zero_btn.title = "Calc offset via meas for "+SDAQ_point_name+
+										"\n    (Must Save to take effect)";
 			if(i>=SDAQ_cal_data.SDAQ.Calibration_Data["CH"+CH_num].Used_Points)
 			{
 				point_elem_calc_btn.disabled = true;

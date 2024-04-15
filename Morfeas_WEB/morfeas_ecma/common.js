@@ -27,20 +27,6 @@ function comp_check()
 	}
 }
 
-function getUrlParam(parameter)
-{
-    function getUrlVars()
-	{
-		var vars = {};
-		var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
-			vars[key] = value;
-		});
-		return vars;
-	}
-    if(window.location.href.indexOf(parameter) > -1)
-        return getUrlVars()[parameter];
-}
-
 function get_location_UrlParam(location, parameter)
 {
     function getUrlVars()
@@ -53,6 +39,11 @@ function get_location_UrlParam(location, parameter)
 	}
     if(location.indexOf(parameter) > -1)
         return getUrlVars()[parameter];
+}
+
+function getUrlParam(parameter)
+{
+   return get_location_UrlParam(window.location.href, parameter);
 }
 
 function PopupCenter(url, title, w, h)
