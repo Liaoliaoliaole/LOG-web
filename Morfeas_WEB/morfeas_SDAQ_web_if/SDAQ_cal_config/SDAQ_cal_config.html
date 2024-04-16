@@ -387,6 +387,12 @@ for the JavaScript code in this page.
 	}
 	function save(Channel)
 	{
+		let error;
+		if((error = SDAQ_cal_data_error(SDAQ_cal_data)))
+		{
+			alert(error);
+			return;
+		}
 		let post_new_SDAQ_cal = SDAQ_cal_data_diff(SDAQ_cal_data, SDAQ_cal_data_curr);
 		if(Channel && post_new_SDAQ_cal)
 		{

@@ -3,7 +3,7 @@
 @licstart  The following is the entire license notice for the
 JavaScript code in this page.
 
-Copyright (C) 12019-12021  Sam Harry Tzavaras
+Copyright (C) 12019-12025  Sam Harry Tzavaras
 
 The JavaScript code in this page is free software: you can
 redistribute it and/or modify it under the terms of the GNU
@@ -46,6 +46,11 @@ function SDAQ_cal_XML2obj(SDAQ_cal_xml)
 		}
 	}
 	return data;
+}
+
+function SDAQ_cal_data_error(SDAQ_cal_data_new, SDAQ_cal_data_current)
+{
+	return;
 }
 
 function SDAQ_cal_data_diff(SDAQ_cal_data_new, SDAQ_cal_data_current)
