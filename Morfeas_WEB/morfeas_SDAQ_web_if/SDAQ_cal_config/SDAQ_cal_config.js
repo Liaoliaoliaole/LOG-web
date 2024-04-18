@@ -48,8 +48,24 @@ function SDAQ_cal_XML2obj(SDAQ_cal_xml)
 	return data;
 }
 
-function SDAQ_cal_data_error(SDAQ_cal_data_new, SDAQ_cal_data_current)
+function SDAQ_cal_data_error(SDAQ_cal_data_new)
 {
+	if(!SDAQ_cal_data_new)
+		return;
+	for(let i=1; i<=SDAQ_cal_data_new.SDAQ.SDAQ_info.Available_Channels; i++)
+	{
+		if(eval("SDAQ_cal_data_new.SDAQ.Calibration_Data.CH"+i+".Used_Points")>1)
+		{
+			for(let j=1; j<=eval("SDAQ_cal_data_new.SDAQ.Calibration_Data.CH"+i+".Used_Points"); j++)
+			{
+				let prev_Point_meas = parseFloat(eval("SDAQ_cal_data_new.SDAQ.Calibration_Data.CH"+i+".Points.Point_"+(j-1)+".Measure")),
+					curr_Point_meas = parseFloat(eval("SDAQ_cal_data_new.SDAQ.Calibration_Data.CH"+i+".Points.Point_"+j+".Measure"));
+				console.log(prev_Point_meas, curr_Point_meas);
+				if(curr_Point_meas < prev_Point_meas)
+					return "ERROR: Points of CH"+i+" are not in ascending order!!!";
+			}
+		}
+	}
 	return;
 }
 
