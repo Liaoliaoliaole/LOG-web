@@ -56,7 +56,7 @@ function SDAQ_cal_data_error(SDAQ_cal_data_new)
 	{
 		if(eval("SDAQ_cal_data_new.SDAQ.Calibration_Data.CH"+i+".Used_Points")>1)
 		{
-			for(let j=1; j<=eval("SDAQ_cal_data_new.SDAQ.Calibration_Data.CH"+i+".Used_Points"); j++)
+			for(let j=1; j<eval("SDAQ_cal_data_new.SDAQ.Calibration_Data.CH"+i+".Used_Points"); j++)
 			{
 				let prev_Point_meas = parseFloat(eval("SDAQ_cal_data_new.SDAQ.Calibration_Data.CH"+i+".Points.Point_"+(j-1)+".Measure")),
 					curr_Point_meas = parseFloat(eval("SDAQ_cal_data_new.SDAQ.Calibration_Data.CH"+i+".Points.Point_"+j+".Measure"));
