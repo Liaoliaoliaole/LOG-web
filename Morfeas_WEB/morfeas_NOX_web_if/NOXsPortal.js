@@ -133,7 +133,7 @@ function ws_info(evt)
 function doSend()
 {
 	if(NOx_if_ws.readyState===NOx_if_ws.OPEN)
-		NOx_if_ws.send("getMeas");
+		NOx_if_ws.send("getMeasRAW");
 }
 
 function play_pause()
