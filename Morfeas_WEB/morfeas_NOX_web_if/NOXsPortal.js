@@ -44,6 +44,7 @@ var	graph_options = {
 	ylabel: "NOX(ppm)",
 	y2label: "O2 (%)",
 	legend: "never",
+	axisLabelWidth: 60,
 	zoomCallback: function(minX, maxX, yRanges) {
 
 		if(!data_buff.length || (minX >= maxX))
