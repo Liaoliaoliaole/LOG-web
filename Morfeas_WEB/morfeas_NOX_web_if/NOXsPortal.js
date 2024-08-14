@@ -98,6 +98,7 @@ function init_websocket(wsUri)
 function onOpen(evt)
 {
 	init_graph();
+	NOx_if_ws.send("getMeasRAW");
 	ws_timer = setInterval(function(){doSend();},100);
 }
 function onMessage(evt)
