@@ -129,19 +129,26 @@ button{width:100px;}
 		</td>
 	  </tr>
 	  <tr>
-		<td colspan="3"></td>
+		<td colspan="2"></td>
+		<td><button type="button" onclick='update_system()'>
+    		<span title="System Update">
+        		<img src="./art/update.png" class="bsize">
+        		<p><b>System<br>Update</b></p>
+    		</span>
+		</button></td>
 		<td><button type="button" onclick='reboot()'>
 			<span title="Reboot">
 				<img src="./art/reboot.png" class="bsize">
 				<p><b>System<br>Reboot</b></p>
 			</span>
-		</td>
+		</button></td>
 		<td><button type="button" onclick='shutdown()'>
 			<span title="Shutdown">
 				<img src="./art/shutdown.png" class="bsize">
 				<p><b>System<br>Shutdown</b></p>
 			</span>
-		</td>
+		</button></td>
+		<td colspan="1"></td>
 	  </tr>
 	</table>
 </div>
@@ -224,6 +231,26 @@ document.onkeydown = function(key){
 	else if(key.key === "Escape")
 		hide_portals_list();
 };
+
+function update_system()
+{
+    if (confirm("System will start update. Continue?")) {
+        var xhttp = new XMLHttpRequest();
+        xhttp.open("POST", "../morfeas_php/config.php", true);
+        xhttp.setRequestHeader("Content-type", "update"); // Custom header to identify action
+        xhttp.onreadystatechange = function () {
+            if (xhttp.readyState === 4) {
+                if (xhttp.status === 200) {
+                    alert("Update started successfully.");
+                } else {
+                    alert("Failed to initiate update. Please check logs.");
+                }
+            }
+        };
+        xhttp.send();
+    }
+}
+
 function shutdown()
 {
 	if(confirm("System going to shutdown"))

@@ -623,6 +623,10 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			case "shutdown":
 				exec('sudo poweroff');
 				return;
+			case "update":
+				exec('sudo /var/www/html/morfeas_web/update.sh > /dev/null 2>&1 &');
+    			echo '{"report":"Update started"}';
+    			return;
 		}
 	}
 	http_response_code(404);
