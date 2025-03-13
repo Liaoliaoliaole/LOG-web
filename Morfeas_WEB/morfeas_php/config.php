@@ -625,9 +625,10 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				return;
 			case "update":
 				$date = date('Y-m-d_H-i-s');
-				$cmd  = "sudo /var/www/html/morfeas_web/update.sh > /var/log/LOG_update_{$date}.log 2>&1 &";
-				exec($cmd);
-    			echo '{"report":"Update started"}';
+				$cmd  = "sudo /var/www/html/morfeas_web/update.sh > /var/log/LOG_update_{$date}.log 2>&1";
+				$output = shell_exec($cmd);
+    			header('Content-Type: application/json');
+    			echo json_encode(["report" => "Update completed", "output" => $output]);
     			return;
 		}
 	}

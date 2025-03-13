@@ -232,18 +232,18 @@ document.onkeydown = function(key){
 		hide_portals_list();
 };
 
-function update_system()
-{
+function update_system() {
     if (confirm("System will start update. Continue?")) {
+        alert("Please wait, updating...");
         var xhttp = new XMLHttpRequest();
         xhttp.open("POST", "../morfeas_php/config.php", true);
-        xhttp.setRequestHeader("Content-type", "update"); // Custom header to identify action
+        xhttp.setRequestHeader("Content-type", "update");
         xhttp.onreadystatechange = function () {
             if (xhttp.readyState === 4) {
                 if (xhttp.status === 200) {
-                    alert("Update started successfully.");
+                    alert("Update completed successfully.\n\n" + xhttp.responseText);
                 } else {
-                    alert("Failed to initiate update. Please check logs.");
+                    alert("Failed to update. Please check logs.");
                 }
             }
         };
