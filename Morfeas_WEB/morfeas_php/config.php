@@ -627,6 +627,9 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$date = date('Y-m-d_H-i-s');
 				$cmd  = "sudo /var/www/html/morfeas_web/update.sh 2>&1";
 				$output = shell_exec($cmd);
+
+				file_put_contents("/tmp/LOG_update_{$date}.log",$output);
+
     			header('Content-Type: application/json');
     			echo json_encode(["report" => "Update completed", "output" => $output]);
     			return;
