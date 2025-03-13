@@ -243,7 +243,7 @@ function update_system() {
                 if (xhttp.status === 200) {
                     alert("Update completed successfully.\n\n" + xhttp.responseText);
                 } else {
-                    alert("Failed to update. Please check logs.");
+                    alert("Failed to update. Please check logs in /tmp/log_update.log.");
                 }
             }
         };
