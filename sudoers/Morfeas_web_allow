@@ -6,7 +6,8 @@ Cmnd_Alias ALLOW_PASSWORDLESS = /sbin/ip,\
                                 /bin/hostname,\
                                 /sbin/poweroff,\
                                 /usr/bin/make install,\
-                                /sbin/reboot
+                                /sbin/reboot,\
+                                /var/www/html/morfeas_web/update.sh
 
 www-data ALL = (ALL) NOPASSWD: ALLOW_PASSWORDLESS
 
