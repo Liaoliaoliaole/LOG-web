@@ -296,10 +296,8 @@ function update_system() {
             return;
         }
 
-        // If update available, confirm
         if (!confirm("Update available. Do you want to update now?")) return;
 
-        // Show update progress
         alert("Updating... Please wait.");
 
         // Trigger update
