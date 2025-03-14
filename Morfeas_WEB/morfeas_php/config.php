@@ -625,14 +625,10 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				return;
 			case "check_update":
 				$cmd_check = "sudo /var/www/html/morfeas_web/update.sh --check-only 2>&1";
-				exec($cmd_check, $output, $return_var);
-			
-				$debug = $output;
-			
-				$update_needed = ($return_var === 100);
-			
-				$message = $update_needed ? "Update available." : "System is already up-to-date.";
-			
+				exec($cmd_check, $output, $return_var);			
+				$debug = $output;			
+				$update_needed = ($return_var === 100);			
+				$message = $update_needed ? "Update available." : "System is already up-to-date.";			
 				header('Content-Type: application/json');
 				echo json_encode([
 					"update" => $update_needed,
@@ -645,7 +641,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$cmd  = "sudo /var/www/html/morfeas_web/update.sh 2>&1";
 				exec($cmd, $output, $return_var);			
 				$final_output = implode("\n", $output);			
-				file_put_contents("/tmp/log_update_$date.log", $final_output);			
+				file_put_contents("/var/log/morfeas_update_$date.log", $final_output);			
 				header('Content-Type: application/json');
 				echo json_encode([
 					"report" => $return_var === 0 ? "Update completed" : "Update failed",
