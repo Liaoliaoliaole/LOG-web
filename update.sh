@@ -26,10 +26,10 @@ if [ -d "$MORFEAS_CORE_DIR" ]; then
     make clean && make -j"$(nproc)" || { echo "❌ Error: Compilation failed."; exit 1; }
 
     print_status "Installing Morfeas Core..."
-    make install || { echo "❌ Error: Installation failed."; exit 1; }
+    sudo make install || { echo "❌ Error: Installation failed."; exit 1; }
 
     print_status "Restarting Morfeas Daemon..."
-    systemctl restart Morfeas_system || { echo "❌ Error: Failed to restart Morfeas daemon."; exit 1; }
+    sudo systemctl restart Morfeas_system || { echo "❌ Error: Failed to restart Morfeas daemon."; exit 1; }
 
 else
     echo "❌ Error: Directory $MORFEAS_CORE_DIR does not exist."
@@ -55,7 +55,7 @@ fi
 # Restart Apache2 (Web server)
 # ---------------------------
 print_status "Restarting Apache2 Web Server..."
-systemctl restart apache2 || { echo "❌ Error: Failed to restart Apache2."; exit 1; }
+sudo systemctl restart apache2 || { echo "❌ Error: Failed to restart Apache2."; exit 1; }
 
 # ---------------------------
 # Update Complete
