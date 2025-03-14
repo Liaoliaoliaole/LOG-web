@@ -84,27 +84,13 @@ if($requestType == "GET")
 				}
 				return;
 			case "loggers":
-				// if($loggers = array_diff(scandir($ramdisk_path . "Morfeas_Loggers"), array('..', '.')))
-				// {
-				// 		$loggers = array_values($loggers);// restore array order
-				// 		$loggers_names = new stdClass();
-				// 		$loggers_names->Logger_names = $loggers;
-				// 		header('Content-Type: application/json');
-				// 		echo json_encode($loggers_names);
-				// }
 				if($loggers = array_diff(scandir($ramdisk_path . "Morfeas_Loggers"), array('..', '.')))
 				{
-					$update_logs = array_filter($loggers, function($log) {
-						return preg_match('/^Morfeas_update_.*\.log$/', $log);
-					});
-					$system_logs = array_diff($loggers, $update_logs);
-			
-					$logger_names = [
-						"Logger_names" => array_values($system_logs), 
-						"Update_logs" => array_values($update_logs) // <-- Add update logs here
-					];
-					header('Content-Type: application/json');
-					echo json_encode($logger_names);
+						$loggers = array_values($loggers);// restore array order
+						$loggers_names = new stdClass();
+						$loggers_names->Logger_names = $loggers;
+						header('Content-Type: application/json');
+						echo json_encode($loggers_names);
 				}
 				return;
 			case "get_logger_if_updated":
