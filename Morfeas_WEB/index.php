@@ -292,9 +292,6 @@ document.onkeydown = function(key){
     });
 }
 
-// ------------------------------
-// Function to periodically ping system until it comes back online
-// ------------------------------
 function waitForServerRecovery() {
     const pingInterval = 2000; // Check every 2 seconds
     const maxAttempts = 60;
@@ -320,41 +317,36 @@ function waitForServerRecovery() {
 } */
 
 function update_system() {
-    if (window.updateInProgress) return; // Prevent double-click
-
+    if (window.updateInProgress) return; // Prevent double-trigger
     window.updateInProgress = true;
-    let updateButton = document.querySelector('button[onclick="update_system()"]');
-    let originalText = updateButton.innerHTML;
 
-    // Create or update status div
-    let statusDiv = document.getElementById('update-status');
-    if (!statusDiv) {
-        statusDiv = document.createElement('div');
-        statusDiv.id = 'update-status';
-        statusDiv.style.position = 'fixed';
-        statusDiv.style.bottom = '10px';
-        statusDiv.style.left = '10px';
-        statusDiv.style.padding = '10px';
-        statusDiv.style.backgroundColor = '#ffffcc';
-        statusDiv.style.border = '1px solid #cccccc';
-        statusDiv.style.zIndex = '9999';
-        document.body.appendChild(statusDiv);
+    // Add overlay to block interaction and show status
+    let overlay = document.createElement('div');
+    overlay.id = 'update-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = 0;
+    overlay.style.left = 0;
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.background = 'rgba(0, 0, 0, 0.6)';
+    overlay.style.color = 'white';
+    overlay.style.zIndex = '9999';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.fontSize = '20px';
+    overlay.style.textAlign = 'center';
+    overlay.innerHTML = '<div id="update-status-message">Preparing update...</div>';
+    document.body.appendChild(overlay);
+
+    // Helper to update status text
+    function setStatus(msg) {
+        console.log(msg);
+        document.getElementById('update-status-message').innerHTML = msg;
     }
-
-    // Function to update status message
-    function setStatus(message) {
-        console.log(message);
-        statusDiv.innerHTML = `<b>System Update:</b> ${message}`;
-    }
-
-    // Start update process
-    updateButton.innerHTML = "<b>Checking for updates...</b>";
-    updateButton.disabled = true;
-    document.body.style.pointerEvents = "none";
-    document.body.style.opacity = "0.5";
-    setStatus("Checking for updates...");
 
     // Step 1: Check if update is needed
+    setStatus("Checking for updates... Please wait.");
     fetch("../morfeas_php/config.php", {
         method: "POST",
         headers: { "Content-type": "check_update" }
@@ -364,9 +356,8 @@ function update_system() {
         console.log("Check Result:", data);
 
         if (data.update) {
-            setStatus("Update available. Starting update...");
-            
-            // Step 2: Run update
+            setStatus("Update available. Downloading and installing...");
+            // Step 2: Perform the update
             return fetch("../morfeas_php/config.php", {
                 method: "POST",
                 headers: { "Content-type": "update" }
@@ -375,69 +366,61 @@ function update_system() {
             .then(result => {
                 console.log("Update result:", result);
                 setStatus("Update completed successfully. Restarting services...");
-
-                // After short delay, start checking if system comes back online
-                setTimeout(waitForServerRecovery, 5000);
+                setTimeout(waitForServerRecovery, 5000); // Check system back online
             });
         } else {
-            setStatus("System is already up-to-date.");
-            return Promise.resolve("Up-to-date");
+            setStatus("System is already up-to-date. You can continue working.");
+            setTimeout(() => {
+                overlay.remove();
+                window.updateInProgress = false;
+            }, 3000);
         }
     })
     .catch(error => {
-        console.warn("Update process notice:", error);
-
+        console.warn("Update error:", error);
         if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-            setStatus("⚙️ System is rebooting/restarting. Please wait...");
-            waitForServerRecovery(); // Start ping to detect recovery
-        } else if (error.message !== "User canceled update.") {
+            setStatus("⚙️ System is restarting. Please wait...");
+            waitForServerRecovery(); // Check if system comes back
+        } else {
             setStatus("Update failed: " + error.message);
+            setTimeout(() => {
+                overlay.remove();
+                window.updateInProgress = false;
+            }, 5000);
         }
-    })
-    .finally(() => {
-        // Restore button and UI
-        setTimeout(() => {
-            updateButton.innerHTML = originalText;
-            updateButton.disabled = false;
-            document.body.style.pointerEvents = "auto";
-            document.body.style.opacity = "1";
-            window.updateInProgress = false;
-        }, 2000); // Small delay to ensure update flow ends cleanly
     });
 }
 
 // ------------------------------
-// Function to check if system is back online (auto-refresh)
+// Check if server is back online
 // ------------------------------
 function waitForServerRecovery() {
-    const pingInterval = 5000; // Check every 5 seconds
-    const maxAttempts = 20;    // Try up to 20 times
-
+    const pingInterval = 5000; // 5 seconds interval
+    const maxAttempts = 20;    // Try 20 times
     let attempts = 0;
 
-    let statusDiv = document.getElementById('update-status');
-    function setStatus(message) {
-        console.log(message);
-        statusDiv.innerHTML = `<b>System Update:</b> ${message}`;
+    function setStatus(msg) {
+        document.getElementById('update-status-message').innerHTML = msg;
     }
 
     const intervalId = setInterval(() => {
         fetch(window.location.href, { method: 'HEAD', cache: 'no-store' })
             .then(() => {
                 clearInterval(intervalId);
-                setStatus("✅ System is back online. Refreshing...");
-                setTimeout(() => location.reload(), 1000); // Auto-refresh
+                setStatus("System is back online! Reloading...");
+                setTimeout(() => location.reload(), 2000); // Auto-reload
             })
             .catch(() => {
                 attempts++;
-                setStatus(`Waiting for system to recover... Attempt ${attempts}/${maxAttempts}`);
+                setStatus(`🔄 Waiting for system to restart... (Attempt ${attempts}/${maxAttempts})`);
                 if (attempts >= maxAttempts) {
                     clearInterval(intervalId);
-                    setStatus("❌ System did not recover. Please refresh manually.");
+                    setStatus("System did not respond. Please refresh manually.");
                 }
             });
     }, pingInterval);
 }
+
 
 
 function shutdown()
