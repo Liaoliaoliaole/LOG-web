@@ -11,9 +11,19 @@ print_status() {
     echo "======================================"
 }
 
+# Limit to last 5 update logs
+MAX_LOGS=5
+UPDATE_LOGS_DIR="/mnt/ramdisk/Morfeas_Loggers"
+
+# Remove old logs if more than MAX_LOGS exist
+LOG_COUNT=$(ls -1t "$UPDATE_LOGS_DIR"/Morfeas_update_*.log 2>/dev/null | wc -l)
+if [ "$LOG_COUNT" -gt "$MAX_LOGS" ]; then
+    ls -1t "$UPDATE_LOGS_DIR"/Morfeas_update_*.log | tail -n +$((MAX_LOGS + 1)) | xargs rm -f
+fi
+
 # Setup date and log file
 date=$(date +"%Y-%m-%d_%H-%M-%S")
-log_file="/mnt/ramdisk/Morfeas_Loggers/Morfeas_update_$date.log"
+log_file="$UPDATE_LOGS_DIR/Morfeas_update_$date.log"
 
 # Directories
 MORFEAS_WEB_DIR="/var/www/html/morfeas_web"
