@@ -232,116 +232,37 @@ document.onkeydown = function(key){
 		hide_portals_list();
 };
 
-/* function update_system() {
-    if (window.updateInProgress) return;
-    window.updateInProgress = true;
-    let updateButton = document.querySelector('button[onclick="update_system()"]');
-    let originalText = updateButton.innerHTML;
-
-    // Change button text and block UI
-    updateButton.innerHTML = "<b>Checking for update...</b>";
-    updateButton.disabled = true;
-    document.body.style.pointerEvents = "none";
-    document.body.style.opacity = "0.5";
-
-    fetch("../morfeas_php/config.php", {
-        method: "POST",
-        headers: { "Content-type": "check_update" }
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log("Check Result:", data);
-        if (data.update) {
-            if (confirm("Update available. Do you want to update now?")) {
-                alert("System will now update. Please wait...");
-                updateButton.innerHTML = "<b>Updating in progress...</b>";
-
-                return fetch("../morfeas_php/config.php", {
-                    method: "POST",
-                    headers: { "Content-type": "update" }
-                })
-				.then(response => response.json())
-                .then(result => {
-                    alert(result.report + "\n\n" + result.output);
-                });
-            } else {
-                throw new Error("User canceled update.");
-            }
-        } else {
-            alert(data.message);
-            return Promise.resolve("Up-to-date");
-        }
-    })
-	.catch(error => {
-		if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-			alert("System is restarting services to apply updates. Please wait...");
-			waitForServerRecovery();
-		} else {
-			alert("Update failed or canceled:\n" + error);
-		}
-    })
-    .finally(() => {
-        // Always reset button/UI
-        setTimeout(() => {
-            updateButton.innerHTML = originalText;
-            updateButton.disabled = false;
-            document.body.style.pointerEvents = "auto";
-            document.body.style.opacity = "1";
-            window.updateInProgress = false;
-        }, 2000); // slight delay for smoothness
-    });
-}
-
-function waitForServerRecovery() {
-    const pingInterval = 2000; // Check every 2 seconds
-    const maxAttempts = 60;
-
-    let attempts = 0;
-
-    const intervalId = setInterval(() => {
-        fetch(window.location.href, { method: 'HEAD', cache: 'no-store' })
-            .then(() => {
-                clearInterval(intervalId);
-                alert("System is back online! Reloading...");
-                location.reload();
-            })
-            .catch(() => {
-                attempts++;
-                console.log(`Waiting for system to recover... attempt ${attempts}/${maxAttempts}`);
-                if (attempts >= maxAttempts) {
-                    clearInterval(intervalId);
-                    alert("System did not recover. Please refresh manually.");
-                }
-            });
-    }, pingInterval);
-} */
-
 function update_system() {
     if (window.updateInProgress) return; // Prevent double execution
     window.updateInProgress = true;
 
-	let modal = document.createElement('div');
-    modal.id = 'update-modal';
-    modal.style = `
+    // Create overlay
+    let overlay = document.createElement('div');
+    overlay.id = 'update-overlay';
+    overlay.style = `
         position: fixed;
-        top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
-        width: 500px;
-        max-width: 90%;
-        background: white;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(201, 197, 197, 0.6);
         color: black;
-        border: 2px solid black;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
         z-index: 9999;
-        text-align: center;
         font-family: Arial, sans-serif;
-        font-size: 18px;
-        line-height: 1.5;
     `;
-    modal.innerHTML = `<div id="update-status-message">Preparing update check...</div>`;
-    document.body.appendChild(modal);
+    overlay.innerHTML = `
+        <div id="update-status-message" style="
+            background: rgba(201, 197, 197, 0.6); 
+            padding: 20px; 
+            border-radius: 10px;
+            text-align: center;
+            max-width: 90%;
+            font-size: 18px;
+			font-weight: bold;
+            line-height: 1.5;
+        ">Preparing update check...</div>`;
+    document.body.appendChild(overlay);
 
     // Helper to update message
     function setStatus(msg, showButtons = false) {
@@ -363,7 +284,8 @@ function update_system() {
         }
     }
 
-    setStatus("Checking for updates...");
+    // Initial check
+    setStatus("🔍 Checking for updates...");
 
     fetch("../morfeas_php/config.php", {
         method: "POST",
@@ -375,10 +297,10 @@ function update_system() {
 
         if (data.update) {
             // Ask user to choose
-            setStatus("<b>Update available!</b><br>Do you want to update now or later?", true);
+            setStatus("🚀 <b>Update available!</b><br>Do you want to update now or later?", true);
         } else {
             // No update
-            setStatus("System is already up-to-date.");
+            setStatus("✅ System is already up-to-date.");
             setTimeout(() => {
                 overlay.remove();
                 window.updateInProgress = false;
@@ -387,7 +309,7 @@ function update_system() {
     })
     .catch(error => {
         console.error("Error during update check:", error);
-        setStatus("Error checking for updates: " + error.message);
+        setStatus("❌ Error checking for updates: " + error.message);
         setTimeout(() => {
             overlay.remove();
             window.updateInProgress = false;
@@ -396,7 +318,7 @@ function update_system() {
 
     // Function to start update
     function startUpdate() {
-        setStatus("Updating system... Please do not close this window.");
+        setStatus("⚙️ Updating system... Please do not close this window.");
         
         fetch("../morfeas_php/config.php", {
             method: "POST",
@@ -405,16 +327,16 @@ function update_system() {
         .then(response => response.json())
         .then(result => {
             console.log("Update result:", result);
-            setStatus("Update completed. System will restart shortly...");
+            setStatus("✅ Update completed. System will restart shortly...");
             setTimeout(waitForServerRecovery, 5000);
         })
         .catch(error => {
             console.warn("Update error:", error);
             if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-                setStatus("System is restarting. Please wait...");
+                setStatus("⚙️ System is restarting. Please wait...");
                 waitForServerRecovery();
             } else {
-                setStatus("Update failed: " + error.message);
+                setStatus("❌ Update failed: " + error.message);
                 setTimeout(() => {
                     overlay.remove();
                     window.updateInProgress = false;
@@ -425,8 +347,8 @@ function update_system() {
 }
 
 function waitForServerRecovery() {
-    const pingInterval = 2000; // every 2 sec
-    const maxAttempts = 50;
+    const pingInterval = 5000; // every 5 sec
+    const maxAttempts = 20; // retry limit
     let attempts = 0;
 
     function setStatus(msg) {
@@ -437,19 +359,20 @@ function waitForServerRecovery() {
         fetch(window.location.href, { method: 'HEAD', cache: 'no-store' })
             .then(() => {
                 clearInterval(intervalId);
-                setStatus("System is back online! Reloading...");
+                setStatus("✅ System is back online! Reloading...");
                 setTimeout(() => location.reload(), 2000);
             })
             .catch(() => {
                 attempts++;
-                setStatus(`Waiting for system to restart... (Attempt ${attempts}/${maxAttempts})`);
+                setStatus(`🔄 Waiting for system to restart... (Attempt ${attempts}/${maxAttempts})`);
                 if (attempts >= maxAttempts) {
                     clearInterval(intervalId);
-                    setStatus("System did not respond. Please refresh manually.");
+                    setStatus("❌ System did not respond. Please refresh manually.");
                 }
             });
     }, pingInterval);
 }
+
 
 function shutdown()
 {
