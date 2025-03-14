@@ -11,8 +11,8 @@ print_status() {
     echo "======================================"
 }
 
-# Limit to last 5 update logs
-MAX_LOGS=5
+# Limit to last 6 update logs
+MAX_LOGS=6
 UPDATE_LOGS_DIR="/mnt/ramdisk/Morfeas_Loggers"
 
 # Remove old logs if more than MAX_LOGS exist
