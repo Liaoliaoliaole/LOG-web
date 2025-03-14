@@ -296,7 +296,7 @@ function update_system() {
 
         if (!confirm("Update available. Do you want to update now?")) return;
 
-        alert("Updating... Please wait.");
+        alert("Updating... Please wait. Services will restart after update!");
 
         // Trigger update
         fetch("../morfeas_php/config.php", {
@@ -310,7 +310,7 @@ function update_system() {
         })
         .catch(error => {
             console.error("Update Error:", error);
-            alert("Update in progress. Page may reload soon as services restart.");
+            alert("Update started but connection lost due to service restart. Wait and refresh after 10 seconds.");
         });
     })
     .catch(error => {
