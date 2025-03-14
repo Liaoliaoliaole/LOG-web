@@ -270,7 +270,7 @@ function update_system() {
             const buttons = `
                 <br><br>
                 <button id="update-now" style="margin-right: 20px; padding: 10px 20px; font-size: 16px;">Update Now</button>
-                <button id="update-later" style="padding: 10px 20px; font-size: 16px;">Later</button>
+                <button id="update-later" style="margin-right: 20px; padding: 10px 20px; font-size: 16px;">Update Later</button>
             `;
             messageBox.innerHTML += buttons;
 
