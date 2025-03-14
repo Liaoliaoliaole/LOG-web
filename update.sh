@@ -13,7 +13,7 @@ print_status() {
 
 # Setup date and log file
 date=$(date +"%Y-%m-%d_%H-%M-%S")
-log_file="/mnt/ramdisk/Morfeas_Loggers/morfeas_update_$date.log"
+log_file="/mnt/ramdisk/Morfeas_Loggers/Morfeas_update_$date.log"
 
 # Directories
 MORFEAS_WEB_DIR="/var/www/html/morfeas_web"

@@ -121,12 +121,37 @@ function onReady_State_Change()
 			case mode_enum.Loggers_name:
 				var Logger_names = JSON.parse(this.responseText);
 				log_select.options.length = 1;
-				for(var i=0; i < Logger_names.Logger_names.length; i++)
-				{
-					var opt = document.createElement("option");
-					opt.text = Logger_names.Logger_names[i];
-					log_select.add(opt);
-					request_mode = mode_enum.Logger_content;
+				// for(var i=0; i < Logger_names.Logger_names.length; i++)
+				// {
+				// 	var opt = document.createElement("option");
+				// 	opt.text = Logger_names.Logger_names[i];
+				// 	log_select.add(opt);
+				// 	request_mode = mode_enum.Logger_content;
+				// }
+				// System Logs
+				if (Logger_names.Logger_names && Logger_names.Logger_names.length) {
+					var normalGroup = document.createElement("optgroup");
+					normalGroup.label = "System Logs";
+					for (var i = 0; i < Logger_names.Logger_names.length; i++) {
+						var opt = document.createElement("option");
+						opt.text = Logger_names.Logger_names[i];
+						opt.value = Logger_names.Logger_names[i];
+						normalGroup.appendChild(opt);
+					}
+					log_select.appendChild(normalGroup);
+				}
+
+				// Update Logs
+				if (Logger_names.Update_logs && Logger_names.Update_logs.length) {
+					var updateGroup = document.createElement("optgroup");
+					updateGroup.label = "Update Logs";
+					for (var j = 0; j < Logger_names.Update_logs.length; j++) {
+						var optUp = document.createElement("option");
+						optUp.text = Logger_names.Update_logs[j];
+						optUp.value = Logger_names.Update_logs[j];
+						updateGroup.appendChild(optUp);
+					}
+					log_select.appendChild(updateGroup);
 				}
 				break;
 			case mode_enum.Logger_content:
