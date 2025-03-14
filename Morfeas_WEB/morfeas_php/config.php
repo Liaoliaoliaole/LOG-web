@@ -652,7 +652,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				
 					// Determine update status
 					if ($local_rev !== $remote_rev) {
-						$message = "✅ Update available. Your branch is behind.";
+						$message = "Update available. Your branch is behind.";
 						$update_needed = true;
 					} else {
 						$message = "ℹ️ System is already up-to-date.";
@@ -664,7 +664,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					echo json_encode([
 						"update" => $update_needed,
 						"message" => $message,
-						"debug"  => $debug // Include debug messages
+						"debug"  => $debug 
 					]);
 					return;				
 			case "update":
