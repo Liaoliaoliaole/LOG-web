@@ -312,7 +312,7 @@ function update_system() {
         })
         .catch(error => {
             console.error("Update Error:", error);
-            alert("Error during update.");
+            alert("Update in progress. Page may reload soon as services restart.");
         });
     })
     .catch(error => {

@@ -15,7 +15,7 @@ MORFEAS_WEB_DIR="/var/www/html/morfeas_web"
 MORFEAS_CORE_DIR="/opt/Morfeas_project/Morfeas_core"
 
 # ---------------------------
-# Check Update
+# Check Update Mode
 # ---------------------------
 
 if [ "$1" == "--check-only" ]; then
@@ -33,7 +33,7 @@ if [ "$1" == "--check-only" ]; then
     echo "Remote Commit: $REMOTE_COMMIT"
 
     if [ "$LOCAL_COMMIT" != "$REMOTE_COMMIT" ]; then
-        echo "Update available. Your branch is behind."
+        echo "Update available."
         exit 100  # Custom exit code to indicate update is available
     else
         echo "System is already up-to-date."
@@ -41,51 +41,35 @@ if [ "$1" == "--check-only" ]; then
     fi
 fi
 
-
 # ---------------------------
-# Update and build LOGCore
+# Update WITHOUT Restarting Yet
 # ---------------------------
-print_status "Updating LOG Core Source..."
+print_status "Updating Core and Web..."
 
+# Core
 if [ -d "$MORFEAS_CORE_DIR" ]; then
-    cd "$MORFEAS_CORE_DIR" || { echo "Error: Cannot access $MORFEAS_CORE_DIR"; exit 1; }
-    git pull || { echo "Error: Failed to update Morfeas Core source."; exit 1; }
-
-    print_status "Compiling Morfeas Core..."
-    make clean && make -j"$(nproc)" || { echo "Error: Compilation failed."; exit 1; }
-
-    print_status "Installing Morfeas Core..."
-    sudo make install || { echo "Error: Installation failed."; exit 1; }
-
-    print_status "Restarting Morfeas Daemon..."
-    sudo systemctl restart Morfeas_system || { echo "Error: Failed to restart Morfeas daemon."; exit 1; }
-
-else
-    echo "Error: Directory $MORFEAS_CORE_DIR does not exist."
-    exit 1
+    cd "$MORFEAS_CORE_DIR" || exit 1
+    git pull || exit 1
+    make clean && make -j"$(nproc)" || exit 1
+    sudo make install || exit 1
 fi
 
-# ---------------------------
-# Update Morfeas Web
-# ---------------------------
+# Web
+cd "$MORFEAS_WEB_DIR" || exit 1
+git pull || exit 1
 
-print_status "Updating Morfeas Web Source..."
-
-if [ -d "$MORFEAS_WEB_DIR" ]; then
-    cd "$MORFEAS_WEB_DIR" || { echo "Error: Cannot access $MORFEAS_WEB_DIR"; exit 1; }
-    git pull || { echo "Error: Failed to update Morfeas Web source."; exit 1; }
-else
-    echo "Error: Directory $MORFEAS_WEB_DIR does not exist."
-    exit 1
-fi
+print_status "✅ Update files done."
 
 # ---------------------------
-# Restart Apache2 (Web server)
+# Delay Restart in Background
 # ---------------------------
-print_status "Restarting Apache2 Web Server..."
-sudo systemctl restart apache2 || { echo "Error: Failed to restart Apache2."; exit 1; }
+(
+    sleep 3
+    echo "Restarting services..."
+    sudo systemctl restart Morfeas_system
+    sudo systemctl restart apache2
+) &
 
-# ---------------------------
-# Update Complete
-# ---------------------------
-print_status "Update Complete. Morfeas system and web are now up to date."
+print_status "✅ Scheduled service restart."
+exit 0
+

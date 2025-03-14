@@ -644,12 +644,9 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			case "update":
 				$date = date('Y-m-d_H-i-s');
 				$cmd  = "sudo /var/www/html/morfeas_web/update.sh 2>&1";
-				exec($cmd, $output, $return_var);
-			
-				$final_output = implode("\n", $output);
-			
-				file_put_contents("/tmp/log_update_$date.log", $final_output);
-			
+				exec($cmd, $output, $return_var);			
+				$final_output = implode("\n", $output);			
+				file_put_contents("/tmp/log_update_$date.log", $final_output);			
 				header('Content-Type: application/json');
 				echo json_encode([
 					"report" => $return_var === 0 ? "Update completed" : "Update failed",
