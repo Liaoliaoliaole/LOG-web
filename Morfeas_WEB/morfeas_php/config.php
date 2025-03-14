@@ -637,10 +637,10 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				exec($cmd_local, $local_output, $local_return);
 				$local_rev = trim($local_output[0]);
 			
-				$cmd_remote = "cd $dir && git rev-parse origin/$branch_name";
+				$cmd_remote = "cd $dir && git rev-parse origin/$branch_name";//test
 				exec($cmd_remote, $remote_output, $remote_return);
 				$remote_rev = trim($remote_output[0]);			
-	
+
 				if ($local_rev !== $remote_rev) {
 					$message = "Update available...";
 					$update_needed = true;
