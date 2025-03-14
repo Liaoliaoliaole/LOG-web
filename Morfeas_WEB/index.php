@@ -233,90 +233,93 @@ document.onkeydown = function(key){
 };
 
 // function update_system() {
-// 	console.log("Checking for updates...");
+//     console.log("Starting update check...");
+	
 //     alert("Checking for updates...");
-//     var xhttp = new XMLHttpRequest();
-//     xhttp.open("POST", "../morfeas_php/config.php", true);
-//     xhttp.setRequestHeader("Content-type", "check_update");
-//     xhttp.onreadystatechange = function () {
-//         if (xhttp.readyState === 4 && xhttp.status === 200) {
-//             var response = JSON.parse(xhttp.responseText);
-// 			console.log("Response received:", response);
 
-// 			if (response.debug) {
-//                 console.log("=== DEBUG OUTPUT ===");
-//                 response.debug.forEach(function (line) {
-//                     console.log(line);
-//                 });
-//                 console.log("====================");
-//             }
+//     // Check for updates
+//     fetch("../morfeas_php/config.php", {
+//         method: "POST",
+//         headers: { "Content-Type": "check_update" }
+//     })
+//     .then(response => response.json())
+//     .then(checkResult => {
+//         console.log("Check Result:", checkResult);
+//         if (checkResult.debug) console.log("DEBUG:", checkResult.debug.join("\n"));
 
-//             if(response.update) {
-//                 if (confirm("Update available. Do you want to update?")) {
-//                     alert("Please wait, updating...");
-//                     var xhttp2 = new XMLHttpRequest();
-//                     xhttp2.open("POST", "../morfeas_php/config.php", true);
-//                     xhttp2.setRequestHeader("Content-type", "update");
-//                     xhttp2.onreadystatechange = function () {
-//                         if (xhttp2.readyState === 4) {
-//                             if (xhttp2.status === 200) {
-//                                 alert("Update completed successfully.\n\n" + xhttp2.responseText);
-//                             } else {
-//                                 alert("Failed to update. Please check logs in /tmp/log_update.log.");
-//                             }
-//                         }
-//                     };
-//                     xhttp2.send();
-//                 }
-//             } else {
-//                 alert(response.message); 
-//             }
+//         if (!checkResult.update) {
+//             alert(checkResult.message);
+//             return;
 //         }
-//     };
-//     xhttp.send();
-// }
-function update_system() {
-    console.log("Starting update check...");
-    alert("Checking for updates...");
 
-    // Check for updates
-    fetch("../morfeas_php/config.php", {
-        method: "POST",
-        headers: { "Content-Type": "check_update" }
+//         if (!confirm("Update available. Do you want to update now?")) return;
+
+//         alert("Updating... Please wait. Services will restart after update!");
+
+//         // Trigger update
+//         fetch("../morfeas_php/config.php", {
+//             method: "POST",
+//             headers: { "Content-Type": "update" }
+//         })
+//         .then(response => response.json())
+//         .then(updateResult => {
+//             console.log("Update Result:", updateResult);
+//             alert(updateResult.report + "\n\n" + updateResult.output);
+//         })
+//         .catch(error => {
+//             console.error("Update Error:", error);
+//             alert("Update started but connection lost due to service restart. Wait and refresh after 10 seconds.");
+//         });
+//     })
+//     .catch(error => {
+//         console.error("Check Update Error:", error);
+//         alert("Error checking for updates.");
+//     });
+// }
+
+function update_system() {
+    if (window.updateInProgress) return; // Block multiple clicks
+
+    window.updateInProgress = true;
+    document.body.style.pointerEvents = "none"; // Disable clicks
+    let updateButton = document.querySelector('button[onclick="update_system()"]');
+    updateButton.innerText = "Checking...";
+    
+    console.log("Checking for updates...");
+    fetch("../morfeas_php/config.php", { method: "POST", headers: { "Content-type": "check_update" } })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Check Result:", data);
+        if (data.update) {
+            if (confirm("Update available. Do you want to update?")) {
+                alert("Update in progress. Please wait...");
+                updateButton.innerText = "Updating...";
+                return fetch("../morfeas_php/config.php", { method: "POST", headers: { "Content-type": "update" } });
+            } else {
+                resetUI();
+                return Promise.reject("User cancelled update.");
+            }
+        } else {
+            alert(data.message);
+            resetUI();
+            return Promise.resolve();
+        }
     })
     .then(response => response.json())
-    .then(checkResult => {
-        console.log("Check Result:", checkResult);
-        if (checkResult.debug) console.log("DEBUG:", checkResult.debug.join("\n"));
-
-        if (!checkResult.update) {
-            alert(checkResult.message);
-            return;
-        }
-
-        if (!confirm("Update available. Do you want to update now?")) return;
-
-        alert("Updating... Please wait. Services will restart after update!");
-
-        // Trigger update
-        fetch("../morfeas_php/config.php", {
-            method: "POST",
-            headers: { "Content-Type": "update" }
-        })
-        .then(response => response.json())
-        .then(updateResult => {
-            console.log("Update Result:", updateResult);
-            alert(updateResult.report + "\n\n" + updateResult.output);
-        })
-        .catch(error => {
-            console.error("Update Error:", error);
-            alert("Update started but connection lost due to service restart. Wait and refresh after 10 seconds.");
-        });
+    .then(result => {
+        console.log("Update Result:", result);
+        alert(result.report + "\n\n" + result.output);
+        setTimeout(() => location.reload(), 10000); // Reload after 10s
     })
-    .catch(error => {
-        console.error("Check Update Error:", error);
-        alert("Error checking for updates.");
-    });
+    .catch(err => console.error("Update Error:", err))
+    .finally(() => resetUI());
+}
+
+function resetUI() {
+    window.updateInProgress = false;
+    document.body.style.pointerEvents = "auto"; // Re-enable clicks
+    let updateButton = document.querySelector('button[onclick="update_system()"]');
+    updateButton.innerText = "System Update";
 }
 
 function shutdown()
