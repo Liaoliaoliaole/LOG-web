@@ -280,46 +280,65 @@ document.onkeydown = function(key){
 function update_system() {
     if (window.updateInProgress) return; // Block multiple clicks
 
-    window.updateInProgress = true;
-    document.body.style.pointerEvents = "none"; // Disable clicks
+    window.updateInProgress = true; // Mark update as in-progress
+
+    // Find and store update button reference
     let updateButton = document.querySelector('button[onclick="update_system()"]');
-    updateButton.innerText = "Checking...";
-    
+    let originalText = updateButton.innerHTML; // Backup button's original content
+
+    // Change button text and block UI
+    updateButton.innerHTML = "<b>Updating...</b>";
+    updateButton.disabled = true; // Disable the button
+    document.body.style.pointerEvents = "none"; // Block all page interactions
+    document.body.style.opacity = "0.5"; // Optional: Dim page for visual effect
+
     console.log("Checking for updates...");
-    fetch("../morfeas_php/config.php", { method: "POST", headers: { "Content-type": "check_update" } })
+
+    // Step 1: Check if update is needed
+    fetch("../morfeas_php/config.php", {
+        method: "POST",
+        headers: { "Content-type": "check_update" }
+    })
     .then(response => response.json())
     .then(data => {
         console.log("Check Result:", data);
         if (data.update) {
-            if (confirm("Update available. Do you want to update?")) {
-                alert("Update in progress. Please wait...");
-                updateButton.innerText = "Updating...";
-                return fetch("../morfeas_php/config.php", { method: "POST", headers: { "Content-type": "update" } });
+            // Confirm user wants to proceed
+            if (confirm("⚙️ Update available. Do you want to update now?")) {
+                alert("System will now update. Please wait...");
+                updateButton.innerHTML = "<b>Updating...</b>";
+                // Step 2: Trigger actual update
+                return fetch("../morfeas_php/config.php", {
+                    method: "POST",
+                    headers: { "Content-type": "update" }
+                });
             } else {
-                resetUI();
-                return Promise.reject("User cancelled update.");
+                throw "Update canceled by user.";
             }
         } else {
             alert(data.message);
-            resetUI();
-            return Promise.resolve();
+            throw "No update needed.";
         }
     })
     .then(response => response.json())
     .then(result => {
         console.log("Update Result:", result);
         alert(result.report + "\n\n" + result.output);
-        setTimeout(() => location.reload(), 10000); // Reload after 10s
+
+        // Step 3: Optional reload if update success
+        if (result.report.includes("completed")) {
+            setTimeout(() => location.reload(), 8000); // Reload after 8 seconds
+        }
     })
     .catch(err => console.error("Update Error:", err))
-    .finally(() => resetUI());
-}
-
-function resetUI() {
-    window.updateInProgress = false;
-    document.body.style.pointerEvents = "auto"; 
-    let updateButton = document.querySelector('button[onclick="update_system()"]');
-    updateButton.innerText = "System Update";
+    .finally(() => {
+        // Restore button and UI even if error
+        updateButton.innerHTML = originalText;
+        updateButton.disabled = false;
+        document.body.style.pointerEvents = "auto";
+        document.body.style.opacity = "1"; // Restore normal brightness
+        window.updateInProgress = false;
+    });
 }
 
 function shutdown()
