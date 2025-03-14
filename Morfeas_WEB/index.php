@@ -320,32 +320,28 @@ function update_system() {
     if (window.updateInProgress) return; // Prevent double execution
     window.updateInProgress = true;
 
-    // Create overlay
-    let overlay = document.createElement('div');
-    overlay.id = 'update-overlay';
-    overlay.style = `
+	let modal = document.createElement('div');
+    modal.id = 'update-modal';
+    modal.style = `
         position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.6);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 500px;
+        max-width: 90%;
+        background: white;
+        color: black;
+        border: 2px solid black;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
         z-index: 9999;
+        text-align: center;
         font-family: Arial, sans-serif;
+        font-size: 18px;
+        line-height: 1.5;
     `;
-    overlay.innerHTML = `
-        <div id="update-status-message" style="
-            background: rgba(0, 0, 0, 0.75); 
-            padding: 20px; 
-            border-radius: 10px;
-            text-align: center;
-            max-width: 90%;
-            font-size: 18px;
-            line-height: 1.5;
-        ">Preparing update check...</div>`;
-    document.body.appendChild(overlay);
+    modal.innerHTML = `<div id="update-status-message">Preparing update check...</div>`;
+    document.body.appendChild(modal);
 
     // Helper to update message
     function setStatus(msg, showButtons = false) {
@@ -367,8 +363,7 @@ function update_system() {
         }
     }
 
-    // Initial check
-    setStatus("🔍 Checking for updates...");
+    setStatus("Checking for updates...");
 
     fetch("../morfeas_php/config.php", {
         method: "POST",
@@ -416,7 +411,7 @@ function update_system() {
         .catch(error => {
             console.warn("Update error:", error);
             if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-                setStatus("⚙️ System is restarting. Please wait...");
+                setStatus("System is restarting. Please wait...");
                 waitForServerRecovery();
             } else {
                 setStatus("Update failed: " + error.message);
@@ -447,7 +442,7 @@ function waitForServerRecovery() {
             })
             .catch(() => {
                 attempts++;
-                setStatus(`🔄 Waiting for system to restart... (Attempt ${attempts}/${maxAttempts})`);
+                setStatus(`Waiting for system to restart... (Attempt ${attempts}/${maxAttempts})`);
                 if (attempts >= maxAttempts) {
                     clearInterval(intervalId);
                     setStatus("System did not respond. Please refresh manually.");
