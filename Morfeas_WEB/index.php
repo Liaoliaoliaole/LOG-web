@@ -232,69 +232,18 @@ document.onkeydown = function(key){
 		hide_portals_list();
 };
 
-// function update_system() {
-//     console.log("Starting update check...");
-	
-//     alert("Checking for updates...");
-
-//     // Check for updates
-//     fetch("../morfeas_php/config.php", {
-//         method: "POST",
-//         headers: { "Content-Type": "check_update" }
-//     })
-//     .then(response => response.json())
-//     .then(checkResult => {
-//         console.log("Check Result:", checkResult);
-//         if (checkResult.debug) console.log("DEBUG:", checkResult.debug.join("\n"));
-
-//         if (!checkResult.update) {
-//             alert(checkResult.message);
-//             return;
-//         }
-
-//         if (!confirm("Update available. Do you want to update now?")) return;
-
-//         alert("Updating... Please wait. Services will restart after update!");
-
-//         // Trigger update
-//         fetch("../morfeas_php/config.php", {
-//             method: "POST",
-//             headers: { "Content-Type": "update" }
-//         })
-//         .then(response => response.json())
-//         .then(updateResult => {
-//             console.log("Update Result:", updateResult);
-//             alert(updateResult.report + "\n\n" + updateResult.output);
-//         })
-//         .catch(error => {
-//             console.error("Update Error:", error);
-//             alert("Update started but connection lost due to service restart. Wait and refresh after 10 seconds.");
-//         });
-//     })
-//     .catch(error => {
-//         console.error("Check Update Error:", error);
-//         alert("Error checking for updates.");
-//     });
-// }
-
-function update_system() {
-    if (window.updateInProgress) return; // Block multiple clicks
-
-    window.updateInProgress = true; // Mark update as in-progress
-
-    // Find and store update button reference
+/* function update_system() {
+    if (window.updateInProgress) return;
+    window.updateInProgress = true;
     let updateButton = document.querySelector('button[onclick="update_system()"]');
-    let originalText = updateButton.innerHTML; // Backup button's original content
+    let originalText = updateButton.innerHTML;
 
     // Change button text and block UI
     updateButton.innerHTML = "<b>Checking for update...</b>";
-    updateButton.disabled = true; // Disable the button
-    document.body.style.pointerEvents = "none"; // Block all page interactions
-    document.body.style.opacity = "0.5"; // Optional: Dim page for visual effect
+    updateButton.disabled = true;
+    document.body.style.pointerEvents = "none";
+    document.body.style.opacity = "0.5";
 
-    console.log("Checking for updates...");
-
-    // Step 1: Check if update is needed
     fetch("../morfeas_php/config.php", {
         method: "POST",
         headers: { "Content-type": "check_update" }
@@ -302,40 +251,31 @@ function update_system() {
     .then(response => response.json())
     .then(data => {
         console.log("Check Result:", data);
-
         if (data.update) {
-            // Confirm user wants to proceed
             if (confirm("Update available. Do you want to update now?")) {
                 alert("System will now update. Please wait...");
                 updateButton.innerHTML = "<b>Updating in progress...</b>";
 
-                // Trigger actual update
                 return fetch("../morfeas_php/config.php", {
                     method: "POST",
                     headers: { "Content-type": "update" }
                 })
 				.then(response => response.json())
                 .then(result => {
-                    console.log("Update result:", result);
                     alert(result.report + "\n\n" + result.output);
                 });
             } else {
                 throw new Error("User canceled update.");
             }
         } else {
-            // System already up-to-date (Normal case)
             alert(data.message);
-            // Resolve this flow without error
             return Promise.resolve("Up-to-date");
         }
     })
 	.catch(error => {
-		console.warn("Update process notice:", error);
-
 		if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-			console.log("Detected system reboot/restart during update.");
-			alert("System is rebooting/restarting services to apply updates. Please wait...");
-			waitForServerRecovery(); // Start ping until system is back
+			alert("System is restarting services to apply updates. Please wait...");
+			waitForServerRecovery();
 		} else {
 			alert("Update failed or canceled:\n" + error);
 		}
@@ -356,8 +296,8 @@ function update_system() {
 // Function to periodically ping system until it comes back online
 // ------------------------------
 function waitForServerRecovery() {
-    const pingInterval = 3000; // Check every 5 seconds
-    const maxAttempts = 30;    // Retry up to 20 times (adjustable)
+    const pingInterval = 2000; // Check every 2 seconds
+    const maxAttempts = 60;
 
     let attempts = 0;
 
@@ -366,7 +306,7 @@ function waitForServerRecovery() {
             .then(() => {
                 clearInterval(intervalId);
                 alert("System is back online! Reloading...");
-                location.reload(); // Auto-reload page when back
+                location.reload();
             })
             .catch(() => {
                 attempts++;
@@ -377,7 +317,128 @@ function waitForServerRecovery() {
                 }
             });
     }, pingInterval);
+} */
+
+function update_system() {
+    if (window.updateInProgress) return; // Prevent double-click
+
+    window.updateInProgress = true;
+    let updateButton = document.querySelector('button[onclick="update_system()"]');
+    let originalText = updateButton.innerHTML;
+
+    // Create or update status div
+    let statusDiv = document.getElementById('update-status');
+    if (!statusDiv) {
+        statusDiv = document.createElement('div');
+        statusDiv.id = 'update-status';
+        statusDiv.style.position = 'fixed';
+        statusDiv.style.bottom = '10px';
+        statusDiv.style.left = '10px';
+        statusDiv.style.padding = '10px';
+        statusDiv.style.backgroundColor = '#ffffcc';
+        statusDiv.style.border = '1px solid #cccccc';
+        statusDiv.style.zIndex = '9999';
+        document.body.appendChild(statusDiv);
+    }
+
+    // Function to update status message
+    function setStatus(message) {
+        console.log(message);
+        statusDiv.innerHTML = `<b>System Update:</b> ${message}`;
+    }
+
+    // Start update process
+    updateButton.innerHTML = "<b>Updating...</b>";
+    updateButton.disabled = true;
+    document.body.style.pointerEvents = "none";
+    document.body.style.opacity = "0.5";
+    setStatus("Checking for updates...");
+
+    // Step 1: Check if update is needed
+    fetch("../morfeas_php/config.php", {
+        method: "POST",
+        headers: { "Content-type": "check_update" }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Check Result:", data);
+
+        if (data.update) {
+            setStatus("Update available. Starting update...");
+            
+            // Step 2: Run update
+            return fetch("../morfeas_php/config.php", {
+                method: "POST",
+                headers: { "Content-type": "update" }
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log("Update result:", result);
+                setStatus("Update completed successfully. Restarting services...");
+
+                // After short delay, start checking if system comes back online
+                setTimeout(waitForServerRecovery, 5000);
+            });
+        } else {
+            setStatus("System is already up-to-date.");
+            return Promise.resolve("Up-to-date");
+        }
+    })
+    .catch(error => {
+        console.warn("Update process notice:", error);
+
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+            setStatus("⚙️ System is rebooting/restarting. Please wait...");
+            waitForServerRecovery(); // Start ping to detect recovery
+        } else if (error.message !== "User canceled update.") {
+            setStatus("Update failed: " + error.message);
+        }
+    })
+    .finally(() => {
+        // Restore button and UI
+        setTimeout(() => {
+            updateButton.innerHTML = originalText;
+            updateButton.disabled = false;
+            document.body.style.pointerEvents = "auto";
+            document.body.style.opacity = "1";
+            window.updateInProgress = false;
+        }, 2000); // Small delay to ensure update flow ends cleanly
+    });
 }
+
+// ------------------------------
+// Function to check if system is back online (auto-refresh)
+// ------------------------------
+function waitForServerRecovery() {
+    const pingInterval = 5000; // Check every 5 seconds
+    const maxAttempts = 20;    // Try up to 20 times
+
+    let attempts = 0;
+
+    let statusDiv = document.getElementById('update-status');
+    function setStatus(message) {
+        console.log(message);
+        statusDiv.innerHTML = `<b>System Update:</b> ${message}`;
+    }
+
+    const intervalId = setInterval(() => {
+        fetch(window.location.href, { method: 'HEAD', cache: 'no-store' })
+            .then(() => {
+                clearInterval(intervalId);
+                setStatus("✅ System is back online. Refreshing...");
+                setTimeout(() => location.reload(), 1000); // Auto-refresh
+            })
+            .catch(() => {
+                attempts++;
+                setStatus(`Waiting for system to recover... Attempt ${attempts}/${maxAttempts}`);
+                if (attempts >= maxAttempts) {
+                    clearInterval(intervalId);
+                    setStatus("❌ System did not recover. Please refresh manually.");
+                }
+            });
+    }, pingInterval);
+}
+
 
 function shutdown()
 {
