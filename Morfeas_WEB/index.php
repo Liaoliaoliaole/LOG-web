@@ -313,21 +313,22 @@ function update_system() {
                 return fetch("../morfeas_php/config.php", {
                     method: "POST",
                     headers: { "Content-type": "update" }
+                })
+				.then(response => response.json())
+                .then(result => {
+                    console.log("Update result:", result);
+                    alert(result.report + "\n\n" + result.output);
                 });
             } else {
-                throw "Update canceled by user.";
+                throw new Error("User canceled update.");
             }
         } else {
+            // System already up-to-date (Normal case)
             alert(data.message);
-            throw "System already up to date.";
+            // Resolve this flow without error
+            return Promise.resolve("Up-to-date");
         }
     })
-    .then(response => response.json())
-    .then(result => {
-        console.log("Update Result:", result);
-        alert(result.report + "\n\n" + result.output);
-	})
-
 	.catch(error => {
 		console.warn("Update process notice:", error);
 
