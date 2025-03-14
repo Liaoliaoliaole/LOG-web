@@ -21,14 +21,11 @@ MORFEAS_CORE_DIR="/opt/Morfeas_project/Morfeas_core"
 if [ "$1" == "--check-only" ]; then
     cd "$MORFEAS_WEB_DIR" || { echo "❌ Error: Cannot access $MORFEAS_WEB_DIR"; exit 1; }
 
-    # Fetch remote changes
     git fetch origin
 
-    # Get current branch
     CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
     echo "Current Branch: $CURRENT_BRANCH"
 
-    # Get local and remote commits
     LOCAL_COMMIT=$(git rev-parse HEAD)
     REMOTE_COMMIT=$(git rev-parse "origin/$CURRENT_BRANCH")
 
