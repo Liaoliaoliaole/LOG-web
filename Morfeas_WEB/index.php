@@ -348,7 +348,7 @@ function update_system() {
     }
 
     // Start update process
-    updateButton.innerHTML = "<b>Updating...</b>";
+    updateButton.innerHTML = "<b>Checking for updates...</b>";
     updateButton.disabled = true;
     document.body.style.pointerEvents = "none";
     document.body.style.opacity = "0.5";
