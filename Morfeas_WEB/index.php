@@ -311,7 +311,7 @@ function update_system() {
     });
 
     function startUpdate() {
-        setStatus("⚙️ Updating system... Please do not close this window.");
+        setStatus("Updating system... Please do not close this window.");
         
         fetch("../morfeas_php/config.php", {
             method: "POST",
