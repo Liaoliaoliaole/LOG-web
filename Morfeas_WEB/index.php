@@ -309,7 +309,7 @@ function update_system() {
                 alert("System will now update. Please wait...");
                 updateButton.innerHTML = "<b>Updating in progress...</b>";
 
-                // Step 2: Trigger actual update
+                // Trigger actual update
                 return fetch("../morfeas_php/config.php", {
                     method: "POST",
                     headers: { "Content-type": "update" }
