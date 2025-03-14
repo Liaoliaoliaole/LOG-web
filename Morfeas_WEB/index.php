@@ -317,36 +317,59 @@ function waitForServerRecovery() {
 } */
 
 function update_system() {
-    if (window.updateInProgress) return; // Prevent double-trigger
+    if (window.updateInProgress) return; // Prevent double execution
     window.updateInProgress = true;
 
-    // Add overlay to block interaction and show status
+    // Create overlay
     let overlay = document.createElement('div');
     overlay.id = 'update-overlay';
-    overlay.style.position = 'fixed';
-    overlay.style.top = 0;
-    overlay.style.left = 0;
-    overlay.style.width = '100%';
-    overlay.style.height = '100%';
-    overlay.style.background = 'rgba(0, 0, 0, 0.6)';
-    overlay.style.color = 'white';
-    overlay.style.zIndex = '9999';
-    overlay.style.display = 'flex';
-    overlay.style.alignItems = 'center';
-    overlay.style.justifyContent = 'center';
-    overlay.style.fontSize = '20px';
-    overlay.style.textAlign = 'center';
-    overlay.innerHTML = '<div id="update-status-message">Preparing update...</div>';
+    overlay.style = `
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        font-family: Arial, sans-serif;
+    `;
+    overlay.innerHTML = `
+        <div id="update-status-message" style="
+            background: rgba(0, 0, 0, 0.75); 
+            padding: 20px; 
+            border-radius: 10px;
+            text-align: center;
+            max-width: 90%;
+            font-size: 18px;
+            line-height: 1.5;
+        ">Preparing update check...</div>`;
     document.body.appendChild(overlay);
 
-    // Helper to update status text
-    function setStatus(msg) {
-        console.log(msg);
-        document.getElementById('update-status-message').innerHTML = msg;
+    // Helper to update message
+    function setStatus(msg, showButtons = false) {
+        const messageBox = document.getElementById('update-status-message');
+        messageBox.innerHTML = msg;
+        if (showButtons) {
+            const buttons = `
+                <br><br>
+                <button id="update-now" style="margin-right: 20px; padding: 10px 20px; font-size: 16px;">Update Now</button>
+                <button id="update-later" style="padding: 10px 20px; font-size: 16px;">Later</button>
+            `;
+            messageBox.innerHTML += buttons;
+
+            document.getElementById('update-now').onclick = startUpdate;
+            document.getElementById('update-later').onclick = () => {
+                overlay.remove();
+                window.updateInProgress = false;
+            };
+        }
     }
 
-    // Step 1: Check if update is needed
-    setStatus("Checking for updates... Please wait.");
+    // Initial check
+    setStatus("🔍 Checking for updates...");
+
     fetch("../morfeas_php/config.php", {
         method: "POST",
         headers: { "Content-type": "check_update" }
@@ -356,20 +379,11 @@ function update_system() {
         console.log("Check Result:", data);
 
         if (data.update) {
-            setStatus("Update available. Downloading and installing...");
-            // Step 2: Perform the update
-            return fetch("../morfeas_php/config.php", {
-                method: "POST",
-                headers: { "Content-type": "update" }
-            })
-            .then(response => response.json())
-            .then(result => {
-                console.log("Update result:", result);
-                setStatus("Update completed successfully. Restarting services...");
-                setTimeout(waitForServerRecovery, 5000); // Check system back online
-            });
+            // Ask user to choose
+            setStatus("<b>Update available!</b><br>Do you want to update now or later?", true);
         } else {
-            setStatus("System is already up-to-date. You can continue working.");
+            // No update
+            setStatus("System is already up-to-date.");
             setTimeout(() => {
                 overlay.remove();
                 window.updateInProgress = false;
@@ -377,26 +391,47 @@ function update_system() {
         }
     })
     .catch(error => {
-        console.warn("Update error:", error);
-        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-            setStatus("⚙️ System is restarting. Please wait...");
-            waitForServerRecovery(); // Check if system comes back
-        } else {
-            setStatus("Update failed: " + error.message);
-            setTimeout(() => {
-                overlay.remove();
-                window.updateInProgress = false;
-            }, 5000);
-        }
+        console.error("Error during update check:", error);
+        setStatus("Error checking for updates: " + error.message);
+        setTimeout(() => {
+            overlay.remove();
+            window.updateInProgress = false;
+        }, 5000);
     });
+
+    // Function to start update
+    function startUpdate() {
+        setStatus("Updating system... Please do not close this window.");
+        
+        fetch("../morfeas_php/config.php", {
+            method: "POST",
+            headers: { "Content-type": "update" }
+        })
+        .then(response => response.json())
+        .then(result => {
+            console.log("Update result:", result);
+            setStatus("Update completed. System will restart shortly...");
+            setTimeout(waitForServerRecovery, 5000);
+        })
+        .catch(error => {
+            console.warn("Update error:", error);
+            if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+                setStatus("⚙️ System is restarting. Please wait...");
+                waitForServerRecovery();
+            } else {
+                setStatus("Update failed: " + error.message);
+                setTimeout(() => {
+                    overlay.remove();
+                    window.updateInProgress = false;
+                }, 5000);
+            }
+        });
+    }
 }
 
-// ------------------------------
-// Check if server is back online
-// ------------------------------
 function waitForServerRecovery() {
-    const pingInterval = 5000; // 5 seconds interval
-    const maxAttempts = 20;    // Try 20 times
+    const pingInterval = 2000; // every 2 sec
+    const maxAttempts = 50;
     let attempts = 0;
 
     function setStatus(msg) {
@@ -408,7 +443,7 @@ function waitForServerRecovery() {
             .then(() => {
                 clearInterval(intervalId);
                 setStatus("System is back online! Reloading...");
-                setTimeout(() => location.reload(), 2000); // Auto-reload
+                setTimeout(() => location.reload(), 2000);
             })
             .catch(() => {
                 attempts++;
@@ -420,8 +455,6 @@ function waitForServerRecovery() {
             });
     }, pingInterval);
 }
-
-
 
 function shutdown()
 {
