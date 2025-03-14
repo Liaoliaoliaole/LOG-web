@@ -340,8 +340,8 @@ function update_system() {
 }
 
 function waitForServerRecovery() {
-    const pingInterval = 5000; // every 5 sec
-    const maxAttempts = 20; // retry limit
+    const pingInterval = 2000; // every 5 sec
+    const maxAttempts = 50; // retry limit
     let attempts = 0;
 
     function setStatus(msg) {
