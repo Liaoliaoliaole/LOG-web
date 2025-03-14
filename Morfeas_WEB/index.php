@@ -317,7 +317,7 @@ function update_system() {
 
 function resetUI() {
     window.updateInProgress = false;
-    document.body.style.pointerEvents = "auto"; // Re-enable clicks
+    document.body.style.pointerEvents = "auto"; 
     let updateButton = document.querySelector('button[onclick="update_system()"]');
     updateButton.innerText = "System Update";
 }
