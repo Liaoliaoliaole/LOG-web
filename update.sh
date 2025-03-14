@@ -64,7 +64,7 @@ print_status "✅ Update files done."
 # Delay Restart in Background
 # ---------------------------
 (
-    sleep 3
+    sleep 5
     echo "Restarting services..."
     sudo systemctl restart Morfeas_system
     sudo systemctl restart apache2
