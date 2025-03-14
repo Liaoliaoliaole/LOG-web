@@ -623,15 +623,37 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			case "shutdown":
 				exec('sudo poweroff');
 				return;
+			case "check_update":
+				$dir = "/var/www/html/morfeas_web";
+				$cmd_fetch = "cd $dir && git fetch origin";
+				exec($cmd_fetch, $fetch_output, $fetch_return);
+	
+				$cmd_local = "cd $dir && git rev-parse HEAD";
+				exec($cmd_local, $local_output, $local_return);
+				$local_rev = trim($local_output[0]);
+	
+				#$cmd_remote = "cd $dir && git rev-parse origin/master";
+				$cmd_remote = "cd $dir && git rev-parse origin/feature/optimize_update";
+				exec($cmd_remote, $remote_output, $remote_return);
+				$remote_rev = trim($remote_output[0]);
+	
+				if ($local_rev !== $remote_rev) {
+					$message = "Update available...";
+					$update_needed = true;
+				} else {
+					$message = "System is already up-to-date.";
+					$update_needed = false;
+				}
+				header('Content-Type: application/json');
+				echo json_encode(["update" => $update_needed, "message" => $message]);
+				return;
 			case "update":
 				$date = date('Y-m-d_H-i-s');
 				$cmd  = "sudo /var/www/html/morfeas_web/update.sh 2>&1";
 				exec($cmd, $output, $return_var);
 			
-				// Join output lines into one string
 				$final_output = implode("\n", $output);
 			
-				// Optional logging
 				file_put_contents("/tmp/log_update_$date.log", $final_output);
 			
 				header('Content-Type: application/json');

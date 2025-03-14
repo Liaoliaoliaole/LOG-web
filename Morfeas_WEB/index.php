@@ -233,22 +233,36 @@ document.onkeydown = function(key){
 };
 
 function update_system() {
-    if (confirm("System will start update. Continue?")) {
-        alert("Please wait, updating...");
-        var xhttp = new XMLHttpRequest();
-        xhttp.open("POST", "../morfeas_php/config.php", true);
-        xhttp.setRequestHeader("Content-type", "update");
-        xhttp.onreadystatechange = function () {
-            if (xhttp.readyState === 4) {
-                if (xhttp.status === 200) {
-                    alert("Update completed successfully.\n\n" + xhttp.responseText);
-                } else {
-                    alert("Failed to update. Please check logs in /tmp/log_update.log.");
+    alert("Checking for updates...");
+    var xhttp = new XMLHttpRequest();
+    xhttp.open("POST", "../morfeas_php/config.php", true);
+    xhttp.setRequestHeader("Content-type", "check_update");
+    xhttp.onreadystatechange = function () {
+        if (xhttp.readyState === 4 && xhttp.status === 200) {
+            var response = JSON.parse(xhttp.responseText);
+            if(response.update) {
+                if (confirm("Update available. Do you want to update?")) {
+                    alert("Please wait, updating...");
+                    var xhttp2 = new XMLHttpRequest();
+                    xhttp2.open("POST", "../morfeas_php/config.php", true);
+                    xhttp2.setRequestHeader("Content-type", "update");
+                    xhttp2.onreadystatechange = function () {
+                        if (xhttp2.readyState === 4) {
+                            if (xhttp2.status === 200) {
+                                alert("Update completed successfully.\n\n" + xhttp2.responseText);
+                            } else {
+                                alert("Failed to update. Please check logs in /tmp/log_update.log.");
+                            }
+                        }
+                    };
+                    xhttp2.send();
                 }
+            } else {
+                alert(response.message); 
             }
-        };
-        xhttp.send();
-    }
+        }
+    };
+    xhttp.send();
 }
 
 function shutdown()
