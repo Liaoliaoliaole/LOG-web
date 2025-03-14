@@ -11,11 +11,43 @@ print_status() {
     echo "======================================"
 }
 
+MORFEAS_WEB_DIR="/var/www/html/morfeas_web"
+MORFEAS_CORE_DIR="/opt/Morfeas_project/Morfeas_core"
+
+# ---------------------------
+# Check Update
+# ---------------------------
+
+if [ "$1" == "--check-only" ]; then
+    cd "$MORFEAS_WEB_DIR" || { echo "❌ Error: Cannot access $MORFEAS_WEB_DIR"; exit 1; }
+
+    # Fetch remote changes
+    git fetch origin
+
+    # Get current branch
+    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    echo "Current Branch: $CURRENT_BRANCH"
+
+    # Get local and remote commits
+    LOCAL_COMMIT=$(git rev-parse HEAD)
+    REMOTE_COMMIT=$(git rev-parse "origin/$CURRENT_BRANCH")
+
+    echo "Local Commit: $LOCAL_COMMIT"
+    echo "Remote Commit: $REMOTE_COMMIT"
+
+    if [ "$LOCAL_COMMIT" != "$REMOTE_COMMIT" ]; then
+        echo "✅ Update available. Your branch is behind."
+        exit 100  # Custom exit code to indicate update is available
+    else
+        echo "ℹ️ System is already up-to-date."
+        exit 0  # No update needed
+    fi
+fi
+
+
 # ---------------------------
 # Update and build LOGCore
 # ---------------------------
-MORFEAS_CORE_DIR="/opt/Morfeas_project/Morfeas_core"
-
 print_status "Updating LOG Core Source..."
 
 if [ -d "$MORFEAS_CORE_DIR" ]; then
@@ -39,7 +71,6 @@ fi
 # ---------------------------
 # Update Morfeas Web
 # ---------------------------
-MORFEAS_WEB_DIR="/var/www/html/morfeas_web"
 
 print_status "Updating Morfeas Web Source..."
 

@@ -623,50 +623,27 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			case "shutdown":
 				exec('sudo poweroff');
 				return;
-				case "check_update":
-					$dir = "/var/www/html/morfeas_web";
-					$debug = [];
-				
-					// Fetch updates
-					$cmd_fetch = "cd $dir && git fetch origin 2>&1";
-					exec($cmd_fetch, $fetch_output, $fetch_return);
-					$debug[] = "Git Fetch Output:\n" . implode("\n", $fetch_output);
-				
-					// Get current branch
-					$cmd_branch = "cd $dir && git rev-parse --abbrev-ref HEAD 2>&1";
-					exec($cmd_branch, $branch_output, $branch_return);
-					$current_branch = trim($branch_output[0]);
-					$debug[] = "Current Branch: $current_branch";
-				
-					// Local HEAD commit
-					$cmd_local = "cd $dir && git rev-parse HEAD 2>&1";
-					exec($cmd_local, $local_output, $local_return);
-					$local_rev = trim($local_output[0]);
-					$debug[] = "Local Commit: $local_rev";
-				
-					// Remote branch commit
-					$cmd_remote = "cd $dir && git rev-parse origin/$current_branch 2>&1";
-					exec($cmd_remote, $remote_output, $remote_return);
-					$remote_rev = trim($remote_output[0]);
-					$debug[] = "Remote Commit: $remote_rev";
-				
-					// Determine update status
-					if ($local_rev !== $remote_rev) {
-						$message = "Update available. Your branch is behind.";
-						$update_needed = true;
-					} else {
-						$message = "ℹ️ System is already up-to-date.";
-						$update_needed = false;
-					}
-				
-					// Return as JSON
-					header('Content-Type: application/json');
-					echo json_encode([
-						"update" => $update_needed,
-						"message" => $message,
-						"debug"  => $debug 
-					]);
-					return;				
+			case "check_update":
+				$cmd_check = "sudo /var/www/html/morfeas_web/update.sh --check-only 2>&1";
+				exec($cmd_check, $output, $return_var); // run as root
+			
+				// Prepare debug log
+				$debug = $output; // All command output as debug info
+			
+				// Determine if update is available based on exit code
+				$update_needed = ($return_var === 100); // Our custom exit code
+			
+				// Prepare message
+				$message = $update_needed ? "✅ Update available." : "ℹ️ System is already up-to-date.";
+			
+				// Send response
+				header('Content-Type: application/json');
+				echo json_encode([
+					"update" => $update_needed,
+					"message" => $message,
+					"debug"  => $debug // Return full log for browser console
+				]);
+				return;							
 			case "update":
 				$date = date('Y-m-d_H-i-s');
 				$cmd  = "sudo /var/www/html/morfeas_web/update.sh 2>&1";
