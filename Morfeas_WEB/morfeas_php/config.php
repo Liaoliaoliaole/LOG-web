@@ -639,23 +639,15 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			case "update":
 				$date = date('Y-m-d_H-i-s');
 				$cmd  = "sudo /var/www/html/morfeas_web/update.sh 2>&1";
-				exec($cmd, $output, $return_var);			
-				$final_output = implode("\n", $output);			
-			
-				$logFile = "/home/morfeas/morfeas_update_$date.log"; // or "/tmp/..." for testing
-			
-				if (file_put_contents($logFile, $final_output) === false) {
-					error_log("Failed to write update log to $logFile");
-				} else {
-					error_log("Update log written to $logFile");
-				}
-			
+				exec($cmd, $output, $return_var);            
+				$final_output = implode("\n", $output);            			
+				error_log("=== Morfeas Update [$date] ===\n$final_output\n=====================\n");			
 				header('Content-Type: application/json');
 				echo json_encode([
 					"report" => $return_var === 0 ? "Update completed" : "Update failed",
 					"output" => $final_output
 				]);
-				return;				
+				return;						
 		}
 	}
 	http_response_code(404);
