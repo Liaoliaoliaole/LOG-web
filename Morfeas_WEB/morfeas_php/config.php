@@ -633,12 +633,11 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			
 				$message = $update_needed ? "Update available." : "System is already up-to-date.";
 			
-				// Send response
 				header('Content-Type: application/json');
 				echo json_encode([
 					"update" => $update_needed,
 					"message" => $message,
-					"debug"  => $debug // Return full log for browser console
+					"debug"  => $debug
 				]);
 				return;							
 			case "update":

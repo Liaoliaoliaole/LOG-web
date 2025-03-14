@@ -233,7 +233,7 @@ document.onkeydown = function(key){
 };
 
 function update_system() {
-    if (window.updateInProgress) return; // Prevent double execution
+    if (window.updateInProgress) return;
     window.updateInProgress = true;
 
     let overlay = document.createElement('div');
