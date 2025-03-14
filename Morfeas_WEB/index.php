@@ -287,7 +287,7 @@ function update_system() {
     let originalText = updateButton.innerHTML; // Backup button's original content
 
     // Change button text and block UI
-    updateButton.innerHTML = "<b>Checking...</b>";
+    updateButton.innerHTML = "<b>Checking for update...</b>";
     updateButton.disabled = true; // Disable the button
     document.body.style.pointerEvents = "none"; // Block all page interactions
     document.body.style.opacity = "0.5"; // Optional: Dim page for visual effect
@@ -302,11 +302,13 @@ function update_system() {
     .then(response => response.json())
     .then(data => {
         console.log("Check Result:", data);
+
         if (data.update) {
             // Confirm user wants to proceed
             if (confirm("Update available. Do you want to update now?")) {
                 alert("System will now update. Please wait...");
-                updateButton.innerHTML = "<b>Updating...</b>";
+                updateButton.innerHTML = "<b>Updating in progress...</b>";
+
                 // Step 2: Trigger actual update
                 return fetch("../morfeas_php/config.php", {
                     method: "POST",
@@ -317,28 +319,63 @@ function update_system() {
             }
         } else {
             alert(data.message);
-            throw "No update needed.";
+            throw "System already up to date.";
         }
     })
     .then(response => response.json())
     .then(result => {
         console.log("Update Result:", result);
         alert(result.report + "\n\n" + result.output);
+	})
 
-        // Step 3: Optional reload if update success
-        if (result.report.includes("completed")) {
-            setTimeout(() => location.reload(), 8000); // Reload after 8 seconds
-        }
+	.catch(error => {
+		console.warn("Update process notice:", error);
+
+		if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+			console.log("Detected system reboot/restart during update.");
+			alert("System is rebooting/restarting services to apply updates. Please wait...");
+			waitForServerRecovery(); // Start ping until system is back
+		} else {
+			alert("Update failed or canceled:\n" + error);
+		}
     })
-    .catch(err => console.error("Update Error:", err))
     .finally(() => {
-        // Restore button and UI even if error
-        updateButton.innerHTML = originalText;
-        updateButton.disabled = false;
-        document.body.style.pointerEvents = "auto";
-        document.body.style.opacity = "1"; // Restore normal brightness
-        window.updateInProgress = false;
+        // Always reset button/UI
+        setTimeout(() => {
+            updateButton.innerHTML = originalText;
+            updateButton.disabled = false;
+            document.body.style.pointerEvents = "auto";
+            document.body.style.opacity = "1";
+            window.updateInProgress = false;
+        }, 2000); // slight delay for smoothness
     });
+}
+
+// ------------------------------
+// Function to periodically ping system until it comes back online
+// ------------------------------
+function waitForServerRecovery() {
+    const pingInterval = 3000; // Check every 5 seconds
+    const maxAttempts = 30;    // Retry up to 20 times (adjustable)
+
+    let attempts = 0;
+
+    const intervalId = setInterval(() => {
+        fetch(window.location.href, { method: 'HEAD', cache: 'no-store' })
+            .then(() => {
+                clearInterval(intervalId);
+                alert("System is back online! Reloading...");
+                location.reload(); // Auto-reload page when back
+            })
+            .catch(() => {
+                attempts++;
+                console.log(`Waiting for system to recover... attempt ${attempts}/${maxAttempts}`);
+                if (attempts >= maxAttempts) {
+                    clearInterval(intervalId);
+                    alert("System did not recover. Please refresh manually.");
+                }
+            });
+    }, pingInterval);
 }
 
 function shutdown()
