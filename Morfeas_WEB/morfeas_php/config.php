@@ -633,7 +633,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$local_rev = trim($local_output[0]);
 	
 				#$cmd_remote = "cd $dir && git rev-parse origin/master";
-				$cmd_remote = "cd $dir && git rev-parse origin/feature/optimize_update";
+				$cmd_remote = "cd $dir && git rev-parse origin/feature/optimize_update";//test
 				exec($cmd_remote, $remote_output, $remote_return);
 				$remote_rev = trim($remote_output[0]);
 	
