@@ -625,16 +625,13 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				return;
 			case "check_update":
 				$cmd_check = "sudo /var/www/html/morfeas_web/update.sh --check-only 2>&1";
-				exec($cmd_check, $output, $return_var); // run as root
+				exec($cmd_check, $output, $return_var);
 			
-				// Prepare debug log
-				$debug = $output; // All command output as debug info
+				$debug = $output;
 			
-				// Determine if update is available based on exit code
-				$update_needed = ($return_var === 100); // Our custom exit code
+				$update_needed = ($return_var === 100);
 			
-				// Prepare message
-				$message = $update_needed ? "✅ Update available." : "ℹ️ System is already up-to-date.";
+				$message = $update_needed ? "Update available." : "System is already up-to-date.";
 			
 				// Send response
 				header('Content-Type: application/json');
