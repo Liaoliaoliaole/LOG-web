@@ -236,7 +236,6 @@ function update_system() {
     if (window.updateInProgress) return; // Prevent double execution
     window.updateInProgress = true;
 
-    // Create overlay
     let overlay = document.createElement('div');
     overlay.id = 'update-overlay';
     overlay.style = `
@@ -264,7 +263,6 @@ function update_system() {
         ">Preparing update check...</div>`;
     document.body.appendChild(overlay);
 
-    // Helper to update message
     function setStatus(msg, showButtons = false) {
         const messageBox = document.getElementById('update-status-message');
         messageBox.innerHTML = msg;
@@ -284,9 +282,7 @@ function update_system() {
         }
     }
 
-    // Initial check
     setStatus("Checking for updates...");
-
     fetch("../morfeas_php/config.php", {
         method: "POST",
         headers: { "Content-type": "check_update" }
@@ -296,10 +292,8 @@ function update_system() {
         console.log("Check Result:", data);
 
         if (data.update) {
-            // Ask user to choose
             setStatus("<b>Update available!</b><br>Do you want to update now or later?", true);
         } else {
-            // No update
             setStatus("System is already up-to-date.");
             setTimeout(() => {
                 overlay.remove();
@@ -316,7 +310,6 @@ function update_system() {
         }, 5000);
     });
 
-    // Function to start update
     function startUpdate() {
         setStatus("⚙️ Updating system... Please do not close this window.");
         
@@ -333,7 +326,7 @@ function update_system() {
         .catch(error => {
             console.warn("Update error:", error);
             if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-                setStatus("⚙️ System is restarting. Please wait...");
+                setStatus("System is restarting. Please wait...");
                 waitForServerRecovery();
             } else {
                 setStatus("Update failed: " + error.message);
@@ -359,20 +352,19 @@ function waitForServerRecovery() {
         fetch(window.location.href, { method: 'HEAD', cache: 'no-store' })
             .then(() => {
                 clearInterval(intervalId);
-                setStatus("✅ System is back online! Reloading...");
+                setStatus("System is back online! Reloading...");
                 setTimeout(() => location.reload(), 2000);
             })
             .catch(() => {
                 attempts++;
-                setStatus(`🔄 Waiting for system to restart... (Attempt ${attempts}/${maxAttempts})`);
+                setStatus(`Waiting for system to restart... (Attempt ${attempts}/${maxAttempts})`);
                 if (attempts >= maxAttempts) {
                     clearInterval(intervalId);
-                    setStatus("❌ System did not respond. Please refresh manually.");
+                    setStatus("System did not respond. Please refresh manually.");
                 }
             });
     }, pingInterval);
 }
-
 
 function shutdown()
 {
