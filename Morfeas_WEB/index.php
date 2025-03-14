@@ -287,7 +287,7 @@ function update_system() {
     let originalText = updateButton.innerHTML; // Backup button's original content
 
     // Change button text and block UI
-    updateButton.innerHTML = "<b>Updating...</b>";
+    updateButton.innerHTML = "<b>Checking...</b>";
     updateButton.disabled = true; // Disable the button
     document.body.style.pointerEvents = "none"; // Block all page interactions
     document.body.style.opacity = "0.5"; // Optional: Dim page for visual effect
@@ -304,7 +304,7 @@ function update_system() {
         console.log("Check Result:", data);
         if (data.update) {
             // Confirm user wants to proceed
-            if (confirm("⚙️ Update available. Do you want to update now?")) {
+            if (confirm("Update available. Do you want to update now?")) {
                 alert("System will now update. Please wait...");
                 updateButton.innerHTML = "<b>Updating...</b>";
                 // Step 2: Trigger actual update
