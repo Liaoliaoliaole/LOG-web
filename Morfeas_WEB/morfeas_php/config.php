@@ -625,17 +625,21 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				return;
 			case "check_update":
 				$dir = "/var/www/html/morfeas_web";
+	
+				$cmd_branch = "cd $dir && git rev-parse --abbrev-ref HEAD";
+    			exec($cmd_branch, $branch_output, $branch_return);
+    			$branch_name = trim($branch_output[0]);
+	
 				$cmd_fetch = "cd $dir && git fetch origin";
 				exec($cmd_fetch, $fetch_output, $fetch_return);
-	
+			
 				$cmd_local = "cd $dir && git rev-parse HEAD";
 				exec($cmd_local, $local_output, $local_return);
 				$local_rev = trim($local_output[0]);
-	
-				#$cmd_remote = "cd $dir && git rev-parse origin/master";
-				$cmd_remote = "cd $dir && git rev-parse origin/feature/optimize_update";//test
+			
+				$cmd_remote = "cd $dir && git rev-parse origin/$branch_name";
 				exec($cmd_remote, $remote_output, $remote_return);
-				$remote_rev = trim($remote_output[0]);
+				$remote_rev = trim($remote_output[0]);			
 	
 				if ($local_rev !== $remote_rev) {
 					$message = "Update available...";
