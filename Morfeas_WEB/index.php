@@ -255,7 +255,7 @@ function update_system() {
         <div id="update-status-message" style="
             background: rgba(201, 197, 197, 0.6); 
             padding: 20px; 
-            border-radius: 10px;
+            border-radius: 5px;
             text-align: center;
             max-width: 90%;
             font-size: 18px;
@@ -285,7 +285,7 @@ function update_system() {
     }
 
     // Initial check
-    setStatus("🔍 Checking for updates...");
+    setStatus("Checking for updates...");
 
     fetch("../morfeas_php/config.php", {
         method: "POST",
@@ -297,10 +297,10 @@ function update_system() {
 
         if (data.update) {
             // Ask user to choose
-            setStatus("🚀 <b>Update available!</b><br>Do you want to update now or later?", true);
+            setStatus("<b>Update available!</b><br>Do you want to update now or later?", true);
         } else {
             // No update
-            setStatus("✅ System is already up-to-date.");
+            setStatus("System is already up-to-date.");
             setTimeout(() => {
                 overlay.remove();
                 window.updateInProgress = false;
@@ -309,7 +309,7 @@ function update_system() {
     })
     .catch(error => {
         console.error("Error during update check:", error);
-        setStatus("❌ Error checking for updates: " + error.message);
+        setStatus("Error checking for updates: " + error.message);
         setTimeout(() => {
             overlay.remove();
             window.updateInProgress = false;
@@ -327,7 +327,7 @@ function update_system() {
         .then(response => response.json())
         .then(result => {
             console.log("Update result:", result);
-            setStatus("✅ Update completed. System will restart shortly...");
+            setStatus("Update completed. System will restart shortly...");
             setTimeout(waitForServerRecovery, 5000);
         })
         .catch(error => {
@@ -336,7 +336,7 @@ function update_system() {
                 setStatus("⚙️ System is restarting. Please wait...");
                 waitForServerRecovery();
             } else {
-                setStatus("❌ Update failed: " + error.message);
+                setStatus("Update failed: " + error.message);
                 setTimeout(() => {
                     overlay.remove();
                     window.updateInProgress = false;
