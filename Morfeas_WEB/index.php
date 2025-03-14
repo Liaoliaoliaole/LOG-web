@@ -233,6 +233,7 @@ document.onkeydown = function(key){
 };
 
 function update_system() {
+	console.log("Checking for updates...");
     alert("Checking for updates...");
     var xhttp = new XMLHttpRequest();
     xhttp.open("POST", "../morfeas_php/config.php", true);
@@ -240,6 +241,16 @@ function update_system() {
     xhttp.onreadystatechange = function () {
         if (xhttp.readyState === 4 && xhttp.status === 200) {
             var response = JSON.parse(xhttp.responseText);
+			console.log("Response received:", response);
+
+			if (response.debug) {
+                console.log("=== DEBUG OUTPUT ===");
+                response.debug.forEach(function (line) {
+                    console.log(line);
+                });
+                console.log("====================");
+            }
+
             if(response.update) {
                 if (confirm("Update available. Do you want to update?")) {
                     alert("Please wait, updating...");

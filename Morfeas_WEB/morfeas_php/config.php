@@ -623,34 +623,50 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			case "shutdown":
 				exec('sudo poweroff');
 				return;
-			case "check_update":
-				$dir = "/var/www/html/morfeas_web";
-	
-				$cmd_branch = "cd $dir && git rev-parse --abbrev-ref HEAD";
-    			exec($cmd_branch, $branch_output, $branch_return);
-    			$branch_name = trim($branch_output[0]);
-	
-				$cmd_fetch = "cd $dir && git fetch origin";
-				exec($cmd_fetch, $fetch_output, $fetch_return);
-			
-				$cmd_local = "cd $dir && git rev-parse HEAD";
-				exec($cmd_local, $local_output, $local_return);
-				$local_rev = trim($local_output[0]);
-			
-				$cmd_remote = "cd $dir && git rev-parse origin/$branch_name";//test
-				exec($cmd_remote, $remote_output, $remote_return);
-				$remote_rev = trim($remote_output[0]);			
-
-				if ($local_rev !== $remote_rev) {
-					$message = "Update available...";
-					$update_needed = true;
-				} else {
-					$message = "System is already up-to-date.";
-					$update_needed = false;
-				}
-				header('Content-Type: application/json');
-				echo json_encode(["update" => $update_needed, "message" => $message]);
-				return;
+				case "check_update":
+					$dir = "/var/www/html/morfeas_web";
+					$debug = [];
+				
+					// Fetch updates
+					$cmd_fetch = "cd $dir && git fetch origin 2>&1";
+					exec($cmd_fetch, $fetch_output, $fetch_return);
+					$debug[] = "Git Fetch Output:\n" . implode("\n", $fetch_output);
+				
+					// Get current branch
+					$cmd_branch = "cd $dir && git rev-parse --abbrev-ref HEAD 2>&1";
+					exec($cmd_branch, $branch_output, $branch_return);
+					$current_branch = trim($branch_output[0]);
+					$debug[] = "Current Branch: $current_branch";
+				
+					// Local HEAD commit
+					$cmd_local = "cd $dir && git rev-parse HEAD 2>&1";
+					exec($cmd_local, $local_output, $local_return);
+					$local_rev = trim($local_output[0]);
+					$debug[] = "Local Commit: $local_rev";
+				
+					// Remote branch commit
+					$cmd_remote = "cd $dir && git rev-parse origin/$current_branch 2>&1";
+					exec($cmd_remote, $remote_output, $remote_return);
+					$remote_rev = trim($remote_output[0]);
+					$debug[] = "Remote Commit: $remote_rev";
+				
+					// Determine update status
+					if ($local_rev !== $remote_rev) {
+						$message = "✅ Update available. Your branch is behind.";
+						$update_needed = true;
+					} else {
+						$message = "ℹ️ System is already up-to-date.";
+						$update_needed = false;
+					}
+				
+					// Return as JSON
+					header('Content-Type: application/json');
+					echo json_encode([
+						"update" => $update_needed,
+						"message" => $message,
+						"debug"  => $debug // Include debug messages
+					]);
+					return;				
 			case "update":
 				$date = date('Y-m-d_H-i-s');
 				$cmd  = "sudo /var/www/html/morfeas_web/update.sh 2>&1";
