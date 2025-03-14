@@ -277,8 +277,6 @@ document.onkeydown = function(key){
 // }
 function update_system() {
     console.log("Starting update check...");
-
-    // Show initial checking message
     alert("Checking for updates...");
 
     // Check for updates
@@ -292,7 +290,7 @@ function update_system() {
         if (checkResult.debug) console.log("DEBUG:", checkResult.debug.join("\n"));
 
         if (!checkResult.update) {
-            alert(checkResult.message); // System up to date
+            alert(checkResult.message);
             return;
         }
 
