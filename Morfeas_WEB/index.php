@@ -240,12 +240,9 @@ function update_system() {
     overlay.id = 'update-overlay';
     overlay.style = `
         position: fixed;
-        bottom: 20px; 
-		left: 50%;
-        width: auto%;
-		max-width: 90%;
-		height: 100%;
-        background: rgba(201, 197, 197, 0.6);
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(136, 136, 136, 0.6);
         color: black;
         display: flex;
         align-items: center;
@@ -255,7 +252,7 @@ function update_system() {
     `;
     overlay.innerHTML = `
         <div id="update-status-message" style="
-            background: rgba(201, 197, 197, 0.6); 
+            background: rgba(255, 255, 255, 0.6); 
             padding: 20px; 
             border-radius: 5px;
             text-align: center;
