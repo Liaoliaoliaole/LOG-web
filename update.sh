@@ -14,7 +14,7 @@ print_status() {
 # ---------------------------
 # GLOBAL SETTINGS IN LOG DEVICE(Pi)
 # ---------------------------
-MAX_LOGS=5
+MAX_LOGS=3
 UPDATE_LOGS_DIR="/mnt/ramdisk/Morfeas_Loggers"
 MORFEAS_WEB_DIR="/var/www/html/morfeas_web"
 MORFEAS_CORE_DIR="/opt/Morfeas_project/Morfeas_core"

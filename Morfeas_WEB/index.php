@@ -252,7 +252,7 @@ function update_system() {
     `;
     overlay.innerHTML = `
         <div id="update-status-message" style="
-            background: rgba(255, 255, 255, 0.6); 
+            background: rgba(255, 255, 255, 0.97); 
             padding: 20px; 
             border-radius: 5px;
             text-align: center;
