@@ -240,8 +240,11 @@ function update_system() {
     overlay.id = 'update-overlay';
     overlay.style = `
         position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
+        bottom: 20px; 
+		left: 50%;
+        width: auto%;
+		max-width: 90%;
+		height: 100%;
         background: rgba(201, 197, 197, 0.6);
         color: black;
         display: flex;

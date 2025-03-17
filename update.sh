@@ -20,9 +20,11 @@ MORFEAS_WEB_DIR="/var/www/html/morfeas_web"
 MORFEAS_CORE_DIR="/opt/Morfeas_project/Morfeas_core"
 
 # Auto-clean old logs
-LOG_COUNT=$(ls -1t "$UPDATE_LOGS_DIR"/Morfeas_update_*.log 2>/dev/null | wc -l)
-if [ "$LOG_COUNT" -gt "$MAX_LOGS" ]; then
-    ls -1t "$UPDATE_LOGS_DIR"/Morfeas_update_*.log | tail -n +$((MAX_LOGS + 1)) | xargs rm -f
+LOGS=$(find "$UPDATE_LOGS_DIR" -maxdepth 1 -name "Morfeas_update_*.log" -printf '%T@ %p\n' | sort -nr | tail -n +$((MAX_LOGS + 1)) | cut -d' ' -f2-)
+if [ -n "$LOGS" ]; then
+    echo "Cleaning up old update logs:"
+    echo "$LOGS"
+    echo "$LOGS" | xargs rm -f
 fi
 
 # Setup date and log file
