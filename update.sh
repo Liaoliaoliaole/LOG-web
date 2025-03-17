@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ========================================
-# Morfeas Update Script with Optional Check Mode
+#LOG(Morfeas) Update Script
 # ========================================
 
 # Helper function for status messages
@@ -11,11 +11,15 @@ print_status() {
     echo "======================================"
 }
 
-# Limit to last 6 update logs
-MAX_LOGS=6
+# ---------------------------
+# GLOBAL SETTINGS IN LOG DEVICE(Pi)
+# ---------------------------
+MAX_LOGS=5
 UPDATE_LOGS_DIR="/mnt/ramdisk/Morfeas_Loggers"
+MORFEAS_WEB_DIR="/var/www/html/morfeas_web"
+MORFEAS_CORE_DIR="/opt/Morfeas_project/Morfeas_core"
 
-# Remove old logs if more than MAX_LOGS exist
+# Auto-clean old logs
 LOG_COUNT=$(ls -1t "$UPDATE_LOGS_DIR"/Morfeas_update_*.log 2>/dev/null | wc -l)
 if [ "$LOG_COUNT" -gt "$MAX_LOGS" ]; then
     ls -1t "$UPDATE_LOGS_DIR"/Morfeas_update_*.log | tail -n +$((MAX_LOGS + 1)) | xargs rm -f
@@ -25,20 +29,21 @@ fi
 date=$(date +"%Y-%m-%d_%H-%M-%S")
 log_file="$UPDATE_LOGS_DIR/Morfeas_update_$date.log"
 
-# Directories
-MORFEAS_WEB_DIR="/var/www/html/morfeas_web"
-MORFEAS_CORE_DIR="/opt/Morfeas_project/Morfeas_core"
-
-# Update flags
+# Flags
 core_updated=0
 web_updated=0
 
 # ---------------------------
-# CHECK-ONLY MODE
+# Main Process
 # ---------------------------
-if [ "$1" == "--check-only" ]; then
-    {
-        print_status "Starting check-only mode..."
+{
+    print_status "Morfeas Update Script Started: $(date)"
+
+    # ---------------------------
+    # CHECK-ONLY MODE
+    # ---------------------------
+    if [ "$1" == "--check-only" ]; then
+        print_status "Running in Check-Only Mode..."
 
         web_update_needed=0
         core_update_needed=0
@@ -69,7 +74,7 @@ if [ "$1" == "--check-only" ]; then
             [ "$CORE_LOCAL" != "$CORE_REMOTE" ] && core_update_needed=1
         fi
 
-        # --- Final Decision ---
+        # --- Final Check Decision ---
         if [ $web_update_needed -eq 1 ] || [ $core_update_needed -eq 1 ]; then
             echo "Update available (Core or Web)."
             exit 100
@@ -77,15 +82,12 @@ if [ "$1" == "--check-only" ]; then
             echo "System is already up-to-date."
             exit 0
         fi
-    } &> "$log_file"
-    exit
-fi
+    fi
 
-# ---------------------------
-# FULL UPDATE PROCESS
-# ---------------------------
-{
-    print_status "Starting full update process..."
+    # ---------------------------
+    # FULL UPDATE PROCESS
+    # ---------------------------
+    print_status "Running Full Update Mode..."
 
     # ----- Core Update -----
     if [ -d "$MORFEAS_CORE_DIR" ]; then
@@ -123,13 +125,13 @@ fi
         fi
     fi
 
-    print_status "Update files check completed."
+    print_status "Update check completed."
 
     # ---------------------------
     # Restart Services If Needed
     # ---------------------------
     if [ $core_updated -eq 1 ] || [ $web_updated -eq 1 ]; then
-        print_status "Scheduling restart in background..."
+        print_status "Scheduling service restart in 5 sec..."
         (
             sleep 5
             echo "Restarting Morfeas and Apache services..."
@@ -138,10 +140,10 @@ fi
             echo "Services restarted."
         ) &
     else
-        print_status "No updates applied, no restart needed."
+        print_status "No updates applied. No restart needed."
     fi
 
-    print_status "Update process completed."
+    print_status "Morfeas Update Script Finished: $(date)"
     echo "Log file: $log_file"
 
 } &> "$log_file"
