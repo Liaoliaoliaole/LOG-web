@@ -61,7 +61,6 @@ button{width:100px;}
 	width:15px; height:15px;
 	background:red;
 	border-radius:50%;
-	<!-- display:none; --->
 }
 
 </style>
