@@ -626,9 +626,20 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			case "check_update":
 				$cmd_check = "sudo /var/www/html/morfeas_web/update.sh --check-only 2>&1";
 				exec($cmd_check, $output, $return_var);			
-				$debug = $output;			
-				$update_needed = ($return_var === 100);			
-				$message = $update_needed ? "Update available." : "System is already up-to-date.";			
+				$debug = implode("\n", $output);			
+				if ($return_var === 2) {
+					$message = "Failed to check for updates. Network or server unreachable.";
+					$update_needed = false;
+				} elseif ($return_var === 100) {
+					$update_needed = true;
+					$message = "Update available.";
+				} elseif ($return_var === 0) {
+					$update_needed = false;
+					$message = "System is already up-to-date.";
+				} else {
+					$update_needed = false;
+					$message = "Unknown error during update check.";
+				}
 				header('Content-Type: application/json');
 				echo json_encode([
 					"update" => $update_needed,
@@ -637,7 +648,6 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				]);
 				return;							
 			case "update":
-				$date = date('Y-m-d_H-i-s');
 				$cmd  = "sudo /var/www/html/morfeas_web/update.sh 2>&1";
 				exec($cmd, $output, $return_var);            
 				$final_output = implode("\n", $output);            					

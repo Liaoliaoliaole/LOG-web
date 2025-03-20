@@ -55,6 +55,15 @@ button{width:100px;}
 
 .show {display: block;}
 
+#update-indicator {
+	position:absolute;
+	top:-5px; right: -32px;
+	width:15px; height:15px;
+	background:red;
+	border-radius:50%;
+	<!-- display:none; --->
+}
+
 </style>
 </head>
 <body>
@@ -131,8 +140,9 @@ button{width:100px;}
 	  <tr>
 		<td colspan="2"></td>
 		<td><button type="button" onclick='update_system()'>
-    		<span title="System Update">
+    		<span title="System Update" style="position: relative; display: inline-block;">
         		<img src="./art/update.png" class="bsize">
+				<div id="update-indicator"></div>
         		<p><b>System<br>Update</b></p>
     		</span>
 		</button></td>
@@ -291,15 +301,21 @@ function update_system() {
     .then(data => {
         console.log("Check Result:", data);
 
-        if (data.update) {
-            setStatus("<b>Update available!</b><br>Do you want to update now or later?", true);
-        } else {
-            setStatus("System is already up-to-date.");
-            setTimeout(() => {
-                overlay.remove();
-                window.updateInProgress = false;
-            }, 3000);
-        }
+        if (data.message.includes("Network") || data.message.includes("unreachable")) {
+			setStatus("<b>Network issue:</b><br>" + data.message);
+			setTimeout(() => {
+				overlay.remove();
+				window.updateInProgress = false;
+			}, 5000);
+		} else if (data.update) {
+			setStatus("<b>Update available!</b><br>Do you want to update now or later?", true);
+		} else {
+			setStatus("System is already up-to-date.");
+			setTimeout(() => {
+				overlay.remove();
+				window.updateInProgress = false;
+			}, 3000);
+		}
     })
     .catch(error => {
         console.error("Error during update check:", error);
@@ -310,22 +326,23 @@ function update_system() {
         }, 5000);
     });
 
-    function startUpdate() {
-        setStatus("Updating system... Please do not close this window.");
-        
-        fetch("../morfeas_php/config.php", {
-            method: "POST",
-            headers: { "Content-type": "update" }
-        })
-        .then(response => response.json())
-        .then(result => {
-            console.log("Update result:", result);
+	function startUpdate() {
+		setStatus("Updating system... Please do not close this window.");
+
+		fetch("../morfeas_php/config.php", {
+			method: "POST",
+			headers: { "Content-type": "update" }
+		})
+		.then(response => response.json())
+		.then(result => {
+			console.log("Update result:", result);
             setStatus("Update completed. System will restart shortly...");
             setTimeout(waitForServerRecovery, 5000);
-        })
-        .catch(error => {
-            console.warn("Update error:", error);
-            if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+		})
+		.catch(error => {
+			console.warn("Update error:", error);
+            if (error instanceof TypeError) {
+				console.log("Network issue:", error.message);
                 setStatus("System is restarting. Please wait...");
                 waitForServerRecovery();
             } else {
@@ -335,13 +352,13 @@ function update_system() {
                     window.updateInProgress = false;
                 }, 5000);
             }
-        });
-    }
+		});
+	}
 }
 
 function waitForServerRecovery() {
     const pingInterval = 2000;
-    const maxAttempts = 50;
+    const maxAttempts = 60;
     let attempts = 0;
 
     function setStatus(msg) {

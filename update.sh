@@ -3,6 +3,21 @@
 # ========================================
 #LOG(Morfeas) Update Script
 # ========================================
+# This script performs system update checks and applies updates
+# when triggered by the frontend web interface.
+#
+# It supports two modes:
+#   --check-only   : Checks if updates are available without applying them.
+#   (default run)  : Downloads, applies updates, and restarts services if needed.
+#
+# Update logs are stored for debugging and audit purposes.
+# Exit Codes:
+#   0   - Success / No updates available
+#   1   - General failure (permissions, directory issues, etc.)
+#   2   - Network error / Cannot reach update server (git server)
+#   100 - Update available (when running in check-only mode)
+#
+# ==========================================
 
 # Helper function for status messages
 print_status() {
@@ -22,8 +37,7 @@ MORFEAS_CORE_DIR="/opt/Morfeas_project/Morfeas_core"
 # Auto-clean old logs
 LOGS=$(find "$UPDATE_LOGS_DIR" -maxdepth 1 -name "Morfeas_update_*.log" -printf '%T@ %p\n' | sort -nr | tail -n +$((MAX_LOGS + 1)) | cut -d' ' -f2-)
 if [ -n "$LOGS" ]; then
-    echo "Cleaning up old update logs:"
-    echo "$LOGS"
+    print_status "Cleaning up old update logs:"
     echo "$LOGS" | xargs rm -f
 fi
 
@@ -54,6 +68,10 @@ web_updated=0
         if [ -d "$MORFEAS_WEB_DIR" ]; then
             cd "$MORFEAS_WEB_DIR" || { echo "Cannot access $MORFEAS_WEB_DIR"; exit 1; }
             git fetch origin
+            if [ $? -ne 0 ]; then
+                echo "Error: Network issue or cannot reach update server."
+                exit 2
+            fi
             WEB_BRANCH=$(git rev-parse --abbrev-ref HEAD)
             WEB_LOCAL=$(git rev-parse HEAD)
             WEB_REMOTE=$(git rev-parse "origin/$WEB_BRANCH")
@@ -67,6 +85,10 @@ web_updated=0
         if [ -d "$MORFEAS_CORE_DIR" ]; then
             cd "$MORFEAS_CORE_DIR" || { echo "Cannot access $MORFEAS_CORE_DIR"; exit 1; }
             git fetch origin
+            if [ $? -ne 0 ]; then
+                echo "Error: Network issue or cannot reach update server."
+                exit 2
+            fi
             CORE_BRANCH=$(git rev-parse --abbrev-ref HEAD)
             CORE_LOCAL=$(git rev-parse HEAD)
             CORE_REMOTE=$(git rev-parse "origin/$CORE_BRANCH")
@@ -78,10 +100,10 @@ web_updated=0
 
         # --- Final Check Decision ---
         if [ $web_update_needed -eq 1 ] || [ $core_update_needed -eq 1 ]; then
-            echo "Update available (Core or Web)."
+            print_status "Update available (Core or Web)."
             exit 100
         else
-            echo "System is already up-to-date."
+            print_status "System is already up-to-date."
             exit 0
         fi
     fi
@@ -143,11 +165,10 @@ web_updated=0
         ) &
     else
         print_status "No updates applied. No restart needed."
+        exit 0
     fi
 
     print_status "Morfeas Update Script Finished: $(date)"
     echo "Log file: $log_file"
 
 } &> "$log_file"
-
-exit 0
