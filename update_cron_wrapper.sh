@@ -1,18 +1,17 @@
-#!/bin/bash
-export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+LOG_FILE="/tmp/daily_update_check.log"
 
-/var/www/html/morfeas_web/update.sh --check-only > /tmp/daily_update_check.log 2>&1
+# Run update check and overwrite log
+/var/www/html/morfeas_web/update.sh --check-only > "$LOG_FILE" 2>&1
 exit_code=$?
 
-cat /tmp/daily_update_check.log
-echo "Update.sh exited with $exit_code" >> /tmp/daily_update_check.log
-
-if [ $exit_code -eq 100 ]; then
-    echo "Update available. Creating flag file." >> /tmp/daily_update_check.log
-    touch /tmp/update_needed
-else
-    echo "No update. Removing flag file." >> /tmp/daily_update_check.log
-    rm -f /tmp/update_needed
-fi
-
-exit $exit_code
+{
+    echo "Update.sh exited with $exit_code"
+    if [ $exit_code -eq 100 ]; then
+        echo "Update available. Creating flag file."
+        touch "$FLAG_FILE"
+        chmod 644 "$FLAG_FILE"
+    else
+        echo "No update. Removing flag file if exists."
+        rm -f "$FLAG_FILE"
+    fi
+} >> "$LOG_FILE"
