@@ -665,12 +665,12 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			
 				if ($return_var === 0 && file_exists($morfeas_flag_file)) {
 					if (@unlink($morfeas_flag_file)) {
-						error_log("PHP: Successfully removed flag file: $morfeas_flag_file");
+						console.og("PHP: Successfully removed flag file: $morfeas_flag_file");
 					} else {
-						error_log("PHP: Failed to remove flag file: $morfeas_flag_file");
+						console.log("PHP: Failed to remove flag file: $morfeas_flag_file");
 					}
 				} else {
-					error_log("PHP: No flag file found or update failed. Return code: $return_var");
+					console.log("PHP: No flag file found or update failed. Return code: $return_var");
 				}
 			
 				header('Content-Type: application/json');
