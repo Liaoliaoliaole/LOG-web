@@ -393,7 +393,7 @@ function checkUpdateStatus() {
     .then(data => {
         if (data.update_needed) {
             document.getElementById("update-indicator").style.display = "block";
-			console.log("Update needed - refreshing page");
+			console.log(new Date().toLocaleTimeString(), "Update needed - refreshing page");
             if (lastUpdateNeeded === false) {
                 location.reload();
             }
@@ -408,8 +408,22 @@ function checkUpdateStatus() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    checkUpdateStatus();  // Initial check
-    setInterval(checkUpdateStatus, 60000); // Re-check every 60 seconds
+    function syncUpdateCheck() {
+        // Run checkUpdateStatus immediately on load
+        checkUpdateStatus();
+
+        // Calculate delay to align with the next full minute
+        const now = new Date();
+        const delay = 60000 - (now.getSeconds() * 1000 + now.getMilliseconds());
+
+        // After delay, start perfectly aligned interval
+        setTimeout(() => {
+            checkUpdateStatus();
+            setInterval(checkUpdateStatus, 60000); // Now aligned every :00 second
+        }, delay);
+    }
+
+    syncUpdateCheck();
 });
 
 function shutdown()

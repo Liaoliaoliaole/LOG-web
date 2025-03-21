@@ -370,9 +370,6 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 	}
 
 	$morfeas_flag_file = "/var/run/morfeas/update_needed";// A path for the update flag
-	var_dump(file_exists('/var/run/morfeas/update_needed'));
-	var_dump(is_writable('/var/run/morfeas/update_needed'));
-	var_dump(unlink('/var/run/morfeas/update_needed'));
 
 	ob_start("ob_gzhandler");//Enable gzip buffering
 	//Disable caching
