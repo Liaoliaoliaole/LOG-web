@@ -5,12 +5,14 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 exit_code=$?
 
 cat /tmp/daily_update_check.log
+echo "Update.sh exited with $exit_code" >> /tmp/daily_update_check.log
 
 if [ $exit_code -eq 100 ]; then
+    echo "Update available. Creating flag file." >> /tmp/daily_update_check.log
     touch /tmp/update_needed
 else
+    echo "No update. Removing flag file." >> /tmp/daily_update_check.log
     rm -f /tmp/update_needed
 fi
 
 exit $exit_code
-
