@@ -172,3 +172,5 @@ web_updated=0
     echo "Log file: $log_file"
 
 } &> "$log_file"
+RETVAL=$?
+exit $RETVAL
