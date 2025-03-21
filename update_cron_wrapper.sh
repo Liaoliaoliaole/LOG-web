@@ -1,4 +1,8 @@
+#!/bin/bash
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
 LOG_FILE="/tmp/daily_update_check.log"
+FLAG_FILE="/tmp/update_needed"
 
 # Run update check and overwrite log
 /var/www/html/morfeas_web/update.sh --check-only > "$LOG_FILE" 2>&1
