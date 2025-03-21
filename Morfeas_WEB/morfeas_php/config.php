@@ -663,9 +663,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				exec($cmd, $output, $return_var);            
 				$final_output = implode("\n", $output);
 				if ($return_var === 0 && file_exists($morfeas_flag_file)) {					
-					if (!@unlink($morfeas_flag_file)) {
-						console.log("Failed to delete $morfeas_flag_file");
-					}
+					@unlink($morfeas_flag_file);
 				}           					
 				header('Content-Type: application/json');
 				echo json_encode([
