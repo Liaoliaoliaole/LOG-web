@@ -392,11 +392,14 @@ function checkUpdateStatus() {
         if (data.update_needed) {
             document.getElementById("update-indicator").style.display = "block";
 			console.log("Update needed - refreshing page");
-            location.reload();
+            if (lastUpdateNeeded === false) {
+                location.reload();
+            }
+            lastUpdateNeeded = true;
         } else {
             document.getElementById("update-indicator").style.display = "none";
 			console.log("Update no need - refreshing page");
-            location.reload();
+            lastUpdateNeeded = false;
         }
     })
     .catch(err => console.warn("Error checking update status:", err));
