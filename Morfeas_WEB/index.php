@@ -61,6 +61,7 @@ button{width:100px;}
 	width:15px; height:15px;
 	background:red;
 	border-radius:50%;
+	display: none;
 }
 
 </style>
@@ -381,6 +382,20 @@ function waitForServerRecovery() {
             });
     }, pingInterval);
 }
+
+document.addEventListener("DOMContentLoaded", function() {
+    fetch("../morfeas_php/config.php", {
+        method: "POST",
+        headers: { "Content-type": "update_status" }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.update_needed) {
+            document.getElementById("update-indicator").style.display = "block";
+        }
+    })
+    .catch(err => console.warn("Error checking update status:", err));
+});
 
 function shutdown()
 {

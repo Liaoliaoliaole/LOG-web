@@ -368,6 +368,9 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			die("Server: \"OPC_UA_SERVER\" component missing");
 		return true;
 	}
+
+	$morfeas_flag_file = "/tmp/morfeas_update_needed.flag";// A path for the update flag
+
 	ob_start("ob_gzhandler");//Enable gzip buffering
 	//Disable caching
 	header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -623,6 +626,14 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			case "shutdown":
 				exec('sudo poweroff');
 				return;
+			case "update_status":
+				header('Content-Type: application/json');
+				if (file_exists($morfeas_flag_file)) {
+					echo json_encode(["update_needed" => true]);
+				} else {
+					echo json_encode(["update_needed" => false]);
+				}
+				return;
 			case "check_update":
 				$cmd_check = "sudo /var/www/html/morfeas_web/update.sh --check-only 2>&1";
 				exec($cmd_check, $output, $return_var);			
@@ -633,12 +644,16 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				} elseif ($return_var === 100) {
 					$update_needed = true;
 					$message = "Update available.";
+					file_put_contents($morfeas_flag_file, time());
+					@unlink($morfeas_flag_file);
 				} elseif ($return_var === 0) {
 					$update_needed = false;
 					$message = "System is already up-to-date.";
+					@unlink($morfeas_flag_file);
 				} else {
 					$update_needed = false;
 					$message = "Unknown error during update check.";
+					@unlink($morfeas_flag_file);
 				}
 				header('Content-Type: application/json');
 				echo json_encode([
@@ -650,7 +665,10 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			case "update":
 				$cmd  = "sudo /var/www/html/morfeas_web/update.sh 2>&1";
 				exec($cmd, $output, $return_var);            
-				$final_output = implode("\n", $output);            					
+				$final_output = implode("\n", $output);
+				if ($return_var === 0 && file_exists($morfeas_flag_file)) {
+					@unlink($morfeas_flag_file);
+				}           					
 				header('Content-Type: application/json');
 				echo json_encode([
 					"report" => $return_var === 0 ? "Update completed" : "Update failed",
