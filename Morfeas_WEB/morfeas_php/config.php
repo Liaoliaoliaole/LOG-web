@@ -369,7 +369,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 		return true;
 	}
 
-	$morfeas_flag_file = "/tmp/morfeas_update_needed.flag";// A path for the update flag
+	$morfeas_flag_file = "/tmp/update_needed";// A path for the update flag
 
 	ob_start("ob_gzhandler");//Enable gzip buffering
 	//Disable caching
