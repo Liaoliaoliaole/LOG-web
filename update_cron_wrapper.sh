@@ -2,7 +2,12 @@
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 LOG_FILE="/tmp/daily_update_check.log"
+FLAG_DIR="/var/run/morfeas"
 FLAG_FILE="/var/run/morfeas/update_needed"
+
+mkdir -p "$FLAG_DIR"
+chown morfeas:www-data "$FLAG_DIR"
+chmod 775 "$FLAG_DIR"
 
 # Run update check and overwrite log
 /var/www/html/morfeas_web/update.sh --check-only > "$LOG_FILE" 2>&1
@@ -14,7 +19,7 @@ exit_code=$?
         echo "Update available. Creating flag file."
         touch "$FLAG_FILE"
         chown morfeas:www-data "$FLAG_FILE"
-        chmod 777 "$FLAG_FILE"
+        chmod 755 "$FLAG_FILE"
     else
         echo "No update. Removing flag file if exists."
         rm -f "$FLAG_FILE"

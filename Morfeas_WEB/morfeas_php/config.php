@@ -661,19 +661,15 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			case "update":
 				$cmd  = "sudo /var/www/html/morfeas_web/update.sh 2>&1";
 				exec($cmd, $output, $return_var);            
-				$final_output = implode("\n", $output);
-				if (file_exists($morfeas_flag_file)) {
-					if (!unlink($morfeas_flag_file)) {
-						error_log("Failed to unlink $morfeas_flag_file");
-					} else {
-						error_log("Flag file deleted successfully");
-					}
-				}						
+				$final_output = implode("\n", $output);						
 				header('Content-Type: application/json');
 				echo json_encode([
 					"report" => $return_var === 0 ? "Update completed" : "Update failed",
 					"output" => $final_output,
 				]);
+				ob_flush();
+				flush();
+				exec('sudo reboot');
 				return;												
 		}
 	}
