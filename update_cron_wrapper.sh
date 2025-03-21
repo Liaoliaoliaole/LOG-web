@@ -1,9 +1,14 @@
 #!/bin/bash
-/var/www/html/morfeas_web/update.sh --check-only
-RET=$?
-cat /mnt/ramdisk/Morfeas_Loggers/Morfeas_update_*.log > /tmp/daily_update_check.log
-if [ $RET -eq 100 ]; then
-    touch /tmp/morfeas_update_needed
+/var/www/html/morfeas_web/update.sh --check-only > /tmp/daily_update_check.log 2>&1
+exit_code=$?
+
+cat /tmp/daily_update_check.log
+
+if [ $exit_code -eq 100 ]; then
+    touch /tmp/update_needed
 else
-    rm -f /tmp/morfeas_update_needed
+    rm -f /tmp/update_needed
 fi
+
+exit $exit_code
+
