@@ -662,23 +662,25 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$cmd  = "sudo /var/www/html/morfeas_web/update.sh 2>&1";
 				exec($cmd, $output, $return_var);            
 				$final_output = implode("\n", $output);
+				$debug_message = "";
 			
 				if ($return_var === 0 && file_exists($morfeas_flag_file)) {
 					if (@unlink($morfeas_flag_file)) {
-						console.og("PHP: Successfully removed flag file: $morfeas_flag_file");
+						$debug_message = "PHP: Successfully removed flag file: $morfeas_flag_file";
 					} else {
-						console.log("PHP: Failed to remove flag file: $morfeas_flag_file");
+						$debug_message = "PHP: Failed to remove flag file: $morfeas_flag_file";
 					}
 				} else {
-					console.log("PHP: No flag file found or update failed. Return code: $return_var");
+					$debug_message = "PHP: No flag file found or update failed. Return code: $return_var";
 				}
 			
 				header('Content-Type: application/json');
 				echo json_encode([
 					"report" => $return_var === 0 ? "Update completed" : "Update failed",
-					"output" => $final_output
+					"output" => $final_output,
+					"debug" => $debug_message
 				]);
-				return;									
+				return;												
 		}
 	}
 	http_response_code(404);
