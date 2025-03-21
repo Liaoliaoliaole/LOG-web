@@ -382,6 +382,7 @@ function waitForServerRecovery() {
     }, pingInterval);
 }
 
+let lastUpdateNeeded = null;
 function checkUpdateStatus() {
     fetch("../morfeas_php/config.php", {
         method: "POST",
