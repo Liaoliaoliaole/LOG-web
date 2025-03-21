@@ -33,6 +33,11 @@ MAX_LOGS=2
 UPDATE_LOGS_DIR="/mnt/ramdisk/Morfeas_Loggers"
 MORFEAS_WEB_DIR="/var/www/html/morfeas_web"
 MORFEAS_CORE_DIR="/opt/Morfeas_project/Morfeas_core"
+FLAG_DIR="/var/run/morfeas"
+
+mkdir -p "$FLAG_DIR"
+chown morfeas:www-data "$FLAG_DIR"
+chmod 775 "$FLAG_DIR"
 
 # Auto-clean old logs
 LOGS=$(find "$UPDATE_LOGS_DIR" -maxdepth 1 -name "Morfeas_update_*.log" -printf '%T@ %p\n' | sort -nr | tail -n +$((MAX_LOGS + 1)) | cut -d' ' -f2-)
