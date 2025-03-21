@@ -61,7 +61,6 @@ button{width:100px;}
 	width:15px; height:15px;
 	background:red;
 	border-radius:50%;
-	display: none;
 }
 
 </style>
@@ -392,8 +391,12 @@ function checkUpdateStatus() {
     .then(data => {
         if (data.update_needed) {
             document.getElementById("update-indicator").style.display = "block";
+			console.log("Update needed - refreshing page");
+            location.reload();
         } else {
             document.getElementById("update-indicator").style.display = "none";
+			console.log("Update no need - refreshing page");
+            location.reload();
         }
     })
     .catch(err => console.warn("Error checking update status:", err));

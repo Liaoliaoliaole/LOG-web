@@ -644,15 +644,12 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				} elseif ($return_var === 100) {
 					$update_needed = true;
 					$message = "Update available.";
-					file_put_contents($morfeas_flag_file, time());
 				} elseif ($return_var === 0) {
 					$update_needed = false;
 					$message = "System is already up-to-date.";
-					@unlink($morfeas_flag_file);
 				} else {
 					$update_needed = false;
 					$message = "Unknown error during update check.";
-					@unlink($morfeas_flag_file);
 				}
 				header('Content-Type: application/json');
 				echo json_encode([
@@ -665,8 +662,10 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$cmd  = "sudo /var/www/html/morfeas_web/update.sh 2>&1";
 				exec($cmd, $output, $return_var);            
 				$final_output = implode("\n", $output);
-				if ($return_var === 0 && file_exists($morfeas_flag_file)) {
-					@unlink($morfeas_flag_file);
+				if ($return_var === 0 && file_exists($morfeas_flag_file)) {					
+					if (!@unlink($morfeas_flag_file)) {
+						console.log("Failed to delete $morfeas_flag_file");
+					}
 				}           					
 				header('Content-Type: application/json');
 				echo json_encode([
