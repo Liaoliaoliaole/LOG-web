@@ -662,7 +662,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$cmd  = "sudo /var/www/html/morfeas_web/update.sh 2>&1";
 				exec($cmd, $output, $return_var);            
 				$final_output = implode("\n", $output);
-				@unlink($morfeas_flag_file);			
+				exec("sudo rm -f " . escapeshellarg($morfeas_flag_file));			
 				header('Content-Type: application/json');
 				echo json_encode([
 					"report" => $return_var === 0 ? "Update completed" : "Update failed",
