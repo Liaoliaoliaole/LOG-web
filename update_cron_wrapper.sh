@@ -1,4 +1,6 @@
 #!/bin/bash
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
 /var/www/html/morfeas_web/update.sh --check-only > /tmp/daily_update_check.log 2>&1
 exit_code=$?
 
