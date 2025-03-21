@@ -13,8 +13,8 @@ exit_code=$?
     if [ $exit_code -eq 100 ]; then
         echo "Update available. Creating flag file."
         touch "$FLAG_FILE"
-        chown www-data:www-data "$FLAG_FILE"
-        chmod 777 "$FLAG_FILE"
+        chown morfeas:www-data "$FLAG_FILE"
+        chmod 664 "$FLAG_FILE"
     else
         echo "No update. Removing flag file if exists."
         rm -f "$FLAG_FILE"

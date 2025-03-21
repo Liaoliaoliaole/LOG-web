@@ -336,8 +336,7 @@ function update_system() {
 		.then(response => response.json())
 		.then(result => {
 			console.log("Update result:", result);
-			console.log(result.debug);
-			
+
             setStatus("Update completed. System will restart shortly...");
             setTimeout(waitForServerRecovery, 5000);
 		})
