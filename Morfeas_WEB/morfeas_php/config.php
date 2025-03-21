@@ -645,7 +645,6 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					$update_needed = true;
 					$message = "Update available.";
 					file_put_contents($morfeas_flag_file, time());
-					@unlink($morfeas_flag_file);
 				} elseif ($return_var === 0) {
 					$update_needed = false;
 					$message = "System is already up-to-date.";

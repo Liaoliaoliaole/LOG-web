@@ -383,7 +383,7 @@ function waitForServerRecovery() {
     }, pingInterval);
 }
 
-document.addEventListener("DOMContentLoaded", function() {
+function checkUpdateStatus() {
     fetch("../morfeas_php/config.php", {
         method: "POST",
         headers: { "Content-type": "update_status" }
@@ -392,9 +392,16 @@ document.addEventListener("DOMContentLoaded", function() {
     .then(data => {
         if (data.update_needed) {
             document.getElementById("update-indicator").style.display = "block";
+        } else {
+            document.getElementById("update-indicator").style.display = "none";
         }
     })
     .catch(err => console.warn("Error checking update status:", err));
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    checkUpdateStatus();  // Initial check
+    setInterval(checkUpdateStatus, 60000); // Re-check every 60 seconds
 });
 
 function shutdown()
