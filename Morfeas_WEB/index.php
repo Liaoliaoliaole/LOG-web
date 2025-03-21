@@ -393,7 +393,7 @@ function checkUpdateStatus() {
         if (data.update_needed) {
             document.getElementById("update-indicator").style.display = "block";
 			console.log("Update needed - refreshing page");
-            if (lastUpdateNeeded === false) {
+            if (lastUpdateNeeded !== true) {
                 location.reload();
             }
             lastUpdateNeeded = true;
