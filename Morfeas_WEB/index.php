@@ -399,7 +399,7 @@ function checkUpdateStatus() {
             lastUpdateNeeded = true;
         } else {
             document.getElementById("update-indicator").style.display = "none";
-			console.log("Update no need - refreshing page");
+			console.log("Update no need - not refreshing page");
             lastUpdateNeeded = false;
         }
     })
