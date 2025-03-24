@@ -369,7 +369,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 		return true;
 	}
 
-	$morfeas_flag_file = "/var/run/morfeas/update_needed";// A path for the update flag
+	$morfeas_flag_file = "/tmp/update_needed";// Path for the update flag
 
 	ob_start("ob_gzhandler");//Enable gzip buffering
 	//Disable caching
@@ -626,7 +626,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			case "shutdown":
 				exec('sudo poweroff');
 				return;
-			case "update_status":
+			case "update_status"://Cron job auto-check
 				header('Content-Type: application/json');
 				if (file_exists($morfeas_flag_file)) {
 					echo json_encode(["update_needed" => true]);
@@ -634,8 +634,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					echo json_encode(["update_needed" => false]);
 				}
 				return;
-			case "check_update":
-				$cmd_check = "sudo /var/www/html/morfeas_web/update.sh --check-only 2>&1";
+			case "check_update"://Manual user-triggered check
+				$cmd_check = escapeshellcmd("sudo /var/www/html/morfeas_web/update.sh --check-only") . " 2>&1";
 				exec($cmd_check, $output, $return_var);			
 				$debug = implode("\n", $output);			
 				if ($return_var === 2) {
@@ -649,7 +649,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					$message = "System is already up-to-date.";
 				} else {
 					$update_needed = false;
-					$message = "Unknown error during update check.";
+					$message = "Unknown error during update check. Exit code: $return_var";
 				}
 				header('Content-Type: application/json');
 				echo json_encode([
@@ -659,7 +659,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				]);
 				return;							
 			case "update":
-				$cmd  = "sudo /var/www/html/morfeas_web/update.sh 2>&1";
+				$cmd = escapeshellcmd("sudo /var/www/html/morfeas_web/update.sh") . " 2>&1";
 				exec($cmd, $output, $return_var);            
 				$final_output = implode("\n", $output);						
 				header('Content-Type: application/json');
@@ -667,9 +667,6 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					"report" => $return_var === 0 ? "Update completed" : "Update failed",
 					"output" => $final_output,
 				]);
-				ob_flush();
-				flush();
-				exec('sudo reboot');
 				return;												
 		}
 	}
