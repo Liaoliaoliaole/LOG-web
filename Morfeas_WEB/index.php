@@ -404,6 +404,7 @@ function checkUpdateStatus() {
     })
     .then(res => res.json())
     .then(data => {
+		console.log("Update flag status" , data.update_needed);
         showUpdateIndicator(data.update_needed);
     })
     .catch(err => console.warn("Error checking update status:", err));
@@ -411,6 +412,8 @@ function checkUpdateStatus() {
 
 document.addEventListener("DOMContentLoaded", function() {
     function syncUpdateCheck() {
+		checkUpdateStatus();
+		
         const now = new Date();
         const delay = 60000 - (now.getSeconds() * 1000 + now.getMilliseconds());
 
