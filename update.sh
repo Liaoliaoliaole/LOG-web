@@ -129,6 +129,7 @@ perform_update() {
     fi
 
     if [ $core_updated -eq 1 ] || [ $web_updated -eq 1 ]; then
+        rm -f "$FLAG_FILE"
         print_status "Restarting Services..."
         sleep 3
         sudo systemctl restart Morfeas_system
@@ -136,14 +137,6 @@ perform_update() {
     else
         print_status "No updates applied"
     fi
-    
-    rm -f "$FLAG_FILE"
-    if [ -f "$FLAG_FILE" ]; then
-    echo "Warning: Failed to remove $FLAG_FILE. Check ownership and permissions:"
-    ls -l "$FLAG_FILE"
-else
-    echo "Update flag $FLAG_FILE removed successfully."
-fi
 }
 
 main() {
