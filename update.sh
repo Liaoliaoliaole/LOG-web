@@ -82,9 +82,7 @@ check_updates() {
 
     if [ $web_update_needed -eq 1 ] || [ $core_update_needed -eq 1 ]; then
         print_status "Update Available"
-        if [ ! -f "$FLAG_FILE" ]; then
-            touch "$FLAG_FILE"
-        fi
+        touch "$FLAG_FILE"
         exit 100
     else
         print_status "System is UP-TO-DATE"
@@ -135,14 +133,11 @@ perform_update() {
         sleep 3
         sudo systemctl restart Morfeas_system
         sudo systemctl restart apache2
-        # Clear the update flag if it exists
-        if [ -f "$FLAG_FILE" ]; then
-            print_status "Removing update flag"
-            rm -f "$FLAG_FILE"
-        fi
     else
         print_status "No updates applied"
     fi
+    
+    rm -f "$FLAG_FILE"
 }
 
 main() {
