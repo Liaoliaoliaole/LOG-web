@@ -635,7 +635,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				}
 				return;
 			case "check_update"://Manual user-triggered check
-				$cmd_check = escapeshellcmd("sudo /var/www/html/morfeas_web/update.sh --check-only") . " 2>&1";
+				$cmd_check = "sudo /var/www/html/morfeas_web/update.sh --check-only 2>&1";
 				exec($cmd_check, $output, $return_var);			
 				$debug = implode("\n", $output);			
 				if ($return_var === 2) {
@@ -659,7 +659,7 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				]);
 				return;							
 			case "update":
-				$cmd = escapeshellcmd("sudo /var/www/html/morfeas_web/update.sh") . " 2>&1";
+				$cmd = "sudo /var/www/html/morfeas_web/update.sh --update 2>&1";
 				exec($cmd, $output, $return_var);            
 				$final_output = implode("\n", $output);						
 				header('Content-Type: application/json');
