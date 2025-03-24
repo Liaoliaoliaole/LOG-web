@@ -242,6 +242,17 @@ document.onkeydown = function(key){
 		hide_portals_list();
 };
 
+let lastUpdateNeeded = null;
+
+function showUpdateIndicator(show) {
+    const indicator = document.getElementById("update-indicator");
+    // if (show && lastUpdateNeeded === false) {
+    //     location.reload();
+    // }
+    indicator.style.display = show ? "block" : "none";
+    lastUpdateNeeded = show;
+}
+
 function update_system() {
     if (window.updateInProgress) return;
     window.updateInProgress = true;
@@ -308,8 +319,10 @@ function update_system() {
 				window.updateInProgress = false;
 			}, 5000);
 		} else if (data.update) {
+			showUpdateIndicator(true);
 			setStatus("<b>Update available!</b><br>Do you want to update now or later?", true);
 		} else {
+			showUpdateIndicator(false);
 			setStatus("System is already up-to-date.");
 			setTimeout(() => {
 				overlay.remove();
@@ -384,7 +397,6 @@ function waitForServerRecovery() {
     }, pingInterval);
 }
 
-let lastUpdateNeeded = null;
 function checkUpdateStatus() {
     fetch("../morfeas_php/config.php", {
         method: "POST",
@@ -392,38 +404,21 @@ function checkUpdateStatus() {
     })
     .then(res => res.json())
     .then(data => {
-        if (data.update_needed) {
-            document.getElementById("update-indicator").style.display = "block";
-			console.log(new Date().toLocaleTimeString(), "Update needed - refreshing page");
-            if (lastUpdateNeeded === false) {
-                location.reload();
-            }
-            lastUpdateNeeded = true;
-        } else {
-            document.getElementById("update-indicator").style.display = "none";
-			console.log("Update no need - not refreshing page");
-            lastUpdateNeeded = false;
-        }
+        showUpdateIndicator(data.update_needed);
     })
     .catch(err => console.warn("Error checking update status:", err));
 }
 
 document.addEventListener("DOMContentLoaded", function() {
     function syncUpdateCheck() {
-        // Run checkUpdateStatus immediately on load
-        checkUpdateStatus();
-
-        // Calculate delay to align with the next full minute
         const now = new Date();
         const delay = 60000 - (now.getSeconds() * 1000 + now.getMilliseconds());
 
-        // After delay, start perfectly aligned interval
         setTimeout(() => {
             checkUpdateStatus();
-            setInterval(checkUpdateStatus, 60000); // Now aligned every :00 second
+            setInterval(checkUpdateStatus, 60000);
         }, delay);
     }
-
     syncUpdateCheck();
 });
 
@@ -435,7 +430,7 @@ function shutdown()
 		xhttp.open("POST", "../morfeas_php/config.php", true);
 		xhttp.setRequestHeader("Content-type", "shutdown");
 		xhttp.send();
-		alert("Shudown executed. Close all related windows!!!");
+		alert("Shutdown executed. Close all related windows!!!");
 	}
 }
 
