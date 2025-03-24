@@ -138,6 +138,12 @@ perform_update() {
     fi
     
     rm -f "$FLAG_FILE"
+    if [ -f "$FLAG_FILE" ]; then
+    echo "Warning: Failed to remove $FLAG_FILE. Check ownership and permissions:"
+    ls -l "$FLAG_FILE"
+else
+    echo "Update flag $FLAG_FILE removed successfully."
+fi
 }
 
 main() {
