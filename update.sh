@@ -86,7 +86,7 @@ check_updates() {
         exit 100
     else
         print_status "System is UP-TO-DATE"
-        rm -f "$FLAG_FILE"
+        sudo rm -f "$FLAG_FILE"
         exit 0
     fi
 }
@@ -129,7 +129,7 @@ perform_update() {
     fi
 
     if [ $core_updated -eq 1 ] || [ $web_updated -eq 1 ]; then
-        rm -f "$FLAG_FILE"
+        sudo rm -f "$FLAG_FILE"
         print_status "Restarting Services..."
         sleep 3
         sudo systemctl restart Morfeas_system
