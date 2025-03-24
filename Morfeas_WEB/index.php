@@ -419,7 +419,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         setTimeout(() => {
             checkUpdateStatus();
-            setInterval(checkUpdateStatus, 60000);
+            setInterval(checkUpdateStatus, 21600000); // Check every 6 hours, since cron set daily midnight.
         }, delay);
     }
     syncUpdateCheck();
