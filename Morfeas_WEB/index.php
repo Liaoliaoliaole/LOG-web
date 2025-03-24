@@ -310,8 +310,6 @@ function update_system() {
     })
     .then(response => response.json())
     .then(data => {
-        console.log("Check Result:", data);
-
         if (data.message.includes("Network") || data.message.includes("unreachable")) {
 			setStatus("<b>Network issue:</b><br>" + data.message);
 			setTimeout(() => {
@@ -348,15 +346,12 @@ function update_system() {
 		})
 		.then(response => response.json())
 		.then(result => {
-			console.log("Update result:", result);
-
             setStatus("Update completed. System will restart shortly...");
             setTimeout(waitForServerRecovery, 5000);
 		})
 		.catch(error => {
 			console.warn("Update error:", error);
             if (error instanceof TypeError) {
-				console.log("Network issue:", error.message);
                 setStatus("System is restarting. Please wait...");
                 waitForServerRecovery();
             } else {
@@ -404,7 +399,6 @@ function checkUpdateStatus() {
     })
     .then(res => res.json())
     .then(data => {
-		console.log("Auto Check Result - update_needed:", data.update_needed);
         showUpdateIndicator(data.update_needed);
     })
     .catch(err => console.warn("Error checking update status:", err));
