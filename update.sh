@@ -33,11 +33,16 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # (for flag file creation or any temp operation), the Apache2
 # systemd unit has been configured with:
 #
-#   /etc/systemd/system/apache2.service.d/no-private-tmp.conf
+#   sudo mkdir -p /etc/systemd/system/apache2.service.d/
+#   sudo nano /etc/systemd/system/apache2.service.d/no-private-tmp.conf
 #
 # Content:
 #   [Service]
 #   PrivateTmp=false
+#
+# Reload systemd and restart apache
+#   sudo systemctl daemon-reexec
+#   sudo systemctl restart apache2
 #
 # This disables the PrivateTmp sandboxing feature, allowing Apache2
 # and the update script to share the real /tmp directory.

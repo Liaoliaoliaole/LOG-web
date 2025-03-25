@@ -6,4 +6,4 @@ Cmnd_Alias ALLOW_UPDATE_MORFEAS_WEB = /usr/bin/make, \
 www-data ALL = (ALL) NOPASSWD: ALLOW_UPDATE_MORFEAS_WEB
 
 # Add to this file to enable passwordless to execute update by apache2
-# sudo visudo -f /etc/sudoers.d/Morfeas_web_update_allow 
+# sudo visudo -f /etc/sudoers.d/Morfeas_update_allow 
