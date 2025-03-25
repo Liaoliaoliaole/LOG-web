@@ -26,6 +26,24 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 #   100 - Update available (when running in check-only mode)
 #
 # ==========================================
+#
+# NOTE ON SYSTEMD CONFIGURATION:
+# ------------------------------------------
+# For PHP or the update process to correctly access /tmp
+# (for flag file creation or any temp operation), the Apache2
+# systemd unit has been configured with:
+#
+#   /etc/systemd/system/apache2.service.d/no-private-tmp.conf
+#
+# Content:
+#   [Service]
+#   PrivateTmp=false
+#
+# This disables the PrivateTmp sandboxing feature, allowing Apache2
+# and the update script to share the real /tmp directory.
+# ------------------------------------------
+#
+# ========================================
 
 # ========================================
 # Morfeas Update Script
