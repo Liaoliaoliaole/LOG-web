@@ -63,8 +63,12 @@ FLAG_FILE="/tmp/update_needed"
 mkdir -p "$UPDATE_LOGS_DIR"
 
 # Clean old logs
-find "$UPDATE_LOGS_DIR" -maxdepth 1 -name "Morfeas_update_*.log" -printf '%T@ %p\n' | \
-    sort -nr | tail -n +$((MAX_LOGS + 1)) | cut -d' ' -f2- | xargs -r rm -f
+old_logs=$(find "$UPDATE_LOGS_DIR" -maxdepth 1 -name "Morfeas_update_*.log" -printf '%T@ %p\n' | \
+    sort -nr | tail -n +$((MAX_LOGS + 1)) | cut -d' ' -f2-)
+
+for log_file in $old_logs; do
+    sudo rm -f "$log_file"
+done
 
 # Log setup
 date=$(date +"%Y-%m-%d_%H-%M-%S")
