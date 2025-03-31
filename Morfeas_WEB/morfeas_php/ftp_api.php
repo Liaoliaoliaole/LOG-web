@@ -1,68 +1,74 @@
 <?php
-require("../Morfeas_env.php");
-require("./morfeas_ftp_backup.php"); // Reuse existing FTP logic
-header("Content-Type: text/plain");
+// Debug mode
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-$data = json_decode(file_get_contents("php://input"));
+// Log file path
+$logFile = "/tmp/ftp_debug.log";
+file_put_contents($logFile, "=== New Request ===\n", FILE_APPEND);
 
-if (!isset($data->host, $data->user, $data->pass, $data->action)) {
-    http_response_code(400);
-    exit("Missing required fields.");
+header("Content-Type: application/json");
+
+// Read and decode JSON input
+$data = file_get_contents("php://input");
+file_put_contents($logFile, "Raw POST: $data\n", FILE_APPEND);
+
+$json = json_decode($data);
+
+if (!$json) {
+    file_put_contents($logFile, "JSON decode failed\n", FILE_APPEND);
+    http_response_code(500);
+    echo json_encode(["error" => "Invalid JSON"]);
+    exit;
 }
 
-$host = $data->host;
-$user = $data->user;
-$pass = $data->pass;
-$dir  = $data->dir ?? "";
+try {
+    if (!isset($json->action)) {
+        throw new Exception("Missing 'action' parameter");
+    }
 
-$ftp = ftp_connect($host, 21, 10);
-if (!$ftp || !ftp_login($ftp, $user, $pass)) {
-    exit("FTP connection failed.");
+    switch ($json->action) {
+        case "connect":
+            connectFTP($json);
+            break;
+
+        // Add more actions like backup, list, restore as needed
+        default:
+            throw new Exception("Unknown action: " . $json->action);
+    }
+
+} catch (Exception $e) {
+    file_put_contents($logFile, "Exception: " . $e->getMessage() . "\n", FILE_APPEND);
+    http_response_code(500);
+    echo json_encode(["error" => $e->getMessage()]);
+    exit;
 }
-if ($dir) ftp_chdir($ftp, $dir);
 
-switch ($data->action) {
-    case "connect":
-        ftp_close($ftp);
-        exit("Connection successful.");
-    case "backup":
-        $name = gethostname() . "_" . date("Y_d_m_G_i_s") . ".mbl";
-        $bundle = bundle_make();
-        $tmpPath = "/tmp/" . $name;
-        file_put_contents($tmpPath, $bundle);
-        if (ftp_put($ftp, $name, $tmpPath, FTP_BINARY)) {
-            unlink($tmpPath);
-            ftp_close($ftp);
-            exit("Backup uploaded: $name");
-        } else {
-            ftp_close($ftp);
-            exit("Upload failed.");
+function connectFTP($json) {
+    global $logFile;
+
+    foreach (['host', 'user', 'pass'] as $field) {
+        if (empty($json->$field)) {
+            throw new Exception("Missing FTP field: $field");
         }
-    case "list":
-        $files = ftp_nlist($ftp, ".");
-        $backups = array_filter($files, fn($f) => str_ends_with($f, ".mbl"));
-        ftp_close($ftp);
-        echo json_encode(array_values($backups));
-        exit;
-    case "restore":
-        if (!isset($data->file)) exit("No file selected.");
-        $remote = $data->file;
-        $local = "/tmp/" . $remote;
-        if (ftp_get($ftp, $local, $remote, FTP_BINARY)) {
-            $bundle = file_get_contents($local);
-            $bundle = gzdecode($bundle);
-            $json = json_decode($bundle);
-            if (!$json) exit("Invalid bundle format.");
+    }
 
-            file_put_contents($opc_ua_config_dir . "OPC_UA_Config.xml", $json->OPC_UA_config);
-            file_put_contents($opc_ua_config_dir . "Morfeas_config.xml", $json->Morfeas_config);
-            exec("sudo systemctl restart Morfeas_system.service");
-            exit("Restore complete.");
-        } else {
-            exit("Download failed.");
-        }
+    $host = $json->host;
+    $user = $json->user;
+    $pass = $json->pass;
+
+    $conn = @ftp_connect($host, 21, 10);
+    if (!$conn) throw new Exception("FTP connection failed");
+
+    $login = @ftp_login($conn, $user, $pass);
+    if (!$login) {
+        ftp_close($conn);
+        throw new Exception("FTP login failed");
+    }
+
+    $list = @ftp_nlist($conn, ".");
+    ftp_close($conn);
+
+    echo json_encode(["success" => true, "files" => $list]);
 }
-
-ftp_close($ftp);
-exit("Unknown action.");
-?>
