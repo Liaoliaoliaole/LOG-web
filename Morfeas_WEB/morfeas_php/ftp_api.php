@@ -59,15 +59,25 @@ function connectFTP($json) {
     $pass = $json->pass;
 
     $conn = @ftp_connect($host, 21, 10);
-    if (!$conn) throw new Exception("FTP connection failed");
+    if (!$conn) {
+        echo json_encode(["success" => false, "error" => "FTP connection failed"]);
+        return;
+    }
 
     $login = @ftp_login($conn, $user, $pass);
     if (!$login) {
         ftp_close($conn);
-        throw new Exception("FTP login failed");
+        echo json_encode(["success" => false, "error" => "FTP login failed"]);
+        return;
     }
 
     $list = @ftp_nlist($conn, ".");
+    if ($list === false) {
+        ftp_close($conn);
+        echo json_encode(["success" => false, "error" => "Failed to retrieve file list"]);
+        return;
+    }
+
     ftp_close($conn);
 
     echo json_encode(["success" => true, "files" => $list]);

@@ -7,7 +7,7 @@ function connectFTP() {
   const data = getFormData();
   data.action = "connect";
 
-  postData(data, "ftp-status", "Testing connection...");
+  postData(data, "ftp-status", "Connecting...");
 }
 
 function backupToFTP() {
@@ -64,12 +64,20 @@ function postData(data, statusId, loadingMsg) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
   })
-    .then(res => res.text())
-    .then(msg => statusBox.textContent = msg)
-    .catch(err => {
-      statusBox.textContent = "Error: " + err;
-      statusBox.classList.add("error");
-    });
+  .then(res => res.json())
+  .then(response => {
+    if (response.success) {
+      statusBox.textContent = "Connection successful!";
+      statusBox.style.color = "green";
+    } else {
+      statusBox.textContent = "Connection Error: " + response.error;
+      statusBox.style.color = "red";
+    }
+  })
+  .catch(err => {
+    statusBox.textContent = "Error: " + err;
+    statusBox.style.color = "red";
+  });
 }
 
 function getFormData() {
