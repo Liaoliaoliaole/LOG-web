@@ -82,6 +82,7 @@ input.global_style{
 	<td>Gateway</td>
 	<td id="conf_gateway"></td>
   </tr>
+  <!-- [MOVED] Handled by log_ftp_if.html in new FTP UI
   <tr>
     <th colspan="2">FTP Backup Server <input type="checkbox" id="ftp_backup_en" onchange="ftp_backup_en_fn(this)"></th>
   </tr>
@@ -109,7 +110,7 @@ input.global_style{
 		<input style="width:16;" type="password" id="ftp_backup_pass" disabled>
 		<input type='button' id='ftp_backup_test' value='Test' onclick='ftp_test_bt()' disabled>
 	</td>
-  </tr>
+  </tr> -->
   <tr>
     <th colspan="2">NTP Configuration</th>
   </tr>
@@ -240,6 +241,7 @@ function default_config(_config)
 			mode.selectedIndex = 1;
 			break;
 	}
+/* 	[FTP_MIGRATION] Disabled legacy FTP logic, now handled in ftp_backup.js + log_ftp_if.html 
 	if(_config.hasOwnProperty("FTP_backup_server"))
 	{
 		ftp_serv_en.checked = true;
@@ -266,7 +268,7 @@ function default_config(_config)
 		ftp_serv_user.value="";
 		ftp_serv_pass.value="";
 		ftp_serv_dir_name.value="";
-	}
+	} */
 	if(_config.hasOwnProperty("CAN_ifs"))
 	{
 		if(config.CAN_ifs.length)
@@ -303,13 +305,15 @@ const hostname=document.getElementById("hostname"),
 	  mask=document.getElementById("mask"),
 	  gateway=document.getElementsByName("gateway"),
 	  dns=document.getElementsByName("dns"),
-	  ntp=document.getElementsByName("ntp"),
+	  ntp=document.getElementsByName("ntp");
+/* [FTP_MIGRATION] Disabled legacy FTP logic, now handled in ftp_backup.js + log_ftp_if.html
 	  ftp_serv_en=document.getElementById("ftp_backup_en"),
 	  ftp_serv_host=document.getElementById("ftp_backup_host"),
 	  ftp_serv_user=document.getElementById("ftp_backup_user"),
 	  ftp_serv_pass=document.getElementById("ftp_backup_pass"),
 	  ftp_serv_dir_name=document.getElementById("ftp_backup_dir_name"),
 	  ftp_serv_test=document.getElementById("ftp_backup_test");
+	  */
 //Set Limits
 for(let i=0;i<4;i++)
 {
@@ -380,7 +384,7 @@ function Send_config()
 	if(get_new_mode(new_config)) return;
 	if(get_new_ntp(new_config)) return;
 	if(get_new_CANifs(new_config)) return;
-	if(get_new_FTP_backup(new_config)) return;
+	// if(get_new_FTP_backup(new_config)) return;  // [FTP_MIGRATION] Removed legacy FTP form logic
 	if(!(Object.keys(new_config).length))
 	{
 		alert("Nothing to commit!!!");
@@ -536,6 +540,8 @@ function get_new_CANifs(new_config)
 		delete new_config.CAN_ifs;
 	return 0;
 }
+/*
+[MOVED] Handled by ftp_backup.js in new FTP UI
 function get_new_FTP_backup(new_config)
 {
 	if(ftp_serv_en.checked && (!ftp_serv_host.value || !ftp_serv_user.value || !ftp_serv_pass.value))
@@ -607,6 +613,7 @@ function ftp_test_bt()
 	xhttp.setRequestHeader("Content-type", "FTP_backup_test");
 	xhttp.send(compress(JSON.stringify(ftp_serv_test_obj)));
 }
+ */
 //@license-end
 </script>
 </body>

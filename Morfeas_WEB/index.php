@@ -246,9 +246,6 @@ let lastUpdateNeeded = null;
 
 function showUpdateIndicator(show) {
     const indicator = document.getElementById("update-indicator");
-    // if (show && lastUpdateNeeded === false) {
-    //     location.reload();
-    // }
     indicator.style.display = show ? "block" : "none";
     lastUpdateNeeded = show;
 }
@@ -273,8 +270,8 @@ function update_system() {
     `;
     overlay.innerHTML = `
         <div id="update-status-message" style="
-            background: rgba(255, 255, 255, 0.97); 
-            padding: 20px; 
+            background: rgba(255, 255, 255, 0.97);
+            padding: 20px;
             border-radius: 5px;
             text-align: center;
             max-width: 90%;

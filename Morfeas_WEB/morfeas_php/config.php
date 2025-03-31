@@ -18,7 +18,9 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 */
 	require("../Morfeas_env.php");
 	require("./Supplementary.php");
-	require("./morfeas_ftp_backup.php");
+	// [FTP_MIGRATION] Removed for FTP modularization
+	// require("./morfeas_ftp_backup.php");
+
 	function _ip2long($ip_str)
 	{
 		$ip=ip2long($ip_str) or die("Server: ip2long() failed!!!");
@@ -428,7 +430,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					$currConfig->ntp=get_timesyncd_ntp();
 					if(($CAN_ifs=getCANifs()))
 						$currConfig->CAN_ifs=$CAN_ifs;
-					if(file_exists($opc_ua_config_dir."FTP_backup_conf.json") && filesize($opc_ua_config_dir."FTP_backup_conf.json"))
+					// [FTP_MIGRATION] --- START --- Moved to ftp_api.php
+					/* if(file_exists($opc_ua_config_dir."FTP_backup_conf.json") && filesize($opc_ua_config_dir."FTP_backup_conf.json"))
 					{
 						$FTP_backup_conf=file_get_contents($opc_ua_config_dir.'FTP_backup_conf.json');
 						if(!($FTP_backup_conf=json_decode($FTP_backup_conf)))
@@ -445,7 +448,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 							if(property_exists($FTP_backup_conf, "dir_name") && isset($FTP_backup_conf->dir_name))
 								$currConfig->FTP_backup_server->dir_name = $FTP_backup_conf->dir_name;
 						}
-					}
+					} */
+					// [FTP_MIGRATION] --- END ---
 					header('Content-Type: application/json');
 					echo json_encode($currConfig);
 					return;
@@ -514,7 +518,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 						exec('sudo systemctl restart Morfeas_system.service');
 					}
 				}
-				if(property_exists($new_config,"FTP_backup_server"))
+				// [FTP_MIGRATION] --- START --- Moved to ftp_api.php
+/* 				if(property_exists($new_config,"FTP_backup_server"))
 				{
 					if(($FTP_backup_conf=json_encode($new_config->FTP_backup_server))!==false)
 					{
@@ -523,7 +528,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 						else if(strlen($FTP_backup_conf))
 							file_put_contents($opc_ua_config_dir."FTP_backup_conf.json", $FTP_backup_conf) or die("Error: Can't write FTP_backup_conf.json!!!");
 					}
-				}
+				} */
+				// [FTP_MIGRATION] --- END ---
 				header('Content-Type: application/json');
 				echo '{"report":"Okay"}';
 				return;
@@ -545,6 +551,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$local_Morfeas_config->save($opc_ua_config_dir.'Morfeas_config.xml') or die('Server: Unable to write Morfeas_config.xml');
 				//exec('rm -fr /mnt/ramdisk/Morfeas_Loggers/*');
 				exec('sudo systemctl restart Morfeas_system.service');
+				// [FTP_MIGRATION] --- START --- Moved to ftp_api.php
+				/*
 				if(file_exists($opc_ua_config_dir."FTP_backup_conf.json") && filesize($opc_ua_config_dir."FTP_backup_conf.json"))
 				{
 					$FTP_backup_conf=file_get_contents($opc_ua_config_dir."FTP_backup_conf.json");
@@ -565,6 +573,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					else
 						die("Error: FTP backup config is invalid!!!");
 				}
+ 				*/
+				// [FTP_MIGRATION] --- END ---
 				header('Content-Type: report/json');
 				echo '{"report":"Okay"}';
 				return;
@@ -592,6 +602,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				else
 					die("Server: Bundle does not have valid content");
 				return;
+		    // [FTP_MIGRATION] --- START --- Moved to ftp_api.php
+			/*
 			case "FTP_backup_test":
 				$data = decompress($RX_data) or die("Server: Decompression failed!!!");
 				$ftp_ser_test = json_decode($data) or die("Server: JSON Decode failed!!!");
@@ -620,6 +632,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				else
 					die("Error: Property missing!!!");
 				return;
+			*/
+			// [FTP_MIGRATION] --- END ---
 			case "reboot":
 				exec('sudo reboot');
 				return;
@@ -636,8 +650,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				return;
 			case "check_update"://Manual user-triggered check
 				$cmd_check = "sudo /var/www/html/morfeas_web/update.sh --check-only 2>&1";
-				exec($cmd_check, $output, $return_var);			
-				$debug = implode("\n", $output);			
+				exec($cmd_check, $output, $return_var);
+				$debug = implode("\n", $output);
 				if ($return_var === 2) {
 					$message = "Failed to check for updates. Network or server unreachable.";
 					$update_needed = false;
@@ -657,17 +671,17 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					"message" => $message,
 					"debug"  => $debug
 				]);
-				return;							
+				return;
 			case "update":
 				$cmd = "sudo /var/www/html/morfeas_web/update.sh --update 2>&1";
-				exec($cmd, $output, $return_var);            
-				$final_output = implode("\n", $output);						
+				exec($cmd, $output, $return_var);
+				$final_output = implode("\n", $output);
 				header('Content-Type: application/json');
 				echo json_encode([
 					"report" => $return_var === 0 ? "Update completed" : "Update failed",
 					"output" => $final_output,
 				]);
-				return;												
+				return;
 		}
 	}
 	http_response_code(404);
