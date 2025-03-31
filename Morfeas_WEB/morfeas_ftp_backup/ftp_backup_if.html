@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>System Backup & Restore (FTP)</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link rel="shortcut icon" href="../art/backup.png">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h2 {
+      text-align: center;
+    }
+    .section {
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 20px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    label {
+      display: inline-block;
+      width: 120px;
+      font-weight: bold;
+    }
+    input[type="text"], input[type="password"] {
+      width: 200px;
+      padding: 4px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 6px 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .status {
+      margin-top: 10px;
+      font-style: italic;
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+    select {
+      width: 320px;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>System Backup & Restore (FTP)</h2>
+
+  <div class="section" id="ftp-config">
+    <h3>FTP Server Setup</h3>
+    <label for="ftp-host">Host:</label>
+    <input type="text" id="ftp-host"><br><br>
+    <label for="ftp-user">Username:</label>
+    <input type="text" id="ftp-user"><br><br>
+    <label for="ftp-pass">Password:</label>
+    <input type="password" id="ftp-pass"><br><br>
+    <label for="ftp-dir">Remote Dir:</label>
+    <input type="text" id="ftp-dir" placeholder="(optional)"><br><br>
+    <button onclick="connectFTP()">Connect</button>
+    <div id="ftp-status" class="status"></div>
+  </div>
+
+  <div class="section" id="ftp-backup">
+    <h3>Backup to FTP</h3>
+    <button onclick="backupToFTP()">Backup Now</button>
+    <div id="backup-status" class="status"></div>
+  </div>
+
+  <div class="section" id="ftp-restore">
+    <h3>Restore from FTP</h3>
+    <button onclick="listBackups()">Load Available Backups</button><br><br>
+    <select id="backup-list" size="5"></select><br><br>
+    <button onclick="restoreSelected()">Restore Selected</button>
+    <div id="restore-status" class="status"></div>
+  </div>
+
+  <script src="../morfeas_ecma/common.js"></script>
+  <script src="ftp_backup.js"></script>
+</body>
+</html>

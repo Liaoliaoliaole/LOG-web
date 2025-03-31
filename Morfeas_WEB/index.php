@@ -138,7 +138,13 @@ button{width:100px;}
 		</td>
 	  </tr>
 	  <tr>
-		<td colspan="2"></td>
+		<td colspan="1"></td>
+		<td><button type="button" onclick='location.href="morfeas_ftp_backup/ftp_backup_if.html"'>
+			<span title="System Backup">
+				<img src="./art/backup.png" class="bsize">
+				<p><b>System<br>Backup</b></p>
+			</span>
+		</button></td>
 		<td><button type="button" onclick='update_system()'>
     		<span title="System Update" style="position: relative; display: inline-block;">
         		<img src="./art/update.png" class="bsize">
