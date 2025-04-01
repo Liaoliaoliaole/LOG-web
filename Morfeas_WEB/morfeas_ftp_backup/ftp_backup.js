@@ -88,3 +88,11 @@ function getFormData() {
     dir: document.getElementById("ftp-dir").value.trim()
   };
 }
+
+window.addEventListener("beforeunload", () => {
+  fetch(api, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "clearConfig" })
+  });
+});
