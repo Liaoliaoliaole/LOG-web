@@ -9,8 +9,7 @@ Cmnd_Alias ALLOW_PASSWORDLESS = /sbin/ip,\
                                 /sbin/poweroff,\
                                 /sbin/reboot,\
                                 /usr/bin/make install,\
-                                /bin/cp /tmp/ftp_debug.log /mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log, \
-                                /bin/rm /tmp/ftp_debug.log
+                                /bin/mv /tmp/ftp_debug.log /mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log
 
 www-data ALL = (ALL) NOPASSWD: ALLOW_PASSWORDLESS
 

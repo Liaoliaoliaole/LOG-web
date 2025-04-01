@@ -284,7 +284,7 @@ function clearConfig() {
 function moveFTPLog() {
     global $logFile;
     if (file_exists($logFile)) {
-        $cmd = "sudo cp /tmp/ftp_debug.log /mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log && sudo rm -f /tmp/ftp_debug.log";
+        $cmd = "sudo mv /tmp/ftp_debug.log /mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log";
         $output = shell_exec($cmd . " 2>&1");
         logMsg("Executed: $cmd");
         logMsg("Output: $output");
