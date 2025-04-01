@@ -163,6 +163,31 @@ function ftpBackup() {
         throw new Exception("Failed to upload backup");
     }
 
+    logMsg("Backup uploaded to $remoteName");
+
+    // Enforce max 10 .mbi files
+    $dir   = $config->dir ?: ".";
+    $files = @ftp_nlist($conn, $dir);
+    if ($files && is_array($files)) {
+        $mbiFiles = array_filter($files, function($f) {
+            return str_ends_with(strtolower($f), ".mbi");
+        });
+
+        sort($mbiFiles);
+
+        $excess = count($mbiFiles) - 10;
+        if ($excess > 0) {
+            $toDelete = array_slice($mbiFiles, 0, $excess);
+            foreach ($toDelete as $file) {
+                if (!ftp_delete($conn, $file)) {
+                    logMsg("Failed to delete old backup: $file");
+                } else {
+                    logMsg("Deleted old backup: $file");
+                }
+            }
+        }
+    }
+
     ftp_close($conn);
 
     // remove local file
@@ -274,8 +299,16 @@ function moveFTPLog() {
  */
 function logMsg($msg) {
     global $logFile;
-    file_put_contents($logFile, $msg."\n", FILE_APPEND);
+    $maxSize = 100 * 1024; // 100 KB
+
+    if (file_exists($logFile) && filesize($logFile) > $maxSize) {
+        file_put_contents($logFile, "[$time] === Log truncated due to size ===\n");
+    }
+
+    $time = date("Y-m-d H:i:s");
+    file_put_contents($logFile, "[$time] $msg\n", FILE_APPEND);
 }
+
 
 /**
  * Load config from /tmp/ftp_config.json
