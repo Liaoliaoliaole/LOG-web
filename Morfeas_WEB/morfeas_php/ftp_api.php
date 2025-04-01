@@ -282,12 +282,15 @@ function clearConfig() {
 }
 
 function moveFTPLog() {
-    global $logFile;
-    if (file_exists($logFile)) {
-        $cmd = "sudo mv /tmp/ftp_debug.log /mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log";
-        $output = shell_exec($cmd . " 2>&1");
-        logMsg("Executed: $cmd");
-        logMsg("Output: $output");
+    $src = "/tmp/ftp_debug.log";
+    $dest = "/mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log";
+
+    if (file_exists($src)) {
+        if (rename($src, $dest)) {
+            logMsg("Log moved successfully to $dest.");
+        } else {
+            logMsg("Failed to move log to $dest.");
+        }
     } else {
         logMsg("No ftp_debug.log found to move.");
     }
