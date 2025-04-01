@@ -63,7 +63,7 @@ FLAG_FILE="/tmp/update_needed"
 mkdir -p "$UPDATE_LOGS_DIR"
 
 # Clean old logs
-old_logs=$(find "$UPDATE_LOGS_DIR" -maxdepth 1 -name "Morfeas_update_*.log" -printf '%T@ %p\n' | \
+old_logs=$(find "$UPDATE_LOGS_DIR" -maxdepth 1 -name "LOG_update_*.log" -printf '%T@ %p\n' | \
     sort -nr | tail -n +$((MAX_LOGS + 1)) | cut -d' ' -f2-)
 
 for log_file in $old_logs; do
@@ -72,7 +72,7 @@ done
 
 # Log setup
 date=$(date +"%Y-%m-%d_%H-%M-%S")
-log_file="$UPDATE_LOGS_DIR/Morfeas_update_$date.log"
+log_file="$UPDATE_LOGS_DIR/LOG_update_$date.log"
 
 print_status() {
     echo -e "\n======================================"

@@ -20,7 +20,7 @@ header("Content-Type: application/json");
 $logFile    = "/tmp/ftp_debug.log";
 $configFile = "/tmp/ftp_config.json";
 
-logMsg("=== New Request ===\n");
+logMsg("\n=== New Request ===");
 
 /*****************************************************************
  * Read input JSON
