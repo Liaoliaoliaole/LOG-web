@@ -52,10 +52,14 @@ try {
         case "testConnect":
             testFtpConnection();
             break;
+        
+        case "clearConfig":
+            clearConfig();
+            echo json_encode(["success" => true, "message" => "Config cleared"]);
+            break;            
 
         case "backup":
             ftpBackup();
-            clearConfig();
             moveFTPLog();
             break;
 
@@ -68,7 +72,6 @@ try {
                 throw new Exception("Missing file to restore");
             }
             ftpRestore($json->file);
-            clearConfig();
             moveFTPLog();
             break;
 
@@ -145,7 +148,6 @@ function ftpBackup() {
     $timestamp  = date("Ymd_His");
     $bundleFile = "/tmp/morfeas_$timestamp.mbi";
 
-    // read local config
     $ua      = file_get_contents("/home/morfeas/configuration/OPC_UA_Config.xml");
     $morfeas = file_get_contents("/home/morfeas/configuration/Morfeas_config.xml");
 
@@ -193,7 +195,6 @@ function ftpBackup() {
 
     ftp_close($conn);
 
-    // remove local file
     if (file_exists($bundleFile)) {
         unlink($bundleFile);
     }
@@ -216,12 +217,10 @@ function ftpList() {
     ftp_close($conn);
 
     if (!$files || !is_array($files)) {
-        // Just return empty array
         echo json_encode([]);
         return;
     }
 
-    // filter to .mbi
     $mbi = array_filter($files, function($f) {
         $lower = strtolower($f);
         return str_ends_with($lower, ".mbi");
@@ -248,12 +247,10 @@ function ftpRestore($filename) {
     }
     ftp_close($conn);
 
-    // parse .mbi
     $raw    = file_get_contents($local);
     $data   = gzdecode($raw);
     $bundle = json_decode($data);
 
-    // overwrite local config
     if (isset($bundle->OPC_UA_Config)) {
         file_put_contents("/home/morfeas/configuration/OPC_UA_Config.xml", $bundle->OPC_UA_Config);
     }
@@ -277,7 +274,11 @@ function clearConfig() {
     if (file_exists($configFile)) {
         unlink($configFile);
         logMsg("Config cleared");
+    } else {
+        logMsg("No config file to clear");
     }
+
+    echo json_encode(["success" => true, "message" => "Config cleared"]);
     return;
 }
 
@@ -306,6 +307,7 @@ function moveFTPLog() {
 function logMsg($msg) {
     global $logFile;
     $maxSize = 100 * 1024; // 100 KB
+    $time = date("Y-m-d H:i:s");
 
     if (is_string($msg) && strpos($msg, '"pass"') !== false) {
         $msg = preg_replace('/("pass"\s*:\s*")[^"]+(")/', '$1*****$2', $msg);
@@ -315,10 +317,8 @@ function logMsg($msg) {
         file_put_contents($logFile, "[$time] === Log truncated due to size ===\n");
     }
 
-    $time = date("Y-m-d H:i:s");
     file_put_contents($logFile, "[$time] $msg\n", FILE_APPEND);
 }
-
 
 /**
  * Load config from /tmp/ftp_config.json
@@ -328,7 +328,7 @@ function loadConfig() {
     if (!file_exists($configFile)) {
         throw new Exception("No config file found! Did you call 'saveConfig' first?");
     }
-    $raw    = file_get_contents($configFile);
+    $raw = file_get_contents($configFile);
     $config = json_decode($raw);
     if (!$config || empty($config->host) || empty($config->user) || empty($config->pass)) {
         throw new Exception("Invalid config data");
