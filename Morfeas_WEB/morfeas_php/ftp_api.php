@@ -1,4 +1,13 @@
 <?php
+/**
+ * str_ends_with fallback for PHP < 8
+ */
+if (!function_exists('str_ends_with')) {
+    function str_ends_with($haystack, $needle) {
+        return $needle !== '' && substr($haystack, -strlen($needle)) === $needle;
+    }
+}
+
 /*****************************************************************
  * Debug & Logging
  *****************************************************************/
@@ -291,11 +300,4 @@ function openFtp($config) {
     return $conn;
 }
 
-/**
- * str_ends_with fallback for PHP < 8
- */
-if (!function_exists('str_ends_with')) {
-    function str_ends_with($haystack, $needle) {
-        return $needle !== '' && substr($haystack, -strlen($needle)) === $needle;
-    }
-}
+
