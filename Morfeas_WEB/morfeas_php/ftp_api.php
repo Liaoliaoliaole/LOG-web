@@ -226,10 +226,10 @@ function ftpRestore($filename) {
 
     // overwrite local config
     if (isset($bundle->OPC_UA_Config)) {
-        file_put_contents("/var/www/html/morfeas_php/OPC_UA_Config.xml", $bundle->OPC_UA_Config);
+        file_put_contents("/home/morfeas/configuration/OPC_UA_Config.xml", $bundle->OPC_UA_Config);
     }
     if (isset($bundle->Morfeas_Config)) {
-        file_put_contents("/var/www/html/morfeas_php/Morfeas_config.xml", $bundle->Morfeas_Config);
+        file_put_contents("/home/morfeas/configuration/Morfeas_config.xml", $bundle->Morfeas_Config);
     }
 
     // remove local copy
