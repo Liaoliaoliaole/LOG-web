@@ -62,7 +62,7 @@ function saveConfigAndTestConnection($config) {
     global $configFile;
 
     foreach (['host', 'user', 'pass'] as $field) {
-        if (empty($json->$field)) {
+        if (empty($config->$field)) {
             throw new Exception("Missing FTP field: $field");
         }
     }
@@ -80,7 +80,7 @@ function saveConfigAndTestConnection($config) {
         return;
     }
 
-    if (!ftp_pasv($conn, true)) { // true enables passive mode
+    if (!ftp_pasv($conn, true)) {
         echo json_encode(["success" => false, "error" => "Failed to enable passive mode"]);
         ftp_close($conn);
         return;
@@ -93,6 +93,7 @@ function saveConfigAndTestConnection($config) {
         return;
     }
 
+    ftp_close($conn);
     file_put_contents($configFile, json_encode($config));
 
     echo json_encode(["success" => true, "files" => $list]);
