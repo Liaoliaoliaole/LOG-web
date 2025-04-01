@@ -55,7 +55,7 @@ try {
         
         case "clearConfig":
             clearConfig();
-            echo json_encode(["success" => true, "message" => "Config cleared"]);
+            moveFTPLog();
             break;            
 
         case "backup":
