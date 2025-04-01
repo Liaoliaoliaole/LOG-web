@@ -13,7 +13,7 @@ if (!function_exists('str_ends_with')) {
  *****************************************************************/
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
-ini_set('error_log', '/tmp/php_errors.log');
+// ini_set('error_log', '/tmp/php_errors.log'); // Debug Use
 
 header("Content-Type: application/json");
 
@@ -68,8 +68,9 @@ try {
             ftpRestore($json->file);
             break;
 
-        case "clearConfig":
+        case "clearTmpFile":
             clearConfig();
+            moveFTPLog();
             break;
 
         default:
@@ -250,6 +251,19 @@ function clearConfig() {
         logMsg("Config cleared");
     }
     echo json_encode(["success" => true]);
+    return;
+}
+
+function moveFTPLog() {
+    global $logFile;
+    $dest = "/mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log";
+    if (file_exists($logFile)) {
+        if (!copy($logFile, $dest)) {
+            logMsg("Failed to copy log to $dest");
+        }
+        unlink($logFile);
+    }
+    echo json_encode(["success" => true, "message" => "Window closed; config cleared and log moved."]);
     return;
 }
 
