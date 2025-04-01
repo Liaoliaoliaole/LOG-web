@@ -146,7 +146,7 @@ function ftpBackup() {
     $conn   = openFtp($config);
 
     $timestamp  = date("Ymd_His");
-    $bundleFile = "/tmp/morfeas_$timestamp.mbi";
+    $bundleFile = "/tmp/LOG_$timestamp.mbi";
 
     $ua      = file_get_contents("/home/morfeas/configuration/OPC_UA_Config.xml");
     $morfeas = file_get_contents("/home/morfeas/configuration/Morfeas_config.xml");
