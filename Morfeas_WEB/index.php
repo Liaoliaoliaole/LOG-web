@@ -139,7 +139,7 @@ button{width:100px;}
 	  </tr>
 	  <tr>
 		<td colspan="1"></td>
-		<td><button type="button" onclick='location.href="morfeas_ftp_backup/ftp_backup_if.html"'>
+		<button type="button" onclick='openSingleInstanceWindow("/morfeas_ftp_backup/ftp_backup_if.html?q=" + makeid(), "BackupWindow", "width=800,height=600");'>
 			<span title="System Backup">
 				<img src="./art/backup.png" class="bsize">
 				<p><b>System<br>Backup</b></p>
@@ -208,6 +208,17 @@ for the JavaScript code in this page.
 */
 "use strict";
 comp_check();
+
+
+const windowRefs = {}; // Store named window references globally
+
+function openSingleInstanceWindow(pageUrl, name = "PopupWindow", features = "width=800,height=600") {
+  if (!windowRefs[name] || windowRefs[name].closed) {
+    windowRefs[name] = window.open(pageUrl, name, features);
+  } else {
+    windowRefs[name].focus();
+  }
+}
 
 function toggle_portals_list()
 {
