@@ -64,8 +64,12 @@ function connectFTP($json) {
         return;
     }
 
-    // Enable passive mode
-    @ftp_pasv($conn, true);
+    // Step 2: Enable passive mode after connection is established
+    if (!ftp_pasv($conn, true)) { // true enables passive mode
+        echo json_encode(["success" => false, "error" => "Failed to enable passive mode"]);
+        ftp_close($conn);
+        return;
+    }
 
     $login = @ftp_login($conn, $user, $pass);
     if (!$login) {
