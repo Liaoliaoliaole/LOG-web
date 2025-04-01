@@ -242,7 +242,7 @@ function ftpRestore($filename) {
 }
 
 /**
- * 6) CLEAR CONFIG
+ * 6) CLEAR TMP FILE
  */
 function clearConfig() {
     global $configFile;
@@ -258,10 +258,21 @@ function moveFTPLog() {
     global $logFile;
     $dest = "/mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log";
     if (file_exists($logFile)) {
-        if (!copy($logFile, $dest)) {
-            logMsg("Failed to copy log to $dest");
+        $contents = file_get_contents($logFile);
+        if ($contents === false) {
+            logMsg("Failed to read log file: $logFile");
+        } else {
+            $written = file_put_contents($dest, $contents);
+            if ($written === false) {
+                $error = error_get_last();
+                logMsg("Failed to write log to $dest: " . $error['message']);
+            } else {
+                logMsg("Successfully moved log to $dest using file_put_contents");
+            }
         }
         unlink($logFile);
+    } else {
+        logMsg("No log file found to move.");
     }
     echo json_encode(["success" => true, "message" => "Window closed; config cleared and log moved."]);
     return;

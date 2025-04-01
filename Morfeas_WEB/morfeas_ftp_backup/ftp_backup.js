@@ -106,7 +106,7 @@ function getFormData() {
   };
 }
 
-// Clear config when leaving the page
+// Clear config and log when leaving the page
 window.addEventListener("beforeunload", () => {
   fetch(api, {
     method: "POST",
