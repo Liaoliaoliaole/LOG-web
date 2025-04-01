@@ -1,208 +1,208 @@
 <?php
-// Debug mode
-ini_set('display_errors', 0); 
-ini_set('log_errors', 1); 
+/*****************************************************************
+ * Debug & Logging
+ *****************************************************************/
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 ini_set('error_log', '/tmp/php_errors.log');
 
 header("Content-Type: application/json");
 
-$logFile = "/tmp/ftp_debug.log";
-$configFile ="/tmp/ftp_config.json";
+$logFile    = "/tmp/ftp_debug.log";
+$configFile = "/tmp/ftp_config.json";
 
-file_put_contents($logFile, "=== New Request ===\n", FILE_APPEND);
+logMsg("=== New Request ===");
 
-// Read and decode JSON input
+/*****************************************************************
+ * Read input JSON
+ *****************************************************************/
 $data = file_get_contents("php://input");
-file_put_contents($logFile, "Raw POST: $data\n", FILE_APPEND);
+logMsg("Raw POST: $data");
 
 $json = json_decode($data);
 if (!$json) {
-    file_put_contents($logFile, "JSON decode failed\n", FILE_APPEND);
+    logMsg("JSON decode failed");
     http_response_code(400);
-    echo json_encode(["error" => "Invalid JSON"]);
+    echo json_encode(["success" => false, "error" => "Invalid JSON"]);
     exit;
 }
 
+/*****************************************************************
+ * Main Router
+ *****************************************************************/
 try {
     if (!isset($json->action)) {
         throw new Exception("Missing 'action' parameter");
     }
 
     switch ($json->action) {
-        case "connect":
-            saveConfigAndTestConnection($json);
+        case "saveConfig":
+            saveConfig($json);
             break;
+
+        case "testConnect":
+            testFtpConnection();
+            break;
+
         case "backup":
             ftpBackup();
             break;
+
         case "list":
             ftpList();
             break;
+
         case "restore":
-            ftpRestore($json->file ?? "");
+            if (empty($json->file)) {
+                throw new Exception("Missing file to restore");
+            }
+            ftpRestore($json->file);
             break;
+
         case "clearConfig":
             clearConfig();
-            break;            
+            break;
+
         default:
             throw new Exception("Unknown action: " . $json->action);
     }
 
 } catch (Exception $e) {
-    file_put_contents($logFile, "Exception: " . $e->getMessage() . "\n", FILE_APPEND);
+    logMsg("Exception: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(["success" => false, "error" => $e->getMessage()]);
     exit;
 }
 
-function saveConfigAndTestConnection($config) {
-    global $configFile, $logFile;
+/*****************************************************************
+ * ACTION FUNCTIONS
+ *****************************************************************/
 
-    foreach (['host', 'user', 'pass'] as $field) {
-        if (empty($config->$field)) {
-            throw new Exception("Missing FTP field: $field");
+/**
+ * 1) SAVE CONFIG: host, user, pass, dir → /tmp/ftp_config.json
+ */
+function saveConfig($data) {
+    global $configFile;
+    foreach (["host", "user", "pass"] as $key) {
+        if (empty($data->$key)) {
+            throw new Exception("Missing field: $key");
         }
     }
 
-    $conn = @ftp_connect($config->host, 21, 10);
-    if (!$conn) {
-        file_put_contents($logFile, "FTP connection failed\n", FILE_APPEND);
-        echo json_encode(["success" => false, "error" => "FTP connection failed"]);
-        return;
-    }
+    file_put_contents($configFile, json_encode($data));
+    logMsg("Config saved to $configFile");
 
-    $login = @ftp_login($conn, $config->user, $config->pass);
-    if (!$login) {
-        ftp_close($conn);
-        file_put_contents($logFile, "FTP login failed\n", FILE_APPEND);
-        echo json_encode(["success" => false, "error" => "FTP login failed"]);
-        return;
-    }
+    echo json_encode(["success" => true, "message" => "Config saved"]);
+    return;
+}
 
-    if (!ftp_pasv($conn, true)) {
-        ftp_close($conn);
-        file_put_contents($logFile, "Passive mode failed\n", FILE_APPEND);
-        echo json_encode(["success" => false, "error" => "Failed to enable passive mode"]);
-        return;
-    }
+/**
+ * 2) TEST FTP CONNECTION
+ *    - Reads config
+ *    - Connect, login, passive
+ *    - List '.' to confirm
+ */
+function testFtpConnection() {
+    $config = loadConfig();
+    $conn   = openFtp($config);
 
-    $dir = $config->dir ?? ".";
+    $dir  = $config->dir ?? ".";
     $list = @ftp_nlist($conn, $dir);
+
+    ftp_close($conn);
+
     if ($list === false) {
-        ftp_close($conn);
-        file_put_contents($logFile, "Failed to retrieve file list\n", FILE_APPEND);
+        logMsg("Failed to retrieve file list");
         echo json_encode(["success" => false, "error" => "Failed to retrieve file list"]);
         return;
     }
 
-    ftp_close($conn);
-    file_put_contents($configFile, json_encode($config));
-    file_put_contents($logFile, "FTP connect success, saved config\n", FILE_APPEND);
+    logMsg("FTP test connection success");
     echo json_encode(["success" => true, "files" => $list]);
     return;
 }
 
+/**
+ * 3) BACKUP
+ *    - Connect
+ *    - Create .mbi from local config XMLs
+ *    - Upload
+ *    - Remove local .mbi
+ */
 function ftpBackup() {
-    global $logFile;
-
     $config = loadConfig();
+    $conn   = openFtp($config);
 
-    // Connect
-    $conn = ftp_connect($config->host, 21, 10);
-    if (!$conn) {
-        throw new Exception("FTP connection failed");
-    }
-    if (!@ftp_login($conn, $config->user, $config->pass)) {
-        ftp_close($conn);
-        throw new Exception("FTP login failed");
-    }
-    ftp_pasv($conn, true);
-
-    // Create .mbi file
     $timestamp  = date("Ymd_His");
     $bundleFile = "/tmp/morfeas_$timestamp.mbi";
 
-    // Read local XMLs
+    // read local config
     $ua      = file_get_contents("/home/morfeas/configuration/OPC_UA_Config.xml");
     $morfeas = file_get_contents("/home/morfeas/configuration/Morfeas_config.xml");
 
-    $bundle = json_encode([
+    $bundle = [
         "OPC_UA_Config" => $ua,
         "Morfeas_Config" => $morfeas,
-        "Checksum"      => crc32($ua . $morfeas)
-    ]);
-    file_put_contents($bundleFile, gzencode($bundle));
+        "Checksum"      => crc32($ua.$morfeas)
+    ];
 
-    // Upload
-    $remote   = ($config->dir ? $config->dir . "/" : "") . basename($bundleFile);
-    if (!ftp_put($conn, $remote, $bundleFile, FTP_BINARY)) {
+    file_put_contents($bundleFile, gzencode(json_encode($bundle)));
+
+    $remoteName = ($config->dir ? $config->dir."/" : "") . basename($bundleFile);
+    if (!ftp_put($conn, $remoteName, $bundleFile, FTP_BINARY)) {
         ftp_close($conn);
         throw new Exception("Failed to upload backup");
     }
+
     ftp_close($conn);
 
-    // Remove local .mbi file
-    if (file_exists($bundleFile) && !unlink($bundleFile)) {
-        file_put_contents($logFile, "Warning: Failed to remove $bundleFile\n", FILE_APPEND);
+    // remove local file
+    if (file_exists($bundleFile)) {
+        unlink($bundleFile);
     }
 
-    echo json_encode(["success" => true, "message" => "Backup uploaded & local file removed: " . basename($remote)]);
+    logMsg("Backup uploaded to $remoteName, local file removed");
+    echo json_encode(["success" => true, "message" => "Backup uploaded: " . basename($remoteName)]);
     return;
 }
 
+/**
+ * 4) LIST .mbi FILES
+ */
 function ftpList() {
     $config = loadConfig();
-
-    $conn = ftp_connect($config->host, 21, 10);
-    if (!$conn) {
-        throw new Exception("FTP connection failed");
-    }
-    if (!@ftp_login($conn, $config->user, $config->pass)) {
-        ftp_close($conn);
-        throw new Exception("FTP login failed");
-    }
-    ftp_pasv($conn, true);
+    $conn   = openFtp($config);
 
     $dir   = $config->dir ?: ".";
-    $files = ftp_nlist($conn, $dir);
+    $files = @ftp_nlist($conn, $dir);
 
     ftp_close($conn);
 
-    if (!$files) {
+    if (!$files || !is_array($files)) {
+        // Just return empty array
         echo json_encode([]);
-        return; // no .mbi found
+        return;
     }
 
-    // Filter to .mbi only
+    // filter to .mbi
     $mbi = array_filter($files, function($f) {
         $lower = strtolower($f);
         return str_ends_with($lower, ".mbi");
     });
 
-    // Return as array
     echo json_encode(array_values($mbi));
     return;
 }
 
+/**
+ * 5) RESTORE
+ */
 function ftpRestore($filename) {
-    if (empty($filename)) {
-        throw new Exception("Missing file to restore");
-    }
-
     $config = loadConfig();
+    $conn   = openFtp($config);
 
-    $conn = ftp_connect($config->host, 21, 10);
-    if (!$conn) {
-        throw new Exception("FTP connection failed");
-    }
-    if (!@ftp_login($conn, $config->user, $config->pass)) {
-        ftp_close($conn);
-        throw new Exception("FTP login failed");
-    }
-    ftp_pasv($conn, true);
-
-    $remote = ($config->dir ? $config->dir . "/" : "") . $filename;
-    $local  = "/tmp/" . $filename;
+    $remote = ($config->dir ? $config->dir."/" : "").$filename;
+    $local  = "/tmp/".$filename;
 
     if (!ftp_get($conn, $local, $remote, FTP_BINARY)) {
         ftp_close($conn);
@@ -210,12 +210,12 @@ function ftpRestore($filename) {
     }
     ftp_close($conn);
 
-    // Decompress & parse
+    // parse .mbi
     $raw    = file_get_contents($local);
     $data   = gzdecode($raw);
     $bundle = json_decode($data);
 
-    // Overwrite local configs
+    // overwrite local config
     if (isset($bundle->OPC_UA_Config)) {
         file_put_contents("/var/www/html/morfeas_php/OPC_UA_Config.xml", $bundle->OPC_UA_Config);
     }
@@ -223,36 +223,77 @@ function ftpRestore($filename) {
         file_put_contents("/var/www/html/morfeas_php/Morfeas_config.xml", $bundle->Morfeas_Config);
     }
 
-    // Remove local .mbi after restore, optional
+    // remove local copy
     @unlink($local);
 
+    logMsg("Restore from $filename completed");
     echo json_encode(["success" => true, "message" => "Restored from: $filename"]);
     return;
 }
 
+/**
+ * 6) CLEAR CONFIG
+ */
 function clearConfig() {
-    global $configFile, $logFile;
+    global $configFile;
     if (file_exists($configFile)) {
         unlink($configFile);
-        file_put_contents($logFile, "Config cleared\n", FILE_APPEND);
+        logMsg("Config cleared");
     }
     echo json_encode(["success" => true]);
     return;
 }
 
+/*****************************************************************
+ * HELPER FUNCTIONS
+ *****************************************************************/
+
+/**
+ * LOG any message
+ */
+function logMsg($msg) {
+    global $logFile;
+    file_put_contents($logFile, $msg."\n", FILE_APPEND);
+}
+
+/**
+ * Load config from /tmp/ftp_config.json
+ */
 function loadConfig() {
     global $configFile;
     if (!file_exists($configFile)) {
-        throw new Exception("FTP config not found. Did you connect first?");
+        throw new Exception("No config file found! Did you call 'saveConfig' first?");
     }
     $raw    = file_get_contents($configFile);
     $config = json_decode($raw);
-    if (!$config || !isset($config->host, $config->user, $config->pass)) {
-        throw new Exception("Invalid or partial config file");
+    if (!$config || empty($config->host) || empty($config->user) || empty($config->pass)) {
+        throw new Exception("Invalid config data");
     }
     return $config;
 }
 
+/**
+ * Reusable function to open FTP, login, passive
+ */
+function openFtp($config) {
+    $conn = @ftp_connect($config->host, 21, 10);
+    if (!$conn) {
+        throw new Exception("FTP connect failed");
+    }
+    if (!@ftp_login($conn, $config->user, $config->pass)) {
+        ftp_close($conn);
+        throw new Exception("FTP login failed");
+    }
+    if (!ftp_pasv($conn, true)) {
+        ftp_close($conn);
+        throw new Exception("Failed to enable passive mode");
+    }
+    return $conn;
+}
+
+/**
+ * str_ends_with fallback for PHP < 8
+ */
 if (!function_exists('str_ends_with')) {
     function str_ends_with($haystack, $needle) {
         return $needle !== '' && substr($haystack, -strlen($needle)) === $needle;

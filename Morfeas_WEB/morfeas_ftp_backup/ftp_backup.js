@@ -1,63 +1,77 @@
-// ftp_backup.js
 "use strict";
 
 const api = "../morfeas_php/ftp_api.php";
 
 function connectFTP() {
   const data = getFormData();
-  data.action = "connect";
 
-  postData(data, "ftp-status", "Connecting...");
+  // Step 1: Save config
+  postData({ ...data, action: "saveConfig" }, "ftp-status", "Saving config...", (saveResp) => {
+    if (!saveResp.success) {
+      showError("ftp-status", "Save failed: " + saveResp.error);
+      return;
+    }
+
+    // Step 2: Test connection
+    postData({ action: "testConnect" }, "ftp-status", "Testing connection...", (testResp) => {
+      if (testResp.success) {
+        showSuccess("ftp-status", "Connected & config saved!");
+      } else {
+        showError("ftp-status", "Connection failed: " + testResp.error);
+      }
+    });
+  });
 }
 
 function backupToFTP() {
-  const data = getFormData();
-  data.action = "backup";
-
-  postData(data, "backup-status", "Creating and uploading backup...");
+  postData({ action: "backup" }, "backup-status", "Creating and uploading backup...", (resp) => {
+    if (resp.success) {
+      showSuccess("backup-status", resp.message || "Backup complete");
+    } else {
+      showError("backup-status", "Backup failed: " + resp.error);
+    }
+  });
 }
 
 function listBackups() {
-  const data = getFormData();
-  data.action = "list";
-
-  fetch(api, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data)
-  })
-  .then(res => res.json())
-  .then(files => {
+  postData({ action: "list" }, "restore-status", "Loading backups...", (resp) => {
     const list = document.getElementById("backup-list");
     list.innerHTML = "";
-    files.forEach(f => {
+
+    if (resp.success === false) {
+      showError("restore-status", resp.error);
+      return;
+    }
+
+    (resp || []).forEach(file => {
       const opt = document.createElement("option");
-      opt.value = f;
-      opt.text = f;
+      opt.value = file;
+      opt.text = file;
       list.appendChild(opt);
     });
-  })
-  .catch(err => {
-    document.getElementById("restore-status").textContent = "Error: " + err;
   });
 }
 
 function restoreSelected() {
-  const data = getFormData();
-  data.action = "restore";
-  data.file = document.getElementById("backup-list").value;
-
-  if (!data.file) {
+  const file = document.getElementById("backup-list").value;
+  if (!file) {
     alert("Please select a backup file.");
     return;
   }
 
-  postData(data, "restore-status", "Restoring selected backup...");
+  postData({ action: "restore", file }, "restore-status", "Restoring backup...", (resp) => {
+    if (resp.success) {
+      showSuccess("restore-status", resp.message || "Restored successfully");
+    } else {
+      showError("restore-status", "Restore failed: " + resp.error);
+    }
+  });
 }
 
-function postData(data, statusId, loadingMsg) {
+function postData(data, statusId, loadingMsg, callback) {
   const statusBox = document.getElementById(statusId);
   statusBox.textContent = loadingMsg;
+  statusBox.style.color = "black";
 
   fetch(api, {
     method: "POST",
@@ -65,19 +79,22 @@ function postData(data, statusId, loadingMsg) {
     body: JSON.stringify(data)
   })
   .then(res => res.json())
-  .then(response => {
-    if (response.success) {
-      statusBox.textContent = "Connection successful!";
-      statusBox.style.color = "green";
-    } else {
-      statusBox.textContent = "Connection Error: " + response.error;
-      statusBox.style.color = "red";
-    }
-  })
+  .then(callback)
   .catch(err => {
-    statusBox.textContent = "Error: " + err;
-    statusBox.style.color = "red";
+    showError(statusId, "Request error: " + err.message);
   });
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.color = "red";
+}
+
+function showSuccess(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.color = "green";
 }
 
 function getFormData() {
@@ -85,10 +102,11 @@ function getFormData() {
     host: document.getElementById("ftp-host").value.trim(),
     user: document.getElementById("ftp-user").value.trim(),
     pass: document.getElementById("ftp-pass").value.trim(),
-    dir: document.getElementById("ftp-dir").value.trim()
+    dir:  document.getElementById("ftp-dir").value.trim()
   };
 }
 
+// Clear config when leaving the page
 window.addEventListener("beforeunload", () => {
   fetch(api, {
     method: "POST",
