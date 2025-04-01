@@ -179,10 +179,13 @@ function ftpBackup() {
         if ($excess > 0) {
             $toDelete = array_slice($mbiFiles, 0, $excess);
             foreach ($toDelete as $file) {
-                if (!ftp_delete($conn, $file)) {
-                    logMsg("Failed to delete old backup: $file");
+                $basename = basename($file);
+                $deletePath = ($config->dir ? $config->dir."/" : "") . $basename;
+            
+                if (!ftp_delete($conn, $deletePath)) {
+                    logMsg("Failed to delete old backup: $deletePath");
                 } else {
-                    logMsg("Deleted old backup: $file");
+                    logMsg("Deleted old backup: $deletePath");
                 }
             }
         }

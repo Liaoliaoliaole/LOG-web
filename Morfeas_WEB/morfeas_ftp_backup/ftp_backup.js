@@ -5,14 +5,18 @@ const api = "../morfeas_php/ftp_api.php";
 function connectFTP() {
   const data = getFormData();
 
-  // Step 1: Save config
+  // Validate all required fields
+  if (!data.host || !data.user || !data.pass || !data.dir) {
+    showError("ftp-status", "All fields (Host, Username, Password, Engine Number) are required.");
+    return;
+  }
+
   postData({ ...data, action: "saveConfig" }, "ftp-status", "Saving config...", (saveResp) => {
     if (!saveResp.success) {
       showError("ftp-status", "Save failed: " + saveResp.error);
       return;
     }
 
-    // Step 2: Test connection
     postData({ action: "testConnect" }, "ftp-status", "Testing connection...", (testResp) => {
       if (testResp.success) {
         showSuccess("ftp-status", "Connected & config saved!");
@@ -22,6 +26,7 @@ function connectFTP() {
     });
   });
 }
+
 
 function backupToFTP() {
   postData({ action: "backup" }, "backup-status", "Creating and uploading backup...", (resp) => {
@@ -105,12 +110,3 @@ function getFormData() {
     dir:  document.getElementById("ftp-dir").value.trim()
   };
 }
-
-// // Clear config and log when leaving the page
-// window.addEventListener("beforeunload", () => {
-//   fetch(api, {
-//     method: "POST",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify({ action: "clearTmpFile" })
-//   });
-// });

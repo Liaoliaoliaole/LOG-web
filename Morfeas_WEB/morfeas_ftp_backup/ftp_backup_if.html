@@ -54,13 +54,13 @@
   <div class="section">
     <h3>FTP Server Setup</h3>
     <label for="ftp-host">Host:</label>
-    <input type="text" id="ftp-host" /><br /><br />
+    <input type="text" id="ftp-host" required /><br /><br />
     <label for="ftp-user">Username:</label>
-    <input type="text" id="ftp-user" /><br /><br />
+    <input type="text" id="ftp-user" required /><br /><br />
     <label for="ftp-pass">Password:</label>
-    <input type="password" id="ftp-pass" /><br /><br />
+    <input type="password" id="ftp-pass" required /><br /><br />
     <label for="ftp-dir">Engine Number:</label>
-    <input type="text" id="ftp-dir"  /><br /><br />
+    <input type="text" id="ftp-dir" required /><br /><br />
     <button onclick="connectFTP()">Connect</button>
     <div id="ftp-status" class="status"></div>
   </div>

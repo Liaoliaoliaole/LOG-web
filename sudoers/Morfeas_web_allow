@@ -1,12 +1,16 @@
+  GNU nano 3.2                                      /etc/sudoers.d/Morfeas_web_allow.tmp                                                
+
 Cmnd_Alias ALLOW_PASSWORDLESS = /sbin/ip,\
-				/usr/bin/hostnamectl,\
-				/bin/systemctl restart networking.service,\
+                                /usr/bin/hostnamectl,\
+                                /bin/systemctl restart networking.service,\
                                 /bin/systemctl restart systemd-timesyncd.service,\
                                 /bin/systemctl restart Morfeas_system.service,\
                                 /bin/hostname,\
                                 /sbin/poweroff,\
+                                /sbin/reboot,\
                                 /usr/bin/make install,\
-                                /sbin/reboot
+                                /bin/cp /tmp/ftp_debug.log /mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log, \
+                                /bin/rm /tmp/ftp_debug.log
 
 www-data ALL = (ALL) NOPASSWD: ALLOW_PASSWORDLESS
 
