@@ -111,6 +111,21 @@ function getFormData() {
   };
 }
 
+function togglePassword() {
+  const passInput = document.getElementById("ftp-pass");
+  const eyeIcon = document.getElementById("eye-icon");
+
+  if (passInput.type === "password") {
+    passInput.type = "text";
+    eyeIcon.classList.remove("fa-eye");
+    eyeIcon.classList.add("fa-eye-slash");
+  } else {
+    passInput.type = "password";
+    eyeIcon.classList.remove("fa-eye-slash");
+    eyeIcon.classList.add("fa-eye");
+  }
+}
+
 function disconnectFTP() {
   postData({ action: "clearConfig" }, "ftp-status", "Disconnecting...", (resp) => {
     if (resp.success) {

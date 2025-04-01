@@ -326,7 +326,7 @@ function logMsg($msg) {
 function loadConfig() {
     global $configFile;
     if (!file_exists($configFile)) {
-        throw new Exception("No config file found! Did you call 'saveConfig' first?");
+        throw new Exception("No config file found! Did you click 'Connect' first?");
     }
     $raw = file_get_contents($configFile);
     $config = json_decode($raw);
