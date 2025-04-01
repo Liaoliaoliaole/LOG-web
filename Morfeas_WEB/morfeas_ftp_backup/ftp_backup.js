@@ -106,11 +106,11 @@ function getFormData() {
   };
 }
 
-// Clear config and log when leaving the page
-window.addEventListener("beforeunload", () => {
-  fetch(api, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "clearTmpFile" })
-  });
-});
+// // Clear config and log when leaving the page
+// window.addEventListener("beforeunload", () => {
+//   fetch(api, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify({ action: "clearTmpFile" })
+//   });
+// });

@@ -20,7 +20,7 @@ header("Content-Type: application/json");
 $logFile    = "/tmp/ftp_debug.log";
 $configFile = "/tmp/ftp_config.json";
 
-logMsg("=== New Request ===");
+logMsg("=== New Request ===\n");
 
 /*****************************************************************
  * Read input JSON
@@ -55,6 +55,8 @@ try {
 
         case "backup":
             ftpBackup();
+            clearConfig();
+            moveFTPLog();
             break;
 
         case "list":
@@ -66,9 +68,6 @@ try {
                 throw new Exception("Missing file to restore");
             }
             ftpRestore($json->file);
-            break;
-
-        case "clearTmpFile":
             clearConfig();
             moveFTPLog();
             break;
@@ -171,7 +170,7 @@ function ftpBackup() {
         unlink($bundleFile);
     }
 
-    logMsg("Backup uploaded to $remoteName, local file removed");
+    logMsg("Backup uploaded to $remoteName, local file removed.");
     echo json_encode(["success" => true, "message" => "Backup uploaded: " . basename($remoteName)]);
     return;
 }
@@ -201,6 +200,7 @@ function ftpList() {
     });
 
     echo json_encode(array_values($mbi));
+    logMsg("List avaliable packages success.");
     return;
 }
 
@@ -236,7 +236,7 @@ function ftpRestore($filename) {
     // remove local copy
     @unlink($local);
 
-    logMsg("Restore from $filename completed");
+    logMsg("Restore from $filename completed.");
     echo json_encode(["success" => true, "message" => "Restored from: $filename"]);
     return;
 }
@@ -250,32 +250,19 @@ function clearConfig() {
         unlink($configFile);
         logMsg("Config cleared");
     }
-    echo json_encode(["success" => true]);
     return;
 }
 
 function moveFTPLog() {
     global $logFile;
-    $dest = "/mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log";
     if (file_exists($logFile)) {
-        $contents = file_get_contents($logFile);
-        if ($contents === false) {
-            logMsg("Failed to read log file: $logFile");
-        } else {
-            $written = file_put_contents($dest, $contents);
-            if ($written === false) {
-                $error = error_get_last();
-                logMsg("Failed to write log to $dest: " . $error['message']);
-            } else {
-                logMsg("Successfully moved log to $dest using file_put_contents");
-            }
-        }
-        unlink($logFile);
+        $cmd = "sudo cp /tmp/ftp_debug.log /mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log && sudo rm -f /tmp/ftp_debug.log";
+        $output = shell_exec($cmd . " 2>&1");
+        logMsg("Executed: $cmd");
+        logMsg("Output: $output");
     } else {
-        logMsg("No log file found to move.");
+        logMsg("No ftp_debug.log found to move.");
     }
-    echo json_encode(["success" => true, "message" => "Window closed; config cleared and log moved."]);
-    return;
 }
 
 /*****************************************************************
