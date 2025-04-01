@@ -33,7 +33,7 @@ try {
             connectFTP($json);
             break;
 
-        // Add more actions like backup, list, restore as needed
+        // TODO: Add more actions like backup, list, restore later
         default:
             throw new Exception("Unknown action: " . $json->action);
     }
@@ -63,6 +63,9 @@ function connectFTP($json) {
         echo json_encode(["success" => false, "error" => "FTP connection failed"]);
         return;
     }
+
+    // Enable passive mode
+    @ftp_pasv($conn, true);
 
     $login = @ftp_login($conn, $user, $pass);
     if (!$login) {
