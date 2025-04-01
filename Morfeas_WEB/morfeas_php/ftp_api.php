@@ -1,8 +1,8 @@
 <?php
 // Debug mode
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+ini_set('display_errors', 0); 
+ini_set('log_errors', 1); 
+ini_set('error_log', '/tmp/php_errors.log');
 
 header("Content-Type: application/json");
 
@@ -105,7 +105,7 @@ function saveConfigAndTestConnection($config) {
 function ftpBackup() {
     global $logFile;
 
-    $config = loadConfig(); // read /tmp/ftp_config.json
+    $config = loadConfig();
 
     // Connect
     $conn = ftp_connect($config->host, 21, 10);
@@ -123,8 +123,8 @@ function ftpBackup() {
     $bundleFile = "/tmp/morfeas_$timestamp.mbi";
 
     // Read local XMLs
-    $ua      = file_get_contents("/var/www/html/morfeas_php/OPC_UA_Config.xml");
-    $morfeas = file_get_contents("/var/www/html/morfeas_php/Morfeas_config.xml");
+    $ua      = file_get_contents("/home/morfeas/configuration/OPC_UA_Config.xml");
+    $morfeas = file_get_contents("/home/morfeas/configuration/Morfeas_config.xml");
 
     $bundle = json_encode([
         "OPC_UA_Config" => $ua,
