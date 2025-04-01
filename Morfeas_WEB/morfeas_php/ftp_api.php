@@ -307,6 +307,10 @@ function logMsg($msg) {
     global $logFile;
     $maxSize = 100 * 1024; // 100 KB
 
+    if (is_string($msg) && strpos($msg, '"pass"') !== false) {
+        $msg = preg_replace('/("pass"\s*:\s*")[^"]+(")/', '$1*****$2', $msg);
+    }
+
     if (file_exists($logFile) && filesize($logFile) > $maxSize) {
         file_put_contents($logFile, "[$time] === Log truncated due to size ===\n");
     }

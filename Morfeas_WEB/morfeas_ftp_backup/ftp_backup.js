@@ -36,6 +36,11 @@ function backupToFTP() {
       showError("backup-status", "Backup failed: " + resp.error);
     }
   });
+
+  if (resp.success) {
+    showSuccess("backup-status", resp.message || "Backup complete");
+    setTimeout(resetFormAndStatus, 3000); // Reset after showing success briefly
+  }  
 }
 
 function listBackups() {
@@ -71,6 +76,11 @@ function restoreSelected() {
       showError("restore-status", "Restore failed: " + resp.error);
     }
   });
+
+  if (resp.success) {
+    showSuccess("restore-status", resp.message || "Restored successfully");
+    setTimeout(resetFormAndStatus, 3000);
+  }  
 }
 
 function postData(data, statusId, loadingMsg, callback) {
@@ -109,4 +119,17 @@ function getFormData() {
     pass: document.getElementById("ftp-pass").value.trim(),
     dir:  document.getElementById("ftp-dir").value.trim()
   };
+}
+
+function resetFormAndStatus() {
+  document.getElementById("ftp-host").value = "";
+  document.getElementById("ftp-user").value = "";
+  document.getElementById("ftp-pass").value = "";
+  document.getElementById("ftp-dir").value = "";
+
+  document.getElementById("ftp-status").textContent = "";
+  document.getElementById("backup-status").textContent = "";
+  document.getElementById("restore-status").textContent = "";
+
+  document.getElementById("backup-list").innerHTML = "";
 }
