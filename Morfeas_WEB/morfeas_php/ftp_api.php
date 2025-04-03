@@ -52,11 +52,11 @@ try {
         case "testConnect":
             testFtpConnection();
             break;
-        
+
         case "clearConfig":
             clearConfig();
             moveFTPLog();
-            break;            
+            break;
 
         case "backup":
             ftpBackup();
@@ -183,7 +183,7 @@ function ftpBackup() {
             foreach ($toDelete as $file) {
                 $basename = basename($file);
                 $deletePath = ($config->dir ? $config->dir."/" : "") . $basename;
-            
+
                 if (!ftp_delete($conn, $deletePath)) {
                     logMsg("Failed to delete old backup: $deletePath");
                 } else {
@@ -348,10 +348,10 @@ function openFtp($config) {
         ftp_close($conn);
         throw new Exception("FTP login failed");
     }
-    if (!ftp_pasv($conn, true)) {
-        ftp_close($conn);
-        throw new Exception("Failed to enable passive mode");
-    }
+    // if (!ftp_pasv($conn, true)) {
+    //     ftp_close($conn);
+    //     throw new Exception("Failed to enable passive mode");
+    // }
     return $conn;
 }
 
