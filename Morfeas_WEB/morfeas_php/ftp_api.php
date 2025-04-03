@@ -11,9 +11,11 @@ if (!function_exists('str_ends_with')) {
 /*****************************************************************
  * Debug & Logging
  *****************************************************************/
-ini_set('display_errors', 0);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
 ini_set('log_errors', 1);
-// ini_set('error_log', '/tmp/php_errors.log'); // Debug Use
+ini_set('error_log', '/tmp/php_errors.log'); // Debug Use
+error_reporting(E_ALL);
 
 header("Content-Type: application/json");
 

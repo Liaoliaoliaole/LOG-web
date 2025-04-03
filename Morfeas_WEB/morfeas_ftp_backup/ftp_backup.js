@@ -106,7 +106,15 @@ function postData(data, statusId, loadingMsg, callback) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
   })
-  .then(res => res.json())
+  .then(async res => {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      showError(statusId, "Invalid JSON: " + text);
+      throw new Error("Invalid JSON response");
+    }
+  })
   .then(callback)
   .catch(err => {
     showError(statusId, "Request error: " + err.message);
