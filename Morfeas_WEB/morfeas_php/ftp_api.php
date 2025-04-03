@@ -95,17 +95,42 @@ try {
  */
 function saveConfig($data) {
     global $configFile;
-    foreach (["host", "user", "pass"] as $key) {
-        if (empty($data->$key)) {
-            throw new Exception("Missing field: $key");
-        }
+
+    if (empty($data->host) || empty($data->dir)) {
+        throw new Exception("Missing host or engine number");
     }
 
-    file_put_contents($configFile, json_encode($data));
-    logMsg("Config saved to $configFile");
+    //Sanitize engine number (allow letters, numbers, underscores, dashes)
+    $engineNumber = preg_replace('/[^a-zA-Z0-9_-]/', '', $data->dir);
+    if (empty($engineNumber)) {
+        throw new Exception("Invalid engine number after sanitization.");
+    }
+
+    // Load secure credentials
+    $credFile = "/home/morfeas/LOG_ftp_backup.conf";
+    if (!file_exists($credFile)) {
+        throw new Exception("FTP credential file missing.");
+    }
+    $creds = parse_ini_file($credFile);
+    if (empty($creds['FTP_USER']) || empty($creds['FTP_PASS'])) {
+        throw new Exception("Invalid credentials in config file.");
+    }
+
+    // Get log name from system hostname
+    $logName = trim(file_get_contents("/etc/hostname"));
+
+    $config = [
+        "host"   => $data->host,
+        "user"   => $creds['FTP_USER'],
+        "pass"   => $creds['FTP_PASS'],
+        "dir"    => $engineNumber,
+        "log"    => $logName
+    ];
+
+    file_put_contents($configFile, json_encode($config));
+    logMsg("Config saved: " . json_encode($config));
 
     echo json_encode(["success" => true, "message" => "Config saved"]);
-    return;
 }
 
 /**
@@ -118,7 +143,7 @@ function testFtpConnection() {
     $config = loadConfig();
     $conn   = openFtp($config);
 
-    $dir  = $config->dir ?? ".";
+    $dir  = $config->dir;
     $list = @ftp_nlist($conn, $dir);
 
     ftp_close($conn);
@@ -137,16 +162,20 @@ function testFtpConnection() {
 /**
  * 3) BACKUP
  *    - Connect
- *    - Create .mbi from local config XMLs
+ *    - Create .mbl from local config XMLs
  *    - Upload
- *    - Remove local .mbi
+ *    - Remove local .mbl
  */
 function ftpBackup() {
     $config = loadConfig();
     $conn   = openFtp($config);
 
-    $timestamp  = date("Ymd_His");
-    $bundleFile = "/tmp/LOG_$timestamp.mbi";
+    $timestamp = date("Ymd_His");
+    $logName   = $config->log;
+    $engineNum = $config->dir;
+
+    $filename = "{$engineNum}_{$logName}_{$timestamp}.mbl";
+    $localFile = "/tmp/$filename";
 
     $ua      = file_get_contents("/home/morfeas/configuration/OPC_UA_Config.xml");
     $morfeas = file_get_contents("/home/morfeas/configuration/Morfeas_config.xml");
@@ -154,58 +183,45 @@ function ftpBackup() {
     $bundle = [
         "OPC_UA_Config" => $ua,
         "Morfeas_Config" => $morfeas,
-        "Checksum"      => crc32($ua.$morfeas)
+        "Checksum" => crc32($ua.$morfeas)
     ];
 
-    file_put_contents($bundleFile, gzencode(json_encode($bundle)));
+    file_put_contents($localFile, gzencode(json_encode($bundle)));
 
-    $remoteName = ($config->dir ? $config->dir."/" : "") . basename($bundleFile);
-    if (!ftp_put($conn, $remoteName, $bundleFile, FTP_BINARY)) {
+    // Upload
+    @ftp_chdir($conn, $engineNum) || ftp_mkdir($conn, $engineNum);
+    ftp_chdir($conn, $engineNum);
+
+    if (!ftp_put($conn, $filename, $localFile, FTP_BINARY)) {
         ftp_close($conn);
         throw new Exception("Failed to upload backup");
     }
 
-    logMsg("Backup uploaded to $remoteName");
+    logMsg("Uploaded backup to /$engineNum/$filename");
 
-    // Enforce max 10 .mbi files
-    $dir   = $config->dir ?: ".";
-    $files = @ftp_nlist($conn, $dir);
-    if ($files && is_array($files)) {
-        $mbiFiles = array_filter($files, function($f) {
-            return str_ends_with(strtolower($f), ".mbi");
-        });
+    // Enforce 100 file limit
+    $files = ftp_nlist($conn, ".");
+    $mbis = array_filter($files, fn($f) => str_ends_with(strtolower($f), ".mbl"));
+    sort($mbis);
 
-        sort($mbiFiles);
-
-        $excess = count($mbiFiles) - 10;
-        if ($excess > 0) {
-            $toDelete = array_slice($mbiFiles, 0, $excess);
-            foreach ($toDelete as $file) {
-                $basename = basename($file);
-                $deletePath = ($config->dir ? $config->dir."/" : "") . $basename;
-
-                if (!ftp_delete($conn, $deletePath)) {
-                    logMsg("Failed to delete old backup: $deletePath");
-                } else {
-                    logMsg("Deleted old backup: $deletePath");
-                }
-            }
+    $excess = count($mbis) - 100;
+    if ($excess > 0) {
+        $delete = array_slice($mbis, 0, $excess);
+        foreach ($delete as $f) {
+            ftp_delete($conn, $f);
+            logMsg("Old backup deleted: $f");
         }
     }
 
     ftp_close($conn);
+    @unlink($localFile);
 
-    if (file_exists($bundleFile)) {
-        unlink($bundleFile);
-    }
-
-    logMsg("Backup uploaded to $remoteName, local file removed.");
-    echo json_encode(["success" => true, "message" => "Backup uploaded: " . basename($remoteName)]);
-    return;
+    echo json_encode(["success" => true, "message" => "Backup uploaded: $filename"]);
 }
 
+
 /**
- * 4) LIST .mbi FILES
+ * 4) LIST .mbl FILES
  */
 function ftpList() {
     $config = loadConfig();
@@ -233,7 +249,7 @@ function scanFtpRecursive($conn, $dir) {
                 $result = array_merge($result, scanFtpRecursive($conn, $item));
             }
         } else {
-            if (str_ends_with(strtolower($item), ".mbi")) {
+            if (str_ends_with(strtolower($item), ".mbl")) {
                 $result[] = $item;
             }
         }
@@ -297,10 +313,12 @@ function moveFTPLog() {
     $dest = "/mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log";
 
     if (file_exists($src)) {
-        if (rename($src, $dest)) {
-            logMsg("Log moved successfully to $dest.");
+        $cmd = "sudo /bin/mv " . escapeshellarg($src) . " " . escapeshellarg($dest);
+        exec($cmd, $output, $retval);
+        if ($retval === 0) {
+            logMsg("Log moved successfully to $dest using sudo mv.");
         } else {
-            logMsg("Failed to move log to $dest.");
+            logMsg("Failed to move log using sudo mv. Output: " . implode("\n", $output));
         }
     } else {
         logMsg("No ftp_debug.log found to move.");
@@ -336,13 +354,18 @@ function logMsg($msg) {
 function loadConfig() {
     global $configFile;
     if (!file_exists($configFile)) {
-        throw new Exception("No config file found! Did you click 'Connect' first?");
+        throw new Exception("No config file found! Please connect first.");
     }
+
     $raw = file_get_contents($configFile);
     $config = json_decode($raw);
-    if (!$config || empty($config->host) || empty($config->user) || empty($config->pass)) {
-        throw new Exception("Invalid config data");
+    if (
+        !$config || empty($config->host) || empty($config->user)
+        || empty($config->pass) || empty($config->dir) || empty($config->log)
+    ) {
+        throw new Exception("Incomplete config data");
     }
+
     return $config;
 }
 

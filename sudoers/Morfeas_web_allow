@@ -8,9 +8,10 @@ Cmnd_Alias ALLOW_PASSWORDLESS = /sbin/ip,\
                                 /bin/hostname,\
                                 /sbin/poweroff,\
                                 /sbin/reboot,\
-                                /usr/bin/make install
+                                /usr/bin/make install,\
+                                /bin/mv
 
 www-data ALL = (ALL) NOPASSWD: ALLOW_PASSWORDLESS
 
 # Add to this file to enable passwordless to execute update by apache2
-# sudo visudo -f /etc/sudoers.d/Morfeas_web_allow 
+# sudo visudo -f /etc/sudoers.d/Morfeas_web_allow

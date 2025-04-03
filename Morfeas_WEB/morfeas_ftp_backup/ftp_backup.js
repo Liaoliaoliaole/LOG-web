@@ -3,13 +3,19 @@
 const api = "../morfeas_php/ftp_api.php";
 
 function connectFTP() {
-  const data = getFormData();
+  const host = document.getElementById("ftp-host-ip").value.trim();
+  const dir = document.getElementById("ftp-engine-number").value.trim();
 
-  // Validate all required fields
-  if (!data.host || !data.user || !data.pass || !data.dir) {
-    showError("ftp-status", "All fields (Host, Username, Password, Engine Number) are required.");
+  if (!host || !dir) {
+    showError("ftp-status", "Both Host IP and Engine Number are required.");
     return;
   }
+
+  const data = {
+    host: host,
+    dir: dir,
+    action: "saveConfig" // backend reads FTP_USER, FTP_PASS, log_name (hostname) itself
+  };
 
   postData({ ...data, action: "saveConfig" }, "ftp-status", "Saving config...", (saveResp) => {
     if (!saveResp.success) {
@@ -17,9 +23,12 @@ function connectFTP() {
       return;
     }
 
+    // Test connection
     postData({ action: "testConnect" }, "ftp-status", "Testing connection...", (testResp) => {
       if (testResp.success) {
         showSuccess("ftp-status", "Connected & config saved!");
+        // List backups after successful connection
+        listBackups();
       } else {
         showError("ftp-status", "Connection failed: " + testResp.error);
       }
@@ -27,13 +36,16 @@ function connectFTP() {
   });
 }
 
-
-function backupToFTP() {
-  postData({ action: "backup" }, "backup-status", "Creating and uploading backup...", (resp) => {
+function disconnectFTP() {
+  postData({ action: "clearConfig" }, "ftp-status", "Disconnecting...", (resp) => {
     if (resp.success) {
-      showSuccess("backup-status", resp.message || "Backup complete");
+      showSuccess("ftp-status", "Disconnected.");
+      document.getElementById("ftp-engine-number").value = "";
+      document.getElementById("backup-status").textContent = "";
+      document.getElementById("restore-status").textContent = "";
+      document.getElementById("backup-list").innerHTML = "";
     } else {
-      showError("backup-status", "Backup failed: " + resp.error);
+      showError("ftp-status", "Disconnect failed: " + resp.error);
     }
   });
 }
@@ -54,6 +66,17 @@ function listBackups() {
       opt.text = file;
       list.appendChild(opt);
     });
+  });
+}
+
+function backupToFTP() {
+  postData({ action: "backup" }, "backup-status", "Creating and uploading backup...", (resp) => {
+    if (resp.success) {
+      showSuccess("backup-status", resp.message || "Backup complete");
+      listBackups();
+    } else {
+      showError("backup-status", "Backup failed: " + resp.error);
+    }
   });
 }
 
@@ -102,46 +125,4 @@ function showSuccess(id, msg) {
   el.style.color = "green";
 }
 
-function getFormData() {
-  return {
-    host: document.getElementById("ftp-host").value.trim(),
-    user: document.getElementById("ftp-user").value.trim(),
-    pass: document.getElementById("ftp-pass").value.trim(),
-    dir:  document.getElementById("ftp-dir").value.trim()
-  };
-}
 
-function togglePassword() {
-  const passInput = document.getElementById("ftp-pass");
-  const eyeIcon = document.getElementById("eye-icon");
-
-  if (passInput.type === "password") {
-    passInput.type = "text";
-    eyeIcon.classList.remove("fa-eye");
-    eyeIcon.classList.add("fa-eye-slash");
-  } else {
-    passInput.type = "password";
-    eyeIcon.classList.remove("fa-eye-slash");
-    eyeIcon.classList.add("fa-eye");
-  }
-}
-
-function disconnectFTP() {
-  postData({ action: "clearConfig" }, "ftp-status", "Disconnecting...", (resp) => {
-    if (resp.success) {
-      showSuccess("ftp-status", "Disconnected.");
-
-      document.getElementById("ftp-host").value = "";
-      document.getElementById("ftp-user").value = "";
-      document.getElementById("ftp-pass").value = "";
-      document.getElementById("ftp-dir").value = "";
-
-      document.getElementById("backup-status").textContent = "";
-      document.getElementById("restore-status").textContent = "";
-
-      document.getElementById("backup-list").innerHTML = "";
-    } else {
-      showError("ftp-status", "Disconnect failed: " + resp.error);
-    }
-  });
-}

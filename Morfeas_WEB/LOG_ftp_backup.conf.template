@@ -1,0 +1,6 @@
+# This is the FTP config for backups
+# Modify to your own configutation and place it at /home/morfeas/LOG_ftp_backup.conf
+
+FTP_HOST=myipaddress # Default FTP server IP
+FTP_USER=myusername  # # Hardcoded FTP username (secure this file!)
+FTP_PASS=mypassword  # Hardcoded FTP password (secure this file!)

@@ -7,7 +7,6 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <link rel="shortcut icon" href="../art/backup.png" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -54,20 +53,10 @@
 
   <div class="section">
     <h3>FTP Server Setup</h3>
-    <label for="ftp-host">Host:</label>
-    <input type="text" id="ftp-host" required /><br /><br />
-    <label for="ftp-user">Username:</label>
-    <input type="text" id="ftp-user" required /><br /><br />
-    <label for="ftp-pass">Password:</label>
-    <div style="position: relative; display: inline-block;">
-      <input type="password" id="ftp-pass" required />
-        <span onclick="togglePassword()" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); cursor: pointer;">
-          <i id="eye-icon" class="fas fa-eye"></i>
-        </span>
-    </div>
-    <br /><br />
+    <label for="ftp-host">Host IP:</label>
+    <input type="text" id="ftp-host-ip" value="10.193.135.70" /><br /><br />
     <label for="ftp-dir">Engine Number:</label>
-    <input type="text" id="ftp-dir" required /><br /><br />
+    <input type="text" id="ftp-engine-number" placeholder="Enter the engine number" required /><br /><br />
     <button onclick="connectFTP()">Connect</button>
     <button onclick="disconnectFTP()" style="margin-left:10px;">Disconnect</button>
     <div id="ftp-status" class="status"></div>
@@ -81,7 +70,6 @@
 
   <div class="section">
     <h3>Restore from FTP</h3>
-    <button onclick="listBackups()">Load Available Backups</button><br /><br />
     <select id="backup-list" size="5"></select><br /><br />
     <button onclick="restoreSelected()">Restore Selected</button>
     <div id="restore-status" class="status"></div>
