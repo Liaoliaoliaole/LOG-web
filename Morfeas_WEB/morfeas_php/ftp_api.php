@@ -211,24 +211,34 @@ function ftpList() {
     $config = loadConfig();
     $conn   = openFtp($config);
 
-    $dir   = $config->dir ?: ".";
-    $files = @ftp_nlist($conn, $dir);
+    $dir = $config->dir;
+
+    $mbiFiles = scanFtpRecursive($conn, $dir);
 
     ftp_close($conn);
 
-    if (!$files || !is_array($files)) {
-        echo json_encode([]);
-        return;
-    }
-
-    $mbi = array_filter($files, function($f) {
-        $lower = strtolower($f);
-        return str_ends_with($lower, ".mbi");
-    });
-
-    echo json_encode(array_values($mbi));
-    logMsg("List avaliable packages success.");
+    echo json_encode(array_values($mbiFiles));
+    logMsg("List available packages success.");
     return;
+}
+
+function scanFtpRecursive($conn, $dir) {
+    $result = [];
+    $items = @ftp_nlist($conn, $dir);
+    if (!$items) return $result;
+
+    foreach ($items as $item) {
+        if (@ftp_size($conn, $item) === -1) {
+            if ($item !== '.' && $item !== '..') {
+                $result = array_merge($result, scanFtpRecursive($conn, $item));
+            }
+        } else {
+            if (str_ends_with(strtolower($item), ".mbi")) {
+                $result[] = $item;
+            }
+        }
+    }
+    return $result;
 }
 
 /**
