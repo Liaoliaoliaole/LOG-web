@@ -238,7 +238,7 @@ function ftpRestore($filename) {
     $config = loadConfig();
     $conn   = openFtp($config);
 
-    $remote = ($config->dir ? $config->dir."/" : "").$filename;
+    $remote = $filename;
     $local  = "/tmp/".$filename;
 
     if (!ftp_get($conn, $local, $remote, FTP_BINARY)) {
@@ -348,10 +348,10 @@ function openFtp($config) {
         ftp_close($conn);
         throw new Exception("FTP login failed");
     }
-    // if (!ftp_pasv($conn, true)) {
-    //     ftp_close($conn);
-    //     throw new Exception("Failed to enable passive mode");
-    // }
+    if (!ftp_pasv($conn, true)) {
+        ftp_close($conn);
+        throw new Exception("Failed to enable passive mode");
+    }
     return $conn;
 }
 

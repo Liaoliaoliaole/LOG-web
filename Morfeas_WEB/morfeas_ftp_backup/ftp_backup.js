@@ -35,7 +35,7 @@ function backupToFTP() {
     } else {
       showError("backup-status", "Backup failed: " + resp.error);
     }
-  }); 
+  });
 }
 
 function listBackups() {
