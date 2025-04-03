@@ -107,7 +107,7 @@ function saveConfig($data) {
     }
 
     // Load secure credentials
-    $credFile = "/home/morfeas/LOG_ftp_backup.conf";
+    $credFile = "/home/morfeas/configuration/LOG_ftp_backup.conf";
     if (!file_exists($credFile)) {
         throw new Exception("FTP credential file missing.");
     }
