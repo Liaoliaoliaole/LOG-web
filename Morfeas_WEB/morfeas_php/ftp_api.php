@@ -40,9 +40,11 @@ logMsg("Raw POST: $data");
 
 $json = json_decode($data);
 if (!$json) {
-    logMsg("JSON decode failed");
+    logMsg("JSON decode failed: $error");
     http_response_code(400);
-    echo json_encode(["success" => false, "error" => "Invalid JSON"]);
+    echo json_encode(["success" => false,
+    "error" => "Invalid JSON format. Please ensure you're sending valid JSON. Error: $error"
+    ]);
     exit;
 }
 
@@ -51,7 +53,7 @@ if (!$json) {
  *****************************************************************/
 try {
     if (!isset($json->action)) {
-        throw new Exception("Missing 'action' parameter");
+        throw new Exception("Missing 'action' parameter in request body.");
     }
 
     switch ($json->action) {
@@ -79,14 +81,14 @@ try {
 
         case "restore":
             if (empty($json->file)) {
-                throw new Exception("Missing file to restore");
+                throw new Exception("Missing 'file' parameter for restore action.");
             }
             ftpRestore($json->file);
             moveFTPLog();
             break;
 
         default:
-            throw new Exception("Unknown action: " . $json->action);
+            throw new Exception("Unknown action provided: " . $json->action);
     }
 
 } catch (Exception $e) {
@@ -122,7 +124,6 @@ function saveConfig($data) {
         throw new Exception("FTP credential file missing.");
     }
     $creds = parse_ini_file($credFile);
-    logMsg("CREDS loaded: " . print_r($creds, true));
     if (empty($creds['FTP_USER']) || empty($creds['FTP_PASS'])) {
         throw new Exception("Invalid credentials in config file.");
     }
@@ -160,12 +161,12 @@ function testFtpConnection() {
     ftp_close($conn);
 
     if ($list === false) {
-        logMsg("Failed to retrieve file list");
+        logMsg("Failed to retrieve file list.");
         echo json_encode(["success" => false, "error" => "Failed to retrieve file list"]);
         return;
     }
 
-    logMsg("FTP test connection success");
+    logMsg("FTP test connection success.");
     echo json_encode(["success" => true, "files" => $list]);
     return;
 }
@@ -351,9 +352,9 @@ function moveFTPLog() {
         $cmd = "sudo /bin/mv " . escapeshellarg($src) . " " . escapeshellarg($dest);
         exec($cmd, $output, $retval);
         if ($retval === 0) {
-            logMsg("Log moved successfully to $dest using sudo mv.");
+            logMsg("Log moved successfully to $dest.");
         } else {
-            logMsg("Failed to move log using sudo mv. Output: " . implode("\n", $output));
+            logMsg("Failed to move log. Output: " . implode("\n", $output));
         }
     } else {
         logMsg("No ftp_debug.log found to move.");
@@ -363,26 +364,6 @@ function moveFTPLog() {
 /*****************************************************************
  * HELPER FUNCTIONS
  *****************************************************************/
-
-/**
- * LOG any message
- */
-function logMsg($msg) {
-    global $logFile;
-    $maxSize = 100 * 1024; // 100 KB
-    $time = date("Y-m-d H:i:s");
-
-    if (is_string($msg) && strpos($msg, '"pass"') !== false) {
-        $msg = preg_replace('/("pass"\s*:\s*")[^"]+(")/', '$1*****$2', $msg);
-    }
-
-    if (file_exists($logFile) && filesize($logFile) > $maxSize) {
-        file_put_contents($logFile, "[$time] === Log truncated due to size ===\n");
-    }
-
-    file_put_contents($logFile, "[$time] $msg\n", FILE_APPEND);
-}
-
 /**
  * Load config from /tmp/ftp_config.json
  */
@@ -422,4 +403,26 @@ function openFtp($config) {
     }
     return $conn;
 }
+
+/**
+ * LOG any message
+ */
+function logMsg($msg) {
+    global $logFile;
+    $maxSize = 100 * 1024; // 100 KB
+    $time = date("Y-m-d H:i:s");
+
+    if (is_string($msg) && strpos($msg, '"pass"') !== false) {
+        $msg = preg_replace('/("pass"\s*:\s*")[^"]+(")/', '$1*****$2', $msg);
+    }
+
+    // Rotate log file if it exceeds maxSize:
+    if (file_exists($logFile) && filesize($logFile) > $maxSize) {
+        $rotated = $logFile . '.' . time();
+        rename($logFile, $rotated);
+    }
+
+    file_put_contents($logFile, "[$time] $msg\n", FILE_APPEND);
+}
+
 ?>
