@@ -203,9 +203,17 @@ function ftpBackup() {
 
     // Ensure remote directory exists
     if (!@ftp_chdir($conn, $remoteDir)) {
-        if (!@ftp_mkdir($conn, $remoteDir)) {
-            ftp_close($conn);
-            throw new Exception("Failed to create FTP directory: $remoteDir");
+        // try to create it (recursively if needed)
+        $parts = explode("/", trim($remoteDir, "/"));
+        $path = "";
+        foreach ($parts as $part) {
+            $path .= "/" . $part;
+            if (!@ftp_chdir($conn, $path)) {
+                if (!@ftp_mkdir($conn, $path)) {
+                    ftp_close($conn);
+                    throw new Exception("Failed to create FTP directory: $path");
+                }
+            }
         }
     }
 
@@ -218,8 +226,10 @@ function ftpBackup() {
     logMsg("Uploaded backup to $remoteFile");
 
     // Enforce 100-file limit in the engine folder
-    $files = ftp_nlist($conn, $remoteDir);
-    $mbis = array_filter($files, fn($f) => str_ends_with(strtolower($f), ".mbl"));
+    $files = ftp_nlist($conn, ".");
+    $mbis = array_filter($files, function($f) {
+        return str_ends_with(strtolower($f), ".mbl");
+    });
     sort($mbis);
 
     $excess = count($mbis) - 100;
