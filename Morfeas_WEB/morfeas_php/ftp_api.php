@@ -248,6 +248,8 @@ function ftpList() {
     $mbiFiles = scanFtpRecursive($conn, $dir);
 
     ftp_close($conn);
+
+    echo json_encode(array_values($mbiFiles));
     logMsg("List available packages success.");
     return;
 }
