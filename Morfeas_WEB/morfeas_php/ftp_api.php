@@ -243,34 +243,30 @@ function ftpList() {
     $config = loadConfig();
     $conn   = openFtp($config);
 
-    $dir = $config->dir;
+    // Change to the engine number directory (stored in $config->dir)
+    if (!@ftp_chdir($conn, $config->dir)) {
+        ftp_close($conn);
+        throw new Exception("Failed to change directory to " . $config->dir);
+    }
 
-    $mbiFiles = scanFtpRecursive($conn, $dir);
-
+    // List files in the current directory (engine directory)
+    $files = ftp_nlist($conn, ".");
     ftp_close($conn);
+    if (!$files) {
+        $files = [];
+    }
+
+    // Filter to only .mbl files and return just the basename
+    $mbiFiles = [];
+    foreach ($files as $file) {
+        if (str_ends_with(strtolower($file), ".mbl")) {
+            $mbiFiles[] = basename($file);
+        }
+    }
 
     echo json_encode(array_values($mbiFiles));
     logMsg("List available packages success.");
     return;
-}
-
-function scanFtpRecursive($conn, $dir) {
-    $result = [];
-    $items = @ftp_nlist($conn, $dir);
-    if (!$items) return $result;
-
-    foreach ($items as $item) {
-        if (@ftp_size($conn, $item) === -1) {
-            if ($item !== '.' && $item !== '..') {
-                $result = array_merge($result, scanFtpRecursive($conn, $item));
-            }
-        } else {
-            if (str_ends_with(strtolower($item), ".mbl")) {
-                $result[] = $item;
-            }
-        }
-    }
-    return $result;
 }
 
 /**
@@ -280,14 +276,14 @@ function ftpRestore($filename) {
     $config = loadConfig();
     $conn   = openFtp($config);
 
-    // Change to the engine folder on the FTP server.
+    // Change to the engine directory
     if (!@ftp_chdir($conn, $config->dir)) {
         ftp_close($conn);
         throw new Exception("Failed to change directory to " . $config->dir);
     }
 
     $remote = $filename;
-    $local  = "/tmp/".$filename;
+    $local  = "/tmp/" . $filename;
 
     if (!ftp_get($conn, $local, $remote, FTP_BINARY)) {
         ftp_close($conn);
@@ -299,6 +295,10 @@ function ftpRestore($filename) {
     $data   = gzdecode($raw);
     $bundle = json_decode($data);
 
+    if (!$bundle) {
+        throw new Exception("Invalid backup file content: " . $filename);
+    }
+
     if (isset($bundle->OPC_UA_Config)) {
         file_put_contents("/home/morfeas/configuration/OPC_UA_Config.xml", $bundle->OPC_UA_Config);
     }
@@ -306,7 +306,7 @@ function ftpRestore($filename) {
         file_put_contents("/home/morfeas/configuration/Morfeas_config.xml", $bundle->Morfeas_Config);
     }
 
-    // remove local copy
+    // Remove local copy
     @unlink($local);
 
     logMsg("Restore from $filename completed.");
