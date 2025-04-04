@@ -181,52 +181,55 @@ function ftpBackup() {
     $config = loadConfig();
     $conn   = openFtp($config);
 
-    $timestamp = date("Ymd_His");
-    $logName   = $config->log;
-    $engineNum = $config->dir;
+    $timestamp  = date("Ymd_His");
+    $logName    = $config->log;
+    $engineNum  = $config->dir;
 
-    $filename = "{$engineNum}_{$logName}_{$timestamp}.mbl";
-    $localFile = "/tmp/$filename";
+    $filename   = "{$engineNum}_{$logName}_{$timestamp}.mbl";
+    $localFile  = "/tmp/$filename";
+    $remoteDir  = "/{$engineNum}";
+    $remoteFile = "{$remoteDir}/{$filename}";
 
     $ua      = file_get_contents("/home/morfeas/configuration/OPC_UA_Config.xml");
     $morfeas = file_get_contents("/home/morfeas/configuration/Morfeas_config.xml");
 
     $bundle = [
-        "OPC_UA_Config" => $ua,
-        "Morfeas_Config" => $morfeas,
-        "Checksum" => crc32($ua.$morfeas)
+        "OPC_UA_Config"   => $ua,
+        "Morfeas_Config"  => $morfeas,
+        "Checksum"        => crc32($ua . $morfeas)
     ];
 
     file_put_contents($localFile, gzencode(json_encode($bundle)));
 
-    // Upload: Change to engine directory or create it if needed
-    if (!@ftp_chdir($conn, $engineNum)) {
-        ftp_mkdir($conn, $engineNum);
-        ftp_chdir($conn, $engineNum);
-    } else {
-        ftp_chdir($conn, $engineNum);
+    // Ensure remote directory exists
+    if (!@ftp_chdir($conn, $remoteDir)) {
+        if (!@ftp_mkdir($conn, $remoteDir)) {
+            ftp_close($conn);
+            throw new Exception("Failed to create FTP directory: $remoteDir");
+        }
     }
 
-    if (!ftp_put($conn, $filename, $localFile, FTP_BINARY)) {
+    // Upload
+    if (!ftp_put($conn, $remoteFile, $localFile, FTP_BINARY)) {
         ftp_close($conn);
-        throw new Exception("Failed to upload backup");
+        throw new Exception("Failed to upload backup to $remoteFile");
     }
 
-    logMsg("Uploaded backup to /$engineNum/$filename");
+    logMsg("Uploaded backup to $remoteFile");
 
-    // Enforce 100 file limit
-    $files = ftp_nlist($conn, ".");
-    $mbis = array_filter($files, function($f) {
-        return str_ends_with(strtolower($f), ".mbl");
-    });
+    // Enforce 100-file limit in the engine folder
+    $files = ftp_nlist($conn, $remoteDir);
+    $mbis = array_filter($files, fn($f) => str_ends_with(strtolower($f), ".mbl"));
     sort($mbis);
 
     $excess = count($mbis) - 100;
     if ($excess > 0) {
         $delete = array_slice($mbis, 0, $excess);
         foreach ($delete as $f) {
-            ftp_delete($conn, $f);
-            logMsg("Old backup deleted: $f");
+            $base = basename($f);
+            $toDelete = "$remoteDir/$base";
+            ftp_delete($conn, $toDelete);
+            logMsg("Old backup deleted: $toDelete");
         }
     }
 
