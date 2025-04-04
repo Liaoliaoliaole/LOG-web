@@ -22,6 +22,14 @@ header("Content-Type: application/json");
 $logFile    = "/tmp/ftp_debug.log";
 $configFile = "/tmp/ftp_config.json";
 
+// shutdown function to catch fatal errors
+register_shutdown_function(function () {
+    $error = error_get_last();
+    if ($error) {
+        file_put_contents('/tmp/php_errors.log', "[FATAL] " . print_r($error, true), FILE_APPEND);
+    }
+});
+
 logMsg("\n=== New Request ===");
 
 /*****************************************************************
@@ -102,7 +110,7 @@ function saveConfig($data) {
         throw new Exception("Missing host or engine number");
     }
 
-    //Sanitize engine number (allow letters, numbers, underscores, dashes)
+    // Sanitize engine number (allow letters, numbers, underscores, dashes)
     $engineNumber = preg_replace('/[^a-zA-Z0-9_-]/', '', $data->dir);
     if (empty($engineNumber)) {
         throw new Exception("Invalid engine number after sanitization.");
@@ -191,9 +199,13 @@ function ftpBackup() {
 
     file_put_contents($localFile, gzencode(json_encode($bundle)));
 
-    // Upload
-    @ftp_chdir($conn, $engineNum) || ftp_mkdir($conn, $engineNum);
-    ftp_chdir($conn, $engineNum);
+    // Upload: Change to engine directory or create it if needed
+    if (!@ftp_chdir($conn, $engineNum)) {
+        ftp_mkdir($conn, $engineNum);
+        ftp_chdir($conn, $engineNum);
+    } else {
+        ftp_chdir($conn, $engineNum);
+    }
 
     if (!ftp_put($conn, $filename, $localFile, FTP_BINARY)) {
         ftp_close($conn);
@@ -204,7 +216,9 @@ function ftpBackup() {
 
     // Enforce 100 file limit
     $files = ftp_nlist($conn, ".");
-    $mbis = array_filter($files, fn($f) => str_ends_with(strtolower($f), ".mbl"));
+    $mbis = array_filter($files, function($f) {
+        return str_ends_with(strtolower($f), ".mbl");
+    });
     sort($mbis);
 
     $excess = count($mbis) - 100;
@@ -221,7 +235,6 @@ function ftpBackup() {
 
     echo json_encode(["success" => true, "message" => "Backup uploaded: $filename"]);
 }
-
 
 /**
  * 4) LIST .mbl FILES
@@ -390,5 +403,4 @@ function openFtp($config) {
     }
     return $conn;
 }
-
-
+?>
