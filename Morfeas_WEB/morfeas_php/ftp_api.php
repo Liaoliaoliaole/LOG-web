@@ -415,18 +415,19 @@ function openFtp($config) {
  * LOG any message
  */
 function logMsg($msg) {
-    global $logFile;
+    $logFile = LOG_FILE;
     $maxSize = 100 * 1024; // 100 KB
     $time = date("Y-m-d H:i:s");
 
     if (is_string($msg) && strpos($msg, '"pass"') !== false) {
-        $msg = preg_replace('/("pass"\s*:\s*")[^"]+(")/', '$1*****$2', $msg);
+        $msg = preg_replace('/("pass"\s*:\s*")[^"]+("?)/', '$1*****$2', $msg);
     }
 
     if (file_exists($logFile) && filesize($logFile) > $maxSize) {
-        file_put_contents($logFile, "[$time] === Log truncated due to size ===\n");
+        $rotated = $logFile . '.' . date("Ymd_His");
+        @rename($logFile, $rotated);
     }
 
-    file_put_contents($logFile, "[$time] $msg\n", FILE_APPEND);
+    @file_put_contents($logFile, "[$time] $msg\n", FILE_APPEND | LOCK_EX);
 }
 ?>
