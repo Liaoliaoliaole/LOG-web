@@ -114,6 +114,7 @@ function saveConfig($data) {
         throw new Exception("FTP credential file missing.");
     }
     $creds = parse_ini_file($credFile);
+    logMsg("CREDS loaded: " . print_r($creds, true));
     if (empty($creds['FTP_USER']) || empty($creds['FTP_PASS'])) {
         throw new Exception("Invalid credentials in config file.");
     }
