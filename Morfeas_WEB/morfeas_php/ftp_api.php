@@ -9,24 +9,37 @@ if (!function_exists('str_ends_with')) {
 }
 
 /*****************************************************************
+ * Configuration Setup
+ *****************************************************************/
+define('TMP_DIR', '/tmp');
+define('CONFIG_DIR', '/home/morfeas/configuration');
+define('FTP_LOG_FILE', TMP_DIR . '/ftp_debug.log');
+define('CREDENTIAL_FILE', CONFIG_DIR . '/LOG_ftp_backup.conf');
+define('OPC_UA_XML', CONFIG_DIR . '/OPC_UA_Config.xml');
+define('MORFEAS_XML', CONFIG_DIR . '/Morfeas_config.xml');
+define('CONFIG_JSON', TMP_DIR . '/ftp_config.json');
+define('ERROR_LOG_FILE', TMP_DIR . '/php_errors.log');
+define('MORFEAS_LOGGER_FTP', '/mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log');
+
+/*****************************************************************
  * Debug & Logging
  *****************************************************************/
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 ini_set('log_errors', 1);
-ini_set('error_log', '/tmp/php_errors.log'); // Debug Use
+ini_set('error_log',  ERROR_LOG_FILE); // Debug Use
 error_reporting(E_ALL);
 
 header("Content-Type: application/json");
 
-$logFile    = "/tmp/ftp_debug.log";
-$configFile = "/tmp/ftp_config.json";
+$logFile    = LOG_FILE;
+$configFile = CONFIG_JSON;
 
 // shutdown function to catch fatal errors
 register_shutdown_function(function () {
     $error = error_get_last();
     if ($error) {
-        file_put_contents('/tmp/php_errors.log', "[FATAL] " . print_r($error, true), FILE_APPEND);
+        file_put_contents(ERROR_LOG_FILE, "[FATAL] " . print_r($error, true), FILE_APPEND);
     }
 });
 
@@ -112,14 +125,12 @@ function saveConfig($data) {
         throw new Exception("Missing host or engine number");
     }
 
-    // Sanitize engine number (allow letters, numbers, underscores, dashes)
     $engineNumber = preg_replace('/[^a-zA-Z0-9_-]/', '', $data->dir);
     if (empty($engineNumber)) {
         throw new Exception("Invalid engine number after sanitization.");
     }
 
-    // Load secure credentials
-    $credFile = "/home/morfeas/configuration/LOG_ftp_backup.conf";
+    $credFile = CREDENTIAL_FILE;
     if (!file_exists($credFile)) {
         throw new Exception("FTP credential file missing.");
     }
@@ -191,8 +202,8 @@ function ftpBackup() {
     $remoteDir  = "/{$engineNum}";
     $remoteFile = "{$remoteDir}/{$filename}";
 
-    $ua      = file_get_contents("/home/morfeas/configuration/OPC_UA_Config.xml");
-    $morfeas = file_get_contents("/home/morfeas/configuration/Morfeas_config.xml");
+    $ua      = file_get_contents(OPC_UA_XML);
+    $morfeas = file_get_contents(MORFEAS_XML);
 
     $bundle = [
         "OPC_UA_Config"   => $ua,
@@ -257,20 +268,17 @@ function ftpList() {
     $config = loadConfig();
     $conn   = openFtp($config);
 
-    // Change to the engine number directory (stored in $config->dir)
     if (!@ftp_chdir($conn, $config->dir)) {
         ftp_close($conn);
         throw new Exception("Failed to change directory to " . $config->dir);
     }
 
-    // List files in the current directory (engine directory)
     $files = ftp_nlist($conn, ".");
     ftp_close($conn);
     if (!$files) {
         $files = [];
     }
 
-    // Filter to only .mbl files and return just the basename
     $mbiFiles = [];
     foreach ($files as $file) {
         if (str_ends_with(strtolower($file), ".mbl")) {
@@ -314,13 +322,12 @@ function ftpRestore($filename) {
     }
 
     if (isset($bundle->OPC_UA_Config)) {
-        file_put_contents("/home/morfeas/configuration/OPC_UA_Config.xml", $bundle->OPC_UA_Config);
+        file_put_contents(OPC_UA_XML, $bundle->OPC_UA_Config);
     }
     if (isset($bundle->Morfeas_Config)) {
-        file_put_contents("/home/morfeas/configuration/Morfeas_config.xml", $bundle->Morfeas_Config);
+        file_put_contents(MORFEAS_XML, $bundle->Morfeas_Config);
     }
 
-    // Remove local copy
     @unlink($local);
 
     logMsg("Restore from $filename completed.");
@@ -345,8 +352,8 @@ function clearConfig() {
 }
 
 function moveFTPLog() {
-    $src = "/tmp/ftp_debug.log";
-    $dest = "/mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log";
+    $src = FTP_LOG_FILE;
+    $dest = MORFEAS_LOGGER_FTP;
 
     if (file_exists($src)) {
         $cmd = "sudo /bin/mv " . escapeshellarg($src) . " " . escapeshellarg($dest);
@@ -416,13 +423,10 @@ function logMsg($msg) {
         $msg = preg_replace('/("pass"\s*:\s*")[^"]+(")/', '$1*****$2', $msg);
     }
 
-    // Rotate log file if it exceeds maxSize:
     if (file_exists($logFile) && filesize($logFile) > $maxSize) {
-        $rotated = $logFile . '.' . time();
-        rename($logFile, $rotated);
+        file_put_contents($logFile, "[$time] === Log truncated due to size ===\n");
     }
 
     file_put_contents($logFile, "[$time] $msg\n", FILE_APPEND);
 }
-
 ?>
