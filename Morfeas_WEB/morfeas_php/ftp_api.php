@@ -248,8 +248,6 @@ function ftpList() {
     $mbiFiles = scanFtpRecursive($conn, $dir);
 
     ftp_close($conn);
-
-    echo json_encode(array_values($mbiFiles));
     logMsg("List available packages success.");
     return;
 }
@@ -279,6 +277,12 @@ function scanFtpRecursive($conn, $dir) {
 function ftpRestore($filename) {
     $config = loadConfig();
     $conn   = openFtp($config);
+
+    // Change to the engine folder on the FTP server.
+    if (!@ftp_chdir($conn, $config->dir)) {
+        ftp_close($conn);
+        throw new Exception("Failed to change directory to " . $config->dir);
+    }
 
     $remote = $filename;
     $local  = "/tmp/".$filename;
