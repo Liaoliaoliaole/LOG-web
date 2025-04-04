@@ -1,4 +1,13 @@
 <?php
+
+register_shutdown_function(function () {
+    $err = error_get_last();
+    if ($err) {
+        file_put_contents('/tmp/php_errors.log', "[FATAL] " . print_r($err, true), FILE_APPEND);
+    }
+});
+
+
 /**
  * str_ends_with fallback for PHP < 8
  */
