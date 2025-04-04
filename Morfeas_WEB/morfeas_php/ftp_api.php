@@ -14,12 +14,14 @@ if (!function_exists('str_ends_with')) {
 define('TMP_DIR', '/tmp');
 define('CONFIG_DIR', '/home/morfeas/configuration');
 define('FTP_LOG_FILE', TMP_DIR . '/ftp_debug.log');
+define('CONFIG_JSON', TMP_DIR . '/ftp_config.json');
+define('ERROR_LOG_FILE', TMP_DIR . '/php_errors.log');
 define('CREDENTIAL_FILE', CONFIG_DIR . '/LOG_ftp_backup.conf');
 define('OPC_UA_XML', CONFIG_DIR . '/OPC_UA_Config.xml');
 define('MORFEAS_XML', CONFIG_DIR . '/Morfeas_config.xml');
-define('CONFIG_JSON', TMP_DIR . '/ftp_config.json');
-define('ERROR_LOG_FILE', TMP_DIR . '/php_errors.log');
 define('MORFEAS_LOGGER_FTP', '/mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log');
+define('LOG_ROTATE_MAX_SIZE', 100 * 1024); // 100KB
+define('MAX_BACKUP', 100);
 
 /*****************************************************************
  * Debug & Logging
@@ -32,7 +34,7 @@ error_reporting(E_ALL);
 
 header("Content-Type: application/json");
 
-$logFile    = LOG_FILE;
+$logFile    = FTP_LOG_FILE;
 $configFile = CONFIG_JSON;
 
 // shutdown function to catch fatal errors
@@ -415,7 +417,7 @@ function openFtp($config) {
  * LOG any message
  */
 function logMsg($msg) {
-    $logFile = LOG_FILE;
+    $logFile = FTP_LOG_FILE;
     $maxSize = 100 * 1024; // 100 KB
     $time = date("Y-m-d H:i:s");
 
