@@ -48,6 +48,37 @@ register_shutdown_function(function () {
 logMsg("\n=== New Request ===");
 
 /*****************************************************************
+ * Checks /tmp/ftp_config.json update status
+ *****************************************************************/
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
+    switch ($_GET['action']) {
+        case 'configStatus':
+            $file = CONFIG_JSON;
+
+            if (!file_exists($file)) {
+                // Config file missing = disconnected state
+                echo json_encode([
+                    "connected" => false,
+                    "updated" => false,
+                    "message" => "No configuration found. Not connected to FTP Server."
+                ]);
+                exit;
+            }
+
+            $lastModified = filemtime($file);
+            $now = time();
+
+            echo json_encode([
+                "connected" => true,
+                "updated" => ($now - $lastModified <= 2),
+                "timestamp" => $lastModified,
+                "config" => json_decode(file_get_contents($file))
+            ]);
+            exit;
+    }
+}
+
+/*****************************************************************
  * Read input JSON
  *****************************************************************/
 $data = file_get_contents("php://input");

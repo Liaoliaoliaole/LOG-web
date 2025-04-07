@@ -142,4 +142,33 @@ function showSuccess(id, msg) {
   el.style.color = "green";
 }
 
+let lastConfigCheck = null;
+
+let lastKnownDir = null;
+
+function checkFTPConfigUpdated() {
+  fetch(api + "?action=configStatus")
+    .then((res) => res.json())
+    .then((data) => {
+      if (!data.connected) {
+        if (lastKnownDir !== null) {
+          showError("ftp-status", "Disconnected from FTP (no config found).");
+          lastKnownDir = null;
+          document.getElementById("backup-list").innerHTML = "";
+        }
+        return;
+      }
+
+      const newDir = data.config?.dir || "";
+      if (newDir && newDir !== lastKnownDir) {
+        lastKnownDir = newDir;
+        showSuccess("ftp-status", `Detected updated config (engine: ${newDir}), refreshing...`);
+        document.getElementById("ftp-engine-number").value = newDir;
+        listBackups();
+      }
+    })
+    .catch((err) => {
+      console.error("Config check failed", err);
+    });
+}
 
