@@ -7,7 +7,7 @@ function connectFTP() {
   const dir = document.getElementById("ftp-engine-number").value.trim();
 
   if (!host || !dir) {
-    showError("ftp-status", "Both Host IP and Engine Number are required.");
+    showError("ftp-status", "Please enter both Host IP and Engine Number.");
     return;
   }
 
@@ -17,17 +17,15 @@ function connectFTP() {
     action: "saveConfig" // backend reads FTP_USER, FTP_PASS, log_name (hostname) itself
   };
 
-  postData({ ...data, action: "saveConfig" }, "ftp-status", "Saving config...", (saveResp) => {
+  postData({ ...data, action: "saveConfig" }, "ftp-status", "Saving FTP configuration...", (saveResp) => {
     if (!saveResp.success) {
-      showError("ftp-status", "Save failed: " + saveResp.error);
+      showError("ftp-status", `Failed to save configuration: ${saveResp.error}`);
       return;
     }
 
-    // Test connection
-    postData({ action: "testConnect" }, "ftp-status", "Testing connection...", (testResp) => {
+    postData({ action: "testConnect" }, "ftp-status", "Connecting to FTP server...", (testResp) => {
       if (testResp.success) {
-        showSuccess("ftp-status", "Connected & config saved!");
-        // List backups after successful connection
+        showSuccess("ftp-status", `Connected to FTP at ${host}. Configuration saved.`);
         listBackups();
       } else {
         showError("ftp-status", "Connection failed: " + testResp.error);
@@ -38,14 +36,17 @@ function connectFTP() {
 
 function disconnectFTP() {
   postData({ action: "clearConfig" }, "ftp-status", "Disconnecting...", (resp) => {
+    const statusEl = document.getElementById("ftp-status");
+
     if (resp.success) {
-      showSuccess("ftp-status", "Disconnected.");
-      document.getElementById("ftp-engine-number").value = "";
-      document.getElementById("backup-status").textContent = "";
-      document.getElementById("restore-status").textContent = "";
+      showSuccess("ftp-status", "Disconnected. Configuration removed. Automatic backups disabled.");
+      ["ftp-engine-number", "backup-status", "restore-status"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = el.textContent = "";
+      });
       document.getElementById("backup-list").innerHTML = "";
     } else {
-      showError("ftp-status", "Disconnect failed: " + resp.error);
+      showError("ftp-status", `Disconnect failed: ${resp.error}`);
     }
   });
 }
@@ -66,6 +67,14 @@ function listBackups() {
       opt.text = file;
       list.appendChild(opt);
     });
+
+    const dir = document.getElementById("ftp-engine-number").value.trim();
+
+    if ((resp || []).length === 0) {
+      showSuccess("restore-status", `No backup files found in engine number directory: "${dir}".`);
+    } else {
+      showSuccess("restore-status", `Found ${resp.length} backup file(s) in engine number directory: "${dir}".`);
+    }
   });
 }
 

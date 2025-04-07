@@ -270,10 +270,6 @@ function ftpList() {
     $config = loadConfig();
     $conn   = openFtp($config);
 
-    // if (!@ftp_chdir($conn, $config->dir)) {
-    //     ftp_close($conn);
-    //     throw new Exception("Failed to change directory to " . $config->dir);
-    // }
     $remoteDir = '/' . $config->dir;
     if (!@ftp_chdir($conn, $remoteDir)) {
         $parts = explode("/", trim($remoteDir, "/"));
