@@ -53,6 +53,7 @@ function disconnectFTP() {
 }
 
 function listBackups() {
+  console.log("listBackups() triggered due to config change");
   postData({ action: "list" }, "restore-status", "Loading backups...", (resp) => {
     const list = document.getElementById("backup-list");
     list.innerHTML = "";
@@ -147,24 +148,33 @@ let lastKnownDir = null;
 function checkFTPConfigUpdated() {
   fetch(api + "?action=config_if_updated")
     .then(res => res.json())
-    .then((data) => {
-      if (data === false) {
-        console.log("Config not updated");
+    .then(data => {
+      if (!data.connected) {
+        // Disconnected
+        console.warn(data.message || "Config not found — disconnected.");
+        lastKnownDir = null;
+        document.getElementById("backup-list").innerHTML = "";
+        showError("ftp-status", "Disconnected (no config file found).");
         return;
       }
 
-      const newDir = data.dir || "";
-      if (newDir && newDir !== lastKnownDir) {
-        lastKnownDir = newDir;
-        showSuccess("ftp-status", `Config updated (engine: ${newDir}), reloading...`);
-        document.getElementById("ftp-engine-number").value = newDir;
-        listBackups();
+      // Connected but check if updated
+      if (data.updated && data.config) {
+        const newDir = data.config.dir || "";
+        if (newDir && newDir !== lastKnownDir) {
+          lastKnownDir = newDir;
+          showSuccess("ftp-status", `Config updated (engine: ${newDir}), reloading...`);
+          document.getElementById("ftp-engine-number").value = newDir;
+          listBackups();
+        }
       }
     })
-    .catch((err) => {
-      console.error("Config poll error", err);
+    .catch(err => {
+      console.error("Polling config failed", err);
     });
 }
 
-setInterval(checkFTPConfigUpdated, 2000);
+setInterval(checkFTPConfigUpdated, 5000);
+console.log("Polling FTP config update...");
+
 

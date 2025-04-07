@@ -51,25 +51,33 @@ logMsg("\n=== New Request ===");
  * Check ftp configration status
  *****************************************************************/
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'config_if_updated') {
-    logMsg("Config poll hit - last modified: " . filemtime($configPath));
-
     $configPath = CONFIG_JSON;
+    $pollWindow = 10; // seconds
 
+    // If no config file, user is effectively disconnected
     if (!file_exists($configPath)) {
-        echo json_encode(false);
+        echo json_encode([
+            "connected" => false,
+            "updated"   => false,
+            "message"   => "Config not found (disconnected)."
+        ]);
         exit;
     }
 
-    if (filemtime($configPath) > (time() - 2)) {
-        header('Content-Type: application/json');
-        echo file_get_contents($configPath);
-    } else {
-        header('Content-Type: application/json');
-        echo json_encode(false);
-    }
+    $lastModified = filemtime($configPath);
+    $now = time();
+
+    // If the file was modified within the last 10 seconds, we consider it "updated".
+    $recentlyChanged = (($now - $lastModified) <= $pollWindow);
+
+    // Return structured JSON
+    echo json_encode([
+        "connected" => true,
+        "updated"   => $recentlyChanged,
+        "config"    => json_decode(file_get_contents($configPath))
+    ]);
     exit;
 }
-
 
 /*****************************************************************
  * Read input JSON
