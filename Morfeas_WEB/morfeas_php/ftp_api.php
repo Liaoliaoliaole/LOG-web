@@ -124,12 +124,14 @@ function saveConfig($data) {
     global $configFile;
 
     if (empty($data->host) || empty($data->dir)) {
-        throw new Exception("Missing host or engine number");
+        throw new Exception("Missing host IP or engine number");
     }
 
-    $engineNumber = preg_replace('/[^a-zA-Z0-9_-]/', '', $data->dir);
-    if (empty($engineNumber)) {
-        throw new Exception("Invalid engine number after sanitization.");
+    $engineNumber = $data->dir;
+
+    // Allow only ASCII alphanumerics, spaces, underscores, hyphens, periods
+    if (!preg_match('/^[a-zA-Z0-9 _\-.]+$/', $engineNumber)) {
+        throw new Exception("Invalid engine number. Folder names may contain only ASCII letters, numbers, spaces, underscores (_), hyphens (-), or periods (.)");
     }
 
     $credFile = CREDENTIAL_FILE;
