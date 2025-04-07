@@ -35,17 +35,19 @@ function connectFTP() {
   });
 }
 
+function disconnectUI() {
+  showSuccess("ftp-status", "Disconnected. Configuration removed. Automatic backups disabled.");
+  ["ftp-engine-number", "backup-status", "restore-status"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = el.textContent = "";
+  });
+  document.getElementById("backup-list").innerHTML = "";
+}
+
 function disconnectFTP() {
   postData({ action: "clearConfig" }, "ftp-status", "Disconnecting...", (resp) => {
-    const statusEl = document.getElementById("ftp-status");
-
     if (resp.success) {
-      showSuccess("ftp-status", "Disconnected. Configuration removed. Automatic backups disabled.");
-      ["ftp-engine-number", "backup-status", "restore-status"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = el.textContent = "";
-      });
-      document.getElementById("backup-list").innerHTML = "";
+      disconnectUI();
     } else {
       showError("ftp-status", `Disconnect failed: ${resp.error}`);
     }
@@ -151,10 +153,8 @@ function checkFTPConfigUpdated() {
     .then(data => {
       if (!data.connected) {
         // Disconnected
-        console.warn(data.message || "Config not found — disconnected.");
         lastKnownDir = null;
-        document.getElementById("backup-list").innerHTML = "";
-        showSuccess("ftp-status", "Disconnected. Configuration removed. Automatic backups disabled.");
+        disconnectUI();
         return;
       }
 
