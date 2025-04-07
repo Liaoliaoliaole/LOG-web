@@ -129,9 +129,11 @@ function saveConfig($data) {
 
     $engineNumber = $data->dir;
 
-    // Allow only ASCII alphanumerics, spaces, underscores, hyphens, periods
-    if (!preg_match('/^[a-zA-Z0-9 _\-.]+$/', $engineNumber)) {
-        throw new Exception("Invalid engine number. Folder names may contain only ASCII letters, numbers, spaces, underscores (_), hyphens (-), or periods (.)");
+    // Enforce directory name rule: only A-Z, a-z, 0-9, -, _, .
+    if (!preg_match('/^[A-Za-z0-9_.-]+$/', $engineNumber)) {
+        throw new Exception("Invalid engine number: 
+                            Allowed characters: letters (A-Z, a-z), digits (0-9), hyphens (-), underscores (_), and periods (.).
+                            No spaces or other characters allowed.");
     }
 
     $credFile = CREDENTIAL_FILE;
