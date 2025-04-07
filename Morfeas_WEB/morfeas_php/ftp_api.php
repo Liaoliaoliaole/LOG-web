@@ -270,9 +270,23 @@ function ftpList() {
     $config = loadConfig();
     $conn   = openFtp($config);
 
-    if (!@ftp_chdir($conn, $config->dir)) {
-        ftp_close($conn);
-        throw new Exception("Failed to change directory to " . $config->dir);
+    // if (!@ftp_chdir($conn, $config->dir)) {
+    //     ftp_close($conn);
+    //     throw new Exception("Failed to change directory to " . $config->dir);
+    // }
+    $remoteDir = '/' . $config->dir;
+    if (!@ftp_chdir($conn, $remoteDir)) {
+        $parts = explode("/", trim($remoteDir, "/"));
+        $path = "";
+        foreach ($parts as $part) {
+            $path .= "/" . $part;
+            if (!@ftp_chdir($conn, $path)) {
+                if (!@ftp_mkdir($conn, $path)) {
+                    ftp_close($conn);
+                    throw new Exception("Failed to create FTP directory: $path");
+                }
+            }
+        }
     }
 
     $files = ftp_nlist($conn, ".");
