@@ -154,7 +154,7 @@ function checkFTPConfigUpdated() {
         console.warn(data.message || "Config not found — disconnected.");
         lastKnownDir = null;
         document.getElementById("backup-list").innerHTML = "";
-        showError("ftp-status", "Disconnected (no config file found).");
+        showSuccess("ftp-status", "Disconnected. Configuration removed. Automatic backups disabled.");
         return;
       }
 
@@ -174,7 +174,5 @@ function checkFTPConfigUpdated() {
     });
 }
 
-setInterval(checkFTPConfigUpdated, 5000);
+setInterval(checkFTPConfigUpdated, 8000);
 console.log("Polling FTP config update...");
-
-

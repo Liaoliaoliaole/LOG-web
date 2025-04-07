@@ -52,7 +52,7 @@ logMsg("\n=== New Request ===");
  *****************************************************************/
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'config_if_updated') {
     $configPath = CONFIG_JSON;
-    $pollWindow = 10; // seconds
+    $pollWindow = 8; // seconds
 
     // If no config file, user is effectively disconnected
     if (!file_exists($configPath)) {
@@ -67,10 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
     $lastModified = filemtime($configPath);
     $now = time();
 
-    // If the file was modified within the last 10 seconds, we consider it "updated".
+    // If the file was modified within the last 8 seconds, we consider it "updated".
     $recentlyChanged = (($now - $lastModified) <= $pollWindow);
-
-    // Return structured JSON
     echo json_encode([
         "connected" => true,
         "updated"   => $recentlyChanged,
@@ -150,7 +148,7 @@ try {
  *****************************************************************/
 
 /**
- * 1) SAVE CONFIG: host, user, pass, dir → /tmp/ftp_config.json
+ * SAVE CONFIG: host, user, pass, dir → /tmp/ftp_config.json
  */
 function saveConfig($data) {
     global $configFile;
@@ -195,7 +193,7 @@ function saveConfig($data) {
 }
 
 /**
- * 2) TEST FTP CONNECTION
+ * TEST FTP CONNECTION
  *    - Reads config
  *    - Connect, login, passive
  *    - List '.' to confirm
@@ -221,7 +219,7 @@ function testFtpConnection() {
 }
 
 /**
- * 3) BACKUP
+ *  BACKUP
  *    - Connect
  *    - Create .mbl from local config XMLs
  *    - Upload
@@ -300,7 +298,7 @@ function ftpBackup() {
 }
 
 /**
- * 4) LIST .mbl FILES
+ * LIST .mbl FILES
  */
 function ftpList() {
     $config = loadConfig();
@@ -340,7 +338,7 @@ function ftpList() {
 }
 
 /**
- * 5) RESTORE
+ * RESTORE
  */
 function ftpRestore($filename) {
     $config = loadConfig();
