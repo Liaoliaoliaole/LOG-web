@@ -48,35 +48,28 @@ register_shutdown_function(function () {
 logMsg("\n=== New Request ===");
 
 /*****************************************************************
- * Checks /tmp/ftp_config.json update status
+ * Check ftp configration status
  *****************************************************************/
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
-    switch ($_GET['action']) {
-        case 'configStatus':
-            $file = CONFIG_JSON;
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'config_if_updated') {
+    logMsg("Config poll hit - last modified: " . filemtime($configPath));
 
-            if (!file_exists($file)) {
-                // Config file missing = disconnected state
-                echo json_encode([
-                    "connected" => false,
-                    "updated" => false,
-                    "message" => "No configuration found. Not connected to FTP Server."
-                ]);
-                exit;
-            }
+    $configPath = CONFIG_JSON;
 
-            $lastModified = filemtime($file);
-            $now = time();
-
-            echo json_encode([
-                "connected" => true,
-                "updated" => ($now - $lastModified <= 2),
-                "timestamp" => $lastModified,
-                "config" => json_decode(file_get_contents($file))
-            ]);
-            exit;
+    if (!file_exists($configPath)) {
+        echo json_encode(false);
+        exit;
     }
+
+    if (filemtime($configPath) > (time() - 2)) {
+        header('Content-Type: application/json');
+        echo file_get_contents($configPath);
+    } else {
+        header('Content-Type: application/json');
+        echo json_encode(false);
+    }
+    exit;
 }
+
 
 /*****************************************************************
  * Read input JSON
