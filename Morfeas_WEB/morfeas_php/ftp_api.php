@@ -31,14 +31,12 @@ register_shutdown_function(function () {
     }
 });
 
-logMsg("\n=== New Request ===");
-
 /*****************************************************************
  * Check ftp configration status for multi-user senario
  *****************************************************************/
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'config_if_updated') {
     $configPath = CONFIG_JSON;
-    $pollWindow = 2; // If the config file was modified within the last 5 seconds, we consider it "updated".
+    $pollWindow = 2; // If the config file was modified within the last 2 seconds, we consider it "updated".
 
     if (!file_exists($configPath)) {
         echo json_encode([
@@ -65,11 +63,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
  * Read input JSON
  *****************************************************************/
 $data = file_get_contents("php://input");
-logMsg("Raw POST: $data");
+logMsg("[INFO] Incoming JSON request:\n$data");
 
 $json = json_decode($data);
 if (!$json) {
-    logMsg("JSON decode failed: $error");
+    logMsg("[ERROR] :JSON decode failed: $error");
     http_response_code(400);
     echo json_encode(["success" => false,
     "error" => "Invalid JSON format. Please ensure you're sending valid JSON. Error: $error"
@@ -82,8 +80,10 @@ if (!$json) {
  *****************************************************************/
 try {
     if (!isset($json->action)) {
+        logMsg("[ERROR] JSON missing 'action' field.");
         throw new Exception("Missing 'action' parameter in request body.");
     }
+    logMsg("[INFO] Handling action: {$json->action}");
 
     switch ($json->action) {
         case "saveConfig":
@@ -121,7 +121,7 @@ try {
     }
 
 } catch (Exception $e) {
-    logMsg("Exception: " . $e->getMessage());
+    logMsg("[ERROR] Exception: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(["success" => false, "error" => $e->getMessage()]);
     exit;
@@ -145,7 +145,7 @@ function saveConfig($data) {
 
     // Enforce directory name rule: only A-Z, a-z, 0-9, -, _, .
     if (!preg_match('/^[A-Za-z0-9_.-]+$/', $engineNumber)) {
-        throw new Exception("Invalid engine number: 
+        throw new Exception("Invalid engine number:
                             Allowed characters: letters (A-Z, a-z), digits (0-9), hyphens (-), underscores (_), and periods (.).
                             No spaces or other characters allowed.");
     }
@@ -171,7 +171,7 @@ function saveConfig($data) {
     ];
 
     file_put_contents($configFile, json_encode($config));
-    logMsg("Config saved: " . json_encode($config));
+    logMsg("[INFO] Config saved:\n" . json_encode($config, JSON_PRETTY_PRINT));
 
     echo json_encode(["success" => true, "message" => "Config saved"]);
 }
@@ -192,12 +192,12 @@ function testFtpConnection() {
     ftp_close($conn);
 
     if ($list === false) {
-        logMsg("Failed to retrieve file list.");
+        logMsg("[ERROR] :Failed to retrieve file list.");
         echo json_encode(["success" => false, "error" => "Failed to retrieve file list"]);
         return;
     }
 
-    logMsg("FTP test connection success.");
+    logMsg("[INFO] :FTP test connection success.");
     echo json_encode(["success" => true, "files" => $list]);
     return;
 }
@@ -243,6 +243,7 @@ function ftpBackup() {
             if (!@ftp_chdir($conn, $path)) {
                 if (!@ftp_mkdir($conn, $path)) {
                     ftp_close($conn);
+                    logMsg("[ERROR]Failed to create FTP directory, $path.");
                     throw new Exception("Failed to create FTP directory: $path");
                 }
             }
@@ -255,7 +256,7 @@ function ftpBackup() {
         throw new Exception("Failed to upload backup to $remoteFile");
     }
 
-    logMsg("Uploaded backup to $remoteFile");
+    logMsg("[INFO] :Uploaded backup to $remoteFile");
 
     // Enforce 50-file limit in the engine folder
     $files = ftp_nlist($conn, ".");
@@ -271,7 +272,7 @@ function ftpBackup() {
             $base = basename($f);
             $toDelete = "$remoteDir/$base";
             ftp_delete($conn, $toDelete);
-            logMsg("Old backup deleted: $toDelete");
+            logMsg("[INFO] Deleted old backup: $toDelete");
         }
     }
 
@@ -321,7 +322,7 @@ function ftpList() {
     }
 
     echo json_encode(array_values($mbiFiles));
-    logMsg("List available packages success.");
+    logMsg("[INFO] Listed " . count($mbiFiles) . " backup files.");
     return;
 }
 
@@ -368,7 +369,7 @@ function ftpRestore($filename) {
         @touch(CONFIG_JSON);
     }
 
-    logMsg("Restore from $filename completed.");
+    logMsg("[INFO] Restored from: $filename");
     echo json_encode(["success" => true, "message" => "Restored from: $filename"]);
     return;
 }
@@ -380,9 +381,9 @@ function clearConfig() {
     global $configFile;
     if (file_exists($configFile)) {
         unlink($configFile);
-        logMsg("Config cleared");
+        logMsg("[INFO] :Config cleared.");
     } else {
-        logMsg("No config file to clear");
+        logMsg("[INFO] :No config file to clear");
     }
 
     echo json_encode(["success" => true, "message" => "Config cleared"]);
@@ -397,12 +398,12 @@ function moveFTPLog() {
         $cmd = "sudo /bin/mv " . escapeshellarg($src) . " " . escapeshellarg($dest);
         exec($cmd, $output, $retval);
         if ($retval === 0) {
-            logMsg("Log moved successfully to $dest.");
+            logMsg("[INFO] :Log moved successfully to $dest.");
         } else {
-            logMsg("Failed to move log. Output: " . implode("\n", $output));
+            logMsg("[ERROR] :Failed to move log. Output: " . implode("\n", $output));
         }
     } else {
-        logMsg("No ftp_debug.log found to move.");
+        logMsg("[ERROR] :No ftp_debug.log found to move.");
     }
 }
 
@@ -415,37 +416,45 @@ function moveFTPLog() {
 function loadConfig() {
     global $configFile;
     if (!file_exists($configFile)) {
+        logMsg("[ERROR] : Config file not found at $configFile.");
         throw new Exception("No config file found! Please connect first.");
     }
 
     $raw = file_get_contents($configFile);
     $config = json_decode($raw);
-    if (
-        !$config || empty($config->host) || empty($config->user)
-        || empty($config->pass) || empty($config->dir) || empty($config->log)
-    ) {
+
+    if (!$config || empty($config->host) || empty($config->user) || empty($config->pass) || empty($config->dir) || empty($config->log)) {
+        logMsg("[ERROR] : Incomplete or invalid config data: $raw");
         throw new Exception("Incomplete config data");
     }
 
+    logMsg("[INFO] : Config loaded for engine: {$config->dir}");
     return $config;
 }
 
 /**
- * Reusable function to open FTP, login, passive
+ * Open FTP, login, passive
  */
 function openFtp($config) {
     $conn = @ftp_connect($config->host, 21, 10);
     if (!$conn) {
+        logMsg("[ERROR] : FTP connect failed to {$config->host}");
         throw new Exception("FTP connect failed");
     }
+
     if (!@ftp_login($conn, $config->user, $config->pass)) {
         ftp_close($conn);
+        logMsg("[ERROR] : FTP login failed for user {$config->user} on {$config->host}");
         throw new Exception("FTP login failed");
     }
+
     if (!ftp_pasv($conn, true)) {
         ftp_close($conn);
+        logMsg("[ERROR] : Failed to enable passive mode on {$config->host}");
         throw new Exception("Failed to enable passive mode");
     }
+
+    logMsg("[INFO] : FTP connection established and passive mode enabled on {$config->host}");
     return $conn;
 }
 
@@ -463,16 +472,12 @@ function logMsg($msg) {
 
     @file_put_contents($logFile, "[$time] $msg\n", FILE_APPEND | LOCK_EX);
 
-    // Trim from top if file exceeds size
+    // Log rotation
     if (file_exists($logFile) && filesize($logFile) > $maxSize) {
-        $contents = file($logFile); // read as array of lines
-        $total = count($contents);
-
-        while (strlen(implode('', $contents)) > $maxSize && $total > 1) {
+        $contents = file($logFile);
+        while (strlen(implode('', $contents)) > $maxSize && count($contents) > 1) {
             array_shift($contents);
-            $total--;
         }
-
         @file_put_contents($logFile, implode('', $contents), LOCK_EX);
     }
 }
