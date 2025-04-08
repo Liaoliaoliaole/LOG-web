@@ -264,7 +264,7 @@ function ftpBackup() {
     });
     sort($mbis);
 
-    $excess = count($mbis) - MAX_BACKUP;
+    $excess = count($mbis) - 50;
     if ($excess > 0) {
         $delete = array_slice($mbis, 0, $excess);
         foreach ($delete as $f) {
