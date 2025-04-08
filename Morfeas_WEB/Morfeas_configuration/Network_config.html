@@ -82,7 +82,7 @@ input.global_style{
 	<td>Gateway</td>
 	<td id="conf_gateway"></td>
   </tr>
-  <!-- [MOVED] Handled by log_ftp_if.html in new FTP UI
+  <!-- [MOVED] Handled by ftp_backup_if.html in new FTP UI
   <tr>
     <th colspan="2">FTP Backup Server <input type="checkbox" id="ftp_backup_en" onchange="ftp_backup_en_fn(this)"></th>
   </tr>
@@ -306,7 +306,7 @@ const hostname=document.getElementById("hostname"),
 	  gateway=document.getElementsByName("gateway"),
 	  dns=document.getElementsByName("dns"),
 	  ntp=document.getElementsByName("ntp");
-/* [FTP_MIGRATION] Disabled legacy FTP logic, now handled in ftp_backup.js + log_ftp_if.html
+/* [FTP_MIGRATION] Disabled legacy FTP logic, now handled in ftp_backup.js + ftp_backup_if.html
 	  ftp_serv_en=document.getElementById("ftp_backup_en"),
 	  ftp_serv_host=document.getElementById("ftp_backup_host"),
 	  ftp_serv_user=document.getElementById("ftp_backup_user"),

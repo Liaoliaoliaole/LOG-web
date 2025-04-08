@@ -16,7 +16,8 @@ Copyright (C) 12022-12023  Sam harry Tzavaras
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-	function morfeas_ftp_mbl_backup($ftp_server_hostname, $ftp_user_name, $ftp_user_pass, $dir_name, $file_name, $data)
+	// [FTP_MIGRATION] --- START --- Moved to ftp_api.php
+/* 	function morfeas_ftp_mbl_backup($ftp_server_hostname, $ftp_user_name, $ftp_user_pass, $dir_name, $file_name, $data)
 	{
 		$timeout = 200;
 		$sys_hostname = $dir_name ? $dir_name : gethostname();
@@ -47,5 +48,6 @@ Copyright (C) 12022-12023  Sam harry Tzavaras
 			$ret = false;
 		ftp_close($ftp);
 		return $ret;
-	}
+	} */
+	// [FTP_MIGRATION] --- STOP --- Moved to ftp_api.php
 ?>

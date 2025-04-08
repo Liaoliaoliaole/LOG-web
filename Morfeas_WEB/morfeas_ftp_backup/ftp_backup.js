@@ -152,27 +152,24 @@ function checkFTPConfigUpdated() {
     .then(res => res.json())
     .then(data => {
       if (!data.connected) {
-        // Disconnected
         lastKnownDir = null;
         disconnectUI();
         return;
       }
 
-      // Connected but check if updated
       if (data.updated && data.config) {
         const newDir = data.config.dir || "";
         if (newDir && newDir !== lastKnownDir) {
           lastKnownDir = newDir;
-          showSuccess("ftp-status", `Config updated (engine: ${newDir}), reloading...`);
+          showSuccess("ftp-status", `Config updated (Engine number: ${newDir}).`);
           document.getElementById("ftp-engine-number").value = newDir;
           listBackups();
         }
       }
     })
     .catch(err => {
-      console.error("Polling config failed", err);
+      showError("ftp-status", "Unable to check last FTP config status.");
     });
 }
 
-setInterval(checkFTPConfigUpdated, 8000);
-console.log("Polling FTP config update...");
+setInterval(checkFTPConfigUpdated, 5000);//The frequency at which each open page requests the update status.

@@ -1,4 +1,5 @@
 <?php
+require("../Morfeas_env.php");
 /**
  * str_ends_with fallback for PHP < 8
  */
@@ -8,20 +9,20 @@ if (!function_exists('str_ends_with')) {
     }
 }
 
-/*****************************************************************
- * Configuration Setup
- *****************************************************************/
-define('TMP_DIR', '/tmp');
-define('CONFIG_DIR', '/home/morfeas/configuration');
-define('FTP_LOG_FILE', TMP_DIR . '/ftp_debug.log');
-define('CONFIG_JSON', TMP_DIR . '/ftp_config.json');
-define('ERROR_LOG_FILE', TMP_DIR . '/php_errors.log');
-define('CREDENTIAL_FILE', CONFIG_DIR . '/LOG_ftp_backup.conf');
-define('OPC_UA_XML', CONFIG_DIR . '/OPC_UA_Config.xml');
-define('MORFEAS_XML', CONFIG_DIR . '/Morfeas_config.xml');
-define('MORFEAS_LOGGER_FTP', '/mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log');
-define('LOG_ROTATE_MAX_SIZE', 100 * 1024); // 100KB
-define('MAX_BACKUP', 100);
+// /* ****************************************************************
+//  * Configuration Setup
+//  *****************************************************************/
+// define('TMP_DIR', '/tmp');
+// define('CONFIG_DIR', '/home/morfeas/configuration');
+// define('FTP_LOG_FILE', TMP_DIR . '/ftp_debug.log');
+// define('CONFIG_JSON', CONFIG_DIR . '/ftp_config.json');
+// define('ERROR_LOG_FILE', TMP_DIR . '/php_errors.log');
+// define('CREDENTIAL_FILE', CONFIG_DIR . '/LOG_ftp_credential.conf');
+// define('OPC_UA_XML', CONFIG_DIR . '/OPC_UA_Config.xml');
+// define('MORFEAS_XML', CONFIG_DIR . '/Morfeas_config.xml');
+// define('MORFEAS_LOGGER_FTP', '/mnt/ramdisk/Morfeas_Loggers/LOG_ftp_credential.log');
+// define('LOG_ROTATE_MAX_SIZE', 100 * 1024); // 100KB
+// define('MAX_BACKUP', 100);
 
 /*****************************************************************
  * Debug & Logging
@@ -48,18 +49,17 @@ register_shutdown_function(function () {
 logMsg("\n=== New Request ===");
 
 /*****************************************************************
- * Check ftp configration status
+ * Check ftp configration status for multi-user senario
  *****************************************************************/
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'config_if_updated') {
     $configPath = CONFIG_JSON;
-    $pollWindow = 8; // seconds
+    $pollWindow = 8; // If the config file was modified within the last 5 seconds, we consider it "updated".
 
-    // If no config file, user is effectively disconnected
     if (!file_exists($configPath)) {
         echo json_encode([
             "connected" => false,
             "updated"   => false,
-            "message"   => "Config not found (disconnected)."
+            "message"   => "Config not found (FTP Disconnected)."
         ]);
         exit;
     }
@@ -67,7 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
     $lastModified = filemtime($configPath);
     $now = time();
 
-    // If the file was modified within the last 8 seconds, we consider it "updated".
     $recentlyChanged = (($now - $lastModified) <= $pollWindow);
     echo json_encode([
         "connected" => true,
@@ -462,18 +461,26 @@ function openFtp($config) {
  */
 function logMsg($msg) {
     $logFile = FTP_LOG_FILE;
-    $maxSize = 100 * 1024; // 100 KB
+    $maxSize = LOG_ROTATE_MAX_SIZE;
     $time = date("Y-m-d H:i:s");
 
     if (is_string($msg) && strpos($msg, '"pass"') !== false) {
         $msg = preg_replace('/("pass"\s*:\s*")[^"]+("?)/', '$1*****$2', $msg);
     }
 
-    if (file_exists($logFile) && filesize($logFile) > $maxSize) {
-        $rotated = $logFile . '.' . date("Ymd_His");
-        @rename($logFile, $rotated);
-    }
-
     @file_put_contents($logFile, "[$time] $msg\n", FILE_APPEND | LOCK_EX);
+
+    // Trim from top if file exceeds size
+    if (file_exists($logFile) && filesize($logFile) > $maxSize) {
+        $contents = file($logFile); // read as array of lines
+        $total = count($contents);
+
+        while (strlen(implode('', $contents)) > $maxSize && $total > 1) {
+            array_shift($contents);
+            $total--;
+        }
+
+        @file_put_contents($logFile, implode('', $contents), LOCK_EX);
+    }
 }
 ?>
