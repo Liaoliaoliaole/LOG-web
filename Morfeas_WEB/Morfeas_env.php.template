@@ -14,7 +14,7 @@
 	define('OPC_UA_XML', CONFIG_DIR . '/OPC_UA_Config.xml');
 	define('MORFEAS_XML', CONFIG_DIR . '/Morfeas_config.xml');
 
-	define('MORFEAS_LOGGER_FTP', '/mnt/ramdisk/Morfeas_Loggers/LOG_ftp_credential.log');
+	define('MORFEAS_LOGGER_FTP', '/mnt/ramdisk/Morfeas_Loggers/LOG_ftp_backup.log');
 
 	define('LOG_ROTATE_MAX_SIZE', 100 * 1024); // 100KB
 ?>
