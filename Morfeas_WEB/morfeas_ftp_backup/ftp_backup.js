@@ -100,6 +100,7 @@ function backupToFTP() {
     if (resp.success) {
       showSuccess("backup-status", resp.message || "Backup complete");
       listBackups();
+      checkFTPConfigUpdated();
     } else {
       showError("backup-status", "Backup failed: " + resp.error);
     }
@@ -160,7 +161,6 @@ function showSuccess(id, msg) {
 }
 
 let lastKnownDir = null;
-let wasEverConnected = false;
 function checkFTPConfigUpdated() {
   fetch(api + "?action=config_if_updated")
     .then(res => res.json())
@@ -174,12 +174,12 @@ function checkFTPConfigUpdated() {
 
       // If the engine number has changed, update it in the UI and in our state.
       const newDir = data.config.dir || "";
-      document.getElementById("ftp-engine-number").value = newDir;
-      if (newDir !== lastKnownDir) {
+      if (newDir && newDir !== lastKnownDir) {
         lastKnownDir = newDir;
+        document.getElementById("ftp-engine-number").value = newDir;
         showSuccess("ftp-status", `Configuration was updated in another tab or session. Current Engine Number: ${newDir}.`);
+        listBackups();
       }
-      listBackups();
     })
     .catch(err => {
       showError("ftp-status", "Unable to check last FTP config status.");
