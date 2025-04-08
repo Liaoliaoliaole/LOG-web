@@ -28,7 +28,6 @@ function connectFTP() {
         lastKnownDir = dir;
         showSuccess("ftp-status", `Connected to FTP at ${host}. Configuration saved.`);
         listBackups();
-        checkFTPConfigUpdated();
       } else {
         showError("ftp-status", "Connection failed: " + testResp.error);
       }
@@ -49,7 +48,6 @@ function disconnectFTP() {
   postData({ action: "clearConfig" }, "ftp-status", "Disconnecting...", (resp) => {
     if (resp.success) {
       disconnectUI();
-      checkFTPConfigUpdated();
     } else {
       showError("ftp-status", `Disconnect failed: ${resp.error}`);
     }
@@ -89,7 +87,6 @@ function backupToFTP() {
     if (resp.success) {
       showSuccess("backup-status", resp.message || "Backup complete");
       listBackups();
-      checkFTPConfigUpdated();
     } else {
       showError("backup-status", "Backup failed: " + resp.error);
     }
@@ -106,7 +103,6 @@ function restoreSelected() {
   postData({ action: "restore", file }, "restore-status", "Restoring backup...", (resp) => {
     if (resp.success) {
       showSuccess("restore-status", resp.message || "Restored successfully");
-      checkFTPConfigUpdated();
     } else {
       showError("restore-status", "Restore failed: " + resp.error);
     }
@@ -179,3 +175,4 @@ function checkFTPConfigUpdated() {
 }
 
 checkFTPConfigUpdated();
+setInterval(checkFTPConfigUpdated, 3000); // poll every 3 seconds to check updates
