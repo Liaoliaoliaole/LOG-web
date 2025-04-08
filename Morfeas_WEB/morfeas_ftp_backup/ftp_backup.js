@@ -165,18 +165,17 @@ function checkFTPConfigUpdated() {
         wasEverConnected = true;
       }
 
-      if (data.config) {
+      if (data.updated && data.config) {
         const newDir = data.config.dir || "";
-
-        const input = document.getElementById("ftp-engine-number");
-
-        if (!input.value.trim()) {
-          input.value = newDir;
-        }
-
         if (newDir && newDir !== lastKnownDir) {
           lastKnownDir = newDir;
-          showSuccess("ftp-status", `Config detected (Engine number: ${newDir}).`);
+          showSuccess("ftp-status", `Config updated (Engine number: ${newDir}).`);
+
+          const input = document.getElementById("ftp-engine-number");
+          if (!input.value.trim()) {
+            input.value = newDir;
+          }
+
           listBackups();
         }
       }

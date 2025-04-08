@@ -278,6 +278,10 @@ function ftpBackup() {
     ftp_close($conn);
     @unlink($localFile);
 
+    if (file_exists(CONFIG_JSON)) {
+        @touch(CONFIG_JSON);
+    }
+
     echo json_encode(["success" => true, "message" => "Backup uploaded: $filename"]);
 }
 
