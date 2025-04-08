@@ -360,6 +360,10 @@ function ftpRestore($filename) {
 
     @unlink($local);
 
+    if (file_exists(CONFIG_JSON)) {
+        @touch(CONFIG_JSON);
+    }
+
     logMsg("Restore from $filename completed.");
     echo json_encode(["success" => true, "message" => "Restored from: $filename"]);
     return;
