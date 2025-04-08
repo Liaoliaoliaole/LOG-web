@@ -153,11 +153,9 @@ function checkFTPConfigUpdated() {
     .then(res => res.json())
     .then(data => {
       if (!data.connected) {
-        if (wasEverConnected) {
-          lastKnownDir = null;
-          wasEverConnected = false;
-          disconnectUI();
-        }
+        lastKnownDir = null;
+        wasEverConnected = false;
+        disconnectUI();
         return;
       }
 
@@ -169,7 +167,7 @@ function checkFTPConfigUpdated() {
         const newDir = data.config.dir || "";
         if (newDir && newDir !== lastKnownDir) {
           lastKnownDir = newDir;
-          showSuccess("ftp-status", `Config updated (Engine number: ${newDir}).`);
+          showSuccess("ftp-status", `Config updated by another opened page (Configured Engine Number: ${newDir}).`);
           document.getElementById("ftp-engine-number").value = newDir;
           listBackups();
         }
