@@ -28,6 +28,7 @@ function connectFTP() {
         lastKnownDir = dir;
         showSuccess("ftp-status", `Connected to FTP at ${host}. Configuration saved.`);
         listBackups();
+        checkFTPConfigUpdated();
       } else {
         showError("ftp-status", "Connection failed: " + testResp.error);
       }
@@ -48,6 +49,7 @@ function disconnectFTP() {
   postData({ action: "clearConfig" }, "ftp-status", "Disconnecting...", (resp) => {
     if (resp.success) {
       disconnectUI();
+      checkFTPConfigUpdated();
     } else {
       showError("ftp-status", `Disconnect failed: ${resp.error}`);
     }
@@ -87,6 +89,7 @@ function backupToFTP() {
     if (resp.success) {
       showSuccess("backup-status", resp.message || "Backup complete");
       listBackups();
+      checkFTPConfigUpdated();
     } else {
       showError("backup-status", "Backup failed: " + resp.error);
     }
@@ -103,6 +106,7 @@ function restoreSelected() {
   postData({ action: "restore", file }, "restore-status", "Restoring backup...", (resp) => {
     if (resp.success) {
       showSuccess("restore-status", resp.message || "Restored successfully");
+      checkFTPConfigUpdated();
     } else {
       showError("restore-status", "Restore failed: " + resp.error);
     }
@@ -152,25 +156,21 @@ function checkFTPConfigUpdated() {
   fetch(api + "?action=config_if_updated")
     .then(res => res.json())
     .then(data => {
-      if (!data.connected) {
+      // If no configuration exists, reset state and update UI.
+      if (!data || !data.config) {
         lastKnownDir = null;
-        wasEverConnected = false;
         disconnectUI();
         return;
       }
 
-      if (!wasEverConnected) {
-        wasEverConnected = true;
-      }
-
-      if (data.updated && data.config) {
-        const newDir = data.config.dir || "";
-        if (newDir && newDir !== lastKnownDir) {
-          lastKnownDir = newDir;
-          showSuccess("ftp-status", `Config updated by another opened page (Configured Engine Number: ${newDir}).`);
-          document.getElementById("ftp-engine-number").value = newDir;
-          listBackups();
-        }
+      // Extract the engine number (dir) from the configuration.
+      const newDir = data.config.dir || "";
+      // If the engine number has changed, update it in the UI and in our state.
+      if (newDir && newDir !== lastKnownDir) {
+        lastKnownDir = newDir;
+        showSuccess("ftp-status", `Config updated by another opened page (Engine Number: ${newDir}).`);
+        document.getElementById("ftp-engine-number").value = newDir;
+        listBackups();
       }
     })
     .catch(err => {
@@ -178,4 +178,4 @@ function checkFTPConfigUpdated() {
     });
 }
 
-setInterval(checkFTPConfigUpdated, 2000);//The frequency at which each open page requests the update status.
+checkFTPConfigUpdated();
