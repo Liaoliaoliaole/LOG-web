@@ -2,6 +2,9 @@
 
 const api = "../morfeas_php/ftp_api.php";
 
+let lastKnownDir = null;
+let wasEverConnected = false;
+
 function connectFTP() {
   const host = document.getElementById("ftp-host-ip").value.trim();
   const dir = document.getElementById("ftp-engine-number").value.trim();
@@ -72,7 +75,7 @@ function listBackups() {
       list.appendChild(opt);
     });
 
-    const dir = document.getElementById("ftp-engine-number").value.trim();
+    const dir = document.getElementById("ftp-engine-number").value.trim() || lastKnownDir;
 
     if ((resp || []).length === 0) {
       showSuccess("restore-status", `No backup files found in engine number directory: "${dir}".`);
@@ -146,8 +149,6 @@ function showSuccess(id, msg) {
   el.style.color = "green";
 }
 
-let lastKnownDir = null;
-let wasEverConnected = false;
 function checkFTPConfigUpdated() {
   fetch(api + "?action=config_if_updated")
     .then(res => res.json())
@@ -165,19 +166,14 @@ function checkFTPConfigUpdated() {
         wasEverConnected = true;
       }
 
-      if (data.updated && data.config) {
-        const newDir = data.config.dir || "";
-        if (newDir && newDir !== lastKnownDir) {
-          lastKnownDir = newDir;
-          showSuccess("ftp-status", `Config updated (Engine number: ${newDir}).`);
-
-          const input = document.getElementById("ftp-engine-number");
-          if (!input.value.trim()) {
-            input.value = newDir;
-          }
-
-          listBackups();
+      if (newDir && newDir !== lastKnownDir) {
+        const input = document.getElementById("ftp-engine-number");
+        if (!input.value.trim()) {
+          input.value = newDir;
         }
+        lastKnownDir = newDir;
+        showSuccess("ftp-status", `Config updated (Engine number: ${newDir}).`);
+        listBackups();
       }
     })
     .catch(err => {
