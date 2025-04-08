@@ -147,14 +147,22 @@ function showSuccess(id, msg) {
 }
 
 let lastKnownDir = null;
+let wasEverConnected = false;
 function checkFTPConfigUpdated() {
   fetch(api + "?action=config_if_updated")
     .then(res => res.json())
     .then(data => {
       if (!data.connected) {
-        lastKnownDir = null;
-        disconnectUI();
+        if (wasEverConnected) {
+          lastKnownDir = null;
+          wasEverConnected = false;
+          disconnectUI();
+        }
         return;
+      }
+
+      if (!wasEverConnected) {
+        wasEverConnected = true;
       }
 
       if (data.updated && data.config) {

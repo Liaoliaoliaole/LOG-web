@@ -9,21 +9,6 @@ if (!function_exists('str_ends_with')) {
     }
 }
 
-// /* ****************************************************************
-//  * Configuration Setup
-//  *****************************************************************/
-// define('TMP_DIR', '/tmp');
-// define('CONFIG_DIR', '/home/morfeas/configuration');
-// define('FTP_LOG_FILE', TMP_DIR . '/ftp_debug.log');
-// define('CONFIG_JSON', CONFIG_DIR . '/ftp_config.json');
-// define('ERROR_LOG_FILE', TMP_DIR . '/php_errors.log');
-// define('CREDENTIAL_FILE', CONFIG_DIR . '/LOG_ftp_credential.conf');
-// define('OPC_UA_XML', CONFIG_DIR . '/OPC_UA_Config.xml');
-// define('MORFEAS_XML', CONFIG_DIR . '/Morfeas_config.xml');
-// define('MORFEAS_LOGGER_FTP', '/mnt/ramdisk/Morfeas_Loggers/LOG_ftp_credential.log');
-// define('LOG_ROTATE_MAX_SIZE', 100 * 1024); // 100KB
-// define('MAX_BACKUP', 100);
-
 /*****************************************************************
  * Debug & Logging
  *****************************************************************/
