@@ -159,15 +159,15 @@ function checkFTPConfigUpdated() {
         return;
       }
 
-      // Extract the engine number (dir) from the configuration.
-      const newDir = data.config.dir || "";
       // If the engine number has changed, update it in the UI and in our state.
-      if (newDir && newDir !== lastKnownDir) {
+      const newDir = data.config.dir || "";
+      document.getElementById("ftp-engine-number").value = newDir;
+      if (newDir !== lastKnownDir) {
         lastKnownDir = newDir;
         showSuccess("ftp-status", `Config updated by another opened page (Engine Number: ${newDir}).`);
-        document.getElementById("ftp-engine-number").value = newDir;
-        listBackups();
+        //document.getElementById("ftp-engine-number").value = newDir;
       }
+      listBackups();
     })
     .catch(err => {
       showError("ftp-status", "Unable to check last FTP config status.");
