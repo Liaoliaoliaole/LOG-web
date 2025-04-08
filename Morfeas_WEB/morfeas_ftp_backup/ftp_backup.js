@@ -100,7 +100,6 @@ function backupToFTP() {
     if (resp.success) {
       showSuccess("backup-status", resp.message || "Backup complete");
       listBackups();
-      checkFTPConfigUpdated();
     } else {
       showError("backup-status", "Backup failed: " + resp.error);
     }
@@ -187,4 +186,4 @@ function checkFTPConfigUpdated() {
 }
 
 checkFTPConfigUpdated();
-setInterval(checkFTPConfigUpdated, 5000); // poll every 5 seconds to check updates
+setInterval(checkFTPConfigUpdated, 2000); // poll every 2 seconds to check updates

@@ -38,7 +38,7 @@ logMsg("\n=== New Request ===");
  *****************************************************************/
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'config_if_updated') {
     $configPath = CONFIG_JSON;
-    $pollWindow = 5; // If the config file was modified within the last 5 seconds, we consider it "updated".
+    $pollWindow = 2; // If the config file was modified within the last 5 seconds, we consider it "updated".
 
     if (!file_exists($configPath)) {
         echo json_encode([
