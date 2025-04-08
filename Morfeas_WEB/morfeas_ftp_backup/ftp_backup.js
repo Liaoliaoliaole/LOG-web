@@ -170,7 +170,12 @@ function checkFTPConfigUpdated() {
         if (newDir && newDir !== lastKnownDir) {
           lastKnownDir = newDir;
           showSuccess("ftp-status", `Config updated (Engine number: ${newDir}).`);
-          document.getElementById("ftp-engine-number").value = newDir;
+
+          const input = document.getElementById("ftp-engine-number");
+          if (!input.value.trim()) {
+            input.value = newDir;
+          }
+
           listBackups();
         }
       }

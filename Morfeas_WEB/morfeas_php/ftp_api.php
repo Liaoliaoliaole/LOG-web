@@ -257,14 +257,14 @@ function ftpBackup() {
 
     logMsg("Uploaded backup to $remoteFile");
 
-    // Enforce 100-file limit in the engine folder
+    // Enforce 50-file limit in the engine folder
     $files = ftp_nlist($conn, ".");
     $mbis = array_filter($files, function($f) {
         return str_ends_with(strtolower($f), ".mbl");
     });
     sort($mbis);
 
-    $excess = count($mbis) - 100;
+    $excess = count($mbis) - MAX_BACKUP;
     if ($excess > 0) {
         $delete = array_slice($mbis, 0, $excess);
         foreach ($delete as $f) {
@@ -277,6 +277,10 @@ function ftpBackup() {
 
     ftp_close($conn);
     @unlink($localFile);
+
+    if (file_exists(CONFIG_JSON)) {
+        @touch(CONFIG_JSON);
+    }
 
     echo json_encode(["success" => true, "message" => "Backup uploaded: $filename"]);
 }
