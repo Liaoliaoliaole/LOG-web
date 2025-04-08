@@ -37,12 +37,15 @@ function connectFTP() {
 
 function disconnectUI() {
   showSuccess("ftp-status", "Disconnected. Configuration removed. Automatic backups disabled.");
-  ["ftp-engine-number", "backup-status", "restore-status"].forEach(id => {
+
+  ["backup-status", "restore-status"].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.value = el.textContent = "";
+    if (el) el.textContent = "";
   });
+
   document.getElementById("backup-list").innerHTML = "";
 }
+
 
 function disconnectFTP() {
   postData({ action: "clearConfig" }, "ftp-status", "Disconnecting...", (resp) => {
@@ -176,6 +179,10 @@ function checkFTPConfigUpdated() {
       if (newDir && newDir !== lastKnownDir) {
         lastKnownDir = newDir;
         document.getElementById("ftp-engine-number").value = newDir;
+        // const engineInput = document.getElementById("ftp-engine-number");
+        // if (document.activeElement !== engineInput) {
+        //   engineInput.value = newDir;
+        // }
         showSuccess("ftp-status", `Configuration was updated in another tab or session. Current Engine Number: ${newDir}.`);
         listBackups();
       }
