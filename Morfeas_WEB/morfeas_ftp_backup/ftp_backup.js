@@ -56,8 +56,11 @@ function disconnectFTP() {
 
 function listBackups() {
   console.log("listBackups() triggered due to config change");
+
+  const list = document.getElementById("backup-list");
+  const previouslySelected = list.value;
+
   postData({ action: "list" }, "restore-status", "Loading backups...", (resp) => {
-    const list = document.getElementById("backup-list");
     list.innerHTML = "";
 
     if (resp.success === false) {
@@ -65,10 +68,15 @@ function listBackups() {
       return;
     }
 
+    let selectedRestored = false;
     (resp || []).forEach(file => {
       const opt = document.createElement("option");
       opt.value = file;
       opt.text = file;
+      if (file === previouslySelected) {
+        opt.selected = true;
+        selectedRestored = true;
+      }
       list.appendChild(opt);
     });
 
@@ -77,7 +85,12 @@ function listBackups() {
     if ((resp || []).length === 0) {
       showSuccess("restore-status", `No backup files found in engine number directory: "${dir}".`);
     } else {
-      showSuccess("restore-status", `Found ${resp.length} backup file(s) in engine number directory: "${dir}".`);
+      const msg = `Found ${resp.length} backup file(s) in engine number directory: "${dir}".`;
+      if (!selectedRestored && previouslySelected) {
+        showSuccess("restore-status", msg + ` (Previously selected backup "${previouslySelected}" no longer exists)`);
+      } else {
+        showSuccess("restore-status", msg);
+      }
     }
   });
 }
@@ -164,8 +177,7 @@ function checkFTPConfigUpdated() {
       document.getElementById("ftp-engine-number").value = newDir;
       if (newDir !== lastKnownDir) {
         lastKnownDir = newDir;
-        showSuccess("ftp-status", `Config updated by another opened page (Engine Number: ${newDir}).`);
-        //document.getElementById("ftp-engine-number").value = newDir;
+        showSuccess("ftp-status", `Configuration was updated in another tab or session. Current Engine Number: ${newDir}.`);
       }
       listBackups();
     })
@@ -175,4 +187,4 @@ function checkFTPConfigUpdated() {
 }
 
 checkFTPConfigUpdated();
-setInterval(checkFTPConfigUpdated, 3000); // poll every 3 seconds to check updates
+setInterval(checkFTPConfigUpdated, 5000); // poll every 5 seconds to check updates
