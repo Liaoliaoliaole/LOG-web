@@ -186,4 +186,4 @@ function checkFTPConfigUpdated() {
     });
 }
 
-setInterval(checkFTPConfigUpdated, 5000);//The frequency at which each open page requests the update status.
+setInterval(checkFTPConfigUpdated, 2000);//The frequency at which each open page requests the update status.
