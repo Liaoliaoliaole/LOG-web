@@ -1,5 +1,7 @@
 <?php
 require("../Morfeas_env.php");
+header("Content-Type: application/json");
+$configFile = CONFIG_JSON;
 /**
  * str_ends_with fallback for PHP < 8
  */
@@ -10,18 +12,13 @@ if (!function_exists('str_ends_with')) {
 }
 
 /*****************************************************************
- * Debug & Logging
+ * Debug
  *****************************************************************/
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 ini_set('log_errors', 1);
 ini_set('error_log',  ERROR_LOG_FILE); // Debug Use
 error_reporting(E_ALL);
-
-header("Content-Type: application/json");
-
-$logFile    = FTP_LOG_FILE;
-$configFile = CONFIG_JSON;
 
 // shutdown function to catch fatal errors
 register_shutdown_function(function () {
@@ -67,7 +64,7 @@ logMsg("[INFO] Incoming JSON request:\n$data");
 
 $json = json_decode($data);
 if (!$json) {
-    logMsg("[ERROR] :JSON decode failed: $error");
+    logMsg("[ERROR] JSON decode failed: $error");
     http_response_code(400);
     echo json_encode(["success" => false,
     "error" => "Invalid JSON format. Please ensure you're sending valid JSON. Error: $error"
@@ -96,12 +93,10 @@ try {
 
         case "clearConfig":
             clearConfig();
-            //moveFTPLog();
             break;
 
         case "backup":
             ftpBackup();
-            //moveFTPLog();
             break;
 
         case "list":
@@ -113,7 +108,6 @@ try {
                 throw new Exception("Missing 'file' parameter for restore action.");
             }
             ftpRestore($json->file);
-            //moveFTPLog();
             break;
 
         default:
@@ -192,12 +186,12 @@ function testFtpConnection() {
     ftp_close($conn);
 
     if ($list === false) {
-        logMsg("[ERROR] :Failed to retrieve file list.");
+        logMsg("[ERROR] Failed to retrieve file list.");
         echo json_encode(["success" => false, "error" => "Failed to retrieve file list"]);
         return;
     }
 
-    logMsg("[INFO] :FTP test connection success.");
+    logMsg("[INFO] FTP test connection success.");
     echo json_encode(["success" => true, "files" => $list]);
     return;
 }
@@ -233,9 +227,7 @@ function ftpBackup() {
 
     file_put_contents($localFile, gzencode(json_encode($bundle)));
 
-    // Ensure remote directory exists
     if (!@ftp_chdir($conn, $remoteDir)) {
-        // try to create it (recursively if needed)
         $parts = explode("/", trim($remoteDir, "/"));
         $path = "";
         foreach ($parts as $part) {
@@ -250,13 +242,12 @@ function ftpBackup() {
         }
     }
 
-    // Upload
     if (!ftp_put($conn, $remoteFile, $localFile, FTP_BINARY)) {
         ftp_close($conn);
         throw new Exception("Failed to upload backup to $remoteFile");
     }
 
-    logMsg("[INFO] :Uploaded backup to $remoteFile");
+    logMsg("[INFO] Uploaded backup to $remoteFile");
 
     // Enforce 50-file limit in the engine folder
     $files = ftp_nlist($conn, ".");
@@ -375,48 +366,31 @@ function ftpRestore($filename) {
 }
 
 /**
- * 6) CLEAR TMP FILE
+ * 6) CLEAR CONGIG FILE
  */
 function clearConfig() {
     global $configFile;
     if (file_exists($configFile)) {
         unlink($configFile);
-        logMsg("[INFO] :Config cleared.");
+        logMsg("[INFO] Config cleared.");
     } else {
-        logMsg("[INFO] :No config file to clear");
+        logMsg("[INFO] No config file to clear");
     }
 
-    echo json_encode(["success" => true, "message" => "Config cleared"]);
+    echo json_encode(["success" => true, "message" => "Config cleared."]);
     return;
 }
-
-// function moveFTPLog() {
-//     $src = FTP_LOG_FILE;
-//     $dest = MORFEAS_LOGGER_FTP;
-
-//     if (file_exists($src)) {
-//         $cmd = "sudo /bin/mv " . escapeshellarg($src) . " " . escapeshellarg($dest);
-//         exec($cmd, $output, $retval);
-//         if ($retval === 0) {
-//             logMsg("[INFO] :Log moved successfully to $dest.");
-//         } else {
-//             logMsg("[ERROR] :Failed to move log. Output: " . implode("\n", $output));
-//         }
-//     } else {
-//         logMsg("[ERROR] :No ftp_debug.log found to move.");
-//     }
-// }
 
 /*****************************************************************
  * HELPER FUNCTIONS
  *****************************************************************/
 /**
- * Load config from /tmp/ftp_config.json
+ * Load config file
  */
 function loadConfig() {
     global $configFile;
     if (!file_exists($configFile)) {
-        logMsg("[ERROR] : Config file not found at $configFile.");
+        logMsg("[ERROR] Config file not found at $configFile.");
         throw new Exception("No config file found! Please connect first.");
     }
 
@@ -424,11 +398,11 @@ function loadConfig() {
     $config = json_decode($raw);
 
     if (!$config || empty($config->host) || empty($config->user) || empty($config->pass) || empty($config->dir) || empty($config->log)) {
-        logMsg("[ERROR] : Incomplete or invalid config data: $raw");
+        logMsg("[ERROR] Incomplete or invalid config data: $raw");
         throw new Exception("Incomplete config data");
     }
 
-    logMsg("[INFO] : Config loaded for engine: {$config->dir}");
+    logMsg("[INFO] Config loaded for engine: {$config->dir}");
     return $config;
 }
 
@@ -438,23 +412,23 @@ function loadConfig() {
 function openFtp($config) {
     $conn = @ftp_connect($config->host, 21, 10);
     if (!$conn) {
-        logMsg("[ERROR] : FTP connect failed to {$config->host}");
+        logMsg("[ERROR] FTP connect failed to {$config->host}");
         throw new Exception("FTP connect failed");
     }
 
     if (!@ftp_login($conn, $config->user, $config->pass)) {
         ftp_close($conn);
-        logMsg("[ERROR] : FTP login failed for user {$config->user} on {$config->host}");
+        logMsg("[ERROR] FTP login failed for user {$config->user} on {$config->host}");
         throw new Exception("FTP login failed");
     }
 
     if (!ftp_pasv($conn, true)) {
         ftp_close($conn);
-        logMsg("[ERROR] : Failed to enable passive mode on {$config->host}");
+        logMsg("[ERROR] Failed to enable passive mode on {$config->host}");
         throw new Exception("Failed to enable passive mode");
     }
 
-    logMsg("[INFO] : FTP connection established and passive mode enabled on {$config->host}");
+    logMsg("[INFO] FTP connection established and passive mode enabled on {$config->host}");
     return $conn;
 }
 
@@ -462,7 +436,6 @@ function openFtp($config) {
  * LOG any message
  */
 function logMsg($msg) {
-    //$logFile = FTP_LOG_FILE;
     $logFile = MORFEAS_LOGGER_FTP;
     $maxSize = LOG_ROTATE_MAX_SIZE;
     $time = date("Y-m-d H:i:s");
