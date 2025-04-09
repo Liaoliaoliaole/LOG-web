@@ -96,12 +96,12 @@ try {
 
         case "clearConfig":
             clearConfig();
-            moveFTPLog();
+            //moveFTPLog();
             break;
 
         case "backup":
             ftpBackup();
-            moveFTPLog();
+            //moveFTPLog();
             break;
 
         case "list":
@@ -113,7 +113,7 @@ try {
                 throw new Exception("Missing 'file' parameter for restore action.");
             }
             ftpRestore($json->file);
-            moveFTPLog();
+            //moveFTPLog();
             break;
 
         default:
@@ -390,22 +390,22 @@ function clearConfig() {
     return;
 }
 
-function moveFTPLog() {
-    $src = FTP_LOG_FILE;
-    $dest = MORFEAS_LOGGER_FTP;
+// function moveFTPLog() {
+//     $src = FTP_LOG_FILE;
+//     $dest = MORFEAS_LOGGER_FTP;
 
-    if (file_exists($src)) {
-        $cmd = "sudo /bin/mv " . escapeshellarg($src) . " " . escapeshellarg($dest);
-        exec($cmd, $output, $retval);
-        if ($retval === 0) {
-            logMsg("[INFO] :Log moved successfully to $dest.");
-        } else {
-            logMsg("[ERROR] :Failed to move log. Output: " . implode("\n", $output));
-        }
-    } else {
-        logMsg("[ERROR] :No ftp_debug.log found to move.");
-    }
-}
+//     if (file_exists($src)) {
+//         $cmd = "sudo /bin/mv " . escapeshellarg($src) . " " . escapeshellarg($dest);
+//         exec($cmd, $output, $retval);
+//         if ($retval === 0) {
+//             logMsg("[INFO] :Log moved successfully to $dest.");
+//         } else {
+//             logMsg("[ERROR] :Failed to move log. Output: " . implode("\n", $output));
+//         }
+//     } else {
+//         logMsg("[ERROR] :No ftp_debug.log found to move.");
+//     }
+// }
 
 /*****************************************************************
  * HELPER FUNCTIONS
@@ -462,7 +462,8 @@ function openFtp($config) {
  * LOG any message
  */
 function logMsg($msg) {
-    $logFile = FTP_LOG_FILE;
+    //$logFile = FTP_LOG_FILE;
+    $logFile = MORFEAS_LOGGER_FTP;
     $maxSize = LOG_ROTATE_MAX_SIZE;
     $time = date("Y-m-d H:i:s");
 
