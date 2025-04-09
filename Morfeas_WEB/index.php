@@ -55,6 +55,15 @@ button{width:100px;}
 
 .show {display: block;}
 
+#update-indicator {
+	position:absolute;
+	top:-5px; right: -32px;
+	width:15px; height:15px;
+	background:red;
+	border-radius:50%;
+	display:none;
+}
+
 </style>
 </head>
 <body>
@@ -129,19 +138,27 @@ button{width:100px;}
 		</td>
 	  </tr>
 	  <tr>
-		<td colspan="3"></td>
+		<td colspan="2"></td>
+		<td><button type="button" onclick='update_system()'>
+    		<span title="System Update" style="position: relative; display: inline-block;">
+        		<img src="./art/update.png" class="bsize">
+				<div id="update-indicator"></div>
+        		<p><b>System<br>Update</b></p>
+    		</span>
+		</button></td>
 		<td><button type="button" onclick='reboot()'>
 			<span title="Reboot">
 				<img src="./art/reboot.png" class="bsize">
 				<p><b>System<br>Reboot</b></p>
 			</span>
-		</td>
+		</button></td>
 		<td><button type="button" onclick='shutdown()'>
 			<span title="Shutdown">
 				<img src="./art/shutdown.png" class="bsize">
 				<p><b>System<br>Shutdown</b></p>
 			</span>
-		</td>
+		</button></td>
+		<td colspan="1"></td>
 	  </tr>
 	</table>
 </div>
@@ -224,6 +241,185 @@ document.onkeydown = function(key){
 	else if(key.key === "Escape")
 		hide_portals_list();
 };
+
+let lastUpdateNeeded = null;
+
+function showUpdateIndicator(show) {
+    const indicator = document.getElementById("update-indicator");
+    // if (show && lastUpdateNeeded === false) {
+    //     location.reload();
+    // }
+    indicator.style.display = show ? "block" : "none";
+    lastUpdateNeeded = show;
+}
+
+function update_system() {
+    if (window.updateInProgress) return;
+    window.updateInProgress = true;
+
+    let overlay = document.createElement('div');
+    overlay.id = 'update-overlay';
+    overlay.style = `
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(136, 136, 136, 0.6);
+        color: black;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        font-family: Arial, sans-serif;
+    `;
+    overlay.innerHTML = `
+        <div id="update-status-message" style="
+            background: rgba(255, 255, 255, 0.97); 
+            padding: 20px; 
+            border-radius: 5px;
+            text-align: center;
+            max-width: 90%;
+            font-size: 18px;
+			font-weight: bold;
+            line-height: 1.5;
+        ">Preparing update check...</div>`;
+    document.body.appendChild(overlay);
+
+    function setStatus(msg, showButtons = false) {
+        const messageBox = document.getElementById('update-status-message');
+        messageBox.innerHTML = msg;
+        if (showButtons) {
+            const buttons = `
+                <br><br>
+                <button id="update-now" style="margin-right: 20px; padding: 10px 20px; font-size: 16px;">Update Now</button>
+                <button id="update-later" style="margin-right: 20px; padding: 10px 20px; font-size: 16px;">Update Later</button>
+            `;
+            messageBox.innerHTML += buttons;
+
+            document.getElementById('update-now').onclick = startUpdate;
+            document.getElementById('update-later').onclick = () => {
+                overlay.remove();
+                window.updateInProgress = false;
+            };
+        }
+    }
+
+    setStatus("Checking for updates...");
+    fetch("../morfeas_php/config.php", {
+        method: "POST",
+        headers: { "Content-type": "check_update" }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message.includes("Network") || data.message.includes("unreachable")) {
+			setStatus("<b>Network issue:</b><br>" + data.message);
+			setTimeout(() => {
+				overlay.remove();
+				window.updateInProgress = false;
+			}, 5000);
+		} else if (data.update) {
+			showUpdateIndicator(true);
+			setStatus("<b>Update available!</b><br>Do you want to update now or later?", true);
+		} else {
+			showUpdateIndicator(false);
+			setStatus("System is already up-to-date.");
+			setTimeout(() => {
+				overlay.remove();
+				window.updateInProgress = false;
+			}, 3000);
+		}
+    })
+    .catch(error => {
+        console.error("Error during update check:", error);
+        setStatus("Error checking for updates: " + error.message);
+        setTimeout(() => {
+            overlay.remove();
+            window.updateInProgress = false;
+        }, 5000);
+    });
+
+	function startUpdate() {
+		setStatus("Updating system... Please do not close this window.");
+
+		fetch("../morfeas_php/config.php", {
+			method: "POST",
+			headers: { "Content-type": "update" }
+		})
+		.then(response => response.json())
+		.then(result => {
+            setStatus("Update completed. System will restart shortly...");
+            setTimeout(waitForServerRecovery, 5000);
+		})
+		.catch(error => {
+			console.warn("Update error:", error);
+            if (error instanceof TypeError) {
+                setStatus("System is restarting. Please wait...");
+                waitForServerRecovery();
+            } else {
+                setStatus("Update failed: " + error.message);
+                setTimeout(() => {
+                    overlay.remove();
+                    window.updateInProgress = false;
+                }, 5000);
+            }
+		});
+	}
+}
+
+function waitForServerRecovery() {
+    const pingInterval = 2000;
+    const maxAttempts = 60;
+    let attempts = 0;
+
+    function setStatus(msg) {
+        document.getElementById('update-status-message').innerHTML = msg;
+    }
+
+    const intervalId = setInterval(() => {
+        fetch(window.location.href, { method: 'HEAD', cache: 'no-store' })
+            .then(() => {
+                clearInterval(intervalId);
+                setStatus("System is back online! Reloading...");
+                setTimeout(() => location.reload(), 2000);
+            })
+            .catch(() => {
+                attempts++;
+                setStatus(`Waiting for system to restart... (Attempt ${attempts}/${maxAttempts})`);
+                if (attempts >= maxAttempts) {
+                    clearInterval(intervalId);
+                    setStatus("System did not respond. Please refresh manually.");
+                }
+            });
+    }, pingInterval);
+}
+
+function checkUpdateStatus() {
+    fetch("../morfeas_php/config.php", {
+        method: "POST",
+        headers: { "Content-type": "update_status" }
+    })
+    .then(res => res.json())
+    .then(data => {
+        showUpdateIndicator(data.update_needed);
+    })
+    .catch(err => console.warn("Error checking update status:", err));
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    function syncUpdateCheck() {
+		checkUpdateStatus();
+
+        const now = new Date();
+        const delay = 60000 - (now.getSeconds() * 1000 + now.getMilliseconds());
+
+        setTimeout(() => {
+            checkUpdateStatus();
+            //setInterval(checkUpdateStatus, 21600000); // Check every 6 hours, since cron set daily midnight.
+			setInterval(checkUpdateStatus, 60000);
+        }, delay);
+    }
+    syncUpdateCheck();
+});
+
 function shutdown()
 {
 	if(confirm("System going to shutdown"))
@@ -232,7 +428,7 @@ function shutdown()
 		xhttp.open("POST", "../morfeas_php/config.php", true);
 		xhttp.setRequestHeader("Content-type", "shutdown");
 		xhttp.send();
-		alert("Shudown executed. Close all related windows!!!");
+		alert("Shutdown executed. Close all related windows!!!");
 	}
 }
 

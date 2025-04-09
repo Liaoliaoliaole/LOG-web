@@ -1,0 +1,3 @@
+# sudo crontab -e and add following script
+
+0 0 * * * /var/www/html/morfeas_web/cron/update_cron_wrapper.sh

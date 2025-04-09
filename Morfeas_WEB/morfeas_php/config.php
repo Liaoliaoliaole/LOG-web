@@ -368,6 +368,9 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			die("Server: \"OPC_UA_SERVER\" component missing");
 		return true;
 	}
+
+	$morfeas_flag_file = "/tmp/update_needed";// Path for the update flag
+
 	ob_start("ob_gzhandler");//Enable gzip buffering
 	//Disable caching
 	header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -623,6 +626,48 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 			case "shutdown":
 				exec('sudo poweroff');
 				return;
+			case "update_status"://Cron job auto-check
+				header('Content-Type: application/json');
+				if (file_exists($morfeas_flag_file)) {
+					echo json_encode(["update_needed" => true]);
+				} else {
+					echo json_encode(["update_needed" => false]);
+				}
+				return;
+			case "check_update"://Manual user-triggered check
+				$cmd_check = "sudo /var/www/html/morfeas_web/update.sh --check-only 2>&1";
+				exec($cmd_check, $output, $return_var);			
+				$debug = implode("\n", $output);			
+				if ($return_var === 2) {
+					$message = "Failed to check for updates. Network or server unreachable.";
+					$update_needed = false;
+				} elseif ($return_var === 100) {
+					$update_needed = true;
+					$message = "Update available.";
+				} elseif ($return_var === 0) {
+					$update_needed = false;
+					$message = "System is already up-to-date.";
+				} else {
+					$update_needed = false;
+					$message = "Unknown error during update check. Exit code: $return_var";
+				}
+				header('Content-Type: application/json');
+				echo json_encode([
+					"update" => $update_needed,
+					"message" => $message,
+					"debug"  => $debug
+				]);
+				return;							
+			case "update":
+				$cmd = "sudo /var/www/html/morfeas_web/update.sh --update 2>&1";
+				exec($cmd, $output, $return_var);            
+				$final_output = implode("\n", $output);						
+				header('Content-Type: application/json');
+				echo json_encode([
+					"report" => $return_var === 0 ? "Update completed" : "Update failed",
+					"output" => $final_output,
+				]);
+				return;												
 		}
 	}
 	http_response_code(404);
