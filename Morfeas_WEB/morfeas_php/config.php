@@ -430,26 +430,6 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					$currConfig->ntp=get_timesyncd_ntp();
 					if(($CAN_ifs=getCANifs()))
 						$currConfig->CAN_ifs=$CAN_ifs;
-					// [FTP_MIGRATION] --- START --- Moved to ftp_api.php
-					/* if(file_exists($opc_ua_config_dir."FTP_backup_conf.json") && filesize($opc_ua_config_dir."FTP_backup_conf.json"))
-					{
-						$FTP_backup_conf=file_get_contents($opc_ua_config_dir.'FTP_backup_conf.json');
-						if(!($FTP_backup_conf=json_decode($FTP_backup_conf)))
-						{
-							exec("rm -f $opc_ua_config_dir/FTP_backup_conf.json");
-							die("Server: JSON Decode of FTP_backup_conf failed\n FTP_backup_conf.json removed!!!");
-						}
-						if(isset($FTP_backup_conf->addr, $FTP_backup_conf->username, $FTP_backup_conf->password))
-						{
-							$currConfig->FTP_backup_server = new stdClass();
-							$currConfig->FTP_backup_server->host = $FTP_backup_conf->addr;
-							$currConfig->FTP_backup_server->user = $FTP_backup_conf->username;
-							$currConfig->FTP_backup_server->pass = $FTP_backup_conf->password;
-							if(property_exists($FTP_backup_conf, "dir_name") && isset($FTP_backup_conf->dir_name))
-								$currConfig->FTP_backup_server->dir_name = $FTP_backup_conf->dir_name;
-						}
-					} */
-					// [FTP_MIGRATION] --- END ---
 					header('Content-Type: application/json');
 					echo json_encode($currConfig);
 					return;
@@ -518,18 +498,6 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 						exec('sudo systemctl restart Morfeas_system.service');
 					}
 				}
-				// [FTP_MIGRATION] --- START --- Moved to ftp_api.php
-/* 				if(property_exists($new_config,"FTP_backup_server"))
-				{
-					if(($FTP_backup_conf=json_encode($new_config->FTP_backup_server))!==false)
-					{
-						if($FTP_backup_conf === '"delete"')
-							exec("rm -f $opc_ua_config_dir/FTP_backup_conf.json");
-						else if(strlen($FTP_backup_conf))
-							file_put_contents($opc_ua_config_dir."FTP_backup_conf.json", $FTP_backup_conf) or die("Error: Can't write FTP_backup_conf.json!!!");
-					}
-				} */
-				// [FTP_MIGRATION] --- END ---
 				header('Content-Type: application/json');
 				echo '{"report":"Okay"}';
 				return;
@@ -551,30 +519,6 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$local_Morfeas_config->save($opc_ua_config_dir.'Morfeas_config.xml') or die('Server: Unable to write Morfeas_config.xml');
 				//exec('rm -fr /mnt/ramdisk/Morfeas_Loggers/*');
 				exec('sudo systemctl restart Morfeas_system.service');
-				// [FTP_MIGRATION] --- START --- Moved to ftp_api.php
-				/*
-				if(file_exists($opc_ua_config_dir."FTP_backup_conf.json") && filesize($opc_ua_config_dir."FTP_backup_conf.json"))
-				{
-					$FTP_backup_conf=file_get_contents($opc_ua_config_dir."FTP_backup_conf.json");
-					$FTP_backup_conf=json_decode($FTP_backup_conf) or die("Server: JSON Decode of FTP_backup_conf failed");
-					if(isset($FTP_backup_conf->addr, $FTP_backup_conf->username, $FTP_backup_conf->password))
-					{
-						$dir_name = "";
-						if(property_exists($FTP_backup_conf, "dir_name") && isset($FTP_backup_conf->dir_name))
-							$dir_name = $FTP_backup_conf->dir_name;
-						if(!morfeas_ftp_mbl_backup($FTP_backup_conf->addr,
-												   $FTP_backup_conf->username,
-												   $FTP_backup_conf->password,
-												   $dir_name,
-												   gethostname().'_'.date("Y_d_m_G_i_s"),
-												   bundle_make()))
-							die("Error: FTP Backup Failed!!!");
-					}
-					else
-						die("Error: FTP backup config is invalid!!!");
-				}
- 				*/
-				// [FTP_MIGRATION] --- END ---
 				header('Content-Type: report/json');
 				echo '{"report":"Okay"}';
 				return;
@@ -602,38 +546,6 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				else
 					die("Server: Bundle does not have valid content");
 				return;
-		    // [FTP_MIGRATION] --- START --- Moved to ftp_api.php
-			/*
-			case "FTP_backup_test":
-				$data = decompress($RX_data) or die("Server: Decompression failed!!!");
-				$ftp_ser_test = json_decode($data) or die("Server: JSON Decode failed!!!");
-				if(property_exists($ftp_ser_test, "ftp_serv_host_val")&&$ftp_ser_test->ftp_serv_host_val&&
-				   property_exists($ftp_ser_test, "ftp_serv_user_val")&&$ftp_ser_test->ftp_serv_user_val&&
-				   property_exists($ftp_ser_test, "ftp_serv_pass_val")&&$ftp_ser_test->ftp_serv_pass_val)
-				{
-					if(!filter_var($ftp_ser_test->ftp_serv_host_val, FILTER_VALIDATE_IP))
-					{
-						if(gethostbyname($ftp_ser_test->ftp_serv_host_val)===$ftp_ser_test->ftp_serv_host_val)
-							die("Error: Hostname can't be reached!!!");
-					}
-					$dir_name = "";
-					if(property_exists($ftp_ser_test, "dir_name"))
-						$dir_name = $ftp_ser_test->dir_name;
-					if(morfeas_ftp_mbl_backup($ftp_ser_test->ftp_serv_host_val,
-											  $ftp_ser_test->ftp_serv_user_val,
-											  $ftp_ser_test->ftp_serv_pass_val,
-											  $dir_name,
-											  gethostname().'_'.date("Y_d_m_G_i_s"),
-											  bundle_make()))
-						die("FTP Backup success!!!");
-					else
-						die("Error: FTP Backup Failed!!!");
-				}
-				else
-					die("Error: Property missing!!!");
-				return;
-			*/
-			// [FTP_MIGRATION] --- END ---
 			case "reboot":
 				exec('sudo reboot');
 				return;

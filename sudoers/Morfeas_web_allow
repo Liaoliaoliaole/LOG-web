@@ -6,8 +6,7 @@ Cmnd_Alias ALLOW_PASSWORDLESS = /sbin/ip,\
                                 /bin/hostname,\
                                 /sbin/poweroff,\
                                 /sbin/reboot,\
-                                /usr/bin/make install,\
-                                /bin/mv
+                                /usr/bin/make install
 
 www-data ALL = (ALL) NOPASSWD: ALLOW_PASSWORDLESS
 

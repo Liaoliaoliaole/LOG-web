@@ -82,35 +82,6 @@ input.global_style{
 	<td>Gateway</td>
 	<td id="conf_gateway"></td>
   </tr>
-  <!-- [MOVED] Handled by ftp_backup_if.html in new FTP UI
-  <tr>
-    <th colspan="2">FTP Backup Server <input type="checkbox" id="ftp_backup_en" onchange="ftp_backup_en_fn(this)"></th>
-  </tr>
-  <tr>
-    <td>Root Dir</td>
-	<td>
-		<input style="width:16;" placeholder="Optional" type="text" id="ftp_backup_dir_name" oninput="root_dir_val(this)"disabled>
-	</td>
-  </tr>
-  <tr>
-    <td>Hostname</td>
-	<td>
-		<input style="width:16;" type="text" id="ftp_backup_host" disabled>
-	</td>
-  </tr>
-  <tr>
-    <td>Username</td>
-	<td>
-		<input style="width:16;" type="text" id="ftp_backup_user" disabled>
-	</td>
-  </tr>
-   <tr>
-    <td>Password</td>
-	<td>
-		<input style="width:16;" type="password" id="ftp_backup_pass" disabled>
-		<input type='button' id='ftp_backup_test' value='Test' onclick='ftp_test_bt()' disabled>
-	</td>
-  </tr> -->
   <tr>
     <th colspan="2">NTP Configuration</th>
   </tr>
@@ -241,34 +212,6 @@ function default_config(_config)
 			mode.selectedIndex = 1;
 			break;
 	}
-/* 	[FTP_MIGRATION] Disabled legacy FTP logic, now handled in ftp_backup.js + log_ftp_if.html 
-	if(_config.hasOwnProperty("FTP_backup_server"))
-	{
-		ftp_serv_en.checked = true;
-		ftp_serv_host.value=_config.FTP_backup_server.host;
-		ftp_serv_user.value=_config.FTP_backup_server.user;
-		ftp_serv_pass.value=_config.FTP_backup_server.pass;
-		if(_config.FTP_backup_server.hasOwnProperty("dir_name"))
-			ftp_serv_dir_name.value=_config.FTP_backup_server.dir_name;
-		ftp_serv_host.disabled=false;
-		ftp_serv_user.disabled=false;
-		ftp_serv_pass.disabled=false;
-		ftp_serv_test.disabled=false;
-		ftp_serv_dir_name.disabled=false;
-	}
-	else
-	{
-		ftp_serv_en.checked = false;
-		ftp_serv_host.disabled=true;
-		ftp_serv_user.disabled=true;
-		ftp_serv_pass.disabled=true;
-		ftp_serv_test.disabled=true;
-		ftp_serv_dir_name.disabled=true;
-		ftp_serv_host.value="";
-		ftp_serv_user.value="";
-		ftp_serv_pass.value="";
-		ftp_serv_dir_name.value="";
-	} */
 	if(_config.hasOwnProperty("CAN_ifs"))
 	{
 		if(config.CAN_ifs.length)
@@ -306,15 +249,6 @@ const hostname=document.getElementById("hostname"),
 	  gateway=document.getElementsByName("gateway"),
 	  dns=document.getElementsByName("dns"),
 	  ntp=document.getElementsByName("ntp");
-/* [FTP_MIGRATION] Disabled legacy FTP logic, now handled in ftp_backup.js + ftp_backup_if.html
-	  ftp_serv_en=document.getElementById("ftp_backup_en"),
-	  ftp_serv_host=document.getElementById("ftp_backup_host"),
-	  ftp_serv_user=document.getElementById("ftp_backup_user"),
-	  ftp_serv_pass=document.getElementById("ftp_backup_pass"),
-	  ftp_serv_dir_name=document.getElementById("ftp_backup_dir_name"),
-	  ftp_serv_test=document.getElementById("ftp_backup_test");
-	  */
-//Set Limits
 for(let i=0;i<4;i++)
 {
 	ip[i].type="number";
@@ -540,80 +474,6 @@ function get_new_CANifs(new_config)
 		delete new_config.CAN_ifs;
 	return 0;
 }
-/*
-[MOVED] Handled by ftp_backup.js in new FTP UI
-function get_new_FTP_backup(new_config)
-{
-	if(ftp_serv_en.checked && (!ftp_serv_host.value || !ftp_serv_user.value || !ftp_serv_pass.value))
-	{
-		if(!ftp_serv_host.value)
-			alert("FTP Backup Server's Hostname is EMPTY!!!");
-		else if(!ftp_serv_user.value)
-			alert("FTP Backup Server's Username is EMPTY!!!");
-		else if(!ftp_serv_pass.value)
-			alert("FTP Backup Server's Password is EMPTY!!!");
-		return -1;
-	}
-	if(!ftp_serv_en.checked && config.FTP_backup_server)
-	{
-		new_config.FTP_backup_server = "delete";
-		return 0;
-	}
-	if((ftp_serv_en.checked && !config.FTP_backup_server)||
-	   (ftp_serv_en.checked && config.FTP_backup_server &&
-	    (config.FTP_backup_server.addr!=ftp_serv_host.value ||
-		 config.FTP_backup_server.username!=ftp_serv_user.value ||
-		 config.FTP_backup_server.password!=ftp_serv_pass.value)))
-	{
-		new_config.FTP_backup_server.addr=ftp_serv_host.value;
-		new_config.FTP_backup_server.username=ftp_serv_user.value;
-		new_config.FTP_backup_server.password=ftp_serv_pass.value;
-		if(ftp_serv_dir_name.value)
-			new_config.FTP_backup_server.dir_name=ftp_serv_dir_name.value;
-		return 0;
-	}
-	delete new_config.FTP_backup_server;
-	return 0;
-}
-function ftp_backup_en_fn(el)
-{
-	if(el.checked)
-	{
-		ftp_serv_host.disabled=false;
-		ftp_serv_user.disabled=false;
-		ftp_serv_pass.disabled=false;
-		ftp_serv_test.disabled=false;
-		ftp_serv_dir_name.disabled=false;
-	}
-	else
-	{
-		ftp_serv_host.disabled=true;
-		ftp_serv_user.disabled=true;
-		ftp_serv_pass.disabled=true;
-		ftp_serv_test.disabled=true;
-		ftp_serv_dir_name.disabled=true;
-	}
-}
-function ftp_test_bt()
-{
-	if(ftp_serv_en.checked && (!ftp_serv_host.value || !ftp_serv_user.value || !ftp_serv_pass.value))
-	{
-		if(!ftp_serv_host.value)
-			alert("FTP Backup Server's Hostname is EMPTY!!!");
-		else if(!ftp_serv_user.value)
-			alert("FTP Backup Server's Username is EMPTY!!!");
-		else if(!ftp_serv_pass.value)
-			alert("FTP Backup Server's Password is EMPTY!!!");
-		return;
-	}
-	let ftp_serv_test_obj = {ftp_serv_host_val:ftp_serv_host.value, ftp_serv_user_val:ftp_serv_user.value, ftp_serv_pass_val:ftp_serv_pass.value};
-	if(ftp_serv_dir_name.value)
-		ftp_serv_test_obj.dir_name = ftp_serv_dir_name.value;
-	xhttp.open("POST", "../morfeas_php/config.php", true);
-	xhttp.setRequestHeader("Content-type", "FTP_backup_test");
-	xhttp.send(compress(JSON.stringify(ftp_serv_test_obj)));
-}
- */
 //@license-end
 </script>
 </body>
