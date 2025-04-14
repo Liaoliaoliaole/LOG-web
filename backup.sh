@@ -56,4 +56,12 @@ else
     log_cli "ERROR" "Backup failed for engine number $ENGINE_NUMBER."
 fi
 
+cp "$LOG_FILE" "/mnt/ramdisk/Morfeas_Loggers/LOG_FTP_backup.log"
+
+php "$PHP_SCRIPT" <<EOF
+{
+    "action": "uploadLog"
+}
+EOF
+
 exit 0

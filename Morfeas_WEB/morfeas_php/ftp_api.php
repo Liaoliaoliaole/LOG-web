@@ -130,6 +130,10 @@ try {
             }
             ftpRestore($json->file);
             break;
+        
+        case "uploadLog":
+            uploadLogFile();
+            break;
 
         default:
             throw new Exception("Unknown action provided: " . $json->action);
@@ -387,7 +391,39 @@ function ftpRestore($filename) {
 }
 
 /**
- * 6) CLEAR CONGIG FILE
+ * UPLOAD LOG FILE TO FTP SERVER
+ */
+function uploadLogFile() {
+    $config = loadConfig();
+    $conn = openFtp($config);
+
+    $filesToUpload = array(
+        constant('FTP_LOG_FILE')     => "LOG_FTP_backup.log",
+        constant('ERROR_LOG_FILE')   => "LOG_FTP_php_errors.log"
+    );
+
+    foreach ($filesToUpload as $local => $remote) {
+        if (!file_exists($local)) {
+            logMsg("[WARNING] Log file missing: $local");
+            continue;
+        }
+
+        if (!ftp_put($conn, $remote, $local, FTP_BINARY)) {
+            logMsg("[ERROR] Failed to upload $local to FTP as $remote");
+            ftp_close($conn);
+            throw new Exception("Failed to upload $remote to FTP root.");
+        } else {
+            logMsg("[INFO] Uploaded log to FTP root: $remote");
+        }
+    }
+
+    ftp_close($conn);
+    echo json_encode(["success" => true, "message" => "Logs uploaded to FTP root."]);
+}
+
+
+/**
+ * CLEAR CONGIG FILE
  */
 function clearConfig() {
     global $configFile;
