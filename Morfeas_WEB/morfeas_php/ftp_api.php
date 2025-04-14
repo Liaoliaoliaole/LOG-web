@@ -16,24 +16,28 @@ if (!function_exists('str_ends_with')) {
 /*****************************************************************
  * Check if running in CLI and set the environment accordingly
  *****************************************************************/
-if (php_sapi_name() === 'cli') {
-    $data = stream_get_contents(STDIN);
+if (php_sapi_name() == "cli") {
+    // In CLI, we will simulate a POST request
+    $_SERVER['REQUEST_METHOD'] = 'POST';
+    $data = file_get_contents("php://stdin");  // Read from standard input (CLI input)
+    echo "Raw Input Data: $data\n";
+    $json = json_decode($data);
+    if (!$json) {
+        $errorMsg = json_last_error_msg();
+        echo "JSON Decode Error: $errorMsg\n";
+        echo json_encode(["success" => false, "error" => "Invalid JSON format. Please ensure you're sending valid JSON. Error: $errorMsg"]);
+        exit;
+    }
+    echo "Successfully decoded JSON: ";
+    print_r($json);
 } else {
+    // In case of web request, use the PHP superglobals
+    if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'config_if_updated') {
+        handleConfigUpdated();
+        exit;
+    }
+
     $data = file_get_contents("php://input");
-}
-
-logMsg("CLI Raw Input Data: [$data]");
-
-// Decode JSON safely
-$json = json_decode(trim($data));
-if (json_last_error() !== JSON_ERROR_NONE) {
-    $errorMsg = json_last_error_msg();
-    logMsg("CLI JSON Decode Error: $errorMsg");
-    echo json_encode([
-        "success" => false,
-        "error"   => "CLI Invalid JSON format. Please ensure you're sending valid JSON. Error: $errorMsg"
-    ]);
-    exit;
 }
 
 /*****************************************************************
