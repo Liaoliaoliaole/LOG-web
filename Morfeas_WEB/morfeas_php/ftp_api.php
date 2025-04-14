@@ -436,7 +436,8 @@ function openFtp($config) {
  * LOG any message
  */
 function logMsg($msg) {
-    $logFile = MORFEAS_LOGGER_FTP;
+    //$logFile = MORFEAS_LOGGER_FTP;
+    $logFile = FTP_LOG_FILE;
     $maxSize = LOG_ROTATE_MAX_SIZE;
     $time = date("Y-m-d H:i:s");
 
