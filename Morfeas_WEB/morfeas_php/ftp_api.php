@@ -94,24 +94,6 @@ if (php_sapi_name() == "cli") {
 }
 
 /*****************************************************************
- * Read and process input JSON
- *****************************************************************/
-// $data = file_get_contents("php://input");
-// logMsg("[INFO] Incoming JSON request:\n$data");
-
-// $json = json_decode($data);
-// if (!$json) {
-//     $error = json_last_error_msg();
-//     logMsg("[ERROR] JSON decode failed: $error");
-//     http_response_code(400);
-//     echo json_encode([
-//         "success" => false,
-//         "error" => "Invalid JSON format. Please ensure you're sending valid JSON. Error: $error"
-//     ]);
-//     exit;
-// }
-
-/*****************************************************************
  * Main Router
  *****************************************************************/
 try {

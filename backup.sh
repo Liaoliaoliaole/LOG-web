@@ -4,11 +4,19 @@ CONFIG_DIR="/home/morfeas/configuration"
 PHP_SCRIPT="/var/www/html/morfeas_web/Morfeas_WEB/morfeas_php/ftp_api.php"
 
 LOG_FILE="/tmp/ftp_debug.log"
+if [[ ! -f "$LOG_FILE" ]]; then
+    sudo touch "$LOG_FILE"
+    sudo chown www-data:www-data "$LOG_FILE"
+    sudo chmod 666 "$LOG_FILE"
+else
+    if [[ ! -w "$LOG_FILE" ]]; then
+        sudo chmod 666 "$LOG_FILE"
+    fi
+fi
 
 FTP_CONFIG_FILE="$CONFIG_DIR/ftp_config.json"
 
 if [[ ! -f "$FTP_CONFIG_FILE" ]]; then
-    # If the file doesn't exist, log it and exit
     echo "$(date) - FTP config file not found. No Valid Engine Number Provided. Backup not performed." >> "$LOG_FILE"
     exit 1
 fi
@@ -31,7 +39,7 @@ fi
 
 php "$PHP_SCRIPT" <<EOF
 {
-    "action": "backup"
+    "action":"backup"
 }
 EOF
 
