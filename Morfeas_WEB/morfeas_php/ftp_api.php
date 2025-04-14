@@ -1,9 +1,11 @@
 <?php
 //require("../Morfeas_env.php");
 $scriptDir = dirname(__FILE__);
-require("$scriptDir/../Morfeas_env.php"); 
+require("$scriptDir/../Morfeas_env.php");
+
 header("Content-Type: application/json");
 $configFile = CONFIG_JSON;
+
 /**
  * str_ends_with fallback for PHP < 8
  */
@@ -17,10 +19,10 @@ if (!function_exists('str_ends_with')) {
  * Check if running in CLI and set the environment accordingly
  *****************************************************************/
 if (php_sapi_name() == "cli") {
-    // In CLI, we will simulate a POST request
-    $_SERVER['REQUEST_METHOD'] = 'POST';
+
     $data = file_get_contents("php://stdin");  // Read from standard input (CLI input)
     echo "Raw Input Data: $data\n";
+
     $json = json_decode($data);
     if (!$json) {
         $errorMsg = json_last_error_msg();
@@ -31,9 +33,13 @@ if (php_sapi_name() == "cli") {
     echo "Successfully decoded JSON: ";
     print_r($json);
 } else {
-    // In case of web request, use the PHP superglobals
-    if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'config_if_updated') {
-        handleConfigUpdated();
+    $data = file_get_contents("php://input");
+    $json = json_decode($data);
+    if (!$json) {
+        $errorMsg = json_last_error_msg();
+        logMsg("[ERROR] JSON decode failed: $errorMsg");
+        http_response_code(400);
+        echo json_encode(["success" => false, "error" => "Invalid JSON format. Error: $errorMsg"]);
         exit;
     }
 
@@ -88,20 +94,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
 /*****************************************************************
  * Read and process input JSON
  *****************************************************************/
-$data = file_get_contents("php://input");
-logMsg("[INFO] Incoming JSON request:\n$data");
+// $data = file_get_contents("php://input");
+// logMsg("[INFO] Incoming JSON request:\n$data");
 
-$json = json_decode($data);
-if (!$json) {
-    $error = json_last_error_msg();
-    logMsg("[ERROR] JSON decode failed: $error");
-    http_response_code(400);
-    echo json_encode([
-        "success" => false,
-        "error" => "Invalid JSON format. Please ensure you're sending valid JSON. Error: $error"
-    ]);
-    exit;
-}
+// $json = json_decode($data);
+// if (!$json) {
+//     $error = json_last_error_msg();
+//     logMsg("[ERROR] JSON decode failed: $error");
+//     http_response_code(400);
+//     echo json_encode([
+//         "success" => false,
+//         "error" => "Invalid JSON format. Please ensure you're sending valid JSON. Error: $error"
+//     ]);
+//     exit;
+// }
 
 /*****************************************************************
  * Main Router
