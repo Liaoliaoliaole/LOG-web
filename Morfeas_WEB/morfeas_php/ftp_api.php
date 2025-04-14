@@ -33,8 +33,37 @@ register_shutdown_function(function () {
     }
 });
 
+
 /*****************************************************************
- * Check if running in CLI and set the environment accordingly
+ * Handle FTP Configuration Status for Multi-user Scenario (Web-only)
+ *****************************************************************/
+if (php_sapi_name() !== 'cli' && $_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'config_if_updated') {
+    $configPath = CONFIG_JSON;
+    $pollWindow = 2; // If the config file was modified within the last 2 seconds, we consider it "updated".
+
+    if (!file_exists($configPath)) {
+        echo json_encode([
+            "connected" => false,
+            "updated"   => false,
+            "message"   => "Config not found (FTP Disconnected)."
+        ]);
+        exit;
+    }
+
+    $lastModified = filemtime($configPath);
+    $now = time();
+
+    $recentlyChanged = (($now - $lastModified) <= $pollWindow);
+    echo json_encode([
+        "connected" => true,
+        "updated"   => $recentlyChanged,
+        "config"    => json_decode(file_get_contents($configPath))
+    ]);
+    exit;
+}
+
+/*****************************************************************
+ * Handle Input Data  (CLI or Web)
  *****************************************************************/
 if (php_sapi_name() == "cli") {
 
@@ -62,34 +91,6 @@ if (php_sapi_name() == "cli") {
     }
 
     $data = file_get_contents("php://input");
-}
-
-/*****************************************************************
- * Check ftp configration status for multi-user senario
- *****************************************************************/
-if (php_sapi_name() !== 'cli' && $_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'config_if_updated') {
-    $configPath = CONFIG_JSON;
-    $pollWindow = 2; // If the config file was modified within the last 2 seconds, we consider it "updated".
-
-    if (!file_exists($configPath)) {
-        echo json_encode([
-            "connected" => false,
-            "updated"   => false,
-            "message"   => "Config not found (FTP Disconnected)."
-        ]);
-        exit;
-    }
-
-    $lastModified = filemtime($configPath);
-    $now = time();
-
-    $recentlyChanged = (($now - $lastModified) <= $pollWindow);
-    echo json_encode([
-        "connected" => true,
-        "updated"   => $recentlyChanged,
-        "config"    => json_decode(file_get_contents($configPath))
-    ]);
-    exit;
 }
 
 /*****************************************************************
