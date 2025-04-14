@@ -1,5 +1,7 @@
 <?php
-require("../Morfeas_env.php");
+//require("../Morfeas_env.php");
+$scriptDir = dirname(__FILE__);
+require("$scriptDir/../Morfeas_env.php"); 
 header("Content-Type: application/json");
 $configFile = CONFIG_JSON;
 /**
@@ -12,12 +14,29 @@ if (!function_exists('str_ends_with')) {
 }
 
 /*****************************************************************
- * Debug
+ * Check if running in CLI and set the environment accordingly
+ *****************************************************************/
+if (php_sapi_name() == "cli") {
+    // In CLI, we will simulate a POST request
+    $_SERVER['REQUEST_METHOD'] = 'POST';
+    $data = file_get_contents("php://stdin");  // Read from standard input (CLI input)
+} else {
+    // In case of web request, use the PHP superglobals
+    if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'config_if_updated') {
+        handleConfigUpdated();
+        exit;
+    }
+
+    $data = file_get_contents("php://input");
+}
+
+/*****************************************************************
+ * Debug Settings for Development
  *****************************************************************/
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 ini_set('log_errors', 1);
-ini_set('error_log',  ERROR_LOG_FILE); // Debug Use
+ini_set('error_log',  ERROR_LOG_FILE);
 error_reporting(E_ALL);
 
 // shutdown function to catch fatal errors
@@ -57,17 +76,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
 }
 
 /*****************************************************************
- * Read input JSON
+ * Read and process input JSON
  *****************************************************************/
 $data = file_get_contents("php://input");
 logMsg("[INFO] Incoming JSON request:\n$data");
 
 $json = json_decode($data);
 if (!$json) {
+    $error = json_last_error_msg();
     logMsg("[ERROR] JSON decode failed: $error");
     http_response_code(400);
-    echo json_encode(["success" => false,
-    "error" => "Invalid JSON format. Please ensure you're sending valid JSON. Error: $error"
+    echo json_encode([
+        "success" => false,
+        "error" => "Invalid JSON format. Please ensure you're sending valid JSON. Error: $error"
     ]);
     exit;
 }
@@ -126,7 +147,7 @@ try {
  *****************************************************************/
 
 /**
- * SAVE CONFIG: host, user, pass, dir → /tmp/ftp_config.json
+ * SAVE CONFIG: host, user, pass, dir → /home/morfeas/configuration/ftp_config.json
  */
 function saveConfig($data) {
     global $configFile;
