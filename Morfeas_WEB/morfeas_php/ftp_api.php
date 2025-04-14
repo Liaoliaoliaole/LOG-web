@@ -15,6 +15,24 @@ if (!function_exists('str_ends_with')) {
     }
 }
 
+
+/*****************************************************************
+ * Debug Settings for Development
+ *****************************************************************/
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log',  ERROR_LOG_FILE);
+error_reporting(E_ALL);
+
+// shutdown function to catch fatal errors
+register_shutdown_function(function () {
+    $error = error_get_last();
+    if ($error) {
+        file_put_contents(ERROR_LOG_FILE, "[FATAL] " . print_r($error, true), FILE_APPEND);
+    }
+});
+
 /*****************************************************************
  * Check if running in CLI and set the environment accordingly
  *****************************************************************/
@@ -47,26 +65,9 @@ if (php_sapi_name() == "cli") {
 }
 
 /*****************************************************************
- * Debug Settings for Development
- *****************************************************************/
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-ini_set('log_errors', 1);
-ini_set('error_log',  ERROR_LOG_FILE);
-error_reporting(E_ALL);
-
-// shutdown function to catch fatal errors
-register_shutdown_function(function () {
-    $error = error_get_last();
-    if ($error) {
-        file_put_contents(ERROR_LOG_FILE, "[FATAL] " . print_r($error, true), FILE_APPEND);
-    }
-});
-
-/*****************************************************************
  * Check ftp configration status for multi-user senario
  *****************************************************************/
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'config_if_updated') {
+if (php_sapi_name() !== 'cli' && $_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'config_if_updated') {
     $configPath = CONFIG_JSON;
     $pollWindow = 2; // If the config file was modified within the last 2 seconds, we consider it "updated".
 
