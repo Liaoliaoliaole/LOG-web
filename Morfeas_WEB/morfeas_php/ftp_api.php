@@ -130,7 +130,7 @@ try {
             }
             ftpRestore($json->file);
             break;
-        
+
         case "uploadLog":
             uploadLogFile();
             break;
