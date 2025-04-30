@@ -6,7 +6,7 @@
 	define('CONFIG_DIR', '/home/morfeas/configuration');
 	define('CONFIG_JSON', CONFIG_DIR . '/ftp_config.json');
 	define('CREDENTIAL_FILE', CONFIG_DIR . '/LOG_ftp_credential.conf');
-	
+
 	define('OPC_UA_XML', CONFIG_DIR . '/OPC_UA_Config.xml');
 	define('MORFEAS_XML', CONFIG_DIR . '/Morfeas_config.xml');
 

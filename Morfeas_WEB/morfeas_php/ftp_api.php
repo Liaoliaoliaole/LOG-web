@@ -19,8 +19,8 @@ if (!function_exists('str_ends_with')) {
 /*****************************************************************
  * Debug Settings for Development
  *****************************************************************/
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log',  ERROR_LOG_FILE);
 error_reporting(E_ALL);
@@ -206,19 +206,19 @@ function testFtpConnection() {
     $conn   = openFtp($config);
 
     $dir  = $config->dir;
-    $list = @ftp_nlist($conn, $dir);
+    $list = @ftp_nlist($conn, $dir);// suppress any warning if dir doesn’t exist yet
 
     ftp_close($conn);
 
     if ($list === false) {
         logMsg("[ERROR] Failed to retrieve file list.");
         echo json_encode(["success" => false, "error" => "Failed to retrieve file list"]);
-        return;
+        exit;
     }
 
     logMsg("[INFO] FTP test connection success.");
     echo json_encode(["success" => true, "files" => $list]);
-    return;
+    exit;
 }
 
 /**
@@ -300,6 +300,7 @@ function ftpBackup() {
     }
 
     echo json_encode(["success" => true, "message" => "Backup uploaded: $filename"]);
+    exit;
 }
 
 /**
@@ -308,8 +309,8 @@ function ftpBackup() {
 function ftpList() {
     $config = loadConfig();
     $conn   = openFtp($config);
-
     $remoteDir = '/' . $config->dir;
+
     if (!@ftp_chdir($conn, $remoteDir)) {
         $parts = explode("/", trim($remoteDir, "/"));
         $path = "";
@@ -324,22 +325,21 @@ function ftpList() {
         }
     }
 
-    $files = ftp_nlist($conn, ".");
+    $files = @ftp_nlist($conn, ".");// suppress warning on first-time listing
     ftp_close($conn);
-    if (!$files) {
-        $files = [];
-    }
 
     $mbiFiles = [];
-    foreach ($files as $file) {
-        if (str_ends_with(strtolower($file), ".mbl")) {
-            $mbiFiles[] = basename($file);
+    if ($files !== false) {
+        foreach ($files as $file) {
+            if (str_ends_with(strtolower($file), ".mbl")) {
+                $mbiFiles[] = basename($file);
+            }
         }
     }
 
     echo json_encode(array_values($mbiFiles));
     logMsg("[INFO] Listed " . count($mbiFiles) . " backup files.");
-    return;
+    exit;
 }
 
 /**
@@ -387,38 +387,57 @@ function ftpRestore($filename) {
 
     logMsg("[INFO] Restored from: $filename");
     echo json_encode(["success" => true, "message" => "Restored from: $filename"]);
-    return;
+    exit;
 }
 
 /**
  * UPLOAD LOG FILE TO FTP SERVER
  */
+/**
+ * UPLOAD LOG FILES TO ENGINE-SPECIFIC FTP DIRECTORY
+ */
 function uploadLogFile() {
     $config = loadConfig();
-    $conn = openFtp($config);
+    $conn   = openFtp($config);
 
-    $filesToUpload = array(
-        constant('FTP_LOG_FILE')     => "LOG_FTP_backup.log",
-        constant('ERROR_LOG_FILE')   => "LOG_FTP_php_errors.log"
-    );
+    $remoteDir = '/' . $config->dir;
+    if (!@ftp_chdir($conn, $remoteDir)) {
+        $parts = explode('/', trim($remoteDir, '/'));
+        $path = '';
+        foreach ($parts as $part) {
+            $path .= '/' . $part;
+            if (!@ftp_chdir($conn, $path)) {
+                if (!@ftp_mkdir($conn, $path)) {
+                    ftp_close($conn);
+                    throw new Exception("Failed to create FTP directory: $path");
+                }
+            }
+        }
+    }
 
-    foreach ($filesToUpload as $local => $remote) {
+    $filesToUpload = [
+        constant('FTP_LOG_FILE')   => 'LOG_FTP_backup.log',
+        constant('ERROR_LOG_FILE') => 'LOG_FTP_php_errors.log',
+    ];
+
+    foreach ($filesToUpload as $local => $remoteName) {
         if (!file_exists($local)) {
             logMsg("[WARNING] Log file missing: $local");
             continue;
         }
 
-        if (!ftp_put($conn, $remote, $local, FTP_BINARY)) {
-            logMsg("[ERROR] Failed to upload $local to FTP as $remote");
+        $remotePath = $remoteDir . '/' . $remoteName;
+        if (!@ftp_put($conn, $remotePath, $local, FTP_BINARY)) {
+            logMsg("[ERROR] Failed to upload $local to FTP as $remotePath");
             ftp_close($conn);
-            throw new Exception("Failed to upload $remote to FTP root.");
-        } else {
-            logMsg("[INFO] Uploaded log to FTP root: $remote");
+            throw new Exception("Failed to upload $remoteName to FTP directory {$config->dir}");
         }
+        logMsg("[INFO] Uploaded log to {$remotePath}");
     }
 
     ftp_close($conn);
-    echo json_encode(["success" => true, "message" => "Logs uploaded to FTP root."]);
+    echo json_encode(["success" => true, "message" => "Logs uploaded to {$config->dir} directory."]);
+    exit;
 }
 
 
@@ -435,7 +454,7 @@ function clearConfig() {
     }
 
     echo json_encode(["success" => true, "message" => "Config cleared."]);
-    return;
+    exit;
 }
 
 /*****************************************************************

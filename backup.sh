@@ -35,15 +35,6 @@ if [[ -z "$ENGINE_NUMBER" ]]; then
     exit 1
 fi
 
-BACKUP_DIR="$CONFIG_DIR/$ENGINE_NUMBER"
-if [[ ! -d "$BACKUP_DIR" ]]; then
-    mkdir -p "$BACKUP_DIR"
-    if [[ $? -ne 0 ]]; then
-        log_cli "ERROR" "Failed to create backup directory $BACKUP_DIR."
-        exit 1
-    fi
-fi
-
 php "$PHP_SCRIPT" <<EOF
 {
     "action":"backup"
