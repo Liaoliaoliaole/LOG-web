@@ -54,7 +54,7 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Morfeas Update Script
 # ========================================
 MAX_LOGS=2
-UPDATE_LOGS_DIR="/mnt/ramdisk/Morfeas_Loggers"
+UPDATE_LOGS_DIR="/mnt/ramdisk/Morfeas_Loggers"  
 MORFEAS_WEB_DIR="/var/www/html/morfeas_web"
 MORFEAS_CORE_DIR="/opt/Morfeas_project/Morfeas_core"
 FLAG_FILE="/tmp/update_needed"
@@ -63,7 +63,7 @@ FLAG_FILE="/tmp/update_needed"
 mkdir -p "$UPDATE_LOGS_DIR"
 
 # Clean old logs
-old_logs=$(find "$UPDATE_LOGS_DIR" -maxdepth 1 -name "Morfeas_update_*.log" -printf '%T@ %p\n' | \
+old_logs=$(find "$UPDATE_LOGS_DIR" -maxdepth 1 -name "LOG_update_*.log" -printf '%T@ %p\n' | \
     sort -nr | tail -n +$((MAX_LOGS + 1)) | cut -d' ' -f2-)
 
 for log_file in $old_logs; do
@@ -72,7 +72,7 @@ done
 
 # Log setup
 date=$(date +"%Y-%m-%d_%H-%M-%S")
-log_file="$UPDATE_LOGS_DIR/Morfeas_update_$date.log"
+log_file="$UPDATE_LOGS_DIR/LOG_update_$date.log"
 
 print_status() {
     echo -e "\n======================================"
@@ -87,24 +87,26 @@ check_updates() {
 
     if [ -d "$MORFEAS_WEB_DIR" ]; then
         cd "$MORFEAS_WEB_DIR"
-        git fetch origin
-        if [ $? -ne 0 ]; then
+        if ! git fetch origin; then
             echo "Error: Network issue or cannot reach WEB git server."
             exit 2
         fi
         local_branch=$(git rev-parse --abbrev-ref HEAD)
-        [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/$local_branch)" ] && web_update_needed=1
+        if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/$local_branch)" ]; then
+            web_update_needed=1
+        fi
     fi
 
     if [ -d "$MORFEAS_CORE_DIR" ]; then
         cd "$MORFEAS_CORE_DIR"
-        git fetch origin
-        if [ $? -ne 0 ]; then
+        if ! git fetch origin; then
             echo "Error: Network issue or cannot reach CORE git server."
             exit 2
         fi
         core_branch=$(git rev-parse --abbrev-ref HEAD)
-        [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/$core_branch)" ] && core_update_needed=1
+        if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/$core_branch)" ]; then
+            core_update_needed=1
+        fi
     fi
 
     if [ $web_update_needed -eq 1 ] || [ $core_update_needed -eq 1 ]; then

@@ -18,7 +18,9 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 */
 	require("../Morfeas_env.php");
 	require("./Supplementary.php");
-	require("./morfeas_ftp_backup.php");
+	// [FTP_MIGRATION] Removed for FTP modularization
+	// require("./morfeas_ftp_backup.php");
+
 	function _ip2long($ip_str)
 	{
 		$ip=ip2long($ip_str) or die("Server: ip2long() failed!!!");
@@ -428,24 +430,6 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					$currConfig->ntp=get_timesyncd_ntp();
 					if(($CAN_ifs=getCANifs()))
 						$currConfig->CAN_ifs=$CAN_ifs;
-					if(file_exists($opc_ua_config_dir."FTP_backup_conf.json") && filesize($opc_ua_config_dir."FTP_backup_conf.json"))
-					{
-						$FTP_backup_conf=file_get_contents($opc_ua_config_dir.'FTP_backup_conf.json');
-						if(!($FTP_backup_conf=json_decode($FTP_backup_conf)))
-						{
-							exec("rm -f $opc_ua_config_dir/FTP_backup_conf.json");
-							die("Server: JSON Decode of FTP_backup_conf failed\n FTP_backup_conf.json removed!!!");
-						}
-						if(isset($FTP_backup_conf->addr, $FTP_backup_conf->username, $FTP_backup_conf->password))
-						{
-							$currConfig->FTP_backup_server = new stdClass();
-							$currConfig->FTP_backup_server->host = $FTP_backup_conf->addr;
-							$currConfig->FTP_backup_server->user = $FTP_backup_conf->username;
-							$currConfig->FTP_backup_server->pass = $FTP_backup_conf->password;
-							if(property_exists($FTP_backup_conf, "dir_name") && isset($FTP_backup_conf->dir_name))
-								$currConfig->FTP_backup_server->dir_name = $FTP_backup_conf->dir_name;
-						}
-					}
 					header('Content-Type: application/json');
 					echo json_encode($currConfig);
 					return;
@@ -514,16 +498,6 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 						exec('sudo systemctl restart Morfeas_system.service');
 					}
 				}
-				if(property_exists($new_config,"FTP_backup_server"))
-				{
-					if(($FTP_backup_conf=json_encode($new_config->FTP_backup_server))!==false)
-					{
-						if($FTP_backup_conf === '"delete"')
-							exec("rm -f $opc_ua_config_dir/FTP_backup_conf.json");
-						else if(strlen($FTP_backup_conf))
-							file_put_contents($opc_ua_config_dir."FTP_backup_conf.json", $FTP_backup_conf) or die("Error: Can't write FTP_backup_conf.json!!!");
-					}
-				}
 				header('Content-Type: application/json');
 				echo '{"report":"Okay"}';
 				return;
@@ -545,26 +519,6 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				$local_Morfeas_config->save($opc_ua_config_dir.'Morfeas_config.xml') or die('Server: Unable to write Morfeas_config.xml');
 				//exec('rm -fr /mnt/ramdisk/Morfeas_Loggers/*');
 				exec('sudo systemctl restart Morfeas_system.service');
-				if(file_exists($opc_ua_config_dir."FTP_backup_conf.json") && filesize($opc_ua_config_dir."FTP_backup_conf.json"))
-				{
-					$FTP_backup_conf=file_get_contents($opc_ua_config_dir."FTP_backup_conf.json");
-					$FTP_backup_conf=json_decode($FTP_backup_conf) or die("Server: JSON Decode of FTP_backup_conf failed");
-					if(isset($FTP_backup_conf->addr, $FTP_backup_conf->username, $FTP_backup_conf->password))
-					{
-						$dir_name = "";
-						if(property_exists($FTP_backup_conf, "dir_name") && isset($FTP_backup_conf->dir_name))
-							$dir_name = $FTP_backup_conf->dir_name;
-						if(!morfeas_ftp_mbl_backup($FTP_backup_conf->addr,
-												   $FTP_backup_conf->username,
-												   $FTP_backup_conf->password,
-												   $dir_name,
-												   gethostname().'_'.date("Y_d_m_G_i_s"),
-												   bundle_make()))
-							die("Error: FTP Backup Failed!!!");
-					}
-					else
-						die("Error: FTP backup config is invalid!!!");
-				}
 				header('Content-Type: report/json');
 				echo '{"report":"Okay"}';
 				return;
@@ -592,34 +546,6 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				else
 					die("Server: Bundle does not have valid content");
 				return;
-			case "FTP_backup_test":
-				$data = decompress($RX_data) or die("Server: Decompression failed!!!");
-				$ftp_ser_test = json_decode($data) or die("Server: JSON Decode failed!!!");
-				if(property_exists($ftp_ser_test, "ftp_serv_host_val")&&$ftp_ser_test->ftp_serv_host_val&&
-				   property_exists($ftp_ser_test, "ftp_serv_user_val")&&$ftp_ser_test->ftp_serv_user_val&&
-				   property_exists($ftp_ser_test, "ftp_serv_pass_val")&&$ftp_ser_test->ftp_serv_pass_val)
-				{
-					if(!filter_var($ftp_ser_test->ftp_serv_host_val, FILTER_VALIDATE_IP))
-					{
-						if(gethostbyname($ftp_ser_test->ftp_serv_host_val)===$ftp_ser_test->ftp_serv_host_val)
-							die("Error: Hostname can't be reached!!!");
-					}
-					$dir_name = "";
-					if(property_exists($ftp_ser_test, "dir_name"))
-						$dir_name = $ftp_ser_test->dir_name;
-					if(morfeas_ftp_mbl_backup($ftp_ser_test->ftp_serv_host_val,
-											  $ftp_ser_test->ftp_serv_user_val,
-											  $ftp_ser_test->ftp_serv_pass_val,
-											  $dir_name,
-											  gethostname().'_'.date("Y_d_m_G_i_s"),
-											  bundle_make()))
-						die("FTP Backup success!!!");
-					else
-						die("Error: FTP Backup Failed!!!");
-				}
-				else
-					die("Error: Property missing!!!");
-				return;
 			case "reboot":
 				exec('sudo reboot');
 				return;
@@ -636,8 +562,8 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 				return;
 			case "check_update"://Manual user-triggered check
 				$cmd_check = "sudo /var/www/html/morfeas_web/update.sh --check-only 2>&1";
-				exec($cmd_check, $output, $return_var);			
-				$debug = implode("\n", $output);			
+				exec($cmd_check, $output, $return_var);
+				$debug = implode("\n", $output);
 				if ($return_var === 2) {
 					$message = "Failed to check for updates. Network or server unreachable.";
 					$update_needed = false;
@@ -657,17 +583,17 @@ Copyright (C) 12019-12021  Sam harry Tzavaras
 					"message" => $message,
 					"debug"  => $debug
 				]);
-				return;							
+				return;
 			case "update":
 				$cmd = "sudo /var/www/html/morfeas_web/update.sh --update 2>&1";
-				exec($cmd, $output, $return_var);            
-				$final_output = implode("\n", $output);						
+				exec($cmd, $output, $return_var);
+				$final_output = implode("\n", $output);
 				header('Content-Type: application/json');
 				echo json_encode([
 					"report" => $return_var === 0 ? "Update completed" : "Update failed",
 					"output" => $final_output,
 				]);
-				return;												
+				return;
 		}
 	}
 	http_response_code(404);

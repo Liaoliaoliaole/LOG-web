@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>System Backup & Restore (FTP)</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <link rel="shortcut icon" href="../art/backup.png" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h2 {
+      text-align: center;
+    }
+    .section {
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    label {
+      display: inline-block;
+      width: 120px;
+      font-weight: bold;
+    }
+    input[type="text"], input[type="password"] {
+      width: 200px;
+      padding: 4px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 6px 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .status {
+      margin-top: 10px;
+      font-style: italic;
+    }
+    select {
+      width: 320px;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>System Backup & Restore (FTP)</h2>
+
+  <div class="section">
+    <h3>FTP Server Setup</h3>
+    <label for="ftp-host">Host IP:</label>
+    <input type="text" id="ftp-host-ip" value="10.193.135.70" /><br /><br />
+    <label for="ftp-dir">Engine Number:</label>
+    <input type="text" id="ftp-engine-number" placeholder="Enter the engine number" required /><br /><br />
+    <button onclick="connectFTP()">Connect & Fetch Backups</button>
+    <button onclick="disconnectFTP()" style="margin-left:10px;">Disconnect</button>
+    <div id="ftp-status" class="status"></div>
+  </div>
+
+  <div class="section">
+    <h3>Backup to FTP</h3>
+    <button onclick="backupToFTP()">Backup Now</button>
+    <div id="backup-status" class="status"></div>
+  </div>
+
+  <div class="section">
+    <h3>Restore from FTP</h3>
+    <select id="backup-list" size="5"></select><br /><br />
+    <button onclick="restoreSelected()">Restore Selected</button>
+    <div id="restore-status" class="status"></div>
+  </div>
+
+  <script src="ftp_backup.js"></script>
+</body>
+</html>

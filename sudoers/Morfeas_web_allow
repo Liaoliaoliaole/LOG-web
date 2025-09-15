@@ -1,14 +1,14 @@
 Cmnd_Alias ALLOW_PASSWORDLESS = /sbin/ip,\
-				/usr/bin/hostnamectl,\
-				/bin/systemctl restart networking.service,\
+                                /usr/bin/hostnamectl,\
+                                /bin/systemctl restart networking.service,\
                                 /bin/systemctl restart systemd-timesyncd.service,\
                                 /bin/systemctl restart Morfeas_system.service,\
                                 /bin/hostname,\
                                 /sbin/poweroff,\
-                                /usr/bin/make install,\
-                                /sbin/reboot
+                                /sbin/reboot,\
+                                /usr/bin/make install
 
 www-data ALL = (ALL) NOPASSWD: ALLOW_PASSWORDLESS
 
 # Add to this file to enable passwordless to execute update by apache2
-# sudo visudo -f /etc/sudoers.d/Morfeas_web_allow 
+# sudo visudo -f /etc/sudoers.d/Morfeas_web_allow

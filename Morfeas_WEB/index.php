@@ -89,17 +89,21 @@ button{width:100px;}
 		<th colspan="5" style="font-weight: bold; font-size: xx-large">Morfeas WEB<br>(<?php echo gethostname();?>)</th>
 	  </tr>
 	  <tr style="height:1.3in;">
-		<td><button type="button" onclick='PopupCenter("/morfeas_Loggers/Morfeas_Loggers.html"+"?q="+makeid(),"","1024","768")'>
-			<span title="Morfeas System Loggers">
-				<img src="./art/logger.svg" class="bsize">
-				<p><b>System<br>Loggers</b></p>
-			</span>
+		<td>
+			<button type="button" onclick='openSingleInstanceWindow("/morfeas_Loggers/Morfeas_Loggers.html?q=" + makeid(), "LoggerWindow", "width=1024,height=768")'>
+				<span title="Morfeas System Loggers">
+					<img src="./art/logger.svg" class="bsize">
+					<p><b>System<br>Loggers</b></p>
+				</span>
+			</button>
 		</td>
-		<td name="ISOCH"><button type="button" onclick='PopupCenter("/Morfeas_ISOChannel_Linker/ISO_CH_Linker.html"+"?q="+makeid(),"","1280","1024")'>
-			<span title="Morfeas ISOChannel Linker">
-				<img src="./art/anchor.png" class="bsize">
-				<p><b>ISOChannel<br>Linker</b></p>
-			</span>
+		<td name="ISOCH">
+			<button type="button" onclick='openSingleInstanceWindow("/Morfeas_ISOChannel_Linker/ISO_CH_Linker.html?q=" + makeid(), "ISOCHWindow", "width=1280,height=1024")'>
+				<span title="Morfeas ISOChannel Linker">
+					<img src="./art/anchor.png" class="bsize">
+					<p><b>ISOChannel<br>Linker</b></p>
+				</span>
+			</button>
 		</td>
 		<td name="ISOCH" style="display:none;"><button type="button" onclick='PopupCenter("/External_components/ISOChannel_Linker/html/","","1280","1024")'>
 			<span title="Old ISOChannel Linker">
@@ -107,17 +111,22 @@ button{width:100px;}
 				<p><b>ISOChannel<br>Linker</b></p>
 			</span>
 		</td>
-		<td><button type="button" onclick='PopupCenter("/Morfeas_configuration/Morfeas_System_config.html"+"?q="+makeid(),"","1024","768")'>
-			<span title="Morfeas System Configuration">
-				<img src="./art/morfeas_gear.png" class="bsize">
-				<p><b>System<br>Configuration</b></p>
-			</span>
+		<td>
+			<button type="button" onclick='openSingleInstanceWindow("/Morfeas_configuration/Morfeas_System_config.html?q=" + makeid(), "SysConfigWindow", "width=1024,height=768")'>
+				<span title="Morfeas System Configuration">
+					<img src="./art/morfeas_gear.png" class="bsize">
+					<p><b>System<br>Configuration</b></p>
+				</span>
+			</button>
 		</td>
-		<td><button type="button" onclick='PopupCenter("/Morfeas_configuration/Network_config.html"+"?q="+makeid(),"","500","500")'>
-			<span title="Network Configuration">
-				<img src="./art/eth.png" class="bsize">
-				<p><b>Network<br>Configuration</b></p>
-			</span>
+
+		<td>
+			<button type="button" onclick='openSingleInstanceWindow("/Morfeas_configuration/Network_config.html?q=" + makeid(), "NetConfigWindow", "width=500,height=500")'>
+				<span title="Network Configuration">
+					<img src="./art/eth.png" class="bsize">
+					<p><b>Network<br>Configuration</b></p>
+				</span>
+			</button>
 		</td>
 		<td>
 			<div class="dropdown">
@@ -138,7 +147,15 @@ button{width:100px;}
 		</td>
 	  </tr>
 	  <tr>
-		<td colspan="2"></td>
+		<td colspan="1"></td>
+		<td>
+			<button type="button" onclick='openSingleInstanceWindow("/morfeas_ftp_backup/ftp_backup_if.html?q=" + makeid(), "BackupWindow", "width=800,height=600");'>
+				<span title="System Backup">
+					<img src="./art/backup.png" class="bsize">
+					<p><b>System<br>Backup</b></p>
+				</span>
+			</button>
+		</td>
 		<td><button type="button" onclick='update_system()'>
     		<span title="System Update" style="position: relative; display: inline-block;">
         		<img src="./art/update.png" class="bsize">
@@ -203,6 +220,23 @@ for the JavaScript code in this page.
 "use strict";
 comp_check();
 
+
+const windowRefs = {}; // Store named window references globally
+
+function openSingleInstanceWindow(pageUrl, name = "PopupWindow", features = "") {
+  if (!features) {
+    const width = screen.availWidth;
+    const height = screen.availHeight;
+    features = `left=0,top=0,width=${width},height=${height}`;
+  }
+
+  if (!windowRefs[name] || windowRefs[name].closed) {
+    windowRefs[name] = window.open(pageUrl, name, features);
+  } else {
+    windowRefs[name].focus();
+  }
+}
+
 function toggle_portals_list()
 {
 	document.getElementById("portals_dropdown").classList.toggle("show");
@@ -246,9 +280,6 @@ let lastUpdateNeeded = null;
 
 function showUpdateIndicator(show) {
     const indicator = document.getElementById("update-indicator");
-    // if (show && lastUpdateNeeded === false) {
-    //     location.reload();
-    // }
     indicator.style.display = show ? "block" : "none";
     lastUpdateNeeded = show;
 }
@@ -273,8 +304,8 @@ function update_system() {
     `;
     overlay.innerHTML = `
         <div id="update-status-message" style="
-            background: rgba(255, 255, 255, 0.97); 
-            padding: 20px; 
+            background: rgba(255, 255, 255, 0.97);
+            padding: 20px;
             border-radius: 5px;
             text-align: center;
             max-width: 90%;
