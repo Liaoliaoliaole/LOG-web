@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>System Backup & Restore</title>
+  <!-- 复用主站样式 + 本页少量局部样式 -->
+  <link rel="stylesheet" href="../assets/app.css" />
+  <link rel="stylesheet" href="./backup_restore.css" />
+</head>
+<body>
+  <div class="wrap">
+    <!-- 标题 -->
+    <div class="card">
+      <div class="card-head">System Backup & Restore (FTP)</div>
+      <div class="card-body">
+
+        <!-- FTP Server Setup -->
+        <div class="section">
+          <div class="section-title">FTP Server Setup</div>
+          <div class="field">
+            <label for="ftpHost" class="label">Host IP</label>
+            <input id="ftpHost" class="input" type="text" placeholder="10.193.135.70" />
+          </div>
+          <div class="field">
+            <label for="engineNo" class="label">Engine Number</label>
+            <input id="engineNo" class="input" type="text" placeholder="Enter the engine number" />
+          </div>
+
+          <div class="actions">
+            <button id="connectBtn" class="btn primary">Connect & Fetch</button>
+            <button id="disconnectBtn" class="btn">Disconnect</button>
+          </div>
+          <div id="ftpStatus" class="status"></div>
+        </div>
+
+        <!-- Backup -->
+        <div class="section">
+          <div class="section-title">Backup to FTP</div>
+          <div class="actions">
+            <button id="backupBtn" class="btn primary">Backup Now</button>
+          </div>
+          <div id="backupStatus" class="status"></div>
+        </div>
+
+        <!-- Restore -->
+        <div class="section">
+          <div class="section-title">Restore from FTP</div>
+          <select id="backupList" size="7" class="list"></select>
+          <div class="actions">
+            <button id="restoreBtn" class="btn">Restore Selected</button>
+          </div>
+          <div id="restoreStatus" class="status"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="./ftpbackup.js"></script>
+  <script>
+    // Esc 关闭小窗
+    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') window.close(); });
+  </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>System Status</title>
+  <link rel="stylesheet" href="../assets/app.css"/>
+  <link rel="stylesheet" href="./status.css"/>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="card-head">
+        System Status
+        <span id="mockBadge" class="mock-badge" hidden>MOCK DATA</span>
+      </div>
+      <div class="card-body">
+        <div class="tabs">
+          <button class="tab btn primary" data-tab="details">Details</button>
+          <button class="tab btn" data-tab="logs">System logs</button>
+        </div>
+
+        <!-- Details（已合并 Bus 字段到表格内） -->
+        <section id="panel-details" class="panel show">
+          <div id="detailsWrap" class="stack"></div>
+        </section>
+
+        <!-- System logs（占位） -->
+        <section id="panel-logs" class="panel">
+          <div class="logs-bar">
+            <label class="label">Logger</label>
+            <select id="loggerSelect" class="input">
+              <option value="">system.log</option>
+              <option>opcua.log</option>
+              <option>sdaq0.log</option>
+            </select>
+            <button id="reloadLoggers" class="btn">Reload</button>
+          </div>
+          <pre id="logTerminal" class="terminal"></pre>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="./status.js"></script>
+  <script>
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });
+  </script>
+</body>
+</html>

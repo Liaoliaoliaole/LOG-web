@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Add Devices</title>
+  <link rel="stylesheet" href="../assets/app.css" />
+  <style>
+    .wrap { max-width: 880px; margin: 16px auto; }
+    .card { background:#fff; border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+    .card-head { padding:14px 16px; border-bottom:1px solid var(--border); font-weight:900; font-size:20px; }
+    .card-body { padding:12px 16px 16px; }
+
+    .toolbar-mini { display:flex; gap:10px; align-items:center; margin-bottom:10px; }
+    .toolbar-mini .btn { height:36px; }
+
+    .table { width:100%; background:#fff; }
+    .table thead th { background:#f3f4f6; font-weight:800; }
+    .table th, .table td { padding:10px 12px; border:1px solid #e5e7eb; white-space:nowrap; }
+    .table td:nth-child(1), .table th:nth-child(1) { text-align:center; width:48px; }
+    .table td:nth-child(2), .table th:nth-child(2) { text-align:center; width:64px; }
+    .table .row:hover { background:var(--row-hover); }
+    .table .row.selected { background:var(--row-selected); }
+
+    .grid { width:100%; border-collapse:collapse; }
+    .grid th, .grid td { border-bottom:1px solid #eef0f3; padding:10px 8px; vertical-align:middle; white-space:nowrap; }
+    .label { width:240px; font-weight:800; }
+    .input { min-width:100px; }
+
+    .actions { display:flex; gap:10px; justify-content:flex-end; margin-top:10px; }
+
+    /* 小号状态点（沿用主站色） */
+    .dot { width:12px; height:12px; border-radius:50%; display:inline-block; margin-right:6px; border:1px solid rgba(0,0,0,.12); }
+    .st-Okay{background:var(--s-okay)} .st-Stall{background:var(--s-stall)}
+    .st-Error{background:var(--s-error)} .st-Offline{background:var(--s-unknown)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- 设备表（保存后追加到这里） -->
+    <div class="card">
+      <div class="card-head">Devices</div>
+      <div class="card-body">
+        <div class="toolbar-mini">
+          <button id="refreshBtn" class="btn">Refresh</button>
+          <div style="flex:1"></div>
+          <button id="removeBtn" class="btn" disabled>Remove</button>
+          <button id="addBtn" class="btn primary">Add…</button>
+        </div>
+
+        <div class="table-wrap" style="background:#fff;border:1px solid var(--border);">
+          <table class="table" id="devTable">
+            <thead>
+              <tr>
+                <th><input id="mchk" type="checkbox" /></th>
+                <th>#</th>
+                <th>Bus</th>
+                <th>Type</th>
+                <th>IP Address</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="devBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add 表单：默认隐藏，仅点击 Add… 时显示 -->
+    <div id="propCard" class="card" style="margin-top:14px; display:none;">
+      <div class="card-head">Add Device</div>
+      <div class="card-body">
+        <table class="grid">
+          <tbody>
+            <tr>
+              <td class="label">Device Type</td>
+              <td>
+                <select id="devType" class="input" style="height:42px;min-width:200px;">
+                  <option value="SDAQ">SDAQ</option>
+                  <option value="NOX">NOX</option>
+                  <option value="IO-BOX">IO-BOX</option>
+                  <option value="MDAQ">MDAQ</option>
+                  <option value="MTI">MTI</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td class="label">CAN Interface</td>
+              <td>
+                <select id="canIf" class="input" style="height:42px;min-width:160px;">
+                  <option value="can0">can0</option>
+                  <option value="can1">can1</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td class="label">Device Name</td>
+              <td>
+                <input id="devName" class="input" style="min-width:260px" placeholder="e.g. SDAQ-RTD-01" />
+              </td>
+            </tr>
+            <tr>
+              <td class="label">IPv4 Address</td>
+              <td>
+                <input id="devIp" class="input" style="min-width:180px" placeholder="192.168.1.10" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="actions">
+          <button id="saveBtn" class="btn primary">Save</button>
+          <button id="cancelBtn" class="btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./adddev.js"></script>
+  <script>
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });
+  </script>
+</body>
+</html>

@@ -1,0 +1,5063 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+<points>
+	<_FT102>
+		<description>Fuel Oil Mass Flow Out</description>
+		<unit>g/s</unit>
+		<max>2000</max>
+		<min>0</min>
+	</_FT102>
+	<_FT104>
+		<description>Fuel Oil Flow b Engine</description>
+		<unit>l/min</unit>
+		<max>100</max>
+		<min>0</min>
+	</_FT104>
+	<_FT401>
+		<description>HT Flow b Engine</description>
+		<unit>m³/h</unit>
+		<max>250</max>
+		<min>0</min>
+	</_FT401>
+	<_FT421>
+		<description>HT Flow a LP CAC (2S)</description>
+		<unit>m³/h</unit>
+		<max>250</max>
+		<min>0</min>
+	</_FT421>
+	<_FT432>
+		<description>HT Flow a Engine</description>
+		<unit>m³/h</unit>
+		<max>250</max>
+		<min>0</min>
+	</_FT432>
+	<_FT448>
+		<description>HT Flow To CC</description>
+		<unit>m³/h</unit>
+		<max>250</max>
+		<min>0</min>
+	</_FT448>
+	<_FT451>
+		<description>LT Flow a CC</description>
+		<unit>m3/h</unit>
+		<max>250</max>
+		<min>0</min>
+	</_FT451>
+	<_FT452>
+		<description>LT Flow a Engine</description>
+		<unit>m3/h</unit>
+		<max>250</max>
+		<min>0</min>
+	</_FT452>
+	<_FT453>
+		<description>LT Flow To CC</description>
+		<unit>m³/h</unit>
+		<max>250</max>
+		<min>0</min>
+	</_FT453>
+	<_FT600>
+		<description>Air Mass Flow Engine in</description>
+		<unit>kg/s</unit>
+		<max>10</max>
+		<min>0</min>
+	</_FT600>
+	<_FT600_1>
+		<description>TC Mass Flow V-Cone</description>
+		<unit>kg/s</unit>
+		<max>10</max>
+		<min>0</min>
+	</_FT600_1>
+	<_FT700>
+		<description>Blow By Flow</description>
+		<unit>l/min</unit>
+		<max>2400</max>
+		<min>0</min>
+	</_FT700>
+	<_FT710_1>
+		<description>TC Blow By</description>
+		<unit>l/min</unit>
+		<max>2400</max>
+		<min>0</min>
+	</_FT710_1>
+	<_FT710>
+		<description>LP TC Blow By (2S)</description>
+		<unit>l/min</unit>
+		<max>3000</max>
+		<min>0</min>
+	</_FT710>
+	<_FT720>
+		<description>HP TC Blow By (2S)</description>
+		<unit>l/min</unit>
+		<max>3000</max>
+		<min>0</min>
+	</_FT720>
+	<_LT204>
+		<description>Lube Oil Level mm</description>
+		<unit>mm</unit>
+		<max>500</max>
+		<min>0</min>
+	</_LT204>
+	<_PDT651>
+		<description>Air Diff Press V-Cone</description>
+		<unit>mbar</unit>
+		<max>50</max>
+		<min>0</min>
+	</_PDT651>
+	<_PT102>
+		<description>Fuel Oil Press Over Filter</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT102>
+	<_PT106>
+		<description>Fuel Oil Press a Engine</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT106>
+	<_PT200>
+		<description>Lube Oil Press b Pump</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT200>
+	<_PT201_2>
+		<description>Lube Oil Press b Engine (Additional)</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT201_2>
+	<_PT221>
+		<description>Lube Oil Press a Pump</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT221>
+	<_PT231>
+		<description>Lube Oil Press b LOC</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT231>
+	<_PT232>
+		<description>Lube Oil Press a LOC</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT232>
+	<_PT233>
+		<description>Lube Oil Press b Thermostat</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT233>
+	<_PT241>
+		<description>Lube Oil Press b Aut Filter</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT241>
+	<_PT242>
+		<description>Lube Oil Press a Aut Filter</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT242>
+	<_PT272>
+		<description>Lube Oil Press In TC</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT272>
+	<_PT400>
+		<description>HT Press a CC</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT400>
+	<_PT401_1>
+		<description>HT Press b Engine</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT401_1>
+	<_PT4012>
+		<description>HT Press btw Banks</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT4012>
+	<_PT402>
+		<description>HT Press a Jacket</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT402>
+	<_PT402_1>
+		<description>HT Press a Engine</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT402_1>
+	<_PT4022>
+		<description>HT Press in U-loop Pipe</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT4022>
+	<_PT411>
+		<description>HT Press b Pump</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT411>
+	<_PT412>
+		<description>HT Press a Pump</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT412>
+	<_PT432>
+		<description>HT Press a CAIC</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT432>
+	<_PT448>
+		<description>HT Press b CC</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT448>
+	<_PT452>
+		<description>LT Press a HP CAC</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT452>
+	<_PT460>
+		<description>LT Press b Engine</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT460>
+	<_PT461>
+		<description>LT Press b Pump</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT461>
+	<_PT462>
+		<description>LT Press In Pump</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT462>
+	<_PT463>
+		<description>LT Press a Pump</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT463>
+	<_PT471>
+		<description>LT Press b CAC</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT471>
+	<_PT472>
+		<description>LT Press a CAC</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT472>
+	<_PT475_2>
+		<description>LT Press b HP CAC</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT475_2>
+	<_PT481>
+		<description>LT Press b LOC</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT481>
+	<_PT482>
+		<description>LT Press a LOC</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT482>
+	<_PT511>
+		<description>p5 HP Press b Turbine (2S)</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT511>
+	<_PT511_1>
+		<description>p5 Press b Turbine Sensor 1</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT511_1>
+	<_PT512>
+		<description>p5 HP Press b Turbine (2S) Sensor 2</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT512>
+	<_PT512_1>
+		<description>p5 Press b Turbine Sensor 2</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT512_1>
+	<_PT514>
+		<description>p6 HP Press a Turbine (2S)</description>
+		<unit>bar</unit>
+		<max>150</max>
+		<min>-20</min>
+	</_PT514>
+	<_PT516>
+		<description>p5 LP Press b Turbine (2S)</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT516>
+	<_PT517>
+		<description>p6 Press Exh Pipe</description>
+		<unit>mbar</unit>
+		<max>150</max>
+		<min>-20</min>
+	</_PT517>
+	<_PT601>
+		<description>p3 Press In Receiver</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT601>
+	<_PT604>
+		<description>p1 Diff Pressure b Compressor</description>
+		<unit>mbar</unit>
+		<max>50</max>
+		<min>0</min>
+	</_PT604>
+	<_PT605>
+		<description>p2 LP Press a Compressor (2S)</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT605>
+	<_PT611>
+		<description>p1 HP Press b Compressor (2S)</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT611>
+	<_PT621>
+		<description>p2 HP Press a Compressor (2S)</description>
+		<unit>bar</unit>
+		<max>10</max>
+		<min>0</min>
+	</_PT621>
+	<_PT621_1>
+		<description>p2 Press a Compressor</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT621_1>
+	<_PT622>
+		<description>p2 Press a CAC</description>
+		<unit>bar</unit>
+		<max>6</max>
+		<min>0</min>
+	</_PT622>
+	<_PDT653>
+		<description>CA Filter Press Diff, A-bank</description>
+		<unit>mbar</unit>
+		<max>175</max>
+		<min>0</min>
+	</_PDT653>
+	<_PDT663>
+		<description>CA Filter Press Diff, B-bank</description>
+		<unit>mbar</unit>
+		<max>175</max>
+		<min>0</min>
+	</_PDT663>
+	<_PT651>
+		<description>Air Diff Press Air Nozzle</description>
+		<unit>mbar</unit>
+		<max>130</max>
+		<min>-50</min>
+	</_PT651>
+	<_PT651_1>
+		<description>Air Abs Press b V-Cone</description>
+		<unit>mbar a</unit>
+		<max>1200</max>
+		<min>800</min>
+	</_PT651_1>
+	<_PT700>
+		<description>Crank Case Press</description>
+		<unit>mbar</unit>
+		<max>100</max>
+		<min>0</min>
+	</_PT700>
+	<_TE102>
+		<description>Fuel Oil Temp a Engine</description>
+		<unit>°C</unit>
+		<max>150</max>
+		<min>0</min>
+	</_TE102>
+	<_TE1041A>
+		<description>Fuel Oil Temp Pump 1</description>
+		<unit>°C</unit>
+		<max>150</max>
+		<min>0</min>
+	</_TE1041A>
+	<_TE1042A>
+		<description>Fuel Oil Temp Pump 2</description>
+		<unit>°C</unit>
+		<max>150</max>
+		<min>0</min>
+	</_TE1042A>
+	<_TE200>
+		<description>Lube Oil Temp b Pump</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE200>
+	<_TE221>
+		<description>Lube Oil Temp a Pump</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE221>
+	<_TE233>
+		<description>Lube Oil Temp b Thermostat</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE233>
+	<_TE234>
+		<description>Lube Oil Temp a Thermostat</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE234>
+	<_TE235>
+		<description>Lube Oil Temp b Filter</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE235>
+	<_TE271>
+		<description>Lube Oil Temp b TC (LP)</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE271>
+	<_TE271_1>
+		<description>Lube Oil Temp b TC</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE271_1>
+	<_TE272>
+		<description>Lube Oil Temp b TC (HP)</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE272>
+	<_TE400>
+		<description>HT Temp a CC</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE400>
+	<_TE401>
+		<description>HT Temp a Pump</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE401>
+	<_TE450>
+		<description>LT Temp a CC</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE450>
+	<_TE4022>
+		<description>HT Temp in U-loop Pipe</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE4022>
+	<_TE431>
+		<description>HT Temp b CAC</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE431>
+	<_TE432>
+		<description>HT Temp a CAIC</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE432>
+	<_TE448>
+		<description>HT Temp b CC</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE448>
+	<_TE451>
+		<description>LT Temp b LP CAC (2S)</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE451>
+	<_TE452>
+		<description>LT Temp a HP CAC (2S)</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE452>
+	<_TE453>
+		<description>LT Temp b IC (2S)</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE453>
+	<_TE454>
+		<description>LT Temp a IC (2S)</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE454>
+	<_TE455>
+		<description>LT Temp b CC</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE455>
+	<_TE460>
+		<description>LT Temp b Engine</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE460>
+	<_TE461>
+		<description>LT Temp b Pump</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE461>
+	<_TE471>
+		<description>LT Temp b CAC</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE471>
+	<_TE472>
+		<description>LT Temp a CAC</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE472>
+	<_TE472_2>
+		<description>LT Temp a Engine</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE472_2>
+	<_TE475>
+		<description>LT Temp a LP CAC (2S)</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE475>
+	<_TE475_2>
+		<description>LT Temp btw Coolers (2S)</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE475_2>
+	<_TE475_3>
+		<description>LT Temp b HP CAC (2S)</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE475_3>
+	<_TE481>
+		<description>LT Temp b LOC</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE481>
+	<_TE482>
+		<description>LT Temp a LOC</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE482>
+	<_TE511>
+		<description>t5 HP Temp b Turbine (2S)</description>
+		<unit>°C</unit>
+		<max>700</max>
+		<min>0</min>
+	</_TE511>
+	<_TE511_1>
+		<description>t5 Temp b Turbine Sensor 1</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE511_1>
+	<_TE512_1>
+		<description>t5 Temp b Turbine Sensor 2</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE512_1>
+	<_TE516>
+		<description>t5 LP Temp b Turbine (2S)</description>
+		<unit>°C</unit>
+		<max>700</max>
+		<min>0</min>
+	</_TE516>
+	<_TE517>
+		<description>t6 Temp (5m a TC)</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE517>
+	<_TE517_1>
+		<description>t6 Temp Exh Pipe Sensor 1</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE517_1>
+	<_TE517_2>
+		<description>t6 Temp Exh Pipe Sensor 2</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE517_2>
+	<_TE517_3>
+		<description>t6 Temp (15m a TC)</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE517_3>
+	<_TE519>
+		<description>Exh Temp a EWG</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE519>
+	<_TE600_1>
+		<description>t0 Sensor 1</description>
+		<unit>°C</unit>
+		<max>50</max>
+		<min>0</min>
+	</_TE600_1>
+	<_TE600_2>
+		<description>t0 Sensor 2</description>
+		<unit>°C</unit>
+		<max>50</max>
+		<min>0</min>
+	</_TE600_2>
+	<_TE600_3>
+		<description>t0 Sensor 3</description>
+		<unit>°C</unit>
+		<max>50</max>
+		<min>0</min>
+	</_TE600_3>
+	<_TE600_4>
+		<description>t0 Sensor 4</description>
+		<unit>°C</unit>
+		<max>50</max>
+		<min>0</min>
+	</_TE600_4>
+	<_TE601>
+		<description>t3 Temp In Receiver</description>
+		<unit>°C</unit>
+		<max>70</max>
+		<min>0</min>
+	</_TE601>
+	<_TE601_1>
+		<description>Tmp CA b Cyl A1</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_1>
+	<_TE601_10>
+		<description>Tmp CA b Cyl A10</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_10>
+	<_TE601_11>
+		<description>Tmp CA b Cyl B1</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_11>
+	<_TE601_12>
+		<description>Tmp CA b Cyl B2</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_12>
+	<_TE601_13>
+		<description>Tmp CA b Cyl B3</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_13>
+	<_TE601_14>
+		<description>Tmp CA b Cyl B4</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_14>
+	<_TE601_15>
+		<description>Tmp CA b Cyl B5</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_15>
+	<_TE601_16>
+		<description>Tmp CA b Cyl B6</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_16>
+	<_TE601_17>
+		<description>Tmp CA b Cyl B7</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_17>
+	<_TE601_18>
+		<description>Tmp CA b Cyl B8</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_18>
+	<_TE601_19>
+		<description>Tmp CA b Cyl B9</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_19>
+	<_TE601_2>
+		<description>Tmp CA b Cyl A2</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_2>
+	<_TE601_20>
+		<description>Tmp CA b Cyl B10</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_20>
+	<_TE601_3>
+		<description>Tmp CA b Cyl A3</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_3>
+	<_TE601_4>
+		<description>Tmp CA b Cyl A4</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_4>
+	<_TE601_5>
+		<description>Tmp CA b Cyl A5</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_5>
+	<_TE601_6>
+		<description>Tmp CA b Cyl A6</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_6>
+	<_TE601_7>
+		<description>Tmp CA b Cyl A7</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_7>
+	<_TE601_8>
+		<description>Tmp CA b Cyl A8</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_8>
+	<_TE601_9>
+		<description>Tmp CA b Cyl A9</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE601_9>
+	<_TE604>
+		<description>t1 LP Temp b LP Compressor (2S)</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE604>
+	<_TE604_1>
+		<description>t1 Sensor 1</description>
+		<unit>°C</unit>
+		<max>50</max>
+		<min>0</min>
+	</_TE604_1>
+	<_TE604_2>
+		<description>t1 Sensor 2</description>
+		<unit>°C</unit>
+		<max>50</max>
+		<min>0</min>
+	</_TE604_2>
+	<_TE604_3>
+		<description>t1 Sensor 3</description>
+		<unit>°C</unit>
+		<max>50</max>
+		<min>0</min>
+	</_TE604_3>
+	<_TE604_4>
+		<description>t1 Sensor 4</description>
+		<unit>°C</unit>
+		<max>50</max>
+		<min>0</min>
+	</_TE604_4>
+	<_TE605>
+		<description>t2 LP Temp a Compressor (2S)</description>
+		<unit>°C</unit>
+		<max>400</max>
+		<min>0</min>
+	</_TE605>
+	<_TE6052>
+		<description>t2 LP Temp a Compressor (2S additional)</description>
+		<unit>°C</unit>
+		<max>400</max>
+		<min>0</min>
+	</_TE6052>
+	<_TE611>
+		<description>t1 HP Temp b Compressor (2S)</description>
+		<unit>°C</unit>
+		<max>150</max>
+		<min>0</min>
+	</_TE611>
+	<_TE621>
+		<description>t2 HP Temp a Compressor (2S)</description>
+		<unit>°C</unit>
+		<max>400</max>
+		<min>0</min>
+	</_TE621>
+	<_TE621_1>
+		<description>t2 Temp a Compressor</description>
+		<unit>°C</unit>
+		<max>400</max>
+		<min>0</min>
+	</_TE621_1>
+	<_TE651>
+		<description>Air Temp b V-Cone</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE651>
+	<_TE70001>
+		<description>Piston Temp 1</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70001>
+	<_TE70002>
+		<description>Piston Temp 2</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70002>
+	<_TE70003>
+		<description>Piston Temp 3</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70003>
+	<_TE70004>
+		<description>Piston Temp 4</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70004>
+	<_TE70005>
+		<description>Piston Temp 5</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70005>
+	<_TE70006>
+		<description>Piston Temp 6</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70006>
+	<_TE70007>
+		<description>Piston Temp 7</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70007>
+	<_TE70008>
+		<description>Piston Temp 8</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70008>
+	<_TE70009>
+		<description>Piston Temp 9</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70009>
+	<_TE70010>
+		<description>Piston Temp 10</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70010>
+	<_TE70011>
+		<description>Piston Temp 11</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70011>
+	<_TE70012>
+		<description>Piston Temp 12</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70012>
+	<_TE70013>
+		<description>Piston Temp 13</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70013>
+	<_TE70014>
+		<description>Piston Temp 14</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70014>
+	<_TE70015>
+		<description>Piston Temp 15</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70015>
+	<_TE70016>
+		<description>Piston Temp 16</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70016>
+	<_TE70017>
+		<description>Piston Temp 17</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70017>
+	<_TE70018>
+		<description>Piston Temp 18</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70018>
+	<_TE70019>
+		<description>Piston Temp 19</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70019>
+	<_TE70020>
+		<description>Piston Temp 20</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70020>
+	<_TE70021>
+		<description>Piston Temp 21</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70021>
+	<_TE70022>
+		<description>Piston Temp 22</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70022>
+	<_TE70023>
+		<description>Piston Temp 23</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70023>
+	<_TE70024>
+		<description>Piston Temp 24</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70024>
+	<_TE70025>
+		<description>Piston Temp 25</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70025>
+	<_TE70026>
+		<description>Piston Temp 26</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70026>
+	<_TE70027>
+		<description>Piston Temp 27</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70027>
+	<_TE70028>
+		<description>Piston Temp 28</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70028>
+	<_TE70029>
+		<description>Piston Temp 29</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70029>
+	<_TE70030>
+		<description>Piston Temp 30</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70030>
+	<_TE70031>
+		<description>Piston Temp 31</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70031>
+	<_TE70032>
+		<description>Piston Temp 32</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE70032>
+	<_TE70101>
+		<description>Piston Skirt Temp 1</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70101>
+	<_TE70102>
+		<description>Piston Skirt Temp 2</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70102>
+	<_TE70103>
+		<description>Piston Skirt Temp 3</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70103>
+	<_TE70104>
+		<description>Piston Skirt Temp 4</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70104>
+	<_TE70105>
+		<description>Piston Skirt Temp 5</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70105>
+	<_TE70106>
+		<description>Piston Skirt Temp 6</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70106>
+	<_TE70107>
+		<description>Piston Skirt Temp 7</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70107>
+	<_TE70108>
+		<description>Piston Skirt Temp 8</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70108>
+	<_TE70109>
+		<description>Piston Skirt Temp 9</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70109>
+	<_TE70110>
+		<description>Piston Skirt Temp 10</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70110>
+	<_TE70111>
+		<description>Piston Skirt Temp 11</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70111>
+	<_TE70112>
+		<description>Piston Skirt Temp 12</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70112>
+	<_TE70113>
+		<description>Piston Skirt Temp 13</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70113>
+	<_TE70114>
+		<description>Piston Skirt Temp 14</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70114>
+	<_TE70115>
+		<description>Piston Skirt Temp 15</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70115>
+	<_TE70116>
+		<description>Piston Skirt Temp 16</description>
+		<unit>°C</unit>
+		<max>200</max>
+		<min>0</min>
+	</_TE70116>
+	<_TE70201>
+		<description>Liner Temp 1</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70201>
+	<_TE70202>
+		<description>Liner Temp 2</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70202>
+	<_TE70203>
+		<description>Liner Temp 3</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70203>
+	<_TE70204>
+		<description>Liner Temp 4</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70204>
+	<_TE70205>
+		<description>Liner Temp 5</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70205>
+	<_TE70206>
+		<description>Liner Temp 6</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70206>
+	<_TE70207>
+		<description>Liner Temp 7</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70207>
+	<_TE70208>
+		<description>Liner Temp 8</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70208>
+	<_TE70209>
+		<description>Liner Temp 9</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70209>
+	<_TE70210>
+		<description>Liner Temp 10</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70210>
+	<_TE70211>
+		<description>Liner Temp 11</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70211>
+	<_TE70212>
+		<description>Liner Temp 12</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70212>
+	<_TE70213>
+		<description>Liner Temp 13</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70213>
+	<_TE70214>
+		<description>Liner Temp 14</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70214>
+	<_TE70215>
+		<description>Liner Temp 15</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70215>
+	<_TE70216>
+		<description>Liner Temp 16</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70216>
+	<_TE70217>
+		<description>Liner Temp 17</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70217>
+	<_TE70218>
+		<description>Liner Temp 18</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70218>
+	<_TE70219>
+		<description>Liner Temp 19</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70219>
+	<_TE70220>
+		<description>Liner Temp 20</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70220>
+	<_TE70221>
+		<description>Liner Temp 21</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70221>
+	<_TE70222>
+		<description>Liner Temp 22</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70222>
+	<_TE70223>
+		<description>Liner Temp 23</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70223>
+	<_TE70224>
+		<description>Liner Temp 24</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70224>
+	<_TE70225>
+		<description>Liner Temp 25</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70225>
+	<_TE70226>
+		<description>Liner Temp 26</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70226>
+	<_TE70227>
+		<description>Liner Temp 27</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70227>
+	<_TE70228>
+		<description>Liner Temp 28</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70228>
+	<_TE70229>
+		<description>Liner Temp 29</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70229>
+	<_TE70230>
+		<description>Liner Temp 30</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70230>
+	<_TE70231>
+		<description>Liner Temp 31</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70231>
+	<_TE70232>
+		<description>Liner Temp 32</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70232>
+	<_TE70233>
+		<description>Liner Temp 33</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70233>
+	<_TE70234>
+		<description>Liner Temp 34</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70234>
+	<_TE70235>
+		<description>Liner Temp 35</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70235>
+	<_TE70236>
+		<description>Liner Temp 36</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70236>
+	<_TE70237>
+		<description>Liner Temp 37</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70237>
+	<_TE70238>
+		<description>Liner Temp 38</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70238>
+	<_TE70239>
+		<description>Liner Temp 39</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70239>
+	<_TE70240>
+		<description>Liner Temp 40</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70240>
+	<_TE70241>
+		<description>Liner Temp 41</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70241>
+	<_TE70242>
+		<description>Liner Temp 42</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70242>
+	<_TE70243>
+		<description>Liner Temp 43</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70243>
+	<_TE70244>
+		<description>Liner Temp 44</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70244>
+	<_TE70245>
+		<description>Liner Temp 45</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70245>
+	<_TE70246>
+		<description>Liner Temp 46</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70246>
+	<_TE70247>
+		<description>Liner Temp 47</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70247>
+	<_TE70248>
+		<description>Liner Temp 48</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70248>
+	<_TE70249>
+		<description>Liner Temp 49</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70249>
+	<_TE70250>
+		<description>Liner Temp 50</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70250>
+	<_TE70251>
+		<description>Liner Temp 51</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70251>
+	<_TE70252>
+		<description>Liner Temp 52</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70252>
+	<_TE70253>
+		<description>Liner Temp 53</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70253>
+	<_TE70254>
+		<description>Liner Temp 54</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70254>
+	<_TE70255>
+		<description>Liner Temp 55</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70255>
+	<_TE70256>
+		<description>Liner Temp 56</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70256>
+	<_TE70257>
+		<description>Liner Temp 57</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70257>
+	<_TE70258>
+		<description>Liner Temp 58</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70258>
+	<_TE70259>
+		<description>Liner Temp 59</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70259>
+	<_TE70260>
+		<description>Liner Temp 60</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70260>
+	<_TE70261>
+		<description>Liner Temp 61</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70261>
+	<_TE70262>
+		<description>Liner Temp 62</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70262>
+	<_TE70263>
+		<description>Liner Temp 63</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70263>
+	<_TE70264>
+		<description>Liner Temp 64</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70264>
+	<_TE70265>
+		<description>Liner Temp 65</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70265>
+	<_TE70266>
+		<description>Liner Temp 66</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70266>
+	<_TE70267>
+		<description>Liner Temp 67</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70267>
+	<_TE70268>
+		<description>Liner Temp 68</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70268>
+	<_TE70269>
+		<description>Liner Temp 69</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70269>
+	<_TE70270>
+		<description>Liner Temp 70</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70270>
+	<_TE70271>
+		<description>Liner Temp 71</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70271>
+	<_TE70272>
+		<description>Liner Temp 72</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70272>
+	<_TE70273>
+		<description>Liner Temp 73</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70273>
+	<_TE70274>
+		<description>Liner Temp 74</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70274>
+	<_TE70275>
+		<description>Liner Temp 75</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70275>
+	<_TE70276>
+		<description>Liner Temp 76</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70276>
+	<_TE70277>
+		<description>Liner Temp 77</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70277>
+	<_TE70278>
+		<description>Liner Temp 78</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70278>
+	<_TE70279>
+		<description>Liner Temp 79</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70279>
+	<_TE70280>
+		<description>Liner Temp 80</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70280>
+	<_TE70281>
+		<description>Liner Temp 81</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70281>
+	<_TE70282>
+		<description>Liner Temp 82</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70282>
+	<_TE70283>
+		<description>Liner Temp 83</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70283>
+	<_TE70284>
+		<description>Liner Temp 84</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70284>
+	<_TE70285>
+		<description>Liner Temp 85</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70285>
+	<_TE70286>
+		<description>Liner Temp 86</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70286>
+	<_TE70287>
+		<description>Liner Temp 87</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70287>
+	<_TE70288>
+		<description>Liner Temp 88</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70288>
+	<_TE70289>
+		<description>Liner Temp 89</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70289>
+	<_TE70290>
+		<description>Liner Temp 90</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70290>
+	<_TE70291>
+		<description>Liner Temp 91</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70291>
+	<_TE70292>
+		<description>Liner Temp 92</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70292>
+	<_TE70293>
+		<description>Liner Temp 93</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70293>
+	<_TE70294>
+		<description>Liner Temp 94</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70294>
+	<_TE70295>
+		<description>Liner Temp 95</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70295>
+	<_TE70296>
+		<description>Liner Temp 96</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70296>
+	<_TE70297>
+		<description>Liner Temp 97</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70297>
+	<_TE70298>
+		<description>Liner Temp 98</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70298>
+	<_TE70299>
+		<description>Liner Temp 99</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70299>
+	<_TE70300>
+		<description>Liner Temp 100</description>
+		<unit>°C</unit>
+		<max>250</max>
+		<min>0</min>
+	</_TE70300>
+	<_TE70301>
+		<description>Cylinder Head Temp 1</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70301>
+	<_TE70302>
+		<description>Cylinder Head Temp 2</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70302>
+	<_TE70303>
+		<description>Cylinder Head Temp 3</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70303>
+	<_TE70304>
+		<description>Cylinder Head Temp 4</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70304>
+	<_TE70305>
+		<description>Cylinder Head Temp 5</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70305>
+	<_TE70306>
+		<description>Cylinder Head Temp 6</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70306>
+	<_TE70307>
+		<description>Cylinder Head Temp 7</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70307>
+	<_TE70308>
+		<description>Cylinder Head Temp 8</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70308>
+	<_TE70309>
+		<description>Cylinder Head Temp 9</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70309>
+	<_TE70310>
+		<description>Cylinder Head Temp 10</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70310>
+	<_TE70311>
+		<description>Cylinder Head Temp 11</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70311>
+	<_TE70312>
+		<description>Cylinder Head Temp 12</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70312>
+	<_TE70313>
+		<description>Cylinder Head Temp 13</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70313>
+	<_TE70314>
+		<description>Cylinder Head Temp 14</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70314>
+	<_TE70315>
+		<description>Cylinder Head Temp 15</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70315>
+	<_TE70316>
+		<description>Cylinder Head Temp 16</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70316>
+	<_TE70317>
+		<description>Cylinder Head Temp 17</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70317>
+	<_TE70318>
+		<description>Cylinder Head Temp 18</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70318>
+	<_TE70319>
+		<description>Cylinder Head Temp 19</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70319>
+	<_TE70320>
+		<description>Cylinder Head Temp 20</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70320>
+	<_TE70321>
+		<description>Cylinder Head Temp 21</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70321>
+	<_TE70322>
+		<description>Cylinder Head Temp 22</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70322>
+	<_TE70323>
+		<description>Cylinder Head Temp 23</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70323>
+	<_TE70324>
+		<description>Cylinder Head Temp 24</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70324>
+	<_TE70325>
+		<description>Cylinder Head Temp 25</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70325>
+	<_TE70326>
+		<description>Cylinder Head Temp 26</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70326>
+	<_TE70327>
+		<description>Cylinder Head Temp 27</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70327>
+	<_TE70328>
+		<description>Cylinder Head Temp 28</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70328>
+	<_TE70329>
+		<description>Cylinder Head Temp 29</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70329>
+	<_TE70330>
+		<description>Cylinder Head Temp 30</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70330>
+	<_TE70331>
+		<description>Cylinder Head Temp 31</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70331>
+	<_TE70332>
+		<description>Cylinder Head Temp 32</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70332>
+	<_TE70333>
+		<description>Cylinder Head Temp 33</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70333>
+	<_TE70334>
+		<description>Cylinder Head Temp 34</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70334>
+	<_TE70335>
+		<description>Cylinder Head Temp 35</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70335>
+	<_TE70336>
+		<description>Cylinder Head Temp 36</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70336>
+	<_TE70337>
+		<description>Cylinder Head Temp 37</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70337>
+	<_TE70338>
+		<description>Cylinder Head Temp 38</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70338>
+	<_TE70339>
+		<description>Cylinder Head Temp 39</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70339>
+	<_TE70340>
+		<description>Cylinder Head Temp 40</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70340>
+	<_TE70341>
+		<description>Cylinder Head Temp 41</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70341>
+	<_TE70342>
+		<description>Cylinder Head Temp 42</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70342>
+	<_TE70343>
+		<description>Cylinder Head Temp 43</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70343>
+	<_TE70344>
+		<description>Cylinder Head Temp 44</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70344>
+	<_TE70345>
+		<description>Cylinder Head Temp 45</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70345>
+	<_TE70346>
+		<description>Cylinder Head Temp 46</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70346>
+	<_TE70347>
+		<description>Cylinder Head Temp 47</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70347>
+	<_TE70348>
+		<description>Cylinder Head Temp 48</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70348>
+	<_TE70349>
+		<description>Cylinder Head Temp 49</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70349>
+	<_TE70350>
+		<description>Cylinder Head Temp 50</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70350>
+	<_TE70351>
+		<description>Cylinder Head Temp 51</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70351>
+	<_TE70352>
+		<description>Cylinder Head Temp 52</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70352>
+	<_TE70353>
+		<description>Cylinder Head Temp 53</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70353>
+	<_TE70354>
+		<description>Cylinder Head Temp 54</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70354>
+	<_TE70355>
+		<description>Cylinder Head Temp 55</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70355>
+	<_TE70356>
+		<description>Cylinder Head Temp 56</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70356>
+	<_TE70357>
+		<description>Cylinder Head Temp 57</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70357>
+	<_TE70358>
+		<description>Cylinder Head Temp 58</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70358>
+	<_TE70359>
+		<description>Cylinder Head Temp 59</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70359>
+	<_TE70360>
+		<description>Cylinder Head Temp 60</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70360>
+	<_TE70361>
+		<description>Cylinder Head Temp 61</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70361>
+	<_TE70362>
+		<description>Cylinder Head Temp 62</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70362>
+	<_TE70363>
+		<description>Cylinder Head Temp 63</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70363>
+	<_TE70364>
+		<description>Cylinder Head Temp 64</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70364>
+	<_TE70365>
+		<description>Cylinder Head Temp 65</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70365>
+	<_TE70366>
+		<description>Cylinder Head Temp 66</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70366>
+	<_TE70367>
+		<description>Cylinder Head Temp 67</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70367>
+	<_TE70368>
+		<description>Cylinder Head Temp 68</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70368>
+	<_TE70369>
+		<description>Cylinder Head Temp 69</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70369>
+	<_TE70370>
+		<description>Cylinder Head Temp 70</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70370>
+	<_TE70371>
+		<description>Cylinder Head Temp 71</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70371>
+	<_TE70372>
+		<description>Cylinder Head Temp 72</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70372>
+	<_TE70373>
+		<description>Cylinder Head Temp 73</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70373>
+	<_TE70374>
+		<description>Cylinder Head Temp 74</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70374>
+	<_TE70375>
+		<description>Cylinder Head Temp 75</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70375>
+	<_TE70376>
+		<description>Cylinder Head Temp 76</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70376>
+	<_TE70377>
+		<description>Cylinder Head Temp 77</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70377>
+	<_TE70378>
+		<description>Cylinder Head Temp 78</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70378>
+	<_TE70379>
+		<description>Cylinder Head Temp 79</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70379>
+	<_TE70380>
+		<description>Cylinder Head Temp 80</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70380>
+	<_TE70381>
+		<description>Cylinder Head Temp 81</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70381>
+	<_TE70382>
+		<description>Cylinder Head Temp 82</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70382>
+	<_TE70383>
+		<description>Cylinder Head Temp 83</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70383>
+	<_TE70384>
+		<description>Cylinder Head Temp 84</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70384>
+	<_TE70385>
+		<description>Cylinder Head Temp 85</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70385>
+	<_TE70386>
+		<description>Cylinder Head Temp 86</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70386>
+	<_TE70387>
+		<description>Cylinder Head Temp 87</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70387>
+	<_TE70388>
+		<description>Cylinder Head Temp 88</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70388>
+	<_TE70389>
+		<description>Cylinder Head Temp 89</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70389>
+	<_TE70390>
+		<description>Cylinder Head Temp 90</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70390>
+	<_TE70391>
+		<description>Cylinder Head Temp 91</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70391>
+	<_TE70392>
+		<description>Cylinder Head Temp 92</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70392>
+	<_TE70393>
+		<description>Cylinder Head Temp 93</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70393>
+	<_TE70394>
+		<description>Cylinder Head Temp 94</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70394>
+	<_TE70395>
+		<description>Cylinder Head Temp 95</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70395>
+	<_TE70396>
+		<description>Cylinder Head Temp 96</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70396>
+	<_TE70397>
+		<description>Cylinder Head Temp 97</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70397>
+	<_TE70398>
+		<description>Cylinder Head Temp 98</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70398>
+	<_TE70399>
+		<description>Cylinder Head Temp 99</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70399>
+	<_TE70400>
+		<description>Cylinder Head Temp 100</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE70400>
+	<_TE70401>
+		<description>Connegting Rod Temp 1</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70401>
+	<_TE70402>
+		<description>Connegting Rod Temp 2</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70402>
+	<_TE70403>
+		<description>Connegting Rod Temp 3</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70403>
+	<_TE70404>
+		<description>Connegting Rod Temp 4</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70404>
+	<_TE70405>
+		<description>Connegting Rod Temp 5</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70405>
+	<_TE70406>
+		<description>Connegting Rod Temp 6</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70406>
+	<_TE70407>
+		<description>Connegting Rod Temp 7</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70407>
+	<_TE70408>
+		<description>Connegting Rod Temp 8</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70408>
+	<_TE70409>
+		<description>Connegting Rod Temp 9</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70409>
+	<_TE70410>
+		<description>Connegting Rod Temp 10</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70410>
+	<_TE70411>
+		<description>Connegting Rod Temp 11</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70411>
+	<_TE70412>
+		<description>Connegting Rod Temp 12</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70412>
+	<_TE70413>
+		<description>Connegting Rod Temp 13</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70413>
+	<_TE70414>
+		<description>Connegting Rod Temp 14</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70414>
+	<_TE70415>
+		<description>Connegting Rod Temp 15</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70415>
+	<_TE70416>
+		<description>Connegting Rod Temp 16</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE70416>
+	<_TE70501>
+		<description>Valve A Temp 1</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70501>
+	<_TE70502>
+		<description>Valve A Temp 2</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70502>
+	<_TE70503>
+		<description>Valve A Temp 3</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70503>
+	<_TE70504>
+		<description>Valve A Temp 4</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70504>
+	<_TE70505>
+		<description>Valve A Temp 5</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70505>
+	<_TE70506>
+		<description>Valve A Temp 6</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70506>
+	<_TE70507>
+		<description>Valve A Temp 7</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70507>
+	<_TE70508>
+		<description>Valve A Temp 8</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70508>
+	<_TE70601>
+		<description>Valve B Temp 1</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70601>
+	<_TE70602>
+		<description>Valve B Temp 2</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70602>
+	<_TE70603>
+		<description>Valve B Temp 3</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70603>
+	<_TE70604>
+		<description>Valve B Temp 4</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70604>
+	<_TE70605>
+		<description>Valve B Temp 5</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70605>
+	<_TE70606>
+		<description>Valve B Temp 6</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70606>
+	<_TE70607>
+		<description>Valve B Temp 7</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70607>
+	<_TE70608>
+		<description>Valve B Temp 8</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70608>
+	<_TE70701>
+		<description>Valve C Temp 1</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70701>
+	<_TE70702>
+		<description>Valve C Temp 2</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70702>
+	<_TE70703>
+		<description>Valve C Temp 3</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70703>
+	<_TE70704>
+		<description>Valve C Temp 4</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70704>
+	<_TE70705>
+		<description>Valve C Temp 5</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70705>
+	<_TE70706>
+		<description>Valve C Temp 6</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70706>
+	<_TE70707>
+		<description>Valve C Temp 7</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70707>
+	<_TE70708>
+		<description>Valve C Temp 8</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70708>
+	<_TE70801>
+		<description>Valve D Temp 1</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70801>
+	<_TE70802>
+		<description>Valve D Temp 2</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70802>
+	<_TE70803>
+		<description>Valve D Temp 3</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70803>
+	<_TE70804>
+		<description>Valve D Temp 4</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70804>
+	<_TE70805>
+		<description>Valve D Temp 5</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70805>
+	<_TE70806>
+		<description>Valve D Temp 6</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70806>
+	<_TE70807>
+		<description>Valve D Temp 7</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70807>
+	<_TE70808>
+		<description>Valve D Temp 8</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE70808>
+	<_TE70901>
+		<description>Valve Guide A Temp 1</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE70901>
+	<_TE70902>
+		<description>Valve Guide A Temp 2</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE70902>
+	<_TE70903>
+		<description>Valve Guide A Temp 3</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE70903>
+	<_TE70904>
+		<description>Valve Guide A Temp 4</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE70904>
+	<_TE70905>
+		<description>Valve Guide A Temp 5</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE70905>
+	<_TE70906>
+		<description>Valve Guide A Temp 6</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE70906>
+	<_TE70907>
+		<description>Valve Guide A Temp 7</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE70907>
+	<_TE70908>
+		<description>Valve Guide A Temp 8</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE70908>
+	<_TE71001>
+		<description>Valve Guide B Temp 1</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71001>
+	<_TE71002>
+		<description>Valve Guide B Temp 2</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71002>
+	<_TE71003>
+		<description>Valve Guide B Temp 3</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71003>
+	<_TE71004>
+		<description>Valve Guide B Temp 4</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71004>
+	<_TE71005>
+		<description>Valve Guide B Temp 5</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71005>
+	<_TE71006>
+		<description>Valve Guide B Temp 6</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71006>
+	<_TE71007>
+		<description>Valve Guide B Temp 7</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71007>
+	<_TE71008>
+		<description>Valve Guide B Temp 8</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71008>
+	<_TE71101>
+		<description>Valve Guide C Temp 1</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71101>
+	<_TE71102>
+		<description>Valve Guide C Temp 2</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71102>
+	<_TE71103>
+		<description>Valve Guide C Temp 3</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71103>
+	<_TE71104>
+		<description>Valve Guide C Temp 4</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71104>
+	<_TE71105>
+		<description>Valve Guide C Temp 5</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71105>
+	<_TE71106>
+		<description>Valve Guide C Temp 6</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71106>
+	<_TE71107>
+		<description>Valve Guide C Temp 7</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71107>
+	<_TE71108>
+		<description>Valve Guide C Temp 8</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71108>
+	<_TE71201>
+		<description>Valve Guide D Temp 1</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71201>
+	<_TE71202>
+		<description>Valve Guide D Temp 2</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71202>
+	<_TE71203>
+		<description>Valve Guide D Temp 3</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71203>
+	<_TE71204>
+		<description>Valve Guide D Temp 4</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71204>
+	<_TE71205>
+		<description>Valve Guide D Temp 5</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71205>
+	<_TE71206>
+		<description>Valve Guide D Temp 6</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71206>
+	<_TE71207>
+		<description>Valve Guide D Temp 7</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71207>
+	<_TE71208>
+		<description>Valve Guide D Temp 8</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71208>
+	<_TE71301>
+		<description>PCC Temp 1</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE71301>
+	<_TE71302>
+		<description>PCC Temp 2</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE71302>
+	<_TE71303>
+		<description>PCC Temp 3</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE71303>
+	<_TE71304>
+		<description>PCC Temp 4</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE71304>
+	<_TE71305>
+		<description>PCC Temp 5</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE71305>
+	<_TE71306>
+		<description>PCC Temp 6</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE71306>
+	<_TE71307>
+		<description>PCC Temp 7</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE71307>
+	<_TE71308>
+		<description>PCC Temp 8</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE71308>
+	<_TE71401>
+		<description>Spark Plug Temp 1</description>
+		<unit>°C</unit>
+		<max>800</max>
+		<min>0</min>
+	</_TE71401>
+	<_TE71402>
+		<description>Spark Plug Temp 2</description>
+		<unit>°C</unit>
+		<max>800</max>
+		<min>0</min>
+	</_TE71402>
+	<_TE71403>
+		<description>Spark Plug Temp 3</description>
+		<unit>°C</unit>
+		<max>800</max>
+		<min>0</min>
+	</_TE71403>
+	<_TE71404>
+		<description>Spark Plug Temp 4</description>
+		<unit>°C</unit>
+		<max>800</max>
+		<min>0</min>
+	</_TE71404>
+	<_TE71405>
+		<description>Spark Plug Temp 5</description>
+		<unit>°C</unit>
+		<max>800</max>
+		<min>0</min>
+	</_TE71405>
+	<_TE71406>
+		<description>Spark Plug Temp 6</description>
+		<unit>°C</unit>
+		<max>800</max>
+		<min>0</min>
+	</_TE71406>
+	<_TE71407>
+		<description>Spark Plug Temp 7</description>
+		<unit>°C</unit>
+		<max>800</max>
+		<min>0</min>
+	</_TE71407>
+	<_TE71408>
+		<description>Spark Plug Temp 8</description>
+		<unit>°C</unit>
+		<max>800</max>
+		<min>0</min>
+	</_TE71408>
+	<_TE71501>
+		<description>GAV Temp 1</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71501>
+	<_TE71502>
+		<description>GAV Temp 2</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71502>
+	<_TE71503>
+		<description>GAV Temp 3</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71503>
+	<_TE71504>
+		<description>GAV Temp 4</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71504>
+	<_TE71601>
+		<description>Injector Temp 1</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE71601>
+	<_TE71602>
+		<description>Injector Temp 2</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE71602>
+	<_TE71603>
+		<description>Injector Temp 3</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE71603>
+	<_TE71604>
+		<description>Injector Temp 4</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE71604>
+	<_TE71605>
+		<description>Injector Temp 5</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE71605>
+	<_TE71606>
+		<description>Injector Temp 6</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE71606>
+	<_TE71607>
+		<description>Injector Temp 7</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE71607>
+	<_TE71608>
+		<description>Injector Temp 8</description>
+		<unit>°C</unit>
+		<max>450</max>
+		<min>0</min>
+	</_TE71608>
+	<_TE71701>
+		<description>Starting Valve Temp 1</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71701>
+	<_TE71702>
+		<description>Starting Valve Temp 2</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71702>
+	<_TE71703>
+		<description>Starting Valve Temp 3</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71703>
+	<_TE71704>
+		<description>Starting Valve Temp 4</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71704>
+	<_TE71801>
+		<description>Rocker Arm Temp 1</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71801>
+	<_TE71802>
+		<description>Rocker Arm Temp 2</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71802>
+	<_TE71803>
+		<description>Rocker Arm Temp 3</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71803>
+	<_TE71804>
+		<description>Rocker Arm Temp 4</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71804>
+	<_TE71805>
+		<description>Rocker Arm Temp 5</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71805>
+	<_TE71806>
+		<description>Rocker Arm Temp 6</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71806>
+	<_TE71807>
+		<description>Rocker Arm Temp 7</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71807>
+	<_TE71808>
+		<description>Rocker Arm Temp 8</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71808>
+	<_TE71901>
+		<description>Cylinder Head CA Temp 1</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71901>
+	<_TE71902>
+		<description>Cylinder Head CA Temp 2</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71902>
+	<_TE71903>
+		<description>Cylinder Head CA Temp 3</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71903>
+	<_TE71904>
+		<description>Cylinder Head CA Temp 4</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE71904>
+	<_TE72001>
+		<description>Cylinder Head EX Temp 1</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE72001>
+	<_TE72002>
+		<description>Cylinder Head EX Temp 2</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE72002>
+	<_TE72003>
+		<description>Cylinder Head EX Temp 3</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE72003>
+	<_TE72004>
+		<description>Cylinder Head EX Temp 4</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE72004>
+	<_TE72101>
+		<description>Cylinder Head HT in Temp 1</description>
+		<unit>°C</unit>
+		<max>120</max>
+		<min>0</min>
+	</_TE72101>
+	<_TE72102>
+		<description>Cylinder Head HT in Temp 2</description>
+		<unit>°C</unit>
+		<max>120</max>
+		<min>0</min>
+	</_TE72102>
+	<_TE72103>
+		<description>Cylinder Head HT in Temp 3</description>
+		<unit>°C</unit>
+		<max>120</max>
+		<min>0</min>
+	</_TE72103>
+	<_TE72104>
+		<description>Cylinder Head HT in Temp 4</description>
+		<unit>°C</unit>
+		<max>120</max>
+		<min>0</min>
+	</_TE72104>
+	<_TE72201>
+		<description>Cylinder Head HT out Temp 1</description>
+		<unit>°C</unit>
+		<max>120</max>
+		<min>0</min>
+	</_TE72201>
+	<_TE72202>
+		<description>Cylinder Head HT out Temp 2</description>
+		<unit>°C</unit>
+		<max>120</max>
+		<min>0</min>
+	</_TE72202>
+	<_TE72203>
+		<description>Cylinder Head HT out Temp 3</description>
+		<unit>°C</unit>
+		<max>120</max>
+		<min>0</min>
+	</_TE72203>
+	<_TE72204>
+		<description>Cylinder Head HT out Temp 4</description>
+		<unit>°C</unit>
+		<max>120</max>
+		<min>0</min>
+	</_TE72204>
+	<_TE72301>
+		<description>Cylinder Head LO in Temp 1</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72301>
+	<_TE72302>
+		<description>Cylinder Head LO in Temp 2</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72302>
+	<_TE72303>
+		<description>Cylinder Head LO in Temp 3</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72303>
+	<_TE72304>
+		<description>Cylinder Head LO in Temp 4</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72304>
+	<_TE72401>
+		<description>Cylinder Head LO out Temp 1</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72401>
+	<_TE72402>
+		<description>Cylinder Head LO out Temp 2</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72402>
+	<_TE72403>
+		<description>Cylinder Head LO out Temp 3</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72403>
+	<_TE72404>
+		<description>Cylinder Head LO out Temp 4</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72404>
+	<_TE72501>
+		<description>Cylinder Head FO in Temp 1</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE72501>
+	<_TE72502>
+		<description>Cylinder Head FO in Temp 2</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE72502>
+	<_TE72503>
+		<description>Cylinder Head FO in Temp 3</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE72503>
+	<_TE72504>
+		<description>Cylinder Head FO in Temp 4</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE72504>
+	<_TE72601>
+		<description>Cylinder Head FO out Temp 1</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE72601>
+	<_TE72602>
+		<description>Cylinder Head FO out Temp 2</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE72602>
+	<_TE72603>
+		<description>Cylinder Head FO out Temp 3</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE72603>
+	<_TE72604>
+		<description>Cylinder Head FO out Temp 4</description>
+		<unit>°C</unit>
+		<max>160</max>
+		<min>0</min>
+	</_TE72604>
+	<_TE72701>
+		<description>Cylinder Head Gas in Temp 1</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72701>
+	<_TE72702>
+		<description>Cylinder Head Gas in Temp 2</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72702>
+	<_TE72703>
+		<description>Cylinder Head Gas in Temp 3</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72703>
+	<_TE72704>
+		<description>Cylinder Head Gas in Temp 4</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72704>
+	<_TE72801>
+		<description>Jet Cooling Temp 1</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72801>
+	<_TE72802>
+		<description>Jet Cooling Temp 2</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72802>
+	<_TE72803>
+		<description>Jet Cooling Temp 3</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72803>
+	<_TE72804>
+		<description>Jet Cooling Temp 4</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72804>
+	<_TE72805>
+		<description>Jet Cooling Temp 5</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72805>
+	<_TE72806>
+		<description>Jet Cooling Temp 6</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72806>
+	<_TE72807>
+		<description>Jet Cooling Temp 7</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72807>
+	<_TE72808>
+		<description>Jet Cooling Temp 8</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72808>
+	<_TE72901>
+		<description>Engine Block Temp 1</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72901>
+	<_TE72902>
+		<description>Engine Block Temp 2</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72902>
+	<_TE72903>
+		<description>Engine Block Temp 3</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72903>
+	<_TE72904>
+		<description>Engine Block Temp 4</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72904>
+	<_TE72905>
+		<description>Engine Block Temp 5</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72905>
+	<_TE72906>
+		<description>Engine Block Temp 6</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72906>
+	<_TE72907>
+		<description>Engine Block Temp 7</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72907>
+	<_TE72908>
+		<description>Engine Block Temp 8</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72908>
+	<_TE72909>
+		<description>Engine Block Temp 9</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72909>
+	<_TE72910>
+		<description>Engine Block Temp 10</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72910>
+	<_TE72911>
+		<description>Engine Block Temp 11</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72911>
+	<_TE72912>
+		<description>Engine Block Temp 12</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72912>
+	<_TE72913>
+		<description>Engine Block Temp 13</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72913>
+	<_TE72914>
+		<description>Engine Block Temp 14</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72914>
+	<_TE72915>
+		<description>Engine Block Temp 15</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72915>
+	<_TE72916>
+		<description>Engine Block Temp 16</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72916>
+	<_TE72917>
+		<description>Engine Block Temp 17</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72917>
+	<_TE72918>
+		<description>Engine Block Temp 18</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72918>
+	<_TE72919>
+		<description>Engine Block Temp 19</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72919>
+	<_TE72920>
+		<description>Engine Block Temp 20</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72920>
+	<_TE72921>
+		<description>Engine Block Temp 21</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72921>
+	<_TE72922>
+		<description>Engine Block Temp 22</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72922>
+	<_TE72923>
+		<description>Engine Block Temp 23</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72923>
+	<_TE72924>
+		<description>Engine Block Temp 24</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72924>
+	<_TE72925>
+		<description>Engine Block Temp 25</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72925>
+	<_TE72926>
+		<description>Engine Block Temp 26</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72926>
+	<_TE72927>
+		<description>Engine Block Temp 27</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72927>
+	<_TE72928>
+		<description>Engine Block Temp 28</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72928>
+	<_TE72929>
+		<description>Engine Block Temp 29</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72929>
+	<_TE72930>
+		<description>Engine Block Temp 30</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72930>
+	<_TE72931>
+		<description>Engine Block Temp 31</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72931>
+	<_TE72932>
+		<description>Engine Block Temp 32</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72932>
+	<_TE72933>
+		<description>Engine Block Temp 33</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72933>
+	<_TE72934>
+		<description>Engine Block Temp 34</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72934>
+	<_TE72935>
+		<description>Engine Block Temp 35</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72935>
+	<_TE72936>
+		<description>Engine Block Temp 36</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72936>
+	<_TE72937>
+		<description>Engine Block Temp 37</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72937>
+	<_TE72938>
+		<description>Engine Block Temp 38</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72938>
+	<_TE72939>
+		<description>Engine Block Temp 39</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72939>
+	<_TE72940>
+		<description>Engine Block Temp 40</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72940>
+	<_TE72941>
+		<description>Engine Block Temp 41</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72941>
+	<_TE72942>
+		<description>Engine Block Temp 42</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72942>
+	<_TE72943>
+		<description>Engine Block Temp 43</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72943>
+	<_TE72944>
+		<description>Engine Block Temp 44</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72944>
+	<_TE72945>
+		<description>Engine Block Temp 45</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72945>
+	<_TE72946>
+		<description>Engine Block Temp 46</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72946>
+	<_TE72947>
+		<description>Engine Block Temp 47</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72947>
+	<_TE72948>
+		<description>Engine Block Temp 48</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72948>
+	<_TE72949>
+		<description>Engine Block Temp 49</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72949>
+	<_TE72950>
+		<description>Engine Block Temp 50</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE72950>
+	<_TE73001>
+		<description>Oil Sump Temp 1</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73001>
+	<_TE73002>
+		<description>Oil Sump Temp 2</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73002>
+	<_TE73003>
+		<description>Oil Sump Temp 3</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73003>
+	<_TE73004>
+		<description>Oil Sump Temp 4</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73004>
+	<_TE73005>
+		<description>Oil Sump Temp 5</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73005>
+	<_TE73006>
+		<description>Oil Sump Temp 6</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73006>
+	<_TE73007>
+		<description>Oil Sump Temp 7</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73007>
+	<_TE73008>
+		<description>Oil Sump Temp 8</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73008>
+	<_TE73009>
+		<description>Oil Sump Temp 9</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73009>
+	<_TE73010>
+		<description>Oil Sump Temp 10</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73010>
+	<_TE73011>
+		<description>Oil Sump Temp 11</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73011>
+	<_TE73012>
+		<description>Oil Sump Temp 12</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73012>
+	<_TE73013>
+		<description>Oil Sump Temp 13</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73013>
+	<_TE73014>
+		<description>Oil Sump Temp 14</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73014>
+	<_TE73015>
+		<description>Oil Sump Temp 15</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73015>
+	<_TE73016>
+		<description>Oil Sump Temp 16</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73016>
+	<_TE73017>
+		<description>Oil Sump Temp 17</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73017>
+	<_TE73018>
+		<description>Oil Sump Temp 18</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73018>
+	<_TE73019>
+		<description>Oil Sump Temp 19</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73019>
+	<_TE73020>
+		<description>Oil Sump Temp 20</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73020>
+	<_TE73021>
+		<description>Oil Sump Temp 21</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73021>
+	<_TE73022>
+		<description>Oil Sump Temp 22</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73022>
+	<_TE73023>
+		<description>Oil Sump Temp 23</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73023>
+	<_TE73024>
+		<description>Oil Sump Temp 24</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73024>
+	<_TE73025>
+		<description>Oil Sump Temp 25</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73025>
+	<_TE73026>
+		<description>Oil Sump Temp 26</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73026>
+	<_TE73027>
+		<description>Oil Sump Temp 27</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73027>
+	<_TE73028>
+		<description>Oil Sump Temp 28</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73028>
+	<_TE73029>
+		<description>Oil Sump Temp 29</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73029>
+	<_TE73030>
+		<description>Oil Sump Temp 30</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73030>
+	<_TE73031>
+		<description>Oil Sump Temp 31</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73031>
+	<_TE73032>
+		<description>Oil Sump Temp 32</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73032>
+	<_TE73033>
+		<description>Oil Sump Temp 33</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73033>
+	<_TE73034>
+		<description>Oil Sump Temp 34</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73034>
+	<_TE73035>
+		<description>Oil Sump Temp 35</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73035>
+	<_TE73036>
+		<description>Oil Sump Temp 36</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73036>
+	<_TE73037>
+		<description>Oil Sump Temp 37</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73037>
+	<_TE73038>
+		<description>Oil Sump Temp 38</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73038>
+	<_TE73039>
+		<description>Oil Sump Temp 39</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73039>
+	<_TE73040>
+		<description>Oil Sump Temp 40</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73040>
+	<_TE73041>
+		<description>Oil Sump Temp 41</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73041>
+	<_TE73042>
+		<description>Oil Sump Temp 42</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73042>
+	<_TE73043>
+		<description>Oil Sump Temp 43</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73043>
+	<_TE73044>
+		<description>Oil Sump Temp 44</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73044>
+	<_TE73045>
+		<description>Oil Sump Temp 45</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73045>
+	<_TE73046>
+		<description>Oil Sump Temp 46</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73046>
+	<_TE73047>
+		<description>Oil Sump Temp 47</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73047>
+	<_TE73048>
+		<description>Oil Sump Temp 48</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73048>
+	<_TE73049>
+		<description>Oil Sump Temp 49</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73049>
+	<_TE73050>
+		<description>Oil Sump Temp 50</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE73050>
+	<_TE73101>
+		<description>TC Temp 1</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73101>
+	<_TE73102>
+		<description>TC Temp 2</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73102>
+	<_TE73103>
+		<description>TC Temp 3</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73103>
+	<_TE73104>
+		<description>TC Temp 4</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73104>
+	<_TE73105>
+		<description>TC Temp 5</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73105>
+	<_TE73106>
+		<description>TC Temp 6</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73106>
+	<_TE73107>
+		<description>TC Temp 7</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73107>
+	<_TE73108>
+		<description>TC Temp 8</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73108>
+	<_TE73109>
+		<description>TC Temp 9</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73109>
+	<_TE73110>
+		<description>TC Temp 10</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73110>
+	<_TE73111>
+		<description>TC Temp 11</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73111>
+	<_TE73112>
+		<description>TC Temp 12</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73112>
+	<_TE73113>
+		<description>TC Temp 13</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73113>
+	<_TE73114>
+		<description>TC Temp 14</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73114>
+	<_TE73115>
+		<description>TC Temp 15</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73115>
+	<_TE73116>
+		<description>TC Temp 16</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73116>
+	<_TE73117>
+		<description>TC Temp 17</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73117>
+	<_TE73118>
+		<description>TC Temp 18</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73118>
+	<_TE73119>
+		<description>TC Temp 19</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73119>
+	<_TE73120>
+		<description>TC Temp 20</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73120>
+	<_TE73121>
+		<description>TC Temp 21</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73121>
+	<_TE73122>
+		<description>TC Temp 22</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73122>
+	<_TE73123>
+		<description>TC Temp 23</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73123>
+	<_TE73124>
+		<description>TC Temp 24</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73124>
+	<_TE73125>
+		<description>TC Temp 25</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73125>
+	<_TE73126>
+		<description>TC Temp 26</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73126>
+	<_TE73127>
+		<description>TC Temp 27</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73127>
+	<_TE73128>
+		<description>TC Temp 28</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73128>
+	<_TE73129>
+		<description>TC Temp 29</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73129>
+	<_TE73130>
+		<description>TC Temp 30</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73130>
+	<_TE73131>
+		<description>TC Temp 31</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73131>
+	<_TE73132>
+		<description>TC Temp 32</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73132>
+	<_TE73133>
+		<description>TC Temp 33</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73133>
+	<_TE73134>
+		<description>TC Temp 34</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73134>
+	<_TE73135>
+		<description>TC Temp 35</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73135>
+	<_TE73136>
+		<description>TC Temp 36</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73136>
+	<_TE73137>
+		<description>TC Temp 37</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73137>
+	<_TE73138>
+		<description>TC Temp 38</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73138>
+	<_TE73139>
+		<description>TC Temp 39</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73139>
+	<_TE73140>
+		<description>TC Temp 40</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73140>
+	<_TE73141>
+		<description>TC Temp 41</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73141>
+	<_TE73142>
+		<description>TC Temp 42</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73142>
+	<_TE73143>
+		<description>TC Temp 43</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73143>
+	<_TE73144>
+		<description>TC Temp 44</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73144>
+	<_TE73145>
+		<description>TC Temp 45</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73145>
+	<_TE73146>
+		<description>TC Temp 46</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73146>
+	<_TE73147>
+		<description>TC Temp 47</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73147>
+	<_TE73148>
+		<description>TC Temp 48</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73148>
+	<_TE73149>
+		<description>TC Temp 49</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73149>
+	<_TE73150>
+		<description>TC Temp 50</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73150>
+	<_TE73201>
+		<description>Exhaust Pipe Temp 1</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73201>
+	<_TE73202>
+		<description>Exhaust Pipe Temp 2</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73202>
+	<_TE73203>
+		<description>Exhaust Pipe Temp 3</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73203>
+	<_TE73204>
+		<description>Exhaust Pipe Temp 4</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73204>
+	<_TE73205>
+		<description>Exhaust Pipe Temp 5</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73205>
+	<_TE73206>
+		<description>Exhaust Pipe Temp 6</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73206>
+	<_TE73207>
+		<description>Exhaust Pipe Temp 7</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73207>
+	<_TE73208>
+		<description>Exhaust Pipe Temp 8</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73208>
+	<_TE73209>
+		<description>Exhaust Pipe Temp 9</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73209>
+	<_TE73210>
+		<description>Exhaust Pipe Temp 10</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73210>
+	<_TE73211>
+		<description>Exhaust Pipe Temp 11</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73211>
+	<_TE73212>
+		<description>Exhaust Pipe Temp 12</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73212>
+	<_TE73213>
+		<description>Exhaust Pipe Temp 13</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73213>
+	<_TE73214>
+		<description>Exhaust Pipe Temp 14</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73214>
+	<_TE73215>
+		<description>Exhaust Pipe Temp 15</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73215>
+	<_TE73216>
+		<description>Exhaust Pipe Temp 16</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE73216>
+	<_TE73301>
+		<description>CAR Temp 1</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73301>
+	<_TE73302>
+		<description>CAR Temp 2</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73302>
+	<_TE73303>
+		<description>CAR Temp 3</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73303>
+	<_TE73304>
+		<description>CAR Temp 4</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73304>
+	<_TE73305>
+		<description>CAR Temp 5</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73305>
+	<_TE73306>
+		<description>CAR Temp 6</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73306>
+	<_TE73307>
+		<description>CAR Temp 7</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73307>
+	<_TE73308>
+		<description>CAR Temp 8</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73308>
+	<_TE73309>
+		<description>CAR Temp 9</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73309>
+	<_TE73310>
+		<description>CAR Temp 10</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73310>
+	<_TE73311>
+		<description>CAR Temp 11</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73311>
+	<_TE73312>
+		<description>CAR Temp 12</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73312>
+	<_TE73313>
+		<description>CAR Temp 13</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73313>
+	<_TE73314>
+		<description>CAR Temp 14</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73314>
+	<_TE73315>
+		<description>CAR Temp 15</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73315>
+	<_TE73316>
+		<description>CAR Temp 16</description>
+		<unit>°C</unit>
+		<max>300</max>
+		<min>0</min>
+	</_TE73316>
+	<_TE73401>
+		<description>MB Temp 1</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73401>
+	<_TE73402>
+		<description>MB Temp 2</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73402>
+	<_TE73403>
+		<description>MB Temp 3</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73403>
+	<_TE73404>
+		<description>MB Temp 4</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73404>
+	<_TE73405>
+		<description>MB Temp 5</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73405>
+	<_TE73406>
+		<description>MB Temp 6</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73406>
+	<_TE73407>
+		<description>MB Temp 7</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73407>
+	<_TE73408>
+		<description>MB Temp 8</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73408>
+	<_TE73501>
+		<description>BEB Temp 1</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73501>
+	<_TE73502>
+		<description>BEB Temp 2</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73502>
+	<_TE73503>
+		<description>BEB Temp 3</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73503>
+	<_TE73504>
+		<description>BEB Temp 4</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73504>
+	<_TE73505>
+		<description>BEB Temp 5</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73505>
+	<_TE73506>
+		<description>BEB Temp 6</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73506>
+	<_TE73507>
+		<description>BEB Temp 7</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73507>
+	<_TE73508>
+		<description>BEB Temp 8</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73508>
+	<_TE73601>
+		<description>SEB Temp 1</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73601>
+	<_TE73602>
+		<description>SEB Temp 2</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73602>
+	<_TE73603>
+		<description>SEB Temp 3</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73603>
+	<_TE73604>
+		<description>SEB Temp 4</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73604>
+	<_TE73605>
+		<description>SEB Temp 5</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73605>
+	<_TE73606>
+		<description>SEB Temp 6</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73606>
+	<_TE73607>
+		<description>SEB Temp 7</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73607>
+	<_TE73608>
+		<description>SEB Temp 8</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73608>
+	<_TE73701>
+		<description>Thrust Bearing Temp 1</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73701>
+	<_TE73702>
+		<description>Thrust Bearing Temp 2</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73702>
+	<_TE73703>
+		<description>Thrust Bearing Temp 3</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73703>
+	<_TE73704>
+		<description>Thrust Bearing Temp 4</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73704>
+	<_TE73705>
+		<description>Thrust Bearing Temp 5</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73705>
+	<_TE73706>
+		<description>Thrust Bearing Temp 6</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73706>
+	<_TE73707>
+		<description>Thrust Bearing Temp 7</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73707>
+	<_TE73708>
+		<description>Thrust Bearing Temp 8</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73708>
+	<_TE73709>
+		<description>Thrust Bearing Temp 9</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73709>
+	<_TE73710>
+		<description>Thrust Bearing Temp 10</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73710>
+	<_TE73711>
+		<description>Thrust Bearing Temp 11</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73711>
+	<_TE73712>
+		<description>Thrust Bearing Temp 12</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73712>
+	<_TE73713>
+		<description>Thrust Bearing Temp 13</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73713>
+	<_TE73714>
+		<description>Thrust Bearing Temp 14</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73714>
+	<_TE73715>
+		<description>Thrust Bearing Temp 15</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73715>
+	<_TE73716>
+		<description>Thrust Bearing Temp 16</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73716>
+	<_TE73801>
+		<description>CAM Bearing Temp 1</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73801>
+	<_TE73802>
+		<description>CAM Bearing Temp 2</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73802>
+	<_TE73803>
+		<description>CAM Bearing Temp 3</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73803>
+	<_TE73804>
+		<description>CAM Bearing Temp 4</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73804>
+	<_TE73805>
+		<description>CAM Bearing Temp 5</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73805>
+	<_TE73806>
+		<description>CAM Bearing Temp 6</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73806>
+	<_TE73807>
+		<description>CAM Bearing Temp 7</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73807>
+	<_TE73808>
+		<description>CAM Bearing Temp 8</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73808>
+	<_TE73901>
+		<description>Balancing Shaft Bearing Temp 1</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73901>
+	<_TE73902>
+		<description>Balancing Shaft Bearing Temp 2</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73902>
+	<_TE73903>
+		<description>Balancing Shaft Bearing Temp 3</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73903>
+	<_TE73904>
+		<description>Balancing Shaft Bearing Temp 4</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73904>
+	<_TE73905>
+		<description>Balancing Shaft Bearing Temp 5</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73905>
+	<_TE73906>
+		<description>Balancing Shaft Bearing Temp 6</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73906>
+	<_TE73907>
+		<description>Balancing Shaft Bearing Temp 7</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73907>
+	<_TE73908>
+		<description>Balancing Shaft Bearing Temp 8</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73908>
+	<_TE73909>
+		<description>Balancing Shaft Bearing Temp 9</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73909>
+	<_TE73910>
+		<description>Balancing Shaft Bearing Temp 10</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73910>
+	<_TE73911>
+		<description>Balancing Shaft Bearing Temp 11</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73911>
+	<_TE73912>
+		<description>Balancing Shaft Bearing Temp 12</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73912>
+	<_TE73913>
+		<description>Balancing Shaft Bearing Temp 13</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73913>
+	<_TE73914>
+		<description>Balancing Shaft Bearing Temp 14</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73914>
+	<_TE73915>
+		<description>Balancing Shaft Bearing Temp 15</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73915>
+	<_TE73916>
+		<description>Balancing Shaft Bearing Temp 16</description>
+		<unit>°C</unit>
+		<max>140</max>
+		<min>0</min>
+	</_TE73916>
+	<_TE74001>
+		<description>Coupling Temp 1</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74001>
+	<_TE74002>
+		<description>Coupling Temp 2</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74002>
+	<_TE74003>
+		<description>Coupling Temp 3</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74003>
+	<_TE74004>
+		<description>Coupling Temp 4</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74004>
+	<_TE74005>
+		<description>Coupling Temp 5</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74005>
+	<_TE74006>
+		<description>Coupling Temp 6</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74006>
+	<_TE74007>
+		<description>Coupling Temp 7</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74007>
+	<_TE74008>
+		<description>Coupling Temp 8</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74008>
+	<_TE74101>
+		<description>Damper Temp 1</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74101>
+	<_TE74102>
+		<description>Damper Temp 2</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74102>
+	<_TE74103>
+		<description>Damper Temp 3</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74103>
+	<_TE74104>
+		<description>Damper Temp 4</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74104>
+	<_TE74105>
+		<description>Damper Temp 5</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74105>
+	<_TE74106>
+		<description>Damper Temp 6</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74106>
+	<_TE74107>
+		<description>Damper Temp 7</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74107>
+	<_TE74108>
+		<description>Damper temp 8</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74108>
+	<_TE74201>
+		<description>TG Temp 1</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74201>
+	<_TE74202>
+		<description>TG Temp 2</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74202>
+	<_TE74203>
+		<description>TG Temp 3</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74203>
+	<_TE74204>
+		<description>TG Temp 4</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74204>
+	<_TE74205>
+		<description>TG Temp 5</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74205>
+	<_TE74206>
+		<description>TG Temp 6</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74206>
+	<_TE74207>
+		<description>TG Temp 7</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74207>
+	<_TE74208>
+		<description>TG Temp 8</description>
+		<unit>°C</unit>
+		<max>100</max>
+		<min>0</min>
+	</_TE74208>
+	<_TE74301>
+		<description>Exh Nozzle Ring Temp 1</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74301>
+	<_TE74302>
+		<description>Exh Nozzle Ring Temp 2</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74302>
+	<_TE74303>
+		<description>Exh Nozzle Ring Temp 3</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74303>
+	<_TE74304>
+		<description>Exh Nozzle Ring Temp 4</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74304>
+	<_TE74305>
+		<description>Exh Nozzle Ring Temp 5</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74305>
+	<_TE74306>
+		<description>Exh Nozzle Ring Temp 6</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74306>
+	<_TE74307>
+		<description>Exh Nozzle Ring Temp 7</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74307>
+	<_TE74308>
+		<description>Exh Nozzle Ring Temp 8</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74308>
+	<_TE74309>
+		<description>Exh Nozzle Ring Temp 9</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74309>
+	<_TE74310>
+		<description>Exh Nozzle Ring Temp 10</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74310>
+	<_TE74311>
+		<description>Exh Nozzle Ring Temp 11</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74311>
+	<_TE74312>
+		<description>Exh Nozzle Ring Temp 12</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74312>
+	<_TE74313>
+		<description>Exh Nozzle Ring Temp 13</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74313>
+	<_TE74314>
+		<description>Exh Nozzle Ring Temp 14</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74314>
+	<_TE74315>
+		<description>Exh Nozzle Ring Temp 15</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74315>
+	<_TE74316>
+		<description>Exh Nozzle Ring Temp 16</description>
+		<unit>°C</unit>
+		<max>650</max>
+		<min>0</min>
+	</_TE74316>
+</points>
+</root>

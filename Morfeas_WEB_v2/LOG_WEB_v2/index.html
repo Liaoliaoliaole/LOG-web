@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ISO Channels Linker · LOG WEB</title>
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
+  <body>
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="top-inner">
+        <div class="brand">
+          <img src="assets/logo.png" alt="Logo">
+          <div class="page-title">ISO Channels Linker</div>
+        </div>
+        <div class="info">
+          <div class="chip">FTP backup dir: engine number</div>
+          <div class="chip">
+            <div class="ticker">
+              <div class="track"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Menu -->
+        <div class="menu-wrap">
+          <button id="menuBtn" class="menu-btn" aria-haspopup="true"
+            aria-expanded="false">
+            <span class="burger"></span> Menu
+          </button>
+          <div id="mainMenu" class="dropdown" role="menu">
+            <div class="group">Main</div>
+            <!-- Network Configuration -->
+            <a class="menu-item"
+              href="menu/network-config/network_config.html"
+              data-popup
+              data-name="netconf"
+              data-width="760"
+              data-height="820">
+              Network Configuration
+            </a>
+            <!-- Add Devices -->
+            <a class="menu-item"
+              href="menu/add-devices/add_devices.html"
+              data-popup
+              data-name="adddev"
+              data-width="880"
+              data-height="860">
+              Add Devices
+            </a>
+            <!-- Backup & Restore -->
+            <a class="menu-item"
+              href="menu/backup-restore/backup_restore.html"
+              data-popup
+              data-name="backup"
+              data-width="720"
+              data-height="760">
+              Backup & Restore Channels
+            </a>
+            <div class="menu-sep"></div>
+            <div class="group">Advanced</div>
+            <!--Check System Status -->
+            <a class="menu-item"
+              href="menu/system-status/system_status.html"
+              data-popup
+              data-name="sysstatus"
+              data-width="860"
+              data-height="920">
+              Check System Status
+            </a>
+            <!--Advanced Settings -->
+            <a class="menu-item"
+              href="menu/advanced-settings/advanced_setting.html"
+              data-popup
+              data-name="advset"
+              data-width="820"
+              data-height="820">
+              Advanced Settings
+            </a>
+            <!--System -->
+            <div class="menu-sep"></div>
+            <div class="group">System</div>
+            <a class="menu-item" href="menu/system-control/index.html"
+              target="_blank">System Update</a>
+            <a class="menu-item" href="menu/system-control/index.html"
+              target="_blank">System Reboot</a>
+            <a class="menu-item" href="menu/system-control/index.html"
+              target="_blank">System Shutdown</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <input id="searchInput" class="input" type="text"
+        placeholder="Search Input">
+      <button id="searchBtn" class="btn">Search</button>
+      <div style="flex:1"></div>
+      <button id="importBtn" class="btn primary">Import Channels</button>
+      <button id="addBtn" class="btn primary">Add Channels</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>
+              <!-- master checkbox controls select all / deselect all -->
+              <input id="masterCheck" type="checkbox"
+                aria-label="Select all rows">
+            </th>
+            <th>#</th>
+            <th>Status</th>
+            <th>ISOChannel</th>
+            <th>Type</th>
+            <th>Connection</th>
+            <th>Value</th>
+            <th>History</th>
+            <th>Valid Until</th>
+            <th>Min</th>
+            <th>Max</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+         <!-- MOCK data -->
+        <tbody>
+          <tr class="row">
+            <td><input type="checkbox" aria-label="Select row 1"></td>
+            <td>1</td>
+            <td><span class="dot st-Okay"></span>Okay</td>
+            <td>_TE1041A</td>
+            <td>SDAQ-TC16</td>
+            <td>CAN1.ADDR:01.CH:16</td>
+            <td>28.6 °C</td>
+            <td>(sparkline)</td>
+            <td>—</td>
+            <td>0</td>
+            <td>150</td>
+            <td>Fuel Oil Temp Pump 1</td>
+          </tr>
+          <tr class="row">
+            <td><input type="checkbox" aria-label="Select row 2"></td>
+            <td>2</td>
+            <td><span class="dot st-Stall"></span>Stall</td>
+            <td>_TE2001C</td>
+            <td>SDAQ-RTD</td>
+            <td>CAN2.ADDR:02.CH:02</td>
+            <td>—</td>
+            <td>(sparkline)</td>
+            <td>—</td>
+            <td>-50</td>
+            <td>250</td>
+            <td>PT100 Sample</td>
+          </tr>
+          <tr class="row">
+            <td><input type="checkbox" aria-label="Select row 3"></td>
+            <td>3</td>
+            <td><span class="dot st-Error"></span>Error</td>
+            <td>_TE3002D</td>
+            <td>SDAQ-RTD</td>
+            <td>CAN3.ADDR:03.CH:01</td>
+            <td>—</td>
+            <td>(sparkline)</td>
+            <td>—</td>
+            <td>-10</td>
+            <td>90</td>
+            <td>Sensor failure</td>
+          </tr>
+          <tr class="row">
+            <td><input type="checkbox" aria-label="Select row 4"></td>
+            <td>4</td>
+            <td><span class="dot st-Offine"></span></td>
+            <!-- typo demo; keep rows below -->
+            <td colspan="9">—</td>
+          </tr>
+          <tr class="row">
+            <td><input type="checkbox" aria-label="Select row 5"></td>
+            <td>7</td>
+            <td><span class="dot st-Offline"></span>Offline</td>
+            <td>_TE7003N</td>
+            <td>SDAQ-ANA</td>
+            <td>CAN7.ADDR:03.CH:07</td>
+            <td>—</td>
+            <td>(sparkline)</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Device not responding</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Context menu -->
+    <div id="ctx" class="ctx" role="menu">
+      <div class="item" data-action="edit">Edit</div>
+      <div class="item" data-action="delete">Delete</div>
+      <div class="item" data-action="change-mode">Change mode</div>
+      <div class="item" data-action="calibration">Calibration</div>
+      <div class="item" data-action="export">Export</div>
+    </div>
+
+    <div class="footer">Placeholder for last update timestamp and version number.</div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>
