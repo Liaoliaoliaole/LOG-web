@@ -1,128 +1,155 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <title>Link Creator</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <!-- 若你的 app.css 不在 assets 目录，请把这行改成正确相对路径 -->
-        <link rel="stylesheet" href="../assets/app.css" />
-        <style>
-    .dialog{
-      max-width:880px; margin:24px auto; padding:20px;
-      background:var(--bg); border:1px solid var(--border);
-      border-radius:var(--radius); box-shadow:0 12px 30px rgba(0,0,0,.08);
-    }
-    h1{ margin:0 0 14px; font-size:clamp(24px,2.6vw,30px); font-weight:900 }
-    .statusbar{
-      margin:10px 0 16px; padding:10px 12px; border:1px solid var(--border);
-      border-radius:12px; background:var(--bg-weak); font-weight:700;
-    }
-    .formgrid{
-      display:grid !important; grid-template-columns:220px 1fr;
-      gap:14px 16px; align-items:center;
-    }
-    .label{ font-weight:700 }
-    .inline{ display:inline-flex; align-items:center; gap:8px }
-    .row-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:18px }
-    .w-56{ width:56px } .w-92{ width:92px } .w-120{ width:120px }
-    /* 强力限制 N/A 下拉宽度为 36 像素 */
-    .w-48{
-      width:48px !important;
-      min-width:48px !important;
-      flex:0 0 48px !important;
-      padding-inline:1px !important;
-    }
-    .hidden{ display:none }
-    .disabled{ opacity:.6; pointer-events:none }
-  </style>
-    </head>
-    <body>
-        <main class="dialog">
-            <h1>Link Creator</h1>
+  <head>
+    <meta charset="utf-8" />
+    <title>Link Creator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../assets/app.css" />
+    <style>
+      /* ---------- Dialog shell ---------- */
+      .dialog {
+        max-width: 880px;
+        margin: 24px auto;
+        padding: 20px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, .08);
+      }
+      h1 { margin: 0 0 14px; font-size: clamp(24px, 2.6vw, 30px); font-weight: 900; }
+      .statusbar {
+        margin: 10px 0 16px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg-weak);
+        font-weight: 700;
+      }
 
-            <div id="status" class="statusbar">Select Type</div>
+      /* ---------- Form grid ---------- */
+      .formgrid {
+        display: grid !important;
+        grid-template-columns: 220px 1fr;
+        gap: 14px 16px;
+        align-items: center;
+      }
+      .label { font-weight: 700; }
+      .inline { display: inline-flex; align-items: center; gap: 8px; }
+      .row-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
 
-            <div class="formgrid" id="formGrid">
-                <!-- Type -->
-                <div class="label">Type</div>
-                <div>
-                    <select id="type" class="input w-120">
-                        <option value>-</option>
-                        <option value="SDAQ">SDAQ</option>
-                        <option value="MDAQ">MDAQ</option>
-                        <option value="IOBOX">IOBOX</option>
-                        <option value="MTI">MTI</option>
-                        <option value="NOX">NOX</option>
-                    </select>
-                </div>
+      /* sizes */
+      .w-56  { width: 56px; }
+      .w-92  { width: 92px; }
+      .w-120 { width: 120px; }
 
-                <!-- Sensor Properties -->
-                <div class="label">Sensor Properties</div>
-                <div class="inline">
-                    <input id="path" class="input"
-                        placeholder="CAN1.ADDR:01.CH:16" />
-                    <button id="btnSearch" class="btn"
-                        title="Search (placeholder)">🔍</button>
-                </div>
+      /* Keep postfix dropdown very small (N/A) */
+      .w-48 {
+        width: 48px !important;
+        min-width: 48px !important;
+        flex: 0 0 48px !important;
+        padding-inline: 1px !important;
+      }
 
-                <!-- ISO Code + postfix (N/A 固定 36px) -->
-                <div class="label">ISO Code</div>
-                <div class="inline">
-                    <input id="iso" class="input w-120"
-                        placeholder="e.g. TE1041A" />
-                    <span class="muted">_</span>
-                    <select id="postfix" class="input w-48"></select>
-                </div>
+      .hidden   { display: none; }
+      .disabled { opacity: .6; pointer-events: none; }
 
-                <!-- Description -->
-                <div class="label">Description</div>
-                <div><input id="desc" class="input"
-                        placeholder="Description" /></div>
+      /* ---------- THEME-CONSISTENT DROPDOWN HIGHLIGHT ---------- */
+      /* Focus ring on selects (same accent as home) */
+      select.input:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, .15);
+      }
+      /* Selected <option> background color (works in Blink/WebKit, most Linux builds) */
+      select.input option:checked {
+        background: var(--accent) !important;
+        color: #fff !important;
+      }
+      /* Hover color for options (Blink/WebKit support; ignored by some engines) */
+      select.input option:hover {
+        background: rgba(52, 152, 219, .15) !important;
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="dialog">
+      <h1>Link Creator</h1>
 
-                <!-- Range (only for SDAQ) -->
-                <div class="label" id="rangeLabel">Range (for SDAQ)</div>
-                <div class="inline" id="rangeRow">
-                    <input id="range" type="number" min="1" value="1"
-                        class="input w-56" />
-                </div>
+      <div id="status" class="statusbar">Select Type</div>
 
-                <!-- Min -->
-                <div class="label">Min</div>
-                <div><input id="min" type="number" class="input w-120" /></div>
+      <div class="formgrid" id="formGrid">
+        <!-- Type -->
+        <div class="label">Type</div>
+        <div>
+          <select id="type" class="input w-120">
+            <option value>-</option>
+            <option value="SDAQ">SDAQ</option>
+            <option value="MDAQ">MDAQ</option>
+            <option value="IOBOX">IOBOX</option>
+            <option value="MTI">MTI</option>
+            <option value="NOX">NOX</option>
+          </select>
+        </div>
 
-                <!-- Max -->
-                <div class="label">Max</div>
-                <div><input id="max" type="number" class="input w-120" /></div>
+        <!-- Sensor Properties -->
+        <div class="label">Sensor Properties</div>
+        <div class="inline">
+          <input id="path" class="input" placeholder="CAN1.ADDR:01.CH:16" />
+          <button id="btnSearch" class="btn" title="Search (placeholder)">🔍</button>
+        </div>
 
-                <!-- Alarm Low -->
-                <div class="label">Alarm Low</div>
-                <div class="inline">
-                    <input id="alarmLowVal" type="number" class="input w-120" />
-                    <label class="inline"><input id="alarmLow"
-                            type="checkbox" /> Enable</label>
-                </div>
+        <!-- ISO Code + postfix (tiny N/A dropdown) -->
+        <div class="label">ISO Code</div>
+        <div class="inline">
+          <input id="iso" class="input w-120" placeholder="e.g. TE1041A" />
+          <span class="muted">_</span>
+          <select id="postfix" class="input w-48"></select>
+        </div>
 
-                <!-- Alarm High -->
-                <div class="label">Alarm High</div>
-                <div class="inline">
-                    <input id="alarmHighVal" type="number"
-                        class="input w-120" />
-                    <label class="inline"><input id="alarmHigh"
-                            type="checkbox" /> Enable</label>
-                </div>
+        <!-- Description -->
+        <div class="label">Description</div>
+        <div><input id="desc" class="input" placeholder="Description" /></div>
 
-                <!-- Unit -->
-                <div class="label">Unit</div>
-                <div><input id="unit" class="input w-120"
-                        placeholder="°C, A, %" /></div>
-            </div>
+        <!-- Range (only for SDAQ) -->
+        <div class="label" id="rangeLabel">Range (for SDAQ)</div>
+        <div class="inline" id="rangeRow">
+          <input id="range" type="number" min="1" value="1" class="input w-56" />
+        </div>
 
-            <div class="row-actions">
-                <button id="btnSave" class="btn primary">Save</button>
-                <button id="btnCancel" class="btn">Cancel</button>
-            </div>
-        </main>
+        <!-- Min -->
+        <div class="label">Min</div>
+        <div><input id="min" type="number" class="input w-120" /></div>
 
-        <script src="./addCh.js" defer></script>
-    </body>
+        <!-- Max -->
+        <div class="label">Max</div>
+        <div><input id="max" type="number" class="input w-120" /></div>
+
+        <!-- Alarm Low -->
+        <div class="label">Alarm Low</div>
+        <div class="inline">
+          <input id="alarmLowVal" type="number" class="input w-120" />
+          <label class="inline"><input id="alarmLow" type="checkbox" /> Enable</label>
+        </div>
+
+        <!-- Alarm High -->
+        <div class="label">Alarm High</div>
+        <div class="inline">
+          <input id="alarmHighVal" type="number" class="input w-120" />
+          <label class="inline"><input id="alarmHigh" type="checkbox" /> Enable</label>
+        </div>
+
+        <!-- Unit -->
+        <div class="label">Unit</div>
+        <div><input id="unit" class="input w-120" placeholder="°C, A, %" /></div>
+      </div>
+
+      <div class="row-actions">
+        <button id="btnSave" class="btn primary">Save</button>
+        <button id="btnCancel" class="btn">Cancel</button>
+      </div>
+    </main>
+
+    <script src="./addCh.js" defer></script>
+  </body>
 </html>

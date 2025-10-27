@@ -5,8 +5,114 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Advanced Settings</title>
-  <link rel="stylesheet" href="../assets/app.css" />
-  <link rel="stylesheet" href="./advanced.css" />
+  <link rel="stylesheet" href="../../assets/app.css" />
+  <style>
+    .wrap {
+      max-width: 860px;
+      margin: 16px auto;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 900;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mock-badge {
+      margin-left: auto;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #1f2937;
+      background: linear-gradient(#fde68a, #fcd34d);
+      border: 1px solid #f59e0b;
+    }
+
+    .card-body {
+      padding: 12px 18px 18px;
+    }
+
+    .group {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+
+    .group-title {
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+
+    .rows {
+      display: grid;
+      gap: 10px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .row.actions {
+      grid-template-columns: 1fr auto auto;
+      justify-content: end;
+    }
+
+    .row.actions .btn {
+      justify-self: end;
+    }
+
+    .value {
+      font-weight: 800;
+    }
+
+    .path {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .sel {
+      height: 42px;
+      min-width: 160px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    .table th,
+    .table td {
+      border: 1px solid #e5e7eb;
+      padding: 10px 12px;
+      white-space: nowrap;
+    }
+
+    .table thead th {
+      background: #f3f4f6;
+      font-weight: 800;
+    }
+  </style>
 </head>
 
 <body>
@@ -16,8 +122,9 @@
         Advanced Settings
         <span id="mockBadge" class="mock-badge">MOCK DATA</span>
       </div>
+
       <div class="card-body">
-        <!-- ① Machine Identifier (只展示 MAC) -->
+        <!-- Machine Identifier -->
         <div class="group">
           <div class="group-title">Machine Identifier</div>
           <div class="rows">
@@ -28,7 +135,7 @@
           </div>
         </div>
 
-        <!-- ② SDAQNet (CAN-IFs) bit-rate -->
+        <!-- SDAQNet (CAN-IFs) -->
         <div class="group">
           <div class="group-title">SDAQNet (CAN-IFs)</div>
           <div class="rows">
@@ -57,13 +164,13 @@
           </div>
         </div>
 
-        <!-- ③ ISOstandard 展示 -->
+        <!-- ISOstandard -->
         <div class="group">
           <div class="group-title">ISOstandard</div>
           <div class="rows">
             <div class="row">
               <label>Source</label>
-              <div class="value path" id="isoPath">advanced-settings/ISOstandard.xml</div>
+              <div class="value path" id="isoPath">ISOstandard.xml</div>
             </div>
             <div class="table-wrap">
               <table class="table" id="isoTable">
@@ -77,17 +184,18 @@
                     <th>MIN</th>
                   </tr>
                 </thead>
-                <tbody><!-- filled by JS --></tbody>
+                <tbody></tbody>
               </table>
             </div>
-            <div id="isoEmpty" class="muted" style="display:none;">No ISOstandard loaded (mock).</div>
+            <div id="isoEmpty" class="muted" style="display:none;">No ISOstandard loaded.</div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
 
+  <!-- Optional: include the original validator if you want to reuse it for local-file fallback -->
+  <!-- <script src="../../isoSTD_xml_file_validation.js"></script> -->
   <script src="./advanced.js"></script>
   <script>document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });</script>
 </body>

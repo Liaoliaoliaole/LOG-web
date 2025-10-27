@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Channel Calibration</title>
+    <link rel="stylesheet" href="../assets/app.css" />
+    <style>
+        .wrap {
+            max-width: 1080px;
+            margin: 16px auto;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden
+        }
+
+        .card-head {
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 900;
+            font-size: 20px
+        }
+
+        .card-body {
+            padding: 12px 18px 18px
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 10px 14px;
+            align-items: center;
+            margin-bottom: 12px
+        }
+
+        .label {
+            font-weight: 800
+        }
+
+        .input--w80 {
+            min-width: 80px;
+            width: 80px;
+            text-align: center
+        }
+
+        .input--w110 {
+            min-width: 110px;
+            width: 110px
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff
+        }
+
+        .table th,
+        .table td {
+            border: 1px solid #e5e7eb;
+            padding: 10px 12px;
+            white-space: nowrap;
+            text-align: left
+        }
+
+        .table thead th {
+            background: #f3f4f6;
+            font-weight: 800
+        }
+
+        .row-disabled {
+            background: #f9fafb;
+            opacity: .6
+        }
+
+        .row-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 12px
+        }
+
+        .note {
+            color: var(--muted);
+            font-size: 14px
+        }
+
+        .btn.small {
+            height: 34px;
+            padding: 0 10px
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="card">
+            <div class="card-head">Calibration</div>
+            <div class="card-body">
+
+                <!-- Channel & scope -->
+                <div class="grid">
+                    <div class="label">Channel</div>
+                    <div>
+                        <select id="chSel" class="input" style="height:42px;min-width:120px"></select>
+                    </div>
+
+                    <div class="label">Unit</div>
+                    <div>
+                        <input id="unitBox" class="input input--w110" placeholder="°C, A, V" />
+                    </div>
+
+                    <div class="label">Used Points</div>
+                    <div>
+                        <input id="usedPoints" type="number" min="1" value="2" class="input input--w80" />
+                        <span class="note">Only the first N rows are enabled.</span>
+                    </div>
+                </div>
+
+                <!-- Points table -->
+                <div class="table-wrap">
+                    <table class="table" id="calTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Measure</th>
+                                <th>Reference</th>
+                                <th>Offset</th>
+                                <th>Gain</th>
+                                <th>C2</th>
+                                <th>C3</th>
+                                <th style="text-align:center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody><!-- filled by JS --></tbody>
+                    </table>
+                </div>
+
+                <div class="row-actions">
+                    <button id="btnCalcAll" class="btn">Auto-calc (2-point)</button>
+                    <button id="btnSave" class="btn primary">Save</button>
+                    <button id="btnClose" class="btn">Close</button>
+                </div>
+
+                <div id="status" class="note" style="margin-top:8px"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./calibration.js"></script>
+    <script>
+        // ESC to close the popup
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });
+    </script>
+</body>
+
+</html>

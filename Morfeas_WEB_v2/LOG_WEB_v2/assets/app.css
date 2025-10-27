@@ -1,47 +1,61 @@
+/* =============================================================================
+ * Morfeas WEB — Base UI Theme
+ * -----------------------------------------------------------------------------
+ * Purpose: Shared visual system (colors, typography, components) for all pages.
+ * Notes  : Keep selectors stable; many popup pages import this file directly.
+ * ===========================================================================*/
+
+/* == 1) THEME TOKENS ======================================================= */
 :root {
+  /* Color tokens */
   --text: #111827;
   --muted: #6b7280;
   --border: #a2a6ae;
-  /* --border: #e5e7eb; */
+  /* softer border (can switch to #e5e7eb) */
   --bg: #ffffff;
   --bg-weak: #f8fafc;
 
-  /* 主按钮色：沿用 Active 蓝 */
+  /* Accent color (Active blue kept from legacy) */
   --s-active: #3498db;
   --accent: var(--s-active);
 
-  /* Status palette */
+  /* Status palette (aligns with legacy names) */
   --s-okay: #2ecc71;
   --s-stall: #f1c40f;
   --s-error: #e74c3c;
   --s-offline: #b6bec6;
 
-  /* 兼容旧类名（如有旧页面） */
+  /* Backward-compat aliases (older pages may still use them) */
   --s-idle: #1abc9c;
   --s-unknown: #95a5a6;
   --s-disabled: #b6bec6;
 
+  /* Misc tokens */
   --chip-fg: #4b5563;
-
-  /* 表格行态色 */
   --row-hover: #fff9db;
-  /* hover 较浅 */
+  /* hover color  (light)   */
   --row-selected: #ffe8a3;
-  /* 选中稍深 */
+  /* selected row (darker)  */
 
+  /* Sizing/typography */
   --radius: 14px;
   --h: 72px;
+  --btn-fz: 17px;
+  /* button label size */
   --fz: 16.5px;
+  /* base font size */
   --title: clamp(20px, 3vw, 28px);
+  /* responsive page title */
 }
 
+/* == 2) GLOBAL RESETS ====================================================== */
 * {
-  box-sizing: border-box
+  box-sizing: border-box;
 }
 
 html,
 body {
-  height: 100%
+  height: 100%;
 }
 
 body {
@@ -51,13 +65,13 @@ body {
   font: var(--fz)/1.55 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
 }
 
-/* ───── Topbar ───── */
+/* == 3) TOPBAR ============================================================= */
 .topbar {
   position: sticky;
   top: 0;
   z-index: 20;
   background: #fff;
-  border-bottom: 1px solid var(--border)
+  border-bottom: 1px solid var(--border);
 }
 
 .top-inner {
@@ -65,36 +79,37 @@ body {
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  flex-wrap: wrap
+  flex-wrap: wrap;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 260px
+  min-width: 260px;
 }
 
 .brand img {
   height: 54px;
   width: auto;
-  display: block
+  display: block;
 }
 
 .page-title {
   font-size: var(--title);
   font-weight: 900;
-  letter-spacing: .2px
+  letter-spacing: .2px;
 }
 
+/* Right side chips (info panel) */
 .info {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 280px;
   flex-wrap: wrap;
   margin-left: auto;
-  flex: 0 1 auto
+  min-width: 280px;
+  flex: 0 1 auto;
 }
 
 .chip {
@@ -106,15 +121,16 @@ body {
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--bg-weak);
+  color: var(--chip-fg);
   font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
-  color: var(--chip-fg)
 }
 
+/* Menu button + dropdown */
 .menu-wrap {
   margin-left: 0;
-  position: relative
+  position: relative;
 }
 
 .menu-btn {
@@ -126,18 +142,18 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  cursor: pointer
+  cursor: pointer;
 }
 
 .menu-btn:hover {
-  background: #f6f6f6
+  background: #f6f6f6;
 }
 
 .burger {
   width: 20px;
   height: 2px;
   background: #111;
-  position: relative
+  position: relative;
 }
 
 .burger::before,
@@ -147,15 +163,15 @@ body {
   left: 0;
   right: 0;
   height: 2px;
-  background: #111
+  background: #111;
 }
 
 .burger::before {
-  top: -7px
+  top: -7px;
 }
 
 .burger::after {
-  top: 7px
+  top: 7px;
 }
 
 .dropdown {
@@ -168,11 +184,11 @@ body {
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
   padding: 8px;
-  display: none
+  display: none;
 }
 
 .dropdown.open {
-  display: block
+  display: block;
 }
 
 .group {
@@ -180,7 +196,7 @@ body {
   color: #6b7280;
   padding: 8px 12px;
   text-transform: uppercase;
-  letter-spacing: .04em
+  letter-spacing: .04em;
 }
 
 .menu-item {
@@ -189,23 +205,23 @@ body {
   padding: 12px;
   border-radius: 12px;
   color: inherit;
-  text-decoration: none
+  text-decoration: none;
 }
 
 .menu-item:hover {
-  background: #fff9db
+  background: var(--row-hover);
 }
 
 .menu-sep {
   height: 1px;
   background: #e6e8ea;
-  margin: 6px 0
+  margin: 6px 0;
 }
 
-/* ───── Ticker ───── */
+/* == 4) TICKER (inside chip) ============================================== */
 .ticker {
   display: block;
-  overflow: hidden
+  overflow: hidden;
 }
 
 .ticker .track {
@@ -213,7 +229,7 @@ body {
   flex-direction: column;
   will-change: transform;
   transition: transform .35s ease;
-  margin: 0
+  margin: 0;
 }
 
 .ticker .item {
@@ -222,10 +238,10 @@ body {
   line-height: 1.2;
   padding: 0;
   margin: 0;
-  color: inherit
+  color: inherit;
 }
 
-/* ───── Toolbar ───── */
+/* == 5) TOOLBAR ============================================================ */
 .toolbar {
   display: flex;
   align-items: center;
@@ -233,44 +249,47 @@ body {
   padding: 12px;
   border-bottom: 1px solid var(--border);
   background: #fff;
-  flex-wrap: wrap
+  flex-wrap: wrap;
 }
 
 .input {
   height: 42px;
+  min-width: 380px;
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0 12px;
-  min-width: 380px
 }
 
 .btn {
   height: 42px;
+  padding: 0 14px;
+  cursor: pointer;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #fff;
-  padding: 0 14px;
-  cursor: pointer
+  font-size: var(--btn-fz);
+  line-height: 1;
+  font-weight: 600;
 }
 
 .btn.primary {
   background: var(--accent);
   color: #fff;
-  border-color: var(--accent)
+  border-color: var(--accent);
 }
 
-/* ───── Table ───── */
+/* == 6) TABLE ============================================================== */
 .table-wrap {
   overflow: auto;
   border-top: 1px solid var(--border);
-  background: #d1d5db
+  background: #d1d5db;
 }
 
 .table {
   width: 1620px;
   border-collapse: collapse;
   background: #f3f4f6;
-  table-layout: auto
+  table-layout: auto;
 }
 
 .table th,
@@ -279,22 +298,22 @@ body {
   padding: 12px 14px;
   white-space: nowrap;
   vertical-align: middle;
-  text-align: left
+  text-align: left;
 }
 
 .table thead th {
   position: sticky;
   top: 0;
   background: #eaecef;
-  font-weight: 800
+  font-weight: 800;
 }
 
-/* 列对齐：1=checkbox 2=# 居中；7=Value、10=Min、11=Max 右对齐 */
+/* Col alignment: (1)=checkbox, (2)=#, centered; (7)=Value, (10)=Min, (11)=Max right-aligned */
 .table th:nth-child(1),
 .table td:nth-child(1),
 .table th:nth-child(2),
 .table td:nth-child(2) {
-  text-align: center
+  text-align: center;
 }
 
 .table th:nth-child(7),
@@ -303,24 +322,24 @@ body {
 .table td:nth-child(10),
 .table th:nth-child(11),
 .table td:nth-child(11) {
-  text-align: right
+  text-align: right;
 }
 
-/* Status 列（第 3 列）：圆点与文字对齐 */
+/* Status column (3rd) — keep dot aligned with text baseline */
 .table td:nth-child(3) {
   display: flex;
   align-items: center;
   gap: 12px;
-  line-height: 1
+  line-height: 1;
 }
 
-/* 行态 */
+/* Row states */
 .row:hover {
-  background: var(--row-hover)
+  background: var(--row-hover);
 }
 
 .row.selected {
-  background: var(--row-selected)
+  background: var(--row-selected);
 }
 
 /* Status dots */
@@ -329,38 +348,38 @@ body {
   height: 30px;
   border-radius: 50%;
   display: inline-block;
-  border: 1px solid rgba(0, 0, 0, .15)
+  border: 1px solid rgba(0, 0, 0, .15);
 }
 
 .st-Okay {
-  background: var(--s-okay)
+  background: var(--s-okay);
 }
 
 .st-Stall {
-  background: var(--s-stall)
+  background: var(--s-stall);
 }
 
 .st-Error {
-  background: var(--s-error)
+  background: var(--s-error);
 }
 
 .st-Offline {
-  background: var(--s-offline)
+  background: var(--s-offline);
 }
 
 .st-Idle {
-  background: var(--s-idle)
+  background: var(--s-idle);
 }
 
 .st-Unknown {
-  background: var(--s-unknown)
+  background: var(--s-unknown);
 }
 
 .st-Disabled {
-  background: var(--s-disabled)
+  background: var(--s-disabled);
 }
 
-/* ───── Context menu ───── */
+/* == 7) CONTEXT MENU ======================================================= */
 .ctx {
   position: fixed;
   z-index: 60;
@@ -370,30 +389,30 @@ body {
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, .12);
   display: none;
-  padding: 6px
+  padding: 6px;
 }
 
 .ctx .item {
   padding: 10px 12px;
   border-radius: 10px;
-  cursor: pointer
+  cursor: pointer;
 }
 
 .ctx .item:hover {
-  background: #f6f6f6
+  background: #f6f6f6;
 }
 
-/* ───── Footer ───── */
+/* == 8) FOOTER ============================================================= */
 .footer {
   padding: 12px 14px;
   border-top: 1px solid var(--border);
   color: var(--muted);
-  font-size: 15px
+  font-size: 15px;
 }
 
-/* ───── Responsive ───── */
-@media (max-width:920px) {
+/* == 9) RESPONSIVE TWEAKS ================================================= */
+@media (max-width: 920px) {
   .menu-wrap {
-    width: 100%
+    width: 100%;
   }
 }

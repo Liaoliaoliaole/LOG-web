@@ -1,43 +1,149 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Add Devices</title>
-  <link rel="stylesheet" href="../assets/app.css" />
+
+  <!-- Shared site theme -->
+  <link rel="stylesheet" href="../../assets/app.css" />
+
   <style>
-    .wrap { max-width: 880px; margin: 16px auto; }
-    .card { background:#fff; border:1px solid var(--border); border-radius:14px; overflow:hidden; }
-    .card-head { padding:14px 16px; border-bottom:1px solid var(--border); font-weight:900; font-size:20px; }
-    .card-body { padding:12px 16px 16px; }
+    /* Local layout; visuals come from the shared theme */
+    .wrap {
+      max-width: 880px;
+      margin: 16px auto;
+    }
 
-    .toolbar-mini { display:flex; gap:10px; align-items:center; margin-bottom:10px; }
-    .toolbar-mini .btn { height:36px; }
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
 
-    .table { width:100%; background:#fff; }
-    .table thead th { background:#f3f4f6; font-weight:800; }
-    .table th, .table td { padding:10px 12px; border:1px solid #e5e7eb; white-space:nowrap; }
-    .table td:nth-child(1), .table th:nth-child(1) { text-align:center; width:48px; }
-    .table td:nth-child(2), .table th:nth-child(2) { text-align:center; width:64px; }
-    .table .row:hover { background:var(--row-hover); }
-    .table .row.selected { background:var(--row-selected); }
+    .card-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 900;
+      font-size: 20px;
+    }
 
-    .grid { width:100%; border-collapse:collapse; }
-    .grid th, .grid td { border-bottom:1px solid #eef0f3; padding:10px 8px; vertical-align:middle; white-space:nowrap; }
-    .label { width:240px; font-weight:800; }
-    .input { min-width:100px; }
+    .card-body {
+      padding: 12px 16px 16px;
+    }
 
-    .actions { display:flex; gap:10px; justify-content:flex-end; margin-top:10px; }
+    .toolbar-mini {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
 
-    /* 小号状态点（沿用主站色） */
-    .dot { width:12px; height:12px; border-radius:50%; display:inline-block; margin-right:6px; border:1px solid rgba(0,0,0,.12); }
-    .st-Okay{background:var(--s-okay)} .st-Stall{background:var(--s-stall)}
-    .st-Error{background:var(--s-error)} .st-Offline{background:var(--s-unknown)}
+    .toolbar-mini .btn {
+      height: 36px;
+    }
+
+    .table {
+      width: 100%;
+      background: #fff;
+    }
+
+    .table thead th {
+      background: #f3f4f6;
+      font-weight: 800;
+    }
+
+    .table th,
+    .table td {
+      padding: 10px 12px;
+      border: 1px solid #e5e7eb;
+      white-space: nowrap;
+    }
+
+    .table td:nth-child(1),
+    .table th:nth-child(1) {
+      text-align: center;
+      width: 48px;
+    }
+
+    .table td:nth-child(2),
+    .table th:nth-child(2) {
+      text-align: center;
+      width: 64px;
+    }
+
+    .table .row:hover {
+      background: var(--row-hover);
+    }
+
+    .table .row.selected {
+      background: var(--row-selected);
+    }
+
+    .grid {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .grid th,
+    .grid td {
+      border-bottom: 1px solid #eef0f3;
+      padding: 10px 8px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .label {
+      width: 240px;
+      font-weight: 800;
+    }
+
+    .input {
+      min-width: 100px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 10px;
+    }
+
+    /* Small status dots (reusing main palette) */
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      border: 1px solid rgba(0, 0, 0, .12);
+    }
+
+    .st-Okay {
+      background: var(--s-okay)
+    }
+
+    .st-Stall {
+      background: var(--s-stall)
+    }
+
+    .st-Error {
+      background: var(--s-error)
+    }
+
+    .st-Offline {
+      background: var(--s-unknown)
+    }
   </style>
 </head>
+
 <body>
   <div class="wrap">
-    <!-- 设备表（保存后追加到这里） -->
+    <!-- ================================================================
+           1) DEVICES TABLE (items appear here after Save)
+           ================================================================ -->
     <div class="card">
       <div class="card-head">Devices</div>
       <div class="card-body">
@@ -49,10 +155,10 @@
         </div>
 
         <div class="table-wrap" style="background:#fff;border:1px solid var(--border);">
-          <table class="table" id="devTable">
+          <table class="table" id="devTable" aria-label="Added devices">
             <thead>
               <tr>
-                <th><input id="mchk" type="checkbox" /></th>
+                <th><input id="mchk" type="checkbox" aria-label="Select all rows" /></th>
                 <th>#</th>
                 <th>Bus</th>
                 <th>Type</th>
@@ -66,9 +172,11 @@
       </div>
     </div>
 
-    <!-- Add 表单：默认隐藏，仅点击 Add… 时显示 -->
-    <div id="propCard" class="card" style="margin-top:14px; display:none;">
-      <div class="card-head">Add Device</div>
+    <!-- ================================================================
+           2) ADD FORM (hidden until “Add…” is clicked)
+           ================================================================ -->
+    <div id="propCard" class="card" style="margin-top:14px;display:none;">
+      <div class="card-head">Add Device — Type & Properties</div>
       <div class="card-body">
         <table class="grid">
           <tbody>
@@ -116,9 +224,12 @@
     </div>
   </div>
 
-  <script src="./adddev.js"></script>
+  <!-- Scripts -->
+  <script src="./devices.js"></script>
   <script>
+    // Close this popup with ESC (consistent with other popups)
     document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });
   </script>
 </body>
+
 </html>

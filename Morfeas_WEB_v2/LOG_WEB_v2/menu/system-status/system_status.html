@@ -1,12 +1,130 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>System Status</title>
-  <link rel="stylesheet" href="../assets/app.css"/>
-  <link rel="stylesheet" href="./status.css"/>
+
+  <!-- Shared site theme -->
+  <link rel="stylesheet" href="../../assets/app.css" />
+
+  <style>
+    /* =========================================================================
+       * Local layout (popup-sized card). Visuals inherit from the shared theme.
+       * ========================================================================= */
+    .wrap {
+      max-width: 860px;
+      margin: 16px auto;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 900;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mock-badge {
+      margin-left: auto;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #1f2937;
+      background: linear-gradient(#fde68a, #fcd34d);
+      border: 1px solid #f59e0b;
+    }
+
+    .card-body {
+      padding: 12px 18px 18px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.show {
+      display: block;
+    }
+
+    /* Details grid: two columns on wide screens */
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    @media (min-width: 720px) {
+      .stack {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* Table visuals (aligned with homepage) */
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    .table th,
+    .table td {
+      border: 1px solid #e5e7eb;
+      padding: 10px 12px;
+      white-space: nowrap;
+    }
+
+    .table thead th {
+      background: #f3f4f6;
+      font-weight: 800;
+    }
+
+    /* Logs */
+    .logs-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .label {
+      width: 120px;
+      font-weight: 800;
+    }
+
+    .terminal {
+      background: #0b1020;
+      color: #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 300px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+  </style>
 </head>
+
 <body>
   <div class="wrap">
     <div class="card">
@@ -14,22 +132,24 @@
         System Status
         <span id="mockBadge" class="mock-badge" hidden>MOCK DATA</span>
       </div>
+
       <div class="card-body">
-        <div class="tabs">
-          <button class="tab btn primary" data-tab="details">Details</button>
-          <button class="tab btn" data-tab="logs">System logs</button>
+        <!-- Tabs -->
+        <div class="tabs" role="tablist" aria-label="System status tabs">
+          <button class="tab btn primary" data-tab="details" role="tab" aria-selected="true">Details</button>
+          <button class="tab btn" data-tab="logs" role="tab" aria-selected="false">System logs</button>
         </div>
 
-        <!-- Details（已合并 Bus 字段到表格内） -->
-        <section id="panel-details" class="panel show">
+        <!-- Details (BUS-related metrics are merged into the table) -->
+        <section id="panel-details" class="panel show" role="tabpanel" aria-labelledby="details">
           <div id="detailsWrap" class="stack"></div>
         </section>
 
-        <!-- System logs（占位） -->
-        <section id="panel-logs" class="panel">
+        <!-- System logs (placeholder) -->
+        <section id="panel-logs" class="panel" role="tabpanel" aria-labelledby="logs" aria-live="polite">
           <div class="logs-bar">
-            <label class="label">Logger</label>
-            <select id="loggerSelect" class="input">
+            <label class="label" for="loggerSelect">Logger</label>
+            <select id="loggerSelect" class="input" aria-label="Log file">
               <option value="">system.log</option>
               <option>opcua.log</option>
               <option>sdaq0.log</option>
@@ -42,9 +162,12 @@
     </div>
   </div>
 
+  <!-- Scripts -->
   <script src="./status.js"></script>
   <script>
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });
+    // Close popup with ESC (consistent with other popups)
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.close(); });
   </script>
 </body>
+
 </html>

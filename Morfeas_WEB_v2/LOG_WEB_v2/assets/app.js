@@ -386,13 +386,20 @@
       const action = item.dataset.action;
       switch (action) {
         case 'edit':
-          alert('Edit (placeholder)');
+          const rowData = {/* build from the selected row */};
+          const win = openCenteredPopup('linker-table/edit_channel.html', 'edit_channel_popup', {width: 880, height: 820});
+          if (win) { win.name = JSON.stringify(rowData); }
           break;
         case 'scale':
           alert('Scale (placeholder)');
           break;
         case 'calibration':
-          alert('Calibration(placeholder)');
+          const tr = selectedRows()[0];                            // your helper to get the first selected row
+          const conn = tr?.querySelector('td:nth-child(6)')?.textContent || '';
+          const match = conn.match(/CH:(\d+)/i);
+          const ch = match ? match[1] : 1;
+          openCenteredPopup('linker-table/calibration.html?ch=' + ch + '&unit=%C&points=8',
+                            'calibration_popup', { width: 1280, height: 1080 });
           break;
         case 'delete':
           deleteSelectedRows();

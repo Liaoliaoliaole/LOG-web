@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Edit Link</title>
+
+    <!-- Use the same theme as the main page -->
+    <link rel="stylesheet" href="../assets/app.css" />
+
+    <style>
+        /* Dialog shell */
+        .dialog {
+            max-width: 880px;
+            margin: 24px auto;
+            padding: 20px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, .08);
+        }
+
+        h1 {
+            margin: 0 0 14px;
+            font-size: clamp(24px, 2.6vw, 30px);
+            font-weight: 900
+        }
+
+        /* Top “status” strip (same tone as other popups) */
+        .statusbar {
+            margin: 10px 0 16px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-weak);
+            font-weight: 700;
+        }
+
+        /* 2-column form grid */
+        .formgrid {
+            display: grid !important;
+            grid-template-columns: 220px 1fr;
+            gap: 14px 16px;
+            align-items: center;
+        }
+
+        .label {
+            font-weight: 700
+        }
+
+        .inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .row-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 18px
+        }
+
+        .w-92 {
+            width: 92px
+        }
+
+        .w-120 {
+            width: 120px
+        }
+
+        /* Make read-only fields visually consistent with disabled look */
+        .ro {
+            background: var(--bg-weak) !important;
+            color: var(--muted) !important;
+            pointer-events: none;
+            /* prevent caret/focus */
+        }
+
+        /* Tighten small inputs used beside checkboxes */
+        .num {
+            width: 140px;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="dialog">
+        <h1>Edit Link</h1>
+
+        <!-- Live validation / operation feedback -->
+        <div id="status" class="statusbar">Review and update fields, then Save.</div>
+
+        <div class="formgrid" id="formGrid">
+
+            <!-- Type (read-only like the original) -->
+            <div class="label">Type</div>
+            <div><input id="type" class="input ro" readonly /></div>
+
+            <!-- Sensor Path (read-only) -->
+            <div class="label">Sensor's Path</div>
+            <div class="inline">
+                <input id="path" class="input ro" readonly />
+                <button class="btn" title="Search" disabled>🔍</button>
+            </div>
+
+            <!-- ISO Code (read-only, underscore kept to match the legacy UI) -->
+            <div class="label">ISO Code</div>
+            <div class="inline">
+                <input id="iso" class="input ro w-120" readonly />
+            </div>
+
+            <!-- Description -->
+            <div class="label">Description</div>
+            <div><input id="desc" class="input" placeholder="Description" /></div>
+
+            <!-- Min -->
+            <div class="label">Min</div>
+            <div><input id="min" type="number" class="input num" /></div>
+
+            <!-- Max -->
+            <div class="label">Max</div>
+            <div><input id="max" type="number" class="input num" /></div>
+
+            <!-- Alarm Low -->
+            <div class="label">Alarm Low</div>
+            <div class="inline">
+                <input id="alarmLowVal" type="number" class="input num" />
+                <label class="inline">
+                    <input id="alarmLow" type="checkbox" /> Enable
+                </label>
+            </div>
+
+            <!-- Alarm High -->
+            <div class="label">Alarm High</div>
+            <div class="inline">
+                <input id="alarmHighVal" type="number" class="input num" />
+                <label class="inline">
+                    <input id="alarmHigh" type="checkbox" /> Enable
+                </label>
+            </div>
+
+            <!-- Unit -->
+            <div class="label">Unit</div>
+            <div><input id="unit" class="input w-120" placeholder="°C, A, %" /></div>
+        </div>
+
+        <div class="row-actions">
+            <button id="btnSave" class="btn primary">Save</button>
+            <button id="btnCancel" class="btn">Cancel</button>
+        </div>
+    </main>
+
+    <script src="./editCh.js" defer></script>
+</body>
+
+</html>
