@@ -255,6 +255,7 @@ body {
 .input {
   height: 42px;
   min-width: 380px;
+  font-size: var(--fz);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0 12px;
