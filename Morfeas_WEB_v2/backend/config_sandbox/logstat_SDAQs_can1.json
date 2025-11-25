@@ -1,0 +1,330 @@
+{
+  "logstat_build_date_UNIX": 1763984183,
+  "CANBus_interface": "can1",
+  "Electrics": {
+    "Last_calibration_UNIX": 1583964000,
+    "BUS_voltage": 24.2293701171875,
+    "BUS_amperage": 0.0700572580099106,
+    "BUS_Shunt_Res_temp": 103.71199798583984
+  },
+  "BUS_Utilization": 1.7639795541763306,
+  "BUS_Error_rate": 0,
+  "Detected_SDAQs": 1,
+  "Incomplete_SDAQs": 0,
+  "SDAQs_data": [
+    {
+      "Last_seen_UNIX": 1763984183,
+      "Address": 1,
+      "Serial_number": 647704140,
+      "SDAQ_type": "SDAQ-I",
+      "Timediff": 0,
+      "SDAQ_Status": {
+        "SDAQ_status_val": 3,
+        "In_sync": true,
+        "Error": false,
+        "State": "Measuring",
+        "Mode": "Normal",
+        "Registration_status": "Done"
+      },
+      "SDAQ_info": {
+        "firm_rev": 4,
+        "hw_rev": 2,
+        "Number_of_channels": 13,
+        "Sample_rate": 10,
+        "Max_cal_point": 16
+      },
+      "Calibration_Data": [
+        {
+          "Channel": 1,
+          "Calibration_date_UNIX": 1704060000,
+          "Calibration_period": 12,
+          "Amount_of_points": 0,
+          "Unit": "mA",
+          "Is_calibrated": false,
+          "Unit_code": 29
+        },
+        {
+          "Channel": 2,
+          "Calibration_date_UNIX": 1704060000,
+          "Calibration_period": 24,
+          "Amount_of_points": 0,
+          "Unit": "mA",
+          "Is_calibrated": true,
+          "Unit_code": 29
+        },
+        {
+          "Channel": 3,
+          "Calibration_date_UNIX": 1580511600,
+          "Calibration_period": 6,
+          "Amount_of_points": 0,
+          "Unit": "mA",
+          "Is_calibrated": true,
+          "Unit_code": 29
+        },
+        {
+          "Channel": 4,
+          "Calibration_date_UNIX": 1580511600,
+          "Calibration_period": 6,
+          "Amount_of_points": 0,
+          "Unit": "mA",
+          "Is_calibrated": false,
+          "Unit_code": 29
+        },
+        {
+          "Channel": 5,
+          "Calibration_date_UNIX": 1580511600,
+          "Calibration_period": 6,
+          "Amount_of_points": 0,
+          "Unit": "mA",
+          "Is_calibrated": false,
+          "Unit_code": 29
+        },
+        {
+          "Channel": 6,
+          "Calibration_date_UNIX": 1580511600,
+          "Calibration_period": 6,
+          "Amount_of_points": 0,
+          "Unit": "mA",
+          "Is_calibrated": false,
+          "Unit_code": 29
+        },
+        {
+          "Channel": 7,
+          "Calibration_date_UNIX": 1580511600,
+          "Calibration_period": 6,
+          "Amount_of_points": 0,
+          "Unit": "mA",
+          "Is_calibrated": false,
+          "Unit_code": 29
+        },
+        {
+          "Channel": 8,
+          "Calibration_date_UNIX": 1580511600,
+          "Calibration_period": 6,
+          "Amount_of_points": 0,
+          "Unit": "mA",
+          "Is_calibrated": false,
+          "Unit_code": 29
+        },
+        {
+          "Channel": 10,
+          "Calibration_date_UNIX": 1704060000,
+          "Calibration_period": 12,
+          "Amount_of_points": 0,
+          "Unit": "mA",
+          "Is_calibrated": false,
+          "Unit_code": 29
+        },
+        {
+          "Channel": 11,
+          "Calibration_date_UNIX": 1704060000,
+          "Calibration_period": 12,
+          "Amount_of_points": 0,
+          "Unit": "mA",
+          "Is_calibrated": false,
+          "Unit_code": 29
+        },
+        {
+          "Channel": 12,
+          "Calibration_date_UNIX": 1704060000,
+          "Calibration_period": 0,
+          "Amount_of_points": 0,
+          "Unit": "mA",
+          "Is_calibrated": false,
+          "Unit_code": 29
+        },
+        {
+          "Channel": 13,
+          "Calibration_date_UNIX": 0,
+          "Calibration_period": 12,
+          "Amount_of_points": 0,
+          "Unit": "mA",
+          "Is_calibrated": false,
+          "Unit_code": 29
+        }
+      ],
+      "Meas": [
+        {
+          "Channel": 1,
+          "Channel_Status": {
+            "Channel_status_val": 0,
+            "Out_of_Range": false,
+            "No_Sensor": false,
+            "Over_Range": false
+          },
+          "Unit": "mA",
+          "CNT": 10,
+          "Meas_avg": 4.0,
+          "Meas_max": 4.05,
+          "Meas_min": 3.95,
+          "Last_Meas": 4.0
+        },
+        {
+          "Channel": 2,
+          "Channel_Status": {
+            "Channel_status_val": 0,
+            "Out_of_Range": false,
+            "No_Sensor": false,
+            "Over_Range": false
+          },
+          "Unit": "mA",
+          "CNT": 10,
+          "Meas_avg": 8.0,
+          "Meas_max": 8.05,
+          "Meas_min": 7.95,
+          "Last_Meas": 8.0
+        },
+        {
+          "Channel": 3,
+          "Channel_Status": {
+            "Channel_status_val": 0,
+            "Out_of_Range": false,
+            "No_Sensor": false,
+            "Over_Range": false
+          },
+          "Unit": "mA",
+          "CNT": 10,
+          "Meas_avg": 12.0,
+          "Meas_max": 12.05,
+          "Meas_min": 11.95,
+          "Last_Meas": 12.0
+        },
+        {
+          "Channel": 4,
+          "Channel_Status": {
+            "Channel_status_val": 0,
+            "Out_of_Range": false,
+            "No_Sensor": false,
+            "Over_Range": false
+          },
+          "Unit": "mA",
+          "CNT": 0,
+          "Meas_avg": 0.0,
+          "Meas_max": 0.0,
+          "Meas_min": 0.0,
+          "Last_Meas": 0.0
+        },
+        {
+          "Channel": 5,
+          "Channel_Status": {
+            "Channel_status_val": 2,
+            "Out_of_Range": true,
+            "No_Sensor": false,
+            "Over_Range": false
+          },
+          "Unit": "mA",
+          "CNT": 10,
+          "Meas_avg": 0.5,
+          "Meas_max": 0.6,
+          "Meas_min": 0.4,
+          "Last_Meas": 0.5
+        },
+        {
+          "Channel": 6,
+          "Channel_Status": {
+            "Channel_status_val": 2,
+            "Out_of_Range": false,
+            "No_Sensor": false,
+            "Over_Range": true
+          },
+          "Unit": "mA",
+          "CNT": 10,
+          "Meas_avg": 25.0,
+          "Meas_max": 25.1,
+          "Meas_min": 24.9,
+          "Last_Meas": 25.0
+        },
+        {
+          "Channel": 7,
+          "Channel_Status": {
+            "Channel_status_val": 1,
+            "Out_of_Range": false,
+            "No_Sensor": true,
+            "Over_Range": false
+          },
+          "Unit": "mA",
+          "CNT": 10,
+          "Meas_avg": null,
+          "Meas_max": null,
+          "Meas_min": null,
+          "Last_Meas": null
+        },
+        {
+          "Channel": 8,
+          "Channel_Status": {
+            "Channel_status_val": 1,
+            "Out_of_Range": false,
+            "No_Sensor": false,
+            "Over_Range": false
+          },
+          "Unit": "mA",
+          "CNT": 10,
+          "Meas_avg": 1.23,
+          "Meas_max": 1.30,
+          "Meas_min": 1.20,
+          "Last_Meas": 1.23
+        },
+        {
+          "Channel": 10,
+          "Channel_Status": {
+            "Channel_status_val": 0,
+            "Out_of_Range": false,
+            "No_Sensor": false,
+            "Over_Range": false
+          },
+          "Unit": "mA",
+          "CNT": 10,
+          "Meas_avg": 15.0,
+          "Meas_max": 15.1,
+          "Meas_min": 14.9,
+          "Last_Meas": 15.0
+        },
+        {
+          "Channel": 11,
+          "Channel_Status": {
+            "Channel_status_val": 0,
+            "Out_of_Range": false,
+            "No_Sensor": false,
+            "Over_Range": false
+          },
+          "Unit": "mA",
+          "CNT": 10,
+          "Meas_avg": 5.5,
+          "Meas_max": 5.6,
+          "Meas_min": 5.4,
+          "Last_Meas": 5.5
+        },
+        {
+          "Channel": 12,
+          "Channel_Status": {
+            "Channel_status_val": 0,
+            "Out_of_Range": false,
+            "No_Sensor": false,
+            "Over_Range": false
+          },
+          "Unit": "mA",
+          "CNT": 10,
+          "Meas_avg": 6.6,
+          "Meas_max": 6.7,
+          "Meas_min": 6.5,
+          "Last_Meas": 6.6
+        },
+        {
+          "Channel": 13,
+          "Channel_Status": {
+            "Channel_status_val": 0,
+            "Out_of_Range": false,
+            "No_Sensor": false,
+            "Over_Range": false
+          },
+          "Unit": "mA",
+          "CNT": 10,
+          "Meas_avg": 7.7,
+          "Meas_max": 7.8,
+          "Meas_min": 7.6,
+          "Last_Meas": 7.7
+        }
+      ]
+    }
+  ]
+}

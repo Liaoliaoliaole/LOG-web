@@ -1,0 +1,38 @@
+{
+  "logstat_build_date_UNIX": 1763984183,
+  "dev_name": "IOBOX_A",
+  "IP_address": "192.168.0.10",
+  "Electrics": {
+    "Supply_voltage": 24.0,
+    "Board_temperature": 35.0
+  },
+  "channels": [
+    {
+      "anchor": "IOBOX_A.RX1.CH:01",
+      "name": "IOBOX_OK",
+      "Unit": "°C",
+      "CNT": 10,
+      "meas_value": 23.5,
+      "No_sensor": false,
+      "Disconnected": false
+    },
+    {
+      "anchor": "IOBOX_A.RX1.CH:02",
+      "name": "IOBOX_NO_SENSOR",
+      "Unit": "°C",
+      "CNT": 10,
+      "meas_value": null,
+      "No_sensor": true,
+      "Disconnected": false
+    },
+    {
+      "anchor": "IOBOX_A.RX2.CH:01",
+      "name": "IOBOX_DISCONNECTED",
+      "Unit": "°C",
+      "CNT": 0,
+      "meas_value": null,
+      "No_sensor": false,
+      "Disconnected": true
+    }
+  ]
+}

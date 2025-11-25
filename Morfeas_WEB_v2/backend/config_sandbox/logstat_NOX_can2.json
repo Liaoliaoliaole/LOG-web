@@ -1,0 +1,33 @@
+{
+  "logstat_build_date_UNIX": 1763984183,
+  "CANBus_interface": "can2",
+  "sensors": [
+    {
+      "Address": 1,
+      "anchor": "CAN2.ADDR:01.NOx",
+      "name": "NOX_OK",
+      "is_meas_valid": true,
+      "NOx_ppm": 120.5,
+      "O2_percent": 4.3,
+      "Error_text": "No error"
+    },
+    {
+      "Address": 2,
+      "anchor": "CAN2.ADDR:02.NOx",
+      "name": "NOX_OPEN_WIRE",
+      "is_meas_valid": false,
+      "NOx_ppm": null,
+      "O2_percent": null,
+      "Error_text": "Open Wire"
+    },
+    {
+      "Address": 3,
+      "anchor": "CAN2.ADDR:03.NOx",
+      "name": "NOX_SHORT_CIRCUIT",
+      "is_meas_valid": false,
+      "NOx_ppm": null,
+      "O2_percent": null,
+      "Error_text": "Short circuit"
+    }
+  ]
+}

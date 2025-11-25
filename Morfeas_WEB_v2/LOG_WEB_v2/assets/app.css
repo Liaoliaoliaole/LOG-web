@@ -24,6 +24,7 @@
   --s-stall: #f1c40f;
   --s-error: #e74c3c;
   --s-offline: #b6bec6;
+  --s-unlink: #ffffff;
 
   /* Backward-compat aliases (older pages may still use them) */
   --s-idle: #1abc9c;
@@ -309,7 +310,7 @@ body {
   font-weight: 800;
 }
 
-/* Col alignment: (1)=checkbox, (2)=#, centered; (7)=Value, (10)=Min, (11)=Max right-aligned */
+/* Col alignment: (1)=checkbox, (2)=#, centered; (8)=Value, (11)=Min, (12)=Max right-aligned */
 .table th:nth-child(1),
 .table td:nth-child(1),
 .table th:nth-child(2),
@@ -317,20 +318,20 @@ body {
   text-align: center;
 }
 
-.table th:nth-child(7),
-.table td:nth-child(7),
-.table th:nth-child(10),
-.table td:nth-child(10),
+.table th:nth-child(8),
+.table td:nth-child(8),
 .table th:nth-child(11),
-.table td:nth-child(11) {
+.table td:nth-child(11),
+.table th:nth-child(12),
+.table td:nth-child(12) {
   text-align: right;
 }
 
-/* Status column (3rd) — keep dot aligned with text baseline */
+/* Color column (3rd) — keep dot centered */
 .table td:nth-child(3) {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
   line-height: 1;
 }
 
@@ -368,6 +369,10 @@ body {
   background: var(--s-offline);
 }
 
+.st-Unlinked {
+  background: var(--s-unlink);
+}
+
 .st-Idle {
   background: var(--s-idle);
 }
@@ -378,6 +383,57 @@ body {
 
 .st-Disabled {
   background: var(--s-disabled);
+}
+
+/* Column filter headers (Status / Type) */
+th.th-filterable {
+  position: relative;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+th.th-filterable .filter-icon {
+  font-size: 10px;
+  margin-left: 4px;
+  color: var(--muted);
+}
+
+/* Dropdown menu for column filters */
+.col-filter-menu {
+  position: absolute;
+  z-index: 40;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
+  padding: 4px 0;
+}
+
+.col-filter-menu-body {
+  max-height: 260px;
+  overflow: auto;
+}
+
+.col-filter-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 4px 12px;
+  background: transparent;
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.col-filter-item:hover,
+.col-filter-item.active {
+  background: var(--bg-weak);
+}
+
+/* Next Calibration expired background */
+td.calib-expired {
+  background: #fed7aa;
 }
 
 /* == 7) CONTEXT MENU ======================================================= */

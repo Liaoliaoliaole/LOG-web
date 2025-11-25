@@ -7,62 +7,57 @@
 
     /* =======================================================================
      * 0) CONSTANTS & LIGHT HELPERS
-     * =======================================================================
-     */
+     * ======================================================================= */
 
-    /** Base path for linking back to original pages (unchanged) */
     const ORIG_BASE_PATH = window.ORIG_BASE_PATH || '../LOG_WEB_v2';
 
-    /** Query helpers kept minimal to avoid dependencies */
     const $  = (sel, root = document) => root.querySelector(sel);
     const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
     /* =======================================================================
      * 1) DOM REFERENCES
-     * =======================================================================
-     */
+     * ======================================================================= */
 
-    // Menu elements
     const menuBtn  = $('#menuBtn');
     const dropdown = $('#mainMenu');
 
-    // Ticker elements
     const ticker = $('.ticker');
     const track  = ticker ? ticker.querySelector('.track') : null;
 
-    // Search box
     const searchInput = $('#searchInput');
     const searchBtn   = $('#searchBtn');
 
-    // Table selection
     const master = $('#masterCheck');
     const tbody  = $('tbody');
 
-    // Context menu
+    const API_ISO = '/backend/api_iso.php';
+
     const ctx = $('#ctx');
 
-    // Toolbar buttons
     const addBtn    = $('#addBtn');
     const importBtn = $('#importBtn');
 
+    let currentSearch = '';
+    const columnFilters = {
+      status: null,
+      type: null
+    };
+    let openFilterMenu = null;
+
     /* =======================================================================
      * 2) GENERIC UTILITIES (SELECTION, POPUPS, ETC.)
-     * =======================================================================
-     */
+     * ======================================================================= */
 
-    /** Return all visible row checkboxes (only visible rows) */
     const rowChecks = () =>
       $$('tbody input[type="checkbox"]').filter(
         (c) => c.closest('tr').style.display !== 'none'
       );
 
-    /** Get selected row <tr> elements */
     const selectedRows = () =>
       rowChecks()
         .map((c) => c.closest('tr'))
         .filter((tr) => tr && tr.querySelector('input[type="checkbox"]').checked);
 
-    /** Toggle .selected class for rows based on their checkbox state */
     function syncRowSelectedClass() {
       $$('tbody tr').forEach((tr) => {
         const cb = tr.querySelector('input[type="checkbox"]');
@@ -70,7 +65,6 @@
       });
     }
 
-    /** Update the “select all” master checkbox state and row highlighting */
     function updateMasterCheckbox() {
       const checks = rowChecks();
       const countChecked = checks.filter((c) => c.checked).length;
@@ -91,7 +85,6 @@
       syncRowSelectedClass();
     }
 
-    /* ───────── Delete helpers ───────── */
     function canUseGlobalDelete(e) {
       const el = document.activeElement;
       if (!el) return true;
@@ -105,7 +98,6 @@
       );
     }
 
-    // Remove selected rows from the DOM (MOCK)
     function deleteSelectedRows() {
       const rows = selectedRows();
       if (!rows.length) return;
@@ -118,7 +110,6 @@
       hideCtx && hideCtx();
     }
 
-    /** Visible data rows (for shift-range selection) */
     function visibleRows() {
       if (!tbody) return [];
       return $$('.row', tbody).filter((r) => r.style.display !== 'none');
@@ -126,10 +117,8 @@
 
     /* =======================================================================
      * 3) MENU (OPEN/CLOSE)
-     * =======================================================================
-     */
+     * ======================================================================= */
 
-    /* ───────── Menu ───────── */
     const openMenu = () => {
       dropdown?.classList.add('open');
       menuBtn?.setAttribute('aria-expanded', 'true');
@@ -140,6 +129,14 @@
       menuBtn?.setAttribute('aria-expanded', 'false');
     };
 
+    function closeFilterMenu() {
+      if (!openFilterMenu) return;
+      if (openFilterMenu.parentNode) {
+        openFilterMenu.parentNode.removeChild(openFilterMenu);
+      }
+      openFilterMenu = null;
+    }
+
     menuBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       if (!dropdown) return;
@@ -147,20 +144,25 @@
     });
 
     document.addEventListener('click', (e) => {
-      if (dropdown && !dropdown.contains(e.target) && e.target !== menuBtn) closeMenu();
+      if (dropdown && !dropdown.contains(e.target) && e.target !== menuBtn) {
+        closeMenu();
+      }
+      if (openFilterMenu && !openFilterMenu.contains(e.target)) {
+        closeFilterMenu();
+      }
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeMenu();
+      if (e.key === 'Escape') {
+        closeMenu();
+        closeFilterMenu();
+      }
     });
 
     /* =======================================================================
      * 4) TICKER (MOCK DATA SCROLLER)
-     * =======================================================================
-     */
+     * ======================================================================= */
 
-    /* ───────── Ticker ───────── */
-    // MOCK Demo items (remove when wired to backend)
     if (track && track.children.length === 0) {
       [
         'MOCK DATA',
@@ -181,10 +183,8 @@
       const first = track.children[0];
       const ITEM_H = Math.max(1, Math.round(first.getBoundingClientRect().height));
 
-      // Show exactly one full item
       ticker.style.height = ITEM_H + 'px';
 
-      // Ensure chip can contain the ticker line-height
       const chip = ticker.closest('.chip');
       if (chip) {
         const cs = getComputedStyle(chip);
@@ -207,22 +207,44 @@
     }
 
     /* =======================================================================
-     * 5) SEARCH (FILTER TABLE ROWS)
-     * =======================================================================
-     */
+     * 5) SEARCH + COLUMN FILTERS + NEXT CALIBRATION COLOR
+     * ======================================================================= */
 
-    /* ───────── Search ───────── */
-    /* All <tr> rows under the <tbody> tag in the page.
-       The entire text content of each row (including all <td> columns).
-       The search is not case-insensitive.
-       If the search box is empty, all rows are shown; otherwise, only rows containing the keyword are displayed. */
-    function filterTable(query) {
-      const q = (query || '').trim().toLowerCase();
+    function getCellText(tr, key) {
+      const cell = tr.querySelector('td[data-col="' + key + '"]');
+      return cell ? cell.textContent.trim().toLowerCase() : '';
+    }
+
+    function updateRowVisibility() {
+      const q = (currentSearch || '').trim().toLowerCase();
+
       $$('tbody tr').forEach((tr) => {
-        const hit = q === '' ? true : tr.textContent.toLowerCase().includes(q);
-        tr.style.display = hit ? '' : 'none';
+        let visible = true;
+
+        if (q) {
+          const rowText = tr.textContent.toLowerCase();
+          if (!rowText.includes(q)) visible = false;
+        }
+
+        if (visible && columnFilters.status) {
+          const st = getCellText(tr, 'status');
+          if (st !== columnFilters.status.toLowerCase()) visible = false;
+        }
+
+        if (visible && columnFilters.type) {
+          const tp = getCellText(tr, 'type');
+          if (tp !== columnFilters.type.toLowerCase()) visible = false;
+        }
+
+        tr.style.display = visible ? '' : 'none';
       });
+
       updateMasterCheckbox();
+    }
+
+    function filterTable(query) {
+      currentSearch = (query || '').trim();
+      updateRowVisibility();
     }
 
     function launchSearch() {
@@ -241,12 +263,285 @@
       }
     });
 
-    /* =======================================================================
-     * 6) TABLE SELECTION (CLICK/SHIFT-RANGE/MASTER)
-     * =======================================================================
-     */
+    function buildFilterMenu(th, key) {
+      closeFilterMenu();
 
-    /* ───────── Selection helpers ───────── */
+      const menu = document.createElement('div');
+      menu.className = 'col-filter-menu';
+      menu.dataset.key = key;
+
+      const body = document.createElement('div');
+      body.className = 'col-filter-menu-body';
+
+      const current = columnFilters[key] || null;
+
+      function addItem(label, value) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'col-filter-item';
+        if ((value === null && current === null) || (value && value === current)) {
+          btn.classList.add('active');
+        }
+        btn.textContent = label;
+        btn.addEventListener('click', () => {
+          columnFilters[key] = value;
+          closeFilterMenu();
+          updateRowVisibility();
+        });
+        body.appendChild(btn);
+      }
+
+      const values = new Set();
+      $$('tbody td[data-col="' + key + '"]').forEach((td) => {
+        const txt = td.textContent.trim();
+        if (txt) values.add(txt);
+      });
+
+      addItem('All', null);
+      Array.from(values).sort().forEach((v) => addItem(v, v));
+
+      menu.appendChild(body);
+
+      const rect = th.getBoundingClientRect();
+      menu.style.minWidth = rect.width + 'px';
+      menu.style.top = rect.bottom + 4 + window.scrollY + 'px';
+      menu.style.left = rect.left + window.scrollX + 'px';
+
+      document.body.appendChild(menu);
+      openFilterMenu = menu;
+    }
+
+    const thead = $('thead');
+    thead?.addEventListener('click', (e) => {
+      const th = e.target.closest('th[data-filter-key]');
+      if (!th) return;
+      const key = th.getAttribute('data-filter-key');
+      if (!key) return;
+      e.stopPropagation();
+
+      if (openFilterMenu && openFilterMenu.dataset.key === key) {
+        closeFilterMenu();
+      } else {
+        buildFilterMenu(th, key);
+      }
+    });
+
+    function markCalibrationCells() {
+      const now = new Date();
+
+      $$('tbody td[data-col="next-cal"]').forEach((td) => {
+        td.classList.remove('calib-expired');
+
+        const raw = (td.textContent || '').trim();
+        if (!raw || raw === '—' || raw === '-') return;
+
+        let dt = null;
+
+        let m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (m) {
+          dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+        } else {
+          m = raw.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/);
+          if (m) {
+            dt = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+          } else {
+            const tmp = new Date(raw);
+            if (!isNaN(tmp.getTime())) dt = tmp;
+          }
+        }
+
+        if (!dt) return;
+
+        if (dt.getTime() < now.getTime()) {
+          td.classList.add('calib-expired');
+        }
+      });
+    }
+
+    markCalibrationCells();
+
+    /* =======================================================================
+     * 6) LOAD TABLE DATA FROM BACKEND
+     * ======================================================================= */
+
+    async function fetchIsoChannels() {
+      const res = await fetch(API_ISO, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!res.ok) {
+        throw new Error('HTTP ' + res.status + ' from ' + API_ISO);
+      }
+      const json = await res.json();
+      if (!json || json.ok === false) {
+        throw new Error(json && json.error ? json.error : 'Invalid response');
+      }
+      return json.data || [];
+    }
+
+    function statusToDotClass(status) {
+      const s = (status || '').toLowerCase();
+
+      if (s === 'okay') return 'st-Okay';
+      if (s === 'stall') return 'st-Stall';
+      if (s === 'out of range') return 'st-Error';
+      if (s === 'over range') return 'st-Error';
+      if (s === 'no sensor') return 'st-Error';
+      if (s === 'unclassified') return 'st-Error';
+      if (s === 'open wire') return 'st-Error';
+      if (s === 'short circuit') return 'st-Error';
+      if (s === 'off-line' || s === 'offline') return 'st-Offline';
+      if (s === 'disconnected') return 'st-Offline';
+
+      return 'st-Unknown';
+    }
+
+    // 根据 cal_date + cal_period 算 Next Calibration（YYYY-MM-DD）
+    function computeNextCalibration(ch) {
+      const calDate = ch.cal_date;
+      const period  = ch.cal_period;
+
+      if (!calDate || !period) return '—';
+
+      const m = String(calDate).match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
+      if (!m) return '—';
+
+      const year  = parseInt(m[1], 10);
+      const month = parseInt(m[2], 10) - 1;
+      const day   = parseInt(m[3], 10);
+      const monthsToAdd = parseInt(period, 10);
+
+      if (isNaN(monthsToAdd)) return '—';
+
+      const dt = new Date(year, month + monthsToAdd, day);
+      if (isNaN(dt.getTime())) return '—';
+
+      const yyyy = dt.getFullYear();
+      const mm   = String(dt.getMonth() + 1).padStart(2, '0');
+      const dd   = String(dt.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function buildIsoRow(ch, index) {
+      const tr = document.createElement('tr');
+      tr.className = 'row';
+
+      const rowIndex = index + 1;
+      const isoName  = ch.iso_channel || '';
+      const type     = ch.interface_type || '';
+      const anchor   = ch.anchor || '';
+      const desc     = ch.description || '';
+      const min      = ch.min ?? '—';
+      const max      = ch.max ?? '—';
+
+      const statusText = ch.status || 'Unknown';
+      const dotClass   = statusToDotClass(statusText);
+      const valueText  = ch.meas != null && ch.meas !== '' ? ch.meas : '—';
+
+      const nextCal    = computeNextCalibration(ch);
+
+      // 1 checkbox
+      const tdCheck = document.createElement('td');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.setAttribute('aria-label', 'Select row ' + rowIndex);
+      tdCheck.appendChild(cb);
+      tr.appendChild(tdCheck);
+
+      // 2 index
+      const tdIndex = document.createElement('td');
+      tdIndex.textContent = String(rowIndex);
+      tr.appendChild(tdIndex);
+
+      // 3 Color
+      const tdColor = document.createElement('td');
+      const dot = document.createElement('span');
+      dot.className = 'dot ' + dotClass;
+      tdColor.appendChild(dot);
+      tr.appendChild(tdColor);
+
+      // 4 Status
+      const tdStatus = document.createElement('td');
+      tdStatus.setAttribute('data-col', 'status');
+      tdStatus.textContent = statusText;
+      tr.appendChild(tdStatus);
+
+      // 5 ISOChannel
+      const tdIso = document.createElement('td');
+      tdIso.textContent = isoName;
+      tr.appendChild(tdIso);
+
+      // 6 Type
+      const tdType = document.createElement('td');
+      tdType.setAttribute('data-col', 'type');
+      tdType.textContent = type;
+      tr.appendChild(tdType);
+
+      // 7 Connection
+      const tdConn = document.createElement('td');
+      tdConn.textContent = anchor;
+      tr.appendChild(tdConn);
+
+      // 8 Value
+      const tdVal = document.createElement('td');
+      tdVal.textContent = valueText;
+      tr.appendChild(tdVal);
+
+      // 9 History
+      const tdHist = document.createElement('td');
+      tdHist.textContent = '(history)';
+      tr.appendChild(tdHist);
+
+      // 10 Next Calibration
+      const tdNext = document.createElement('td');
+      tdNext.setAttribute('data-col', 'next-cal');
+      tdNext.textContent = nextCal || '—';
+      tr.appendChild(tdNext);
+
+      // 11 Min
+      const tdMin = document.createElement('td');
+      tdMin.textContent = min;
+      tr.appendChild(tdMin);
+
+      // 12 Max
+      const tdMax = document.createElement('td');
+      tdMax.textContent = max;
+      tr.appendChild(tdMax);
+
+      // 13 Description
+      const tdDesc = document.createElement('td');
+      tdDesc.textContent = desc;
+      tr.appendChild(tdDesc);
+
+      return tr;
+    }
+
+    function renderIsoTable(channels) {
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      channels.forEach((ch, idx) => {
+        const tr = buildIsoRow(ch, idx);
+        tbody.appendChild(tr);
+      });
+
+      markCalibrationCells();
+      updateRowVisibility();
+    }
+
+    function loadIsoTable() {
+      fetchIsoChannels()
+        .then((channels) => {
+          renderIsoTable(channels);
+        })
+        .catch((err) => {
+          console.error('Failed to load ISO channels:', err);
+        });
+    }
+
+    /* =======================================================================
+     * 7) TABLE SELECTION
+     * ======================================================================= */
+
     master?.addEventListener('change', () => {
       const checks = rowChecks();
       checks.forEach((c) => { c.checked = master.checked; });
@@ -259,21 +554,18 @@
       updateMasterCheckbox();
     });
 
-    // Click anywhere on a row to toggle its selection (with Shift for range)
     let lastClickedIndex = null;
 
     tbody?.addEventListener('click', (e) => {
       const tr = e.target.closest('tr.row');
       if (!tr) return;
 
-      // If clicking directly on a checkbox, let default behavior then sync.
       if (e.target.closest('input[type="checkbox"]')) {
         updateMasterCheckbox();
         lastClickedIndex = visibleRows().indexOf(tr);
         return;
       }
 
-      // Ignore clicks on ".more" menu trigger or interactive elements
       if (e.target.closest('.more, a, button')) return;
 
       const rows = visibleRows();
@@ -282,7 +574,6 @@
       if (!cb) return;
 
       if (e.shiftKey && lastClickedIndex !== null && lastClickedIndex !== -1) {
-        // Range select: select all between last and current
         const [start, end] =
           idx > lastClickedIndex ? [lastClickedIndex, idx] : [idx, lastClickedIndex];
         for (let i = start; i <= end; i++) {
@@ -290,7 +581,6 @@
           if (c) c.checked = true;
         }
       } else {
-        // Toggle this row
         cb.checked = !cb.checked;
       }
 
@@ -298,15 +588,12 @@
       updateMasterCheckbox();
     });
 
-    // Initial sync
     updateMasterCheckbox();
 
     /* =======================================================================
-     * 7) CONTEXT MENU (RIGHT CLICK)
-     * =======================================================================
-     */
+     * 8) CONTEXT MENU
+     * ======================================================================= */
 
-    /* ───────── Context menu ───────── */
     function clearCtx() { if (ctx) ctx.innerHTML = ''; }
 
     function addCtxItem(label, action) {
@@ -347,9 +634,6 @@
       const tr = e.target.closest('tr.row');
       if (!tr) return;
 
-      // If nothing selected, select the current row.
-      // If some selected and clicked row is outside selection (and not Ctrl/⌘),
-      // switch to single selection on the clicked row.
       const currentSelection = selectedRows();
       if (currentSelection.length === 0) {
         const cb = tr.querySelector('input[type="checkbox"]');
@@ -368,7 +652,7 @@
       updateMasterCheckbox();
 
       const count = selectedRows().length;
-      if (count < 1) return; // do nothing when no selection
+      if (count < 1) return;
 
       e.preventDefault();
       buildCtxFor(count);
@@ -386,7 +670,7 @@
       const action = item.dataset.action;
       switch (action) {
         case 'edit':
-          const rowData = {/* build from the selected row */};
+          const rowData = {/* TODO: build from selected row when你需要 */};
           const win = openCenteredPopup('linker-table/edit_channel.html', 'edit_channel_popup', {width: 880, height: 820});
           if (win) { win.name = JSON.stringify(rowData); }
           break;
@@ -394,8 +678,8 @@
           alert('Scale (placeholder)');
           break;
         case 'calibration':
-          const tr = selectedRows()[0];                            // your helper to get the first selected row
-          const conn = tr?.querySelector('td:nth-child(6)')?.textContent || '';
+          const tr = selectedRows()[0];
+          const conn = tr?.querySelector('td:nth-child(7)')?.textContent || '';
           const match = conn.match(/CH:(\d+)/i);
           const ch = match ? match[1] : 1;
           openCenteredPopup('linker-table/calibration.html?ch=' + ch + '&unit=%C&points=8',
@@ -414,17 +698,11 @@
     });
 
     /* =======================================================================
-     * 8) REUSABLE POPUP OPENER (CENTERED; SINGLETON BY NAME)
-     * =======================================================================
-     */
+     * 9) POPUP OPENER
+     * ======================================================================= */
 
-    /* ───────── Reusable popup opener (centered window) ───────── */
-    const popupRegistry = new Map(); // name -> Window
+    const popupRegistry = new Map();
 
-    /**
-     * openCenteredPopup(url, name, {width,height,resizable,scrollbars})
-     * openCenteredPopup(url, name, width, height)
-     */
     function openCenteredPopup(url, name, arg3, arg4) {
       let opts = {};
       if (typeof arg3 === 'object' && arg3 !== null) {
@@ -455,7 +733,7 @@
       }
 
       const dualLeft = (window.screenLeft !== undefined ? window.screenLeft : window.screenX) || 0;
-      const dualTop  = (window.screenTop  !== undefined ? window.screenTop  : window.screenY)  || 0;
+      const dualTop  = (window.screenTop  !== undefined ? window.screenTop : window.screenY)  || 0;
       const vw = window.innerWidth  || document.documentElement.clientWidth  || screen.width;
       const vh = window.innerHeight || document.documentElement.clientHeight || screen.height;
       const left = Math.max(0, Math.round((vw - w) / 2 + dualLeft));
@@ -477,12 +755,10 @@
       return win;
     }
 
-    /* 事件代理：任何带 data-popup 的 <a> 都用弹窗打开（复用同名窗口） */
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a[data-popup]');
       if (!a) return;
 
-      // 只拦截左键
       if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
 
       e.preventDefault();
@@ -498,12 +774,9 @@
     });
 
     /* =======================================================================
-     * 9) TOOLBAR BUTTONS (ADD / IMPORT)
-     * =======================================================================
-     */
+     * 10) TOOLBAR BUTTONS
+     * ======================================================================= */
 
-    /* ───────── Toolbar buttons ───────── */
-    // “Add Channels” popup window
     addBtn?.addEventListener('click', (e) => {
       e.preventDefault();
       openCenteredPopup('tool-bar/add_channel.html', 'add_channel_popup', { width: 880, height: 820 });
@@ -517,11 +790,11 @@
     });
 
     /* =======================================================================
-     * 10) GLOBAL KEY HANDLERS (DELETE = REMOVE SELECTED ROWS)
-     * =======================================================================
-     */
+     * 11) GLOBAL KEYS + INITIAL LOAD
+     * ======================================================================= */
 
-    // Pressing the Delete key removes selected rows
+    loadIsoTable();
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Delete' && canUseGlobalDelete(e)) {
         const anySelected = selectedRows().length > 0;

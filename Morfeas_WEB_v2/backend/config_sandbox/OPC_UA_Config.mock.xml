@@ -1,0 +1,286 @@
+<?xml version="1.0"?>
+<!DOCTYPE NODESet SYSTEM "Morfeas.dtd">
+<NODESet>
+    <!-- ========== SDAQ 基础 + 校准 ========== -->
+    <CHANNEL>
+        <ISO_CHANNEL>SDAQ_OK_1</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>CAN1.ADDR:01.CH:01</ANCHOR>
+        <DESCRIPTION>SDAQ: valid measurement, in range</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>100</MAX>
+        <UNIT>&#xB0;C</UNIT>
+    </CHANNEL>
+
+    <CHANNEL>
+        <ISO_CHANNEL>SDAQ_OK_CAL</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>CAN1.ADDR:01.CH:02</ANCHOR>
+        <DESCRIPTION>SDAQ: valid measurement, calibrated (not expired)</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>100</MAX>
+        <UNIT>&#xB0;C</UNIT>
+        <!-- 校准未过期: 2099 年，以后永远是绿的 -->
+        <CAL_DATE>2099/01/01</CAL_DATE>
+        <CAL_PERIOD>12</CAL_PERIOD>
+    </CHANNEL>
+
+    <!-- 触发 “Cal not valid / 橙色” 的典型 SDAQ 通道 -->
+    <CHANNEL>
+        <ISO_CHANNEL>SDAQ_CAL_EXPIRED</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>CAN1.ADDR:01.CH:03</ANCHOR>
+        <DESCRIPTION>SDAQ: calibration expired -&gt; Cal not valid</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>100</MAX>
+        <UNIT>&#xB0;C</UNIT>
+        <!-- 假设现在时间已大于 2020/01/01 + 6 个月 -->
+        <CAL_DATE>2020/01/01</CAL_DATE>
+        <CAL_PERIOD>6</CAL_PERIOD>
+    </CHANNEL>
+
+    <!-- ========== SDAQ 错误状态 (由 logstat 决定) ========== -->
+    <!-- Stall: CNT == 0 -->
+    <CHANNEL>
+        <ISO_CHANNEL>SDAQ_STALL</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>CAN1.ADDR:01.CH:04</ANCHOR>
+        <DESCRIPTION>SDAQ: CNT==0 -&gt; Stall</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>100</MAX>
+        <UNIT>&#xB0;C</UNIT>
+    </CHANNEL>
+
+    <!-- Out of Range -->
+    <CHANNEL>
+        <ISO_CHANNEL>SDAQ_OUT_OF_RANGE</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>CAN1.ADDR:01.CH:05</ANCHOR>
+        <DESCRIPTION>SDAQ: Out_of_Range flag</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>100</MAX>
+        <UNIT>&#xB0;C</UNIT>
+    </CHANNEL>
+
+    <!-- Over Range -->
+    <CHANNEL>
+        <ISO_CHANNEL>SDAQ_OVER_RANGE</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>CAN1.ADDR:01.CH:06</ANCHOR>
+        <DESCRIPTION>SDAQ: Over_Range flag</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>100</MAX>
+        <UNIT>&#xB0;C</UNIT>
+    </CHANNEL>
+
+    <!-- No sensor -->
+    <CHANNEL>
+        <ISO_CHANNEL>SDAQ_NO_SENSOR</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>CAN1.ADDR:01.CH:07</ANCHOR>
+        <DESCRIPTION>SDAQ: No_Sensor flag</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>100</MAX>
+        <UNIT>&#xB0;C</UNIT>
+    </CHANNEL>
+
+    <!-- Unclassified -->
+    <CHANNEL>
+        <ISO_CHANNEL>SDAQ_UNCLASSIFIED</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>CAN1.ADDR:01.CH:08</ANCHOR>
+        <DESCRIPTION>SDAQ: generic Channel_status error -&gt; Unclassified</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>100</MAX>
+        <UNIT>&#xB0;C</UNIT>
+    </CHANNEL>
+
+    <!-- OFF-Line: anchor 在 logstat 中不存在 -->
+    <CHANNEL>
+        <ISO_CHANNEL>SDAQ_OFFLINE</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>CAN9.ADDR:09.CH:09</ANCHOR>
+        <DESCRIPTION>SDAQ: anchor not present in logstat -&gt; OFF-Line</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>100</MAX>
+        <UNIT>&#xB0;C</UNIT>
+    </CHANNEL>
+
+    <!-- ========== NOX 相关通道（Open Wire / Short circuit） ========== -->
+    <CHANNEL>
+        <ISO_CHANNEL>NOX_OK</ISO_CHANNEL>
+        <INTERFACE_TYPE>NOX</INTERFACE_TYPE>
+        <ANCHOR>CAN2.ADDR:01.NOx</ANCHOR>
+        <DESCRIPTION>NOx: valid NOx value</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>1000</MAX>
+        <UNIT>ppm</UNIT>
+    </CHANNEL>
+
+    <CHANNEL>
+        <ISO_CHANNEL>NOX_OPEN_WIRE</ISO_CHANNEL>
+        <INTERFACE_TYPE>NOX</INTERFACE_TYPE>
+        <ANCHOR>CAN2.ADDR:02.NOx</ANCHOR>
+        <DESCRIPTION>NOx: heater/NOx/O2 error "Open Wire"</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>1000</MAX>
+        <UNIT>ppm</UNIT>
+    </CHANNEL>
+
+    <CHANNEL>
+        <ISO_CHANNEL>NOX_SHORT_CIRCUIT</ISO_CHANNEL>
+        <INTERFACE_TYPE>NOX</INTERFACE_TYPE>
+        <ANCHOR>CAN2.ADDR:03.NOx</ANCHOR>
+        <DESCRIPTION>NOx: heater/NOx/O2 error "Short circuit"</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>1000</MAX>
+        <UNIT>ppm</UNIT>
+    </CHANNEL>
+
+    <!-- ========== IOBOX 相关通道 ========== -->
+    <!-- IOBOX_logstat 里 anchor 形如: Dev_name.RX1.CH:01 -->
+    <CHANNEL>
+        <ISO_CHANNEL>IOBOX_OK</ISO_CHANNEL>
+        <INTERFACE_TYPE>IOBOX</INTERFACE_TYPE>
+        <ANCHOR>IOBOX_A.RX1.CH:01</ANCHOR>
+        <DESCRIPTION>IOBOX: valid measurement</DESCRIPTION>
+        <MIN>-50</MIN>
+        <MAX>150</MAX>
+        <UNIT>&#xB0;C</UNIT>
+    </CHANNEL>
+
+    <CHANNEL>
+        <ISO_CHANNEL>IOBOX_NO_SENSOR</ISO_CHANNEL>
+        <INTERFACE_TYPE>IOBOX</INTERFACE_TYPE>
+        <ANCHOR>IOBOX_A.RX1.CH:02</ANCHOR>
+        <DESCRIPTION>IOBOX: channel returns "No sensor"</DESCRIPTION>
+        <MIN>-50</MIN>
+        <MAX>150</MAX>
+        <UNIT>&#xB0;C</UNIT>
+    </CHANNEL>
+
+    <!-- IP 通了, 某个 RX 断: status = Disconnected -->
+    <CHANNEL>
+        <ISO_CHANNEL>IOBOX_DISCONNECTED</ISO_CHANNEL>
+        <INTERFACE_TYPE>IOBOX</INTERFACE_TYPE>
+        <ANCHOR>IOBOX_A.RX2.CH:01</ANCHOR>
+        <DESCRIPTION>IOBOX: telemetry RX disconnected while device IPv4 is Okay -&gt; Disconnected</DESCRIPTION>
+        <MIN>-50</MIN>
+        <MAX>150</MAX>
+        <UNIT>&#xB0;C</UNIT>
+    </CHANNEL>
+
+    <!-- 完全没有对应 logstat: OFF-Line -->
+    <CHANNEL>
+        <ISO_CHANNEL>IOBOX_OFFLINE</ISO_CHANNEL>
+        <INTERFACE_TYPE>IOBOX</INTERFACE_TYPE>
+        <ANCHOR>IOBOX_Z.RX1.CH:01</ANCHOR>
+        <DESCRIPTION>IOBOX: no logstat for this Dev_name -&gt; OFF-Line</DESCRIPTION>
+        <MIN>-50</MIN>
+        <MAX>150</MAX>
+        <UNIT>&#xB0;C</UNIT>
+    </CHANNEL>
+
+    <!-- ========== MTI 相关通道 ========== -->
+    <!-- MTI_logstat 里 anchor 形如: Dev_name.TC8.CH:1 -->
+    <CHANNEL>
+        <ISO_CHANNEL>MTI_OK</ISO_CHANNEL>
+        <INTERFACE_TYPE>MTI</INTERFACE_TYPE>
+        <ANCHOR>MTI_A.TC8.CH:01</ANCHOR>
+        <DESCRIPTION>MTI: Telemetry TC8 valid measurement</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>200</MAX>
+        <UNIT>&#xB0;C</UNIT>
+    </CHANNEL>
+
+    <CHANNEL>
+        <ISO_CHANNEL>MTI_NO_SENSOR</ISO_CHANNEL>
+        <INTERFACE_TYPE>MTI</INTERFACE_TYPE>
+        <ANCHOR>MTI_A.TC8.CH:02</ANCHOR>
+        <DESCRIPTION>MTI: Telemetry TC8 channel reports "No sensor"</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>200</MAX>
+        <UNIT>&#xB0;C</UNIT>
+    </CHANNEL>
+
+    <!-- RX_Success_Ratio == 0: Disconnected -->
+    <CHANNEL>
+        <ISO_CHANNEL>MTI_DISCONNECTED</ISO_CHANNEL>
+        <INTERFACE_TYPE>MTI</INTERFACE_TYPE>
+        <ANCHOR>MTI_A.TC8.CH:03</ANCHOR>
+        <DESCRIPTION>MTI: Telemetry TC8 RX_Success_Ratio==0 -&gt; Disconnected</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>200</MAX>
+        <UNIT>&#xB0;C</UNIT>
+    </CHANNEL>
+
+    <!-- 没有 logstat: OFF-Line -->
+    <CHANNEL>
+        <ISO_CHANNEL>MTI_OFFLINE</ISO_CHANNEL>
+        <INTERFACE_TYPE>MTI</INTERFACE_TYPE>
+        <ANCHOR>MTI_Z.TC8.CH:01</ANCHOR>
+        <DESCRIPTION>MTI: no logstat entry -&gt; OFF-Line</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>200</MAX>
+        <UNIT>&#xB0;C</UNIT>
+    </CHANNEL>
+
+    <!-- ========== SDAQ 带 alarm + build/mod meta 的完整版 ========== -->
+    <CHANNEL>
+        <ISO_CHANNEL>SDAQ_ALARM_FULL</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>CAN1.ADDR:01.CH:10</ANCHOR>
+        <DESCRIPTION>SDAQ: alarm high/low config example</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>100</MAX>
+        <UNIT>&#xB0;C</UNIT>
+        <!-- 正常未过期校准 -->
+        <CAL_DATE>2024/05/01</CAL_DATE>
+        <CAL_PERIOD>12</CAL_PERIOD>
+        <!-- 与旧 web 一致: UNIX 秒 -->
+        <BUILD_DATE>1714521600</BUILD_DATE>
+        <MOD_DATE>1717200000</MOD_DATE>
+        <!-- 报警阈值 -->
+        <ALARM_HIGH_VAL>90</ALARM_HIGH_VAL>
+        <ALARM_LOW_VAL>10</ALARM_LOW_VAL>
+        <ALARM_HIGH>1</ALARM_HIGH>
+        <ALARM_LOW>1</ALARM_LOW>
+    </CHANNEL>
+
+    <!-- ========== 专门用来测 XML 各种组合情况 ========== -->
+    <!-- 无 UNIT -->
+    <CHANNEL>
+        <ISO_CHANNEL>SDAQ_NO_UNIT</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>CAN1.ADDR:01.CH:11</ANCHOR>
+        <DESCRIPTION>SDAQ: channel without UNIT tag</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>100</MAX>
+        <!-- 故意不写 UNIT -->
+    </CHANNEL>
+
+    <!-- 只有 CAL_DATE，没有 CAL_PERIOD -->
+    <CHANNEL>
+        <ISO_CHANNEL>SDAQ_CAL_DATE_ONLY</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>CAN1.ADDR:01.CH:12</ANCHOR>
+        <DESCRIPTION>SDAQ: CAL_DATE present but CAL_PERIOD missing</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>100</MAX>
+        <UNIT>&#xB0;C</UNIT>
+        <CAL_DATE>2025/01/01</CAL_DATE>
+    </CHANNEL>
+
+    <!-- 只有 CAL_PERIOD，没有 CAL_DATE -->
+    <CHANNEL>
+        <ISO_CHANNEL>SDAQ_CAL_PERIOD_ONLY</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>CAN1.ADDR:01.CH:13</ANCHOR>
+        <DESCRIPTION>SDAQ: CAL_PERIOD present but CAL_DATE missing</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>100</MAX>
+        <UNIT>&#xB0;C</UNIT>
+        <CAL_PERIOD>12</CAL_PERIOD>
+    </CHANNEL>
+
+</NODESet>

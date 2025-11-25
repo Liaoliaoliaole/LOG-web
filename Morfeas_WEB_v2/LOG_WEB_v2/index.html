@@ -106,7 +106,7 @@
   </div>
 
   <!-- =========================================================================
-         3) DATA TABLE (mock data for visual acceptance)
+         3) DATA TABLE
          - Master checkbox controls all visible rows
          - Right-click context menu is dynamic (single vs multi-select)
          ========================================================================= -->
@@ -118,88 +118,37 @@
             <input id="masterCheck" type="checkbox" aria-label="Select all rows" />
           </th>
           <th>#</th>
-          <th>Status</th>
+
+          <!-- NEW: Color column (pure status color) -->
+          <th>Color</th>
+
+          <!-- Status with filter dropdown -->
+          <th data-filter-key="status" class="th-filterable">
+            <span>Status</span>
+            <span class="filter-icon" aria-hidden="true">▾</span>
+          </th>
+
           <th>ISOChannel</th>
-          <th>Type</th>
+
+          <!-- Type with filter dropdown -->
+          <th data-filter-key="type" class="th-filterable">
+            <span>Type</span>
+            <span class="filter-icon" aria-hidden="true">▾</span>
+          </th>
+
           <th>Connection</th>
           <th>Value</th>
           <th>History</th>
-          <th>Valid Until</th>
+          <th>Next Calibration</th>
           <th>Min</th>
           <th>Max</th>
           <th>Description</th>
         </tr>
       </thead>
 
-      <!-- MOCK rows (replace with backend data later) -->
-      <tbody>
-        <tr class="row">
-          <td><input type="checkbox" aria-label="Select row 1" /></td>
-          <td>1</td>
-          <td><span class="dot st-Okay"></span>Okay</td>
-          <td>_TE1041A</td>
-          <td>SDAQ-TC16</td>
-          <td>CAN1.ADDR:01.CH:16</td>
-          <td>28.6 °C</td>
-          <td>(sparkline)</td>
-          <td>—</td>
-          <td>0</td>
-          <td>150</td>
-          <td>Fuel Oil Temp Pump 1</td>
-        </tr>
-
-        <tr class="row">
-          <td><input type="checkbox" aria-label="Select row 2" /></td>
-          <td>2</td>
-          <td><span class="dot st-Stall"></span>Stall</td>
-          <td>_TE2001C</td>
-          <td>SDAQ-RTD</td>
-          <td>CAN2.ADDR:02.CH:02</td>
-          <td>—</td>
-          <td>(sparkline)</td>
-          <td>—</td>
-          <td>-50</td>
-          <td>250</td>
-          <td>PT100 Sample</td>
-        </tr>
-
-        <tr class="row">
-          <td><input type="checkbox" aria-label="Select row 3" /></td>
-          <td>3</td>
-          <td><span class="dot st-Error"></span>Error</td>
-          <td>_TE3002D</td>
-          <td>SDAQ-RTD</td>
-          <td>CAN3.ADDR:03.CH:01</td>
-          <td>—</td>
-          <td>(sparkline)</td>
-          <td>—</td>
-          <td>-10</td>
-          <td>90</td>
-          <td>Sensor failure</td>
-        </tr>
-
-        <!-- Intentional typo row from legacy kept to show empty/error state -->
-        <tr class="row">
-          <td><input type="checkbox" aria-label="Select row 4" /></td>
-          <td>4</td>
-          <td><span class="dot st-Offine"></span></td>
-          <td colspan="9">—</td>
-        </tr>
-
-        <tr class="row">
-          <td><input type="checkbox" aria-label="Select row 5" /></td>
-          <td>7</td>
-          <td><span class="dot st-Offline"></span>Offline</td>
-          <td>_TE7003N</td>
-          <td>SDAQ-ANA</td>
-          <td>CAN7.ADDR:03.CH:07</td>
-          <td>—</td>
-          <td>(sparkline)</td>
-          <td>—</td>
-          <td>—</td>
-          <td>—</td>
-          <td>Device not responding</td>
-        </tr>
+      <!-- 由 assets/app.js 通过 /backend/api_iso.php 自动注入数据行 -->
+      <tbody id="isoTableBody">
+        <!-- rows will be injected dynamically -->
       </tbody>
     </table>
   </div>

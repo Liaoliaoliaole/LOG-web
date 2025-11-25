@@ -1,0 +1,34 @@
+{
+  "logstat_build_date_UNIX": 1763984183,
+  "dev_name": "MTI_A",
+  "IP_address": "192.168.0.20",
+  "channels": [
+    {
+      "anchor": "MTI_A.TC8.CH:01",
+      "name": "MTI_OK",
+      "Unit": "°C",
+      "CNT": 10,
+      "meas_value": 480.2,
+      "No_sensor": false,
+      "RX_Success_Ratio": 1.0
+    },
+    {
+      "anchor": "MTI_A.TC8.CH:02",
+      "name": "MTI_NO_SENSOR",
+      "Unit": "°C",
+      "CNT": 10,
+      "meas_value": null,
+      "No_sensor": true,
+      "RX_Success_Ratio": 1.0
+    },
+    {
+      "anchor": "MTI_A.TC8.CH:03",
+      "name": "MTI_DISCONNECTED",
+      "Unit": "°C",
+      "CNT": 0,
+      "meas_value": null,
+      "No_sensor": false,
+      "RX_Success_Ratio": 0.0
+    }
+  ]
+}
