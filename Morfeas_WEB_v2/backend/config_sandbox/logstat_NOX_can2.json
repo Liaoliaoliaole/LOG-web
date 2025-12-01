@@ -1,33 +1,67 @@
 {
-  "logstat_build_date_UNIX": 1763984183,
+  "logstat_build_date_UNIX": 1710000200,
+  "ws_port": 18100,
   "CANBus_interface": "can2",
-  "sensors": [
+  "Electrics": {
+    "Last_calibration_UNIX": 1708000000,
+    "BUS_voltage": 24.0,
+    "BUS_amperage": 1.8,
+    "BUS_Shunt_Res_temp": 33.1
+  },
+  "BUS_Utilization": 35.0,
+  "BUS_Error_rate": 0.2,
+  "Auto_SW_OFF_value": 12,
+  "Auto_SW_OFF_cnt": 3,
+  "NOx_sensors": [
     {
-      "Address": 1,
-      "anchor": "CAN2.ADDR:01.NOx",
-      "name": "NOX_OK",
-      "is_meas_valid": true,
-      "NOx_ppm": 120.5,
-      "O2_percent": 4.3,
-      "Error_text": "No error"
+      "addr": 0,
+      "last_seen": 1710000198,
+      "NOx_value_integral_size": 6,
+      "NOx_value_min": 12.5,
+      "NOx_value_max": 52.3,
+      "NOx_value_avg": 32.4,
+      "O2_value_integral_size": 6,
+      "O2_value_min": 18.0,
+      "O2_value_max": 20.2,
+      "O2_value_avg": 19.5,
+      "status": {
+        "meas_state": true,
+        "supply_in_range": true,
+        "in_temperature": true,
+        "is_NOx_value_valid": true,
+        "is_O2_value_valid": true,
+        "heater_mode_state": "Normal"
+      },
+      "errors": {
+        "heater": "No error",
+        "NOx": "No error",
+        "O2": "No error"
+      }
     },
     {
-      "Address": 2,
-      "anchor": "CAN2.ADDR:02.NOx",
-      "name": "NOX_OPEN_WIRE",
-      "is_meas_valid": false,
-      "NOx_ppm": null,
-      "O2_percent": null,
-      "Error_text": "Open Wire"
-    },
-    {
-      "Address": 3,
-      "anchor": "CAN2.ADDR:03.NOx",
-      "name": "NOX_SHORT_CIRCUIT",
-      "is_meas_valid": false,
-      "NOx_ppm": null,
-      "O2_percent": null,
-      "Error_text": "Short circuit"
+      "addr": 1,
+      "last_seen": 1710000100,
+      "NOx_value_integral_size": 3,
+      "NOx_value_min": 0.0,
+      "NOx_value_max": 0.0,
+      "NOx_value_avg": null,
+      "O2_value_integral_size": 3,
+      "O2_value_min": 0.0,
+      "O2_value_max": 0.0,
+      "O2_value_avg": null,
+      "status": {
+        "meas_state": false,
+        "supply_in_range": false,
+        "in_temperature": false,
+        "is_NOx_value_valid": false,
+        "is_O2_value_valid": false,
+        "heater_mode_state": "Cold_start"
+      },
+      "errors": {
+        "heater": "Sensor error",
+        "NOx": "Checksum error",
+        "O2": "Timeout"
+      }
     }
   ]
 }

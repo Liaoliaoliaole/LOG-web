@@ -1,34 +1,33 @@
 {
-  "logstat_build_date_UNIX": 1763984183,
-  "dev_name": "MTI_A",
-  "IP_address": "192.168.0.20",
-  "channels": [
-    {
-      "anchor": "MTI_A.TC8.CH:01",
-      "name": "MTI_OK",
-      "Unit": "°C",
-      "CNT": 10,
-      "meas_value": 480.2,
-      "No_sensor": false,
-      "RX_Success_Ratio": 1.0
-    },
-    {
-      "anchor": "MTI_A.TC8.CH:02",
-      "name": "MTI_NO_SENSOR",
-      "Unit": "°C",
-      "CNT": 10,
-      "meas_value": null,
-      "No_sensor": true,
-      "RX_Success_Ratio": 1.0
-    },
-    {
-      "anchor": "MTI_A.TC8.CH:03",
-      "name": "MTI_DISCONNECTED",
-      "Unit": "°C",
-      "CNT": 0,
-      "meas_value": null,
-      "No_sensor": false,
-      "RX_Success_Ratio": 0.0
+  "logstat_build_date_UNIX": 1710000500,
+  "Dev_name": "MTI_LAB",
+  "IPv4_address": "10.0.0.20",
+  "Identifier": 167772180,
+  "Connection_status": "Okay",
+  "MTI_status": {
+    "Radio_CH": 11,
+    "Modem_data_rate": "250kbps",
+    "Tele_Device_type": "Tele_TC4",
+    "MTI_batt_volt": 15.2,
+    "MTI_batt_capacity": 88.0,
+    "MTI_charge_status": "Charging",
+    "MTI_CPU_temp": 48.5,
+    "PWM_gen_out_freq": 1000,
+    "PWM_CHs_outDuty": [50, 25, 75, 0],
+    "MTI_buttons_state": {
+      "PB1": true,
+      "PB2": false,
+      "PB3": true
     }
-  ]
+  },
+  "Tele_data": {
+    "Packet_Index": 420,
+    "RX_Status": 2,
+    "RX_Success_Ratio": 95,
+    "IsValid": true,
+    "Samples_toValid": 5,
+    "samples_toInvalid": 10,
+    "CHs": [120.5, 118.4, "No sensor", 117.9],
+    "CHs_refs": [0.0, 0.0]
+  }
 }

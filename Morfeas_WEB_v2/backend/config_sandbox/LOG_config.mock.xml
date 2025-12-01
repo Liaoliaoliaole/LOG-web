@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE CONFIG SYSTEM "Morfeas.dtd">
 <CONFIG>
-    <CONFIGS_DIR>/workspace/LOG-web/Morfeas_WEB_v2/backend/config_sandbox</CONFIGS_DIR>
+    <CONFIGS_DIR>/home/pi/Morfeas_proj/Morfeas_core/configuration</CONFIGS_DIR>
     <LOGGERS_DIR>/mnt/ramdisk/Morfeas_Loggers/</LOGGERS_DIR>
     <LOGSTAT_DIR>/mnt/ramdisk/</LOGSTAT_DIR>
     <COMPONENTS>
         <OPC_UA_SERVER>
-            <APP_NAME>Morfeas_test(Proto)</APP_NAME>
+            <APP_NAME>Morfeas_simulated</APP_NAME>
         </OPC_UA_SERVER>
         <SDAQ_HANDLER Disable="false">
             <CANBUS_IF>can0</CANBUS_IF>
@@ -14,23 +14,19 @@
         <SDAQ_HANDLER Disable="false">
             <CANBUS_IF>can1</CANBUS_IF>
         </SDAQ_HANDLER>
-        <SDAQ_HANDLER Disable="true">
-            <CANBUS_IF>vcan0</CANBUS_IF>
-        </SDAQ_HANDLER>
-        <MDAQ_HANDLER Disable="true">
-            <DEV_NAME>LAD_MDAQ</DEV_NAME>
-            <IPv4_ADDR>10.0.0.10</IPv4_ADDR>
-        </MDAQ_HANDLER>
-        <IOBOX_HANDLER Disable="true">
-            <DEV_NAME>LAD_IOBOX</DEV_NAME>
-            <IPv4_ADDR>10.0.0.7</IPv4_ADDR>
-        </IOBOX_HANDLER>
-        <MTI_HANDLER Disable="true">
-            <DEV_NAME>test3</DEV_NAME>
-            <IPv4_ADDR>10.0.0.11</IPv4_ADDR>
-        </MTI_HANDLER>
-        <NOX_HANDLER Disable="true">
-            <CANBUS_IF>can1</CANBUS_IF>
+        <NOX_HANDLER Disable="false">
+            <CANBUS_IF>can2</CANBUS_IF>
         </NOX_HANDLER>
+        <NOX_HANDLER Disable="false">
+            <CANBUS_IF>can3</CANBUS_IF>
+        </NOX_HANDLER>
+        <MTI_HANDLER Disable="false">
+            <DEV_NAME>MTI_LAB</DEV_NAME>
+            <IPv4_ADDR>10.0.0.20</IPv4_ADDR>
+        </MTI_HANDLER>
+        <IOBOX_HANDLER Disable="false">
+            <DEV_NAME>IOBOX_LAB</DEV_NAME>
+            <IPv4_ADDR>10.0.0.30</IPv4_ADDR>
+        </IOBOX_HANDLER>
     </COMPONENTS>
 </CONFIG>

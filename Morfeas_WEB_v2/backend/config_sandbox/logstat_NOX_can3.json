@@ -1,0 +1,61 @@
+{
+  "logstat_build_date_UNIX": 1710000300,
+  "ws_port": 18101,
+  "CANBus_interface": "can3",
+  "BUS_Utilization": 55.5,
+  "BUS_Error_rate": 0.3,
+  "Auto_SW_OFF_value": 10,
+  "Auto_SW_OFF_cnt": 1,
+  "NOx_sensors": [
+    {
+      "addr": 0,
+      "last_seen": 1710000250,
+      "NOx_value_integral_size": 2,
+      "NOx_value_min": 0.0,
+      "NOx_value_max": 0.0,
+      "NOx_value_avg": null,
+      "O2_value_integral_size": 2,
+      "O2_value_min": 0.0,
+      "O2_value_max": 0.0,
+      "O2_value_avg": null,
+      "status": {
+        "meas_state": false,
+        "supply_in_range": false,
+        "in_temperature": false,
+        "is_NOx_value_valid": false,
+        "is_O2_value_valid": false,
+        "heater_mode_state": "Sensor_missing"
+      },
+      "errors": {
+        "heater": "Undervoltage",
+        "NOx": "Not present",
+        "O2": "Not present"
+      }
+    },
+    {
+      "addr": 1,
+      "last_seen": 1710000290,
+      "NOx_value_integral_size": 4,
+      "NOx_value_min": 5.2,
+      "NOx_value_max": 28.4,
+      "NOx_value_avg": 16.7,
+      "O2_value_integral_size": 4,
+      "O2_value_min": 15.1,
+      "O2_value_max": 17.9,
+      "O2_value_avg": 16.3,
+      "status": {
+        "meas_state": true,
+        "supply_in_range": true,
+        "in_temperature": true,
+        "is_NOx_value_valid": false,
+        "is_O2_value_valid": true,
+        "heater_mode_state": "Regulating"
+      },
+      "errors": {
+        "heater": "Over current",
+        "NOx": "Not calibrated",
+        "O2": "No error"
+      }
+    }
+  ]
+}
