@@ -1,52 +1,45 @@
+
 /* =============================================================================
- * Morfeas WEB — Base UI Theme
+ * Morfeas WEB — Base UI Theme (Refactored)
  * -----------------------------------------------------------------------------
- * Purpose: Shared visual system (colors, typography, components) for all pages.
- * Notes  : Keep selectors stable; many popup pages import this file directly.
+ * Purpose: Shared visual system for all pages with modular structure.
+ * Notes  : All colors and sizing tokens are centralized in :root.
  * ===========================================================================*/
 
 /* == 1) THEME TOKENS ======================================================= */
 :root {
-  /* Color tokens */
-  --text: #111827;
-  --muted: #6b7280;
-  --border: #a2a6ae;
-  /* softer border (can switch to #e5e7eb) */
-  --bg: #ffffff;
-  --bg-weak: #f8fafc;
+  /* === Color Tokens === */
+  --color-text: #111827;
+  --color-muted: #6b7280;
+  --color-border: #a2a6ae;
+  --color-bg: #ffffff;
+  --color-bg-weak: #f8fafc;
 
-  /* Accent color (Active blue kept from legacy) */
-  --s-active: #3498db;
-  --accent: var(--s-active);
+  /* Accent Colors */
+  --color-accent: #3498db;
 
-  /* Status palette (aligns with legacy names) */
-  --s-okay: #2ecc71;
-  --s-stall: #f1c40f;
-  --s-error: #e74c3c;
-  --s-offline: #b6bec6;
-  --s-unlink: #ffffff;
+  /* Status Colors */
+  --color-status-okay: #2ecc71;
+  --color-status-stall: #f39c12;
+  --color-status-error: #e74c3c;
+  --color-status-offline: #95a5a6;
+  --color-status-idle: #1abc9c;
+  --color-status-unknown: #95a5a6;
+  --color-status-disabled: #b6bec6;
 
-  /* Backward-compat aliases (older pages may still use them) */
-  --s-idle: #1abc9c;
-  --s-unknown: #95a5a6;
-  --s-disabled: #b6bec6;
+  /* Row Interaction Colors */
+  --color-row-hover: #fff9db;
+  --color-row-selected: #ffe8a3;
 
-  /* Misc tokens */
-  --chip-fg: #4b5563;
-  --row-hover: #fff9db;
-  /* hover color  (light)   */
-  --row-selected: #ffe8a3;
-  /* selected row (darker)  */
+  /* Calibration Expired Background */
+  --color-calib-expired-bg: #f39c12;
 
-  /* Sizing/typography */
+  /* === Typography & Sizing === */
   --radius: 14px;
-  --h: 72px;
-  --btn-fz: 17px;
-  /* button label size */
-  --fz: 16.5px;
-  /* base font size */
-  --title: clamp(20px, 3vw, 28px);
-  /* responsive page title */
+  --header-height: 72px;
+  --font-size-base: 16.5px;
+  --font-size-btn: 17px;
+  --font-size-title: clamp(20px, 3vw, 28px);
 }
 
 /* == 2) GLOBAL RESETS ====================================================== */
@@ -61,9 +54,9 @@ body {
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font: var(--fz)/1.55 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: var(--font-size-base)/1.55 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
 }
 
 /* == 3) TOPBAR ============================================================= */
@@ -71,8 +64,8 @@ body {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: #fff;
-  border-bottom: 1px solid var(--border);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .top-inner {
@@ -97,12 +90,12 @@ body {
 }
 
 .page-title {
-  font-size: var(--title);
+  font-size: var(--font-size-title);
   font-weight: 900;
   letter-spacing: .2px;
 }
 
-/* Right side chips (info panel) */
+/* Info chips on right side */
 .info {
   display: flex;
   align-items: center;
@@ -119,16 +112,16 @@ body {
   gap: 8px;
   min-height: 42px;
   padding: 0 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: var(--bg-weak);
-  color: var(--chip-fg);
+  background: var(--color-bg-weak);
+  color: #4b5563;
   font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
 }
 
-/* Menu button + dropdown */
+/* == 4) MENU BUTTON & DROPDOWN ============================================ */
 .menu-wrap {
   margin-left: 0;
   position: relative;
@@ -137,9 +130,9 @@ body {
 .menu-btn {
   height: 42px;
   padding: 0 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-bg);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -153,7 +146,7 @@ body {
 .burger {
   width: 20px;
   height: 2px;
-  background: #111;
+  background: var(--color-text);
   position: relative;
 }
 
@@ -164,7 +157,7 @@ body {
   left: 0;
   right: 0;
   height: 2px;
-  background: #111;
+  background: var(--color-text);
 }
 
 .burger::before {
@@ -180,8 +173,8 @@ body {
   right: 0;
   top: calc(100% + 8px);
   min-width: 280px;
-  background: #fff;
-  border: 1px solid var(--border);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
   padding: 8px;
@@ -194,7 +187,7 @@ body {
 
 .group {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-muted);
   padding: 8px 12px;
   text-transform: uppercase;
   letter-spacing: .04em;
@@ -210,7 +203,7 @@ body {
 }
 
 .menu-item:hover {
-  background: var(--row-hover);
+  background: var(--color-row-hover);
 }
 
 .menu-sep {
@@ -248,16 +241,16 @@ body {
   align-items: center;
   gap: 10px;
   padding: 12px;
-  border-bottom: 1px solid var(--border);
-  background: #fff;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
   flex-wrap: wrap;
 }
 
 .input {
   height: 42px;
   min-width: 380px;
-  font-size: var(--fz);
-  border: 1px solid var(--border);
+  font-size: var(--font-size-base);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 0 12px;
 }
@@ -266,24 +259,24 @@ body {
   height: 42px;
   padding: 0 14px;
   cursor: pointer;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #fff;
-  font-size: var(--btn-fz);
+  background: var(--color-bg);
+  font-size: var(--font-size-btn);
   line-height: 1;
   font-weight: 600;
 }
 
 .btn.primary {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-color: var(--color-accent);
 }
 
 /* == 6) TABLE ============================================================== */
 .table-wrap {
   overflow: auto;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
   background: #d1d5db;
 }
 
@@ -310,7 +303,7 @@ body {
   font-weight: 800;
 }
 
-/* Col alignment: (1)=checkbox, (2)=#, centered; (8)=Value, (11)=Min, (12)=Max right-aligned */
+/* Column alignment */
 .table th:nth-child(1),
 .table td:nth-child(1),
 .table th:nth-child(2),
@@ -327,7 +320,7 @@ body {
   text-align: right;
 }
 
-/* Color column (3rd) — keep dot centered */
+/* Color column (3rd) */
 .table td:nth-child(3) {
   display: flex;
   align-items: center;
@@ -337,11 +330,11 @@ body {
 
 /* Row states */
 .row:hover {
-  background: var(--row-hover);
+  background: var(--color-row-hover);
 }
 
 .row.selected {
-  background: var(--row-selected);
+  background: var(--color-row-selected);
 }
 
 /* Status dots */
@@ -354,19 +347,19 @@ body {
 }
 
 .st-Okay {
-  background: var(--s-okay);
+  background: var(--color-status-okay);
 }
 
 .st-Stall {
-  background: var(--s-stall);
+  background: var(--color-status-stall);
 }
 
 .st-Error {
-  background: var(--s-error);
+  background: var(--color-status-error);
 }
 
 .st-Offline {
-  background: var(--s-offline);
+  background: var(--color-status-offline);
 }
 
 .st-Unlinked {
@@ -374,18 +367,18 @@ body {
 }
 
 .st-Idle {
-  background: var(--s-idle);
+  background: var(--color-status-idle);
 }
 
 .st-Unknown {
-  background: var(--s-unknown);
+  background: var(--color-status-unknown);
 }
 
 .st-Disabled {
-  background: var(--s-disabled);
+  background: var(--color-status-disabled);
 }
 
-/* Column filter headers (Status / Type) */
+/* Column filter headers */
 th.th-filterable {
   position: relative;
   cursor: pointer;
@@ -395,16 +388,16 @@ th.th-filterable {
 th.th-filterable .filter-icon {
   font-size: 10px;
   margin-left: 4px;
-  color: var(--muted);
+  color: var(--color-muted);
 }
 
 /* Dropdown menu for column filters */
 .col-filter-menu {
   position: absolute;
   z-index: 40;
-  background: #fff;
+  background: var(--color-bg);
   border-radius: 8px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
   padding: 4px 0;
 }
@@ -428,12 +421,12 @@ th.th-filterable .filter-icon {
 
 .col-filter-item:hover,
 .col-filter-item.active {
-  background: var(--bg-weak);
+  background: var(--color-bg-weak);
 }
 
-/* Next Calibration expired background */
+/* Calibration expired cell */
 td.calib-expired {
-  background: #fed7aa;
+  background: var(--color-calib-expired-bg);
 }
 
 /* == 7) CONTEXT MENU ======================================================= */
@@ -441,8 +434,8 @@ td.calib-expired {
   position: fixed;
   z-index: 60;
   min-width: 220px;
-  background: #fff;
-  border: 1px solid var(--border);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, .12);
   display: none;
@@ -462,8 +455,8 @@ td.calib-expired {
 /* == 8) FOOTER ============================================================= */
 .footer {
   padding: 12px 14px;
-  border-top: 1px solid var(--border);
-  color: var(--muted);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
   font-size: 15px;
 }
 

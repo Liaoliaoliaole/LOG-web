@@ -16,6 +16,59 @@
  *     ...
  *   ]
  */
+function sdaq_detect_bus(array $data, string $jsonPath): string
+{
+    if (!empty($data['CANBus_interface'])) {
+        return strtoupper((string)$data['CANBus_interface']);
+    }
+
+    // 尝试从文件名推断：logstat_SDAQs_can0.json -> CAN0
+    $name = strtolower(basename($jsonPath));
+    if (preg_match('/logstat_sdaq.*_(can\w+)/i', $name, $m)) {
+        return strtoupper($m[1]);
+    }
+
+    return 'CAN1';
+}
+
+/**
+ * 收集每个 SDAQ 的设备类型（按总线 + 地址）
+ * 返回形如：['CAN1.ADDR:01' => 'SDAQ-I', ...]
+ */
+function sdaq_collect_device_types($jsonPaths): array
+{
+    if (!is_array($jsonPaths)) {
+        $jsonPaths = [$jsonPaths];
+    }
+
+    $types = [];
+    foreach ($jsonPaths as $jsonPath) {
+        if (!is_file($jsonPath)) continue;
+        $raw = file_get_contents($jsonPath);
+        if ($raw === false || $raw === '') continue;
+
+        $data = json_decode($raw, true);
+        if (!is_array($data)) continue;
+
+        $bus = sdaq_detect_bus($data, $jsonPath);
+        if (empty($data['SDAQs_data']) || !is_array($data['SDAQs_data'])) {
+            continue;
+        }
+
+        foreach ($data['SDAQs_data'] as $sdaq) {
+            $addr = $sdaq['Address'] ?? null;
+            $type = $sdaq['SDAQ_type'] ?? null;
+            if ($addr === null || !is_string($type) || $type === '') {
+                continue;
+            }
+            $key = sprintf('%s.ADDR:%02d', $bus, $addr);
+            $types[$key] = $type;
+        }
+    }
+
+    return $types;
+}
+
 function sdaq_load_anchor_map(string $jsonPath): array
 {
     if (!is_file($jsonPath)) {
@@ -34,15 +87,15 @@ function sdaq_load_anchor_map(string $jsonPath): array
 
     $map = [];
 
-    // CAN 接口名字：can1 -> CAN1
-    $canLower = $data['CANBus_interface'] ?? 'can1';
-    $can = strtoupper($canLower);
+    // CAN 接口名字：can1 -> CAN1（若字段缺失则从文件名推断）
+    $can = sdaq_detect_bus($data, $jsonPath);
 
     if (empty($data['SDAQs_data']) || !is_array($data['SDAQs_data'])) {
         return $map;
     }
 
     foreach ($data['SDAQs_data'] as $sdaq) {
+        $deviceType = $sdaq['SDAQ_type'] ?? null;
         $addr = $sdaq['Address'] ?? null;
         if ($addr === null) {
             continue;
@@ -97,6 +150,7 @@ function sdaq_load_anchor_map(string $jsonPath): array
                 'is_meas_valid' => $valid,
                 'meas_value'    => is_numeric($value) ? (float)$value : null,
                 'meas_unit'     => is_string($unit) ? $unit : null,
+                'device_user_identifier' => is_string($deviceType) ? $deviceType : null,
             ];
         }
     }

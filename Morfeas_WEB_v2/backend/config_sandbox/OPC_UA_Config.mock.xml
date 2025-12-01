@@ -11,7 +11,6 @@
         <MAX>100</MAX>
         <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
-
     <CHANNEL>
         <ISO_CHANNEL>SDAQ_OK_CAL</ISO_CHANNEL>
         <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
@@ -24,7 +23,6 @@
         <CAL_DATE>2099/01/01</CAL_DATE>
         <CAL_PERIOD>12</CAL_PERIOD>
     </CHANNEL>
-
     <!-- 触发 “Cal not valid / 橙色” 的典型 SDAQ 通道 -->
     <CHANNEL>
         <ISO_CHANNEL>SDAQ_CAL_EXPIRED</ISO_CHANNEL>
@@ -38,7 +36,6 @@
         <CAL_DATE>2020/01/01</CAL_DATE>
         <CAL_PERIOD>6</CAL_PERIOD>
     </CHANNEL>
-
     <!-- ========== SDAQ 错误状态 (由 logstat 决定) ========== -->
     <!-- Stall: CNT == 0 -->
     <CHANNEL>
@@ -50,7 +47,6 @@
         <MAX>100</MAX>
         <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
-
     <!-- Out of Range -->
     <CHANNEL>
         <ISO_CHANNEL>SDAQ_OUT_OF_RANGE</ISO_CHANNEL>
@@ -61,7 +57,6 @@
         <MAX>100</MAX>
         <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
-
     <!-- Over Range -->
     <CHANNEL>
         <ISO_CHANNEL>SDAQ_OVER_RANGE</ISO_CHANNEL>
@@ -72,7 +67,6 @@
         <MAX>100</MAX>
         <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
-
     <!-- No sensor -->
     <CHANNEL>
         <ISO_CHANNEL>SDAQ_NO_SENSOR</ISO_CHANNEL>
@@ -83,7 +77,6 @@
         <MAX>100</MAX>
         <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
-
     <!-- Unclassified -->
     <CHANNEL>
         <ISO_CHANNEL>SDAQ_UNCLASSIFIED</ISO_CHANNEL>
@@ -94,7 +87,6 @@
         <MAX>100</MAX>
         <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
-
     <!-- OFF-Line: anchor 在 logstat 中不存在 -->
     <CHANNEL>
         <ISO_CHANNEL>SDAQ_OFFLINE</ISO_CHANNEL>
@@ -105,7 +97,6 @@
         <MAX>100</MAX>
         <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
-
     <!-- ========== NOX 相关通道（Open Wire / Short circuit） ========== -->
     <CHANNEL>
         <ISO_CHANNEL>NOX_OK</ISO_CHANNEL>
@@ -116,7 +107,6 @@
         <MAX>1000</MAX>
         <UNIT>ppm</UNIT>
     </CHANNEL>
-
     <CHANNEL>
         <ISO_CHANNEL>NOX_OPEN_WIRE</ISO_CHANNEL>
         <INTERFACE_TYPE>NOX</INTERFACE_TYPE>
@@ -126,7 +116,6 @@
         <MAX>1000</MAX>
         <UNIT>ppm</UNIT>
     </CHANNEL>
-
     <CHANNEL>
         <ISO_CHANNEL>NOX_SHORT_CIRCUIT</ISO_CHANNEL>
         <INTERFACE_TYPE>NOX</INTERFACE_TYPE>
@@ -136,7 +125,6 @@
         <MAX>1000</MAX>
         <UNIT>ppm</UNIT>
     </CHANNEL>
-
     <!-- ========== IOBOX 相关通道 ========== -->
     <!-- IOBOX_logstat 里 anchor 形如: Dev_name.RX1.CH:01 -->
     <CHANNEL>
@@ -148,7 +136,6 @@
         <MAX>150</MAX>
         <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
-
     <CHANNEL>
         <ISO_CHANNEL>IOBOX_NO_SENSOR</ISO_CHANNEL>
         <INTERFACE_TYPE>IOBOX</INTERFACE_TYPE>
@@ -158,7 +145,6 @@
         <MAX>150</MAX>
         <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
-
     <!-- IP 通了, 某个 RX 断: status = Disconnected -->
     <CHANNEL>
         <ISO_CHANNEL>IOBOX_DISCONNECTED</ISO_CHANNEL>
@@ -169,7 +155,6 @@
         <MAX>150</MAX>
         <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
-
     <!-- 完全没有对应 logstat: OFF-Line -->
     <CHANNEL>
         <ISO_CHANNEL>IOBOX_OFFLINE</ISO_CHANNEL>
@@ -180,7 +165,6 @@
         <MAX>150</MAX>
         <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
-
     <!-- ========== MTI 相关通道 ========== -->
     <!-- MTI_logstat 里 anchor 形如: Dev_name.TC8.CH:1 -->
     <CHANNEL>
@@ -192,7 +176,6 @@
         <MAX>200</MAX>
         <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
-
     <CHANNEL>
         <ISO_CHANNEL>MTI_NO_SENSOR</ISO_CHANNEL>
         <INTERFACE_TYPE>MTI</INTERFACE_TYPE>
@@ -202,7 +185,6 @@
         <MAX>200</MAX>
         <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
-
     <!-- RX_Success_Ratio == 0: Disconnected -->
     <CHANNEL>
         <ISO_CHANNEL>MTI_DISCONNECTED</ISO_CHANNEL>
@@ -213,7 +195,6 @@
         <MAX>200</MAX>
         <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
-
     <!-- 没有 logstat: OFF-Line -->
     <CHANNEL>
         <ISO_CHANNEL>MTI_OFFLINE</ISO_CHANNEL>
@@ -224,7 +205,6 @@
         <MAX>200</MAX>
         <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
-
     <!-- ========== SDAQ 带 alarm + build/mod meta 的完整版 ========== -->
     <CHANNEL>
         <ISO_CHANNEL>SDAQ_ALARM_FULL</ISO_CHANNEL>
@@ -246,7 +226,6 @@
         <ALARM_HIGH>1</ALARM_HIGH>
         <ALARM_LOW>1</ALARM_LOW>
     </CHANNEL>
-
     <!-- ========== 专门用来测 XML 各种组合情况 ========== -->
     <!-- 无 UNIT -->
     <CHANNEL>
@@ -258,7 +237,6 @@
         <MAX>100</MAX>
         <!-- 故意不写 UNIT -->
     </CHANNEL>
-
     <!-- 只有 CAL_DATE，没有 CAL_PERIOD -->
     <CHANNEL>
         <ISO_CHANNEL>SDAQ_CAL_DATE_ONLY</ISO_CHANNEL>
@@ -270,7 +248,6 @@
         <UNIT>&#xB0;C</UNIT>
         <CAL_DATE>2025/01/01</CAL_DATE>
     </CHANNEL>
-
     <!-- 只有 CAL_PERIOD，没有 CAL_DATE -->
     <CHANNEL>
         <ISO_CHANNEL>SDAQ_CAL_PERIOD_ONLY</ISO_CHANNEL>
@@ -282,5 +259,105 @@
         <UNIT>&#xB0;C</UNIT>
         <CAL_PERIOD>12</CAL_PERIOD>
     </CHANNEL>
-
+    <CHANNEL>
+    <ISO_CHANNEL>_TE102</ISO_CHANNEL>
+    <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+    <ANCHOR>700308632.CH1</ANCHOR>
+    <DESCRIPTION>Fuel Oil Temp a Engine</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>150</MAX>
+    <BUILD_DATE>1749117831</BUILD_DATE>
+    <MOD_DATE>1752056815</MOD_DATE>
+    <ALARM_HIGH_VAL>150</ALARM_HIGH_VAL>
+    <ALARM_LOW_VAL>0</ALARM_LOW_VAL>
+    <ALARM_HIGH>no</ALARM_HIGH>
+    <ALARM_LOW>no</ALARM_LOW>
+  </CHANNEL>
+  <CHANNEL>
+    <ISO_CHANNEL>_PT511</ISO_CHANNEL>
+    <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+    <ANCHOR>642263695.CH1</ANCHOR>
+    <DESCRIPTION>Pressure after LP compressor</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>20</MAX>
+    <BUILD_DATE>1753173185</BUILD_DATE>
+    <MOD_DATE>1753173186</MOD_DATE>
+    <ALARM_HIGH_VAL>0</ALARM_HIGH_VAL>
+    <ALARM_LOW_VAL>0</ALARM_LOW_VAL>
+    <ALARM_HIGH>no</ALARM_HIGH>
+    <ALARM_LOW>no</ALARM_LOW>
+  </CHANNEL>
+  <CHANNEL>
+    <ISO_CHANNEL>_TE511_1</ISO_CHANNEL>
+    <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+    <ANCHOR>747824576.CH1</ANCHOR>
+    <DESCRIPTION>t5 Temp b Turbine Sensor 1</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>650</MAX>
+    <BUILD_DATE>1753173210</BUILD_DATE>
+    <MOD_DATE>1753173211</MOD_DATE>
+    <ALARM_HIGH_VAL>650</ALARM_HIGH_VAL>
+    <ALARM_LOW_VAL>0</ALARM_LOW_VAL>
+    <ALARM_HIGH>no</ALARM_HIGH>
+    <ALARM_LOW>no</ALARM_LOW>
+  </CHANNEL>
+  <CHANNEL>
+    <ISO_CHANNEL>_TE511</ISO_CHANNEL>
+    <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+    <ANCHOR>647704140.CH1</ANCHOR>
+    <DESCRIPTION>trs</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>100</MAX>
+    <BUILD_DATE>1753173307</BUILD_DATE>
+    <MOD_DATE>1753173308</MOD_DATE>
+    <ALARM_HIGH_VAL>0</ALARM_HIGH_VAL>
+    <ALARM_LOW_VAL>0</ALARM_LOW_VAL>
+    <ALARM_HIGH>no</ALARM_HIGH>
+    <ALARM_LOW>no</ALARM_LOW>
+  </CHANNEL>
+  <CHANNEL>
+    <ISO_CHANNEL>_PT402</ISO_CHANNEL>
+    <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+    <ANCHOR>649440792.CH1</ANCHOR>
+    <DESCRIPTION>test</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>3</MAX>
+    <BUILD_DATE>1753173337</BUILD_DATE>
+    <MOD_DATE>1753173338</MOD_DATE>
+    <ALARM_HIGH_VAL>0</ALARM_HIGH_VAL>
+    <ALARM_LOW_VAL>0</ALARM_LOW_VAL>
+    <ALARM_HIGH>no</ALARM_HIGH>
+    <ALARM_LOW>no</ALARM_LOW>
+  </CHANNEL>
+  <CHANNEL>
+    <ISO_CHANNEL>_TE601_16</ISO_CHANNEL>
+    <INTERFACE_TYPE>IOBOX</INTERFACE_TYPE>
+    <ANCHOR>344441098.RX1.CH1</ANCHOR>
+    <DESCRIPTION>Tmp CA b Cyl B6</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>160</MAX>
+    <UNIT>°C</UNIT>
+    <CAL_DATE>2025/08/06</CAL_DATE>
+    <CAL_PERIOD>12</CAL_PERIOD>
+    <BUILD_DATE>1754485347</BUILD_DATE>
+    <MOD_DATE>1754485348</MOD_DATE>
+    <ALARM_HIGH_VAL>160</ALARM_HIGH_VAL>
+    <ALARM_LOW_VAL>0</ALARM_LOW_VAL>
+    <ALARM_HIGH>no</ALARM_HIGH>
+    <ALARM_LOW>no</ALARM_LOW>
+  </CHANNEL>
+  <CHANNEL>
+    <ISO_CHANNEL>_PT651</ISO_CHANNEL>
+    <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+    <ANCHOR>647704344.CH1</ANCHOR>
+    <DESCRIPTION>Air Diff Press Air Nozzle</DESCRIPTION>
+    <MIN>-50</MIN>
+    <MAX>130</MAX>
+    <BUILD_DATE>1764149002</BUILD_DATE>
+    <MOD_DATE>1764153311</MOD_DATE>
+    <ALARM_HIGH_VAL>130</ALARM_HIGH_VAL>
+    <ALARM_LOW_VAL>-50</ALARM_LOW_VAL>
+    <ALARM_HIGH>no</ALARM_HIGH>
+    <ALARM_LOW>no</ALARM_LOW>
+  </CHANNEL>
 </NODESet>

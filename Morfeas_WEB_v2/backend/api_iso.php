@@ -10,22 +10,28 @@ require __DIR__ . '/core/logstat_nox.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-// === 1) 配置 XML 路径 ===============================================
+// === 1) 使用 sandbox 的 OPC UA mock XML（保持与老版一致） ==============
 
-// 如果你的 mock XML 在 backend/config_sandbox/OPC_UA_Config.mock.xml：
-//   Morfeas_WEB_v2/
-//     backend/
-//       api_iso.php  (这里)
-//       config_sandbox/OPC_UA_Config.mock.xml
-//
-// 就用这一行；否则改成真实路径，比如 __DIR__.'/OPC_UA_Config.xml'
-$xmlPath = __DIR__ . '/config_sandbox/OPC_UA_Config.mock.xml';
+$sandboxDir = __DIR__ . '/config_sandbox/';
 
-// === 2) logstat mock 路径 ===========================================
-$sdaqLogPath =  __DIR__ . '/config_sandbox/logstat_SDAQs_can1.json';
-$ioboxLogFiles = [__DIR__ . '/config_sandbox/logstat_IOBOX_IOBOX_A.json'];
-$mtiLogFiles   = [__DIR__ . '/config_sandbox/logstat_MTI_MTI_A.json'];
-$noxLogPath    = __DIR__ . '/config_sandbox/logstat_NOX_can2.json';
+// 前端期望总是读取 sandbox 的 mock 配置；如需真实路径请后续再扩展
+$xmlPath = $sandboxDir.'OPC_UA_Config.mock.xml';
+
+// === 2) logstat 路径（真实 ramdisk -> sandbox） =====================
+
+$ramdisk = '/mnt/ramdisk/';
+$collectLogstatPaths = function (string $pattern) use ($ramdisk, $sandboxDir): array {
+    $sandbox = glob($sandboxDir . $pattern) ?: [];
+    $ram     = glob($ramdisk . $pattern) ?: [];
+
+    // sandbox 先，ramdisk 后，确保实时数据覆盖样本
+    return array_merge($sandbox, $ram);
+};
+
+$sdaqLogFiles  = $collectLogstatPaths('logstat_SDAQ*.json');
+$noxLogFiles   = $collectLogstatPaths('logstat_NOX*.json');
+$ioboxLogFiles = $collectLogstatPaths('logstat_IOBOX*.json');
+$mtiLogFiles   = $collectLogstatPaths('logstat_MTI*.json');
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
@@ -56,17 +62,35 @@ function read_json_body(): array
  */
 function build_rows_with_logstat(
     string $xmlPath,
-    string $sdaqLogPath,
+    array  $sdaqLogFiles,
     array  $ioboxLogFiles,
     array  $mtiLogFiles,
-    string $noxLogPath
+    array  $noxLogFiles
 ): array {
     $channels = iso_load_channels($xmlPath);
 
-    $sdaqMap  = sdaq_load_anchor_map($sdaqLogPath);
+    $sdaqMap = [];
+    foreach ($sdaqLogFiles as $path) {
+        $newMap = sdaq_load_anchor_map($path);
+        if (is_array($newMap)) {
+            foreach ($newMap as $anchor => $entry) {
+                $sdaqMap[$anchor] = $entry;
+            }
+        }
+    }
+
     $ioboxMap = iobox_load_anchor_map($ioboxLogFiles);
     $mtiMap   = mti_load_anchor_map($mtiLogFiles);
-    $noxMap   = nox_load_anchor_map($noxLogPath);
+
+    $noxMap = [];
+    foreach ($noxLogFiles as $path) {
+        $newMap = nox_load_anchor_map($path);
+        if (is_array($newMap)) {
+            foreach ($newMap as $anchor => $entry) {
+                $noxMap[$anchor] = $entry;
+            }
+        }
+    }
 
     $rows = [];
 
@@ -74,6 +98,17 @@ function build_rows_with_logstat(
         $row    = $ch;
         $anchor = $ch['anchor'] ?? '';
         $type   = strtoupper($ch['interface_type'] ?? '');
+        $row['dev_type'] = $type;
+        $busAddrKey = null;
+
+        if ($type === 'SDAQ' && $anchor) {
+            if (preg_match('/^(CAN\w+\.ADDR:\d{2})/i', $anchor, $m)) {
+                $busAddrKey = strtoupper($m[1]);
+                if (isset($sdaqDeviceTypes[$busAddrKey])) {
+                    $row['dev_type'] = $sdaqDeviceTypes[$busAddrKey];
+                }
+            }
+        }
 
         $status = 'OFF-Line';
         $meas   = '—';
@@ -83,6 +118,11 @@ function build_rows_with_logstat(
                 $ls = $sdaqMap[$anchor];
                 $status = $ls['status'] ?? 'Unknown';
 
+                if (!empty($ls['device_user_identifier'])) {
+                    $row['dev_type'] = $ls['device_user_identifier'];
+                }
+
+
                 if (!empty($ls['is_meas_valid']) && $ls['meas_value'] !== null) {
                     $value = $ls['meas_value'];
                     $meas  = sprintf('%.3f', $value);
@@ -90,6 +130,9 @@ function build_rows_with_logstat(
                         $meas .= ' ' . $ls['meas_unit'];
                     }
                 }
+            } elseif ($busAddrKey && isset($sdaqDeviceTypes[$busAddrKey])) {
+                // 无对应 anchor，但同一台 SDAQ 的类型仍然可用于 Type 列
+                $row['dev_type'] = $sdaqDeviceTypes[$busAddrKey];
             }
 
         } elseif ($type === 'IOBOX') {
@@ -149,16 +192,23 @@ function build_rows_with_logstat(
 }
 
 try {
+    if (!is_file($xmlPath)) {
+        echo json_encode([
+            'ok'    => false,
+            'error' => "OPC UA config not found: $xmlPath"
+        ], JSON_PRETTY_PRINT);
+        return;
+    }
     switch ($method) {
         case 'GET':
             $iso = $_GET['iso'] ?? null;
 
             $rows = build_rows_with_logstat(
                 $xmlPath,
-                $sdaqLogPath,
+                $sdaqLogFiles,
                 $ioboxLogFiles,
                 $mtiLogFiles,
-                $noxLogPath
+                $noxLogFiles
             );
 
             if ($iso === null) {
@@ -229,6 +279,9 @@ try {
             echo json_encode(['ok' => false, 'error' => 'Method not allowed'], JSON_PRETTY_PRINT);
     }
 } catch (Throwable $e) {
-    http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_PRETTY_PRINT);
+    // Surface parsing/IO errors to the caller without forcing a 500 that masks the message.
+    echo json_encode([
+        'ok'    => false,
+        'error' => $e->getMessage()
+    ], JSON_PRETTY_PRINT);
 }

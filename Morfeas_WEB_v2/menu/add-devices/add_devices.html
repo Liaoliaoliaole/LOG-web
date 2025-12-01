@@ -62,6 +62,14 @@
       white-space: nowrap;
     }
 
+    /* Bus column: keep width consistent with neighboring columns */
+    .table th:nth-child(3),
+    .table td:nth-child(3) {
+      width: 120px;
+      display: table-cell;
+      text-align: center;
+    }
+
     .table td:nth-child(1),
     .table th:nth-child(1) {
       text-align: center;
@@ -161,9 +169,9 @@
                 <th><input id="mchk" type="checkbox" aria-label="Select all rows" /></th>
                 <th>#</th>
                 <th>Bus</th>
-                <th>Type</th>
+                <th>Device Type</th>
+                <th>Device Name/Address</th>
                 <th>IP Address</th>
-                <th>Status</th>
               </tr>
             </thead>
             <tbody id="devBody"></tbody>
@@ -184,10 +192,8 @@
               <td class="label">Device Type</td>
               <td>
                 <select id="devType" class="input" style="height:42px;min-width:200px;">
-                  <option value="SDAQ">SDAQ</option>
                   <option value="NOX">NOX</option>
                   <option value="IO-BOX">IO-BOX</option>
-                  <option value="MDAQ">MDAQ</option>
                   <option value="MTI">MTI</option>
                 </select>
               </td>

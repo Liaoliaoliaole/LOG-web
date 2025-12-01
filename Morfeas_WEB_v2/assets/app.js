@@ -143,6 +143,13 @@
       dropdown.classList.contains('open') ? closeMenu() : openMenu();
     });
 
+    // Close dropdown once a menu item is chosen (matches legacy UX)
+    if (dropdown) {
+      $$('.menu-item', dropdown).forEach((item) => {
+        item.addEventListener('click', () => closeMenu());
+      });
+    }
+
     document.addEventListener('click', (e) => {
       if (dropdown && !dropdown.contains(e.target) && e.target !== menuBtn) {
         closeMenu();
@@ -427,7 +434,7 @@
 
       const rowIndex = index + 1;
       const isoName  = ch.iso_channel || '';
-      const type     = ch.interface_type || '';
+      const type     = ch.dev_type || ch.interface_type || '';
       const anchor   = ch.anchor || '';
       const desc     = ch.description || '';
       const min      = ch.min ?? '—';

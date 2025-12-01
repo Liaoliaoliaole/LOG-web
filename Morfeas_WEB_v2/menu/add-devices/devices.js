@@ -1,17 +1,21 @@
 /* ============================================================================
  * Add Devices (popup)
- * ----------------------------------------------------------------------------
+ * ---------------------------------------------------------------------------
  * - “Add…” reveals the inline form; Save appends a device to the table.
  * - Type rules:
- *     SDAQ / NOX  → Name & IP are disabled (greyed out).
- *     IO-BOX / MDAQ / MTI → CAN Interface is disabled.
+ *     SDAQ  → auto from logstat (not addable in the form).
+ *     NOX   → CAN interface only (Name/IP disabled, same as old behavior).
+ *     IO-BOX / MDAQ / MTI → CAN interface disabled, Name/IP editable.
  * - Table features: master checkbox, row click-to-toggle, Remove selected,
- *   Delete key to remove selected, Refresh re-renders (placeholder).
+ *   Delete key to remove selected, Refresh re-renders.
  * ========================================================================== */
 
 (function () {
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+  const API_DEVICES = '/backend/api_devices.php';
+  const MAX_COMPONENTS = 16; // legacy Morfeas_comp_amount_max
 
   // --------------------------------------------------------------------------
   // 1) TABLE ELEMENTS
@@ -34,10 +38,90 @@
   const devName = $('#devName');
   const devIp = $('#devIp');
 
+  [devName, devIp].forEach((input) => {
+    input.addEventListener('input', () => stripSpaces(input));
+  });
+  devName.addEventListener('change', () => validateDevName(devName));
+  devIp.addEventListener('change', () => validateIp(devIp));
+
   // --------------------------------------------------------------------------
-  // 3) IN-MEMORY MODEL (mock)
+  // 3) IN-MEMORY MODEL (backed by API)
   // --------------------------------------------------------------------------
   let devices = [];
+  let componentTotal = 0;
+  let componentMax = MAX_COMPONENTS;
+
+  // --------------------------------------------------------------------------
+  // 3.1) VALIDATION HELPERS (legacy-compatible)
+  // --------------------------------------------------------------------------
+  const IP_REGEX = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+  const DEV_NAME_REGEX = /^[0-9]+|[^[a-zA-Z0-9_-]]*/;
+
+  function stripSpaces(el) {
+    el.value = el.value.replace(/\s+/g, '');
+  }
+
+  function validateIp(el) {
+    const val = el.value.trim();
+    if (val && !IP_REGEX.test(val)) {
+      el.value = '';
+      alert('You have entered an invalid IP address!');
+      return false;
+    }
+    return true;
+  }
+
+  function validateDevName(el) {
+    const val = el.value.trim();
+    if (val && !DEV_NAME_REGEX.test(val)) {
+      return true;
+    }
+    if (val && DEV_NAME_REGEX.test(val)) {
+      el.value = '';
+      alert('DEV_NAME contains illegal characters');
+      return false;
+    }
+    return true;
+  }
+
+  function validateRequired(type) {
+    if (type === 'NOX') return true;
+
+    if (!devName.value.trim() || !devIp.value.trim()) {
+      alert('Nothing to commit!!!');
+      return false;
+    }
+
+    if (!validateDevName(devName) || !validateIp(devIp)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function isDuplicate(type, name, ip) {
+    // Only Modbus-based devices (IOBOX/MTI/MDAQ) check duplicate name/IP
+    if (type === 'NOX') return false;
+
+    const conflict = devices.find((d) => {
+      if (d.origin === 'auto') return false;
+      if (d.type === 'NOX' || d.type === 'SDAQ') return false;
+      if (name && d.name === name) return true;
+      if (ip && d.ip === ip) return true;
+      return false;
+    });
+
+    if (conflict) {
+      if (conflict.name === name) {
+        alert(`DEV_NAME: ${name} is in use!!!`);
+      } else {
+        alert(`IPv4_ADDR: ${ip} is in use!!!\n@ Handler with DEV_NAME:${conflict.name}`);
+      }
+      return true;
+    }
+
+    return false;
+  }
 
   // --------------------------------------------------------------------------
   // 4) RENDERING
@@ -48,14 +132,33 @@
       const tr = document.createElement('tr');
       tr.className = 'row';
       tr.dataset.index = i;
-      tr.innerHTML = `
-        <td><input type="checkbox" aria-label="Select row ${i + 1}" /></td>
-        <td>${i + 1}</td>
-        <td>${d.bus || '-'}</td>
-        <td>${d.type}</td>
-        <td>${d.ip || '-'}</td>
-        <td><span class="dot st-${d.status || 'Okay'}"></span>${d.status || 'Okay'}</td>
-      `;
+      tr.dataset.id = d.id || '';
+      tr.dataset.origin = d.origin || 'xml';
+
+      const tdCheck = document.createElement('td');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.setAttribute('aria-label', `Select row ${i + 1}`);
+      tdCheck.appendChild(cb);
+
+      const tdIdx = document.createElement('td');
+      tdIdx.textContent = i + 1;
+
+      const tdBus = document.createElement('td');
+      tdBus.textContent = d.bus || '-';
+
+      const tdType = document.createElement('td');
+      tdType.textContent = d.type;
+
+      const tdName = document.createElement('td');
+      tdName.textContent = d.name || '-';
+
+      const tdIp = document.createElement('td');
+      tdIp.textContent = d.ip || '-';
+
+      [tdCheck, tdIdx, tdBus, tdType, tdName, tdIp].forEach((td) =>
+        tr.appendChild(td)
+      );
       devBody.appendChild(tr);
     });
     syncState();
@@ -85,14 +188,14 @@
 
   function applyTypeRules() {
     const t = devType.value;
-    const sdaqLike = (t === 'SDAQ' || t === 'NOX');
+    const canOnly = (t === 'NOX');
 
-    // SDAQ / NOX → disable Name & IP; others → disable CAN
-    setDisabled(devName, sdaqLike);
-    setDisabled(devIp, sdaqLike);
-    setDisabled(canIf, !sdaqLike);
+    // NOX → disable Name & IP; others → disable CAN
+    setDisabled(devName, canOnly);
+    setDisabled(devIp, canOnly);
+    setDisabled(canIf, !canOnly);
 
-    if (sdaqLike) {
+    if (canOnly) {
       devName.value = '';
       devIp.value = '';
     }
@@ -102,51 +205,53 @@
   // --------------------------------------------------------------------------
   // 6) FORM INTERACTIONS
   // --------------------------------------------------------------------------
+  async function saveDevice() {
+    const type = devType.value;
+    const name = devName.value.trim();
+    const ip = devIp.value.trim();
+
+    if (componentTotal >= componentMax) {
+      alert('Maximum Amount of components reached!!!');
+      return;
+    }
+
+    if (!validateRequired(type)) return;
+    if (isDuplicate(type, name, ip)) return;
+
+    const payload = {
+      type,
+      bus: canIf.value,
+      name,
+      ip,
+    };
+
+    try {
+      const res = await fetch(API_DEVICES, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok || json.ok === false) {
+        throw new Error(json.error || ('HTTP ' + res.status));
+      }
+      propCard.style.display = 'none';
+      await loadDevices();
+    } catch (err) {
+      alert('Failed to save: ' + err.message);
+    }
+  }
+
   addBtn.addEventListener('click', () => {
     propCard.style.display = 'block';
-
-    // Defaults
-    devType.value = 'SDAQ';
+    devType.value = 'IO-BOX';
     canIf.value = 'can0';
     devName.value = '';
     devIp.value = '';
-
     applyTypeRules();
-    devType.focus();
-    propCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
-  saveBtn.addEventListener('click', () => {
-    const t = devType.value;
-    const sdaqLike = (t === 'SDAQ' || t === 'NOX');
-
-    // Simple validation for non-SDAQ/NOX
-    if (!sdaqLike) {
-      if (!devName.value.trim()) {
-        alert('Please fill Device Name.');
-        devName.focus(); return;
-      }
-      const ip = devIp.value.trim();
-      if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) {
-        alert('Please fill a valid IPv4 Address.');
-        devIp.focus(); return;
-      }
-    }
-
-    const item = {
-      type: t,
-      bus: sdaqLike ? canIf.value : '-',
-      ip: sdaqLike ? '' : devIp.value.trim(),
-      status: 'Okay'
-    };
-    devices.push(item);
-    render();
-
-    // Collapse form
-    propCard.style.display = 'none';
-    devName.value = '';
-    devIp.value = '';
-  });
+  saveBtn.addEventListener('click', saveDevice);
 
   cancelBtn.addEventListener('click', () => {
     propCard.style.display = 'none';
@@ -156,26 +261,65 @@
   // 7) TABLE INTERACTIONS
   // --------------------------------------------------------------------------
   mchk.addEventListener('change', () => {
-    $$('#devBody input[type="checkbox"]').forEach(cb => (cb.checked = mchk.checked));
+    const enableAll = mchk.checked;
+    $$('#devBody input[type="checkbox"]').forEach(cb => {
+      if (!cb.disabled) cb.checked = enableAll;
+    });
     syncState();
   });
 
   devBody.addEventListener('click', (e) => {
     const tr = e.target.closest('tr');
     if (!tr) return;
+    const cb = tr.querySelector('input[type="checkbox"]');
+    if (!cb) return;
     if (!e.target.closest('input[type="checkbox"]')) {
-      const cb = tr.querySelector('input[type="checkbox"]');
+      if (cb.disabled) return;
       cb.checked = !cb.checked;
     }
     syncState();
   });
 
-  removeBtn.addEventListener('click', () => {
+  async function deleteDevices() {
     const rows = $$('#devBody tr').filter(r => r.querySelector('input[type="checkbox"]').checked);
-    const idxs = rows.map(r => parseInt(r.dataset.index, 10)).sort((a, b) => b - a);
-    idxs.forEach(i => devices.splice(i, 1));
-    render();
-  });
+    if (!rows.length) {
+      alert('请选择要删除的设备');
+      return;
+    }
+    const manualIds = rows
+      .filter(r => (r.dataset.origin || 'xml') !== 'auto')
+      .map(r => r.dataset.id)
+      .filter(Boolean);
+    const autoIds = rows
+      .filter(r => (r.dataset.origin || 'xml') === 'auto')
+      .map(r => r.dataset.id)
+      .filter(Boolean);
+    try {
+      if (manualIds.length) {
+        const res = await fetch(API_DEVICES, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: manualIds }),
+        });
+        const json = await res.json();
+        if (!res.ok || json.ok === false) {
+          throw new Error(json.error || ('HTTP ' + res.status));
+        }
+      }
+
+      // 前端即时移除已选条目；SDAQ 会在下次刷新时根据 logstat 自动回归
+      const killSet = new Set([...manualIds, ...autoIds]);
+      devices = devices.filter(d => !killSet.has(d.id));
+      render();
+
+      // 全量刷新以同步组件计数与后端状态
+      await loadDevices();
+    } catch (err) {
+      alert('Failed to delete: ' + err.message);
+    }
+  }
+
+  removeBtn.addEventListener('click', deleteDevices);
 
   // Delete key: remove selected rows (ignores focused inputs)
   document.addEventListener('keydown', (e) => {
@@ -186,23 +330,31 @@
       el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
     if (isFormField) return;
 
-    const rows = $$('#devBody tr').filter(r => r.querySelector('input[type="checkbox"]').checked);
+    const rows = $$('#devBody tr').filter(r => r.querySelector('input[type="checkbox"]').checked && !r.querySelector('input[type="checkbox"]').disabled);
     if (!rows.length) return;
 
-    if (!confirm(`Delete ${rows.length} selected row(s)?`)) return;
-
-    const idxs = rows.map(r => parseInt(r.dataset.index, 10)).sort((a, b) => b - a);
-    idxs.forEach(i => devices.splice(i, 1));
-    render();
+    deleteDevices();
   });
 
   // --------------------------------------------------------------------------
-  // 8) REFRESH (placeholder)
+  // 8) REFRESH & INITIAL LOAD
   // --------------------------------------------------------------------------
-  refreshBtn.addEventListener('click', () => {
-    render();
-  });
+  async function loadDevices() {
+    try {
+      const res = await fetch(API_DEVICES);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if (json.ok === false) throw new Error(json.error || 'Load failed');
+      devices = json.data || [];
+      const meta = json.components || {};
+      componentTotal = typeof meta.total === 'number' ? meta.total : devices.length;
+      componentMax = typeof meta.max === 'number' ? meta.max : MAX_COMPONENTS;
+      render();
+    } catch (err) {
+      alert('Failed to load devices: ' + err.message);
+    }
+  }
 
-  // Initial paint
-  render();
+  refreshBtn.addEventListener('click', loadDevices);
+  loadDevices();
 })();
