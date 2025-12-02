@@ -38,6 +38,42 @@
         <MAX>120</MAX>
         <UNIT>°C</UNIT>
     </CHANNEL>
+    <CHANNEL>
+        <ISO_CHANNEL>OVER_RANGE_CAN0_CH1</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>can0.3.CH1</ANCHOR>
+        <DESCRIPTION>SDAQ over-range scenario on can0 address 3 channel 1</DESCRIPTION>
+        <MIN>-50</MIN>
+        <MAX>400</MAX>
+        <UNIT>°C</UNIT>
+    </CHANNEL>
+    <CHANNEL>
+        <ISO_CHANNEL>UNCLASSIFIED_CAN0_CH1</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>can0.4.CH1</ANCHOR>
+        <DESCRIPTION>SDAQ unknown error scenario on can0 address 4 channel 1</DESCRIPTION>
+        <MIN>-50</MIN>
+        <MAX>400</MAX>
+        <UNIT>°C</UNIT>
+    </CHANNEL>
+    <CHANNEL>
+        <ISO_CHANNEL>CAL_VALID_CAN0_CH1</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>can0.5.CH1</ANCHOR>
+        <DESCRIPTION>SDAQ with valid calibration on can0 address 5 channel 1</DESCRIPTION>
+        <MIN>-50</MIN>
+        <MAX>200</MAX>
+        <UNIT>°C</UNIT>
+    </CHANNEL>
+    <CHANNEL>
+        <ISO_CHANNEL>NO_SENSOR_CAN1_CH1</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>can1.27.CH1</ANCHOR>
+        <DESCRIPTION>SDAQ reporting no sensor on can1 address 27</DESCRIPTION>
+        <MIN>-50</MIN>
+        <MAX>200</MAX>
+        <UNIT>°C</UNIT>
+    </CHANNEL>
 
     <!-- NOx sensor values mapped from can2 and can3 handlers -->
     <CHANNEL>
@@ -72,6 +108,24 @@
         <INTERFACE_TYPE>NOX</INTERFACE_TYPE>
         <ANCHOR>can3.sensor1.O2</ANCHOR>
         <DESCRIPTION>O2 percentage from NOx sensor on can3</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>25</MAX>
+        <UNIT>%</UNIT>
+    </CHANNEL>
+    <CHANNEL>
+        <ISO_CHANNEL>NOX_CAN3_ERR</ISO_CHANNEL>
+        <INTERFACE_TYPE>NOX</INTERFACE_TYPE>
+        <ANCHOR>can3.sensor0.NOx</ANCHOR>
+        <DESCRIPTION>Erroring NOx sensor on can3 (heater/NOx/O2 failures)</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>1000</MAX>
+        <UNIT>ppm</UNIT>
+    </CHANNEL>
+    <CHANNEL>
+        <ISO_CHANNEL>NOX_CAN3_ERR_O2</ISO_CHANNEL>
+        <INTERFACE_TYPE>NOX</INTERFACE_TYPE>
+        <ANCHOR>can3.sensor0.O2</ANCHOR>
+        <DESCRIPTION>Erroring O2 sensor companion on can3</DESCRIPTION>
         <MIN>0</MIN>
         <MAX>25</MAX>
         <UNIT>%</UNIT>
@@ -139,6 +193,15 @@
         <INTERFACE_TYPE>IOBOX</INTERFACE_TYPE>
         <ANCHOR>184549374.RX4.CH1</ANCHOR>
         <DESCRIPTION>IOBOX RX4 first channel voltage (low or zero)</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>60</MAX>
+        <UNIT>V</UNIT>
+    </CHANNEL>
+    <CHANNEL>
+        <ISO_CHANNEL>IOBOX_RX6_CH1</ISO_CHANNEL>
+        <INTERFACE_TYPE>IOBOX</INTERFACE_TYPE>
+        <ANCHOR>184549374.RX6.CH1</ANCHOR>
+        <DESCRIPTION>IOBOX RX6 missing channel to trigger Disconnected</DESCRIPTION>
         <MIN>0</MIN>
         <MAX>60</MAX>
         <UNIT>V</UNIT>

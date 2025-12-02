@@ -27,9 +27,9 @@
         "heater_mode_state": "Sensor_missing"
       },
       "errors": {
-        "heater": "Undervoltage",
-        "NOx": "Not present",
-        "O2": "Not present"
+        "heater": "Open Wire",
+        "NOx": "No error",
+        "O2": "No error"
       }
     },
     {
@@ -52,8 +52,8 @@
         "heater_mode_state": "Regulating"
       },
       "errors": {
-        "heater": "Over current",
-        "NOx": "Not calibrated",
+        "heater": "Short circuit",
+        "NOx": "No error",
         "O2": "No error"
       }
     }

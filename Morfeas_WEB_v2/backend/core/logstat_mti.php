@@ -2,13 +2,16 @@
 // backend/core/logstat_mti.php
 
 /**
- * 读取一组 MTI logstat JSON，合并成 anchor -> 状态 的映射
+ * 读取一组 MTI logstat JSON
  *
- * @param array $paths 例如 ['/mnt/ramdisk/logstat_MTI_MTI_A.json']
+ * 返回：
+ *  - 'anchors'     => anchor -> 状态/测量
+ *  - 'connections' => Identifier -> Connection_status
  */
 function mti_load_anchor_map(array $paths): array
 {
-    $map = [];
+    $anchors     = [];
+    $connections = [];
 
     foreach ($paths as $jsonPath) {
         if (!is_file($jsonPath)) continue;
@@ -19,46 +22,55 @@ function mti_load_anchor_map(array $paths): array
         $data = json_decode($raw, true);
         if (!is_array($data)) continue;
 
-        $channels = $data['channels'] ?? [];
-        if (!is_array($channels)) continue;
+        $identifier = $data['Identifier'] ?? null;
+        if (is_numeric($identifier)) {
+            $connections[$identifier] = $data['Connection_status'] ?? null;
+        }
 
-        foreach ($channels as $ch) {
-            $anchor = $ch['anchor'] ?? null;
-            if (!$anchor) continue;
+        if (($data['Connection_status'] ?? null) !== 'Okay') {
+            continue;
+        }
 
-            $cnt      = (int)($ch['CNT'] ?? 0);
-            $no       = !empty($ch['No_sensor']);
-            $rx_ratio = isset($ch['RX_Success_Ratio'])
-                ? (float)$ch['RX_Success_Ratio']
-                : 1.0;
+        $tele     = $data['Tele_data'] ?? null;
+        $teleType = $data['MTI_status']['Tele_Device_type'] ?? null;
 
-            $value = $ch['meas_value'] ?? null;
-            $unit  = $ch['Unit'] ?? null;
+        if (!$teleType || !is_array($tele) || !isset($tele['CHs']) || !is_array($tele['CHs']) || $identifier === null) {
+            continue;
+        }
+
+        $typeSlug = is_string($teleType) ? $teleType : '';
+        $typeSlug = str_starts_with($typeSlug, 'Tele_') ? substr($typeSlug, 5) : $typeSlug;
+
+        foreach ($tele['CHs'] as $idx => $value) {
+            $chNum = $idx + 1;
+            $anchor = sprintf('%s.%s.CH%d', $identifier, $typeSlug, $chNum);
 
             $status = 'Okay';
-            $valid  = true;
+            $valid  = is_numeric($value) && ($tele['IsValid'] ?? true);
+            $meas   = $valid ? (float)$value : null;
 
-            if ($no) {
+            if (is_string($value) && strcasecmp($value, 'No sensor') === 0) {
                 $status = 'No sensor';
                 $valid  = false;
-                $value  = null;
-            } elseif ($rx_ratio <= 0.0) {
-                $status = 'Disconnected';
-                $valid  = false;
-                $value  = null;
-            } elseif ($cnt === 0) {
-                $status = 'Stall';
-                $valid  = false;
+            } elseif (!$valid) {
+                $status = 'Unclassified';
             }
 
-            $map[$anchor] = [
+            $anchors[$anchor] = [
                 'status'        => $status,
                 'is_meas_valid' => $valid,
-                'meas_value'    => is_numeric($value) ? (float)$value : null,
-                'meas_unit'     => is_string($unit) ? $unit : null,
+                'meas_value'    => $meas,
+                'meas_unit'     => '°C',
             ];
+
+            if ($typeSlug !== $teleType) {
+                $anchors[sprintf('%s.%s.CH%d', $identifier, $teleType, $chNum)] = $anchors[$anchor];
+            }
         }
     }
 
-    return $map;
+    return [
+        'anchors'     => $anchors,
+        'connections' => $connections,
+    ];
 }

@@ -28,10 +28,11 @@ $collectLogstatPaths = function (string $pattern) use ($ramdisk, $sandboxDir): a
     return array_merge($sandbox, $ram);
 };
 
-$sdaqLogFiles  = $collectLogstatPaths('logstat_SDAQ*.json');
-$noxLogFiles   = $collectLogstatPaths('logstat_NOX*.json');
-$ioboxLogFiles = $collectLogstatPaths('logstat_IOBOX*.json');
-$mtiLogFiles   = $collectLogstatPaths('logstat_MTI*.json');
+$sdaqLogFiles      = $collectLogstatPaths('logstat_SDAQ*.json');
+$noxLogFiles       = $collectLogstatPaths('logstat_NOX*.json');
+$ioboxLogFiles     = $collectLogstatPaths('logstat_IOBOX*.json');
+$mtiLogFiles       = $collectLogstatPaths('logstat_MTI*.json');
+$sdaqDeviceTypes   = sdaq_collect_device_types($sdaqLogFiles);
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
@@ -65,7 +66,8 @@ function build_rows_with_logstat(
     array  $sdaqLogFiles,
     array  $ioboxLogFiles,
     array  $mtiLogFiles,
-    array  $noxLogFiles
+    array  $noxLogFiles,
+    array  $sdaqDeviceTypes
 ): array {
     $channels = iso_load_channels($xmlPath);
 
@@ -79,8 +81,13 @@ function build_rows_with_logstat(
         }
     }
 
-    $ioboxMap = iobox_load_anchor_map($ioboxLogFiles);
-    $mtiMap   = mti_load_anchor_map($mtiLogFiles);
+    $ioboxData = iobox_load_anchor_map($ioboxLogFiles);
+    $ioboxMap  = $ioboxData['anchors'] ?? [];
+    $ioboxConn = $ioboxData['connections'] ?? [];
+
+    $mtiData = mti_load_anchor_map($mtiLogFiles);
+    $mtiMap  = $mtiData['anchors'] ?? [];
+    $mtiConn = $mtiData['connections'] ?? [];
 
     $noxMap = [];
     foreach ($noxLogFiles as $path) {
@@ -102,11 +109,16 @@ function build_rows_with_logstat(
         $busAddrKey = null;
 
         if ($type === 'SDAQ' && $anchor) {
-            if (preg_match('/^(CAN\w+\.ADDR:\d{2})/i', $anchor, $m)) {
+            $anchorUc = strtoupper($anchor);
+
+            if (preg_match('/^(CAN\w+\.ADDR:\d{2})/i', $anchorUc, $m)) {
                 $busAddrKey = strtoupper($m[1]);
-                if (isset($sdaqDeviceTypes[$busAddrKey])) {
-                    $row['dev_type'] = $sdaqDeviceTypes[$busAddrKey];
-                }
+            } elseif (preg_match('/^(CAN\w+)\.?(\d{1,2})\.CH/',$anchorUc,$m)) {
+                $busAddrKey = sprintf('%s.ADDR:%02d', $m[1], (int)$m[2]);
+            }
+
+            if ($busAddrKey && isset($sdaqDeviceTypes[$busAddrKey])) {
+                $row['dev_type'] = $sdaqDeviceTypes[$busAddrKey];
             }
         }
 
@@ -120,6 +132,13 @@ function build_rows_with_logstat(
 
                 if (!empty($ls['device_user_identifier'])) {
                     $row['dev_type'] = $ls['device_user_identifier'];
+                }
+
+                if (!empty($ls['cal_date'])) {
+                    $row['cal_date'] = $ls['cal_date'];
+                }
+                if (!empty($ls['cal_period'])) {
+                    $row['cal_period'] = $ls['cal_period'];
                 }
 
 
@@ -149,6 +168,13 @@ function build_rows_with_logstat(
                 }
             }
 
+            if ($status === 'OFF-Line' && $anchor) {
+                $deviceId = explode('.', $anchor, 2)[0] ?? null;
+                if ($deviceId !== null && isset($ioboxConn[$deviceId]) && strcasecmp($ioboxConn[$deviceId], 'Okay') === 0) {
+                    $status = 'Disconnected';
+                }
+            }
+
         } elseif ($type === 'MTI') {
             if ($anchor && isset($mtiMap[$anchor])) {
                 $ls = $mtiMap[$anchor];
@@ -160,6 +186,13 @@ function build_rows_with_logstat(
                     if (!empty($ls['meas_unit'])) {
                         $meas .= ' ' . $ls['meas_unit'];
                     }
+                }
+            }
+
+            if ($status === 'OFF-Line' && $anchor) {
+                $deviceId = explode('.', $anchor, 2)[0] ?? null;
+                if ($deviceId !== null && isset($mtiConn[$deviceId]) && strcasecmp($mtiConn[$deviceId], 'Okay') === 0) {
+                    $status = 'Disconnected';
                 }
             }
 
@@ -208,7 +241,8 @@ try {
                 $sdaqLogFiles,
                 $ioboxLogFiles,
                 $mtiLogFiles,
-                $noxLogFiles
+                $noxLogFiles,
+                $sdaqDeviceTypes
             );
 
             if ($iso === null) {

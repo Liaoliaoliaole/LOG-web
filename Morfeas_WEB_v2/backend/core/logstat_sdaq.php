@@ -104,12 +104,41 @@ function sdaq_load_anchor_map(string $jsonPath): array
         $measArr = $sdaq['Meas'] ?? [];
         if (!is_array($measArr)) continue;
 
+        // 构建 channel -> 校准信息的快速索引（若存在）
+        $calibByCh = [];
+        if (!empty($sdaq['Calibration_Data']) && is_array($sdaq['Calibration_Data'])) {
+            foreach ($sdaq['Calibration_Data'] as $cal) {
+                $chId = $cal['Channel'] ?? null;
+                if ($chId === null) continue;
+
+                $calDate   = $cal['Calibration_date_UNIX'] ?? null;
+                $calPeriod = $cal['Calibration_period'] ?? null; // 单位：天（旧版按天累加）
+
+                if ($calDate !== null) {
+                    $calibByCh[$chId] = [
+                        'cal_date'   => gmdate('Y-m-d', (int)$calDate),
+                        // 前端按“月”累加，下方把天数换算成约等的月份（向上取整，避免提前过期）
+                        'cal_period' => is_numeric($calPeriod) ? (int)ceil(((float)$calPeriod) / 30) : null,
+                    ];
+                }
+            }
+        }
+
         foreach ($measArr as $meas) {
             $ch = $meas['Channel'] ?? null;
             if ($ch === null) continue;
 
-            // 组装 anchor：CAN1.ADDR:01.CH:01
-            $anchor = sprintf('%s.ADDR:%02d.CH:%02d', $can, $addr, $ch);
+            // 组装 anchor：CAN1.ADDR:01.CH:01，并附加一组兼容旧版/不补零的别名
+            $canonical = sprintf('%s.ADDR:%02d.CH:%02d', $can, $addr, $ch);
+
+            $aliases = [
+                $canonical,
+                sprintf('%s.ADDR:%d.CH:%d', $can, $addr, $ch),           // 不补零
+                sprintf('%s.%d.CH%d', strtolower($can), $addr, $ch),      // can0.1.CH1
+                sprintf('%s.%d.CH%d', strtoupper($can), $addr, $ch),      // CAN0.1.CH1
+                sprintf('%s.ADDR:%d.CH%d', $can, $addr, $ch),             // CAN0.ADDR:1.CH1
+                sprintf('%s.addr:%02d.ch:%02d', strtolower($can), $addr, $ch), // 全小写
+            ];
 
             $cnt   = (int)($meas['CNT'] ?? 0);
             $cs    = $meas['Channel_Status'] ?? [];
@@ -145,13 +174,22 @@ function sdaq_load_anchor_map(string $jsonPath): array
                 $valid  = false;
             }
 
-            $map[$anchor] = [
+            $entry = [
                 'status'        => $status,
                 'is_meas_valid' => $valid,
                 'meas_value'    => is_numeric($value) ? (float)$value : null,
                 'meas_unit'     => is_string($unit) ? $unit : null,
                 'device_user_identifier' => is_string($deviceType) ? $deviceType : null,
             ];
+
+            if (isset($calibByCh[$ch])) {
+                $entry['cal_date']   = $calibByCh[$ch]['cal_date'];
+                $entry['cal_period'] = $calibByCh[$ch]['cal_period'];
+            }
+
+            foreach ($aliases as $alias) {
+                $map[$alias] = $entry;
+            }
         }
     }
 

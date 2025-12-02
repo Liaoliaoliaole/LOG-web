@@ -2,14 +2,16 @@
 // backend/core/logstat_iobox.php
 
 /**
- * 读取一组 IOBOX logstat JSON，合并成 anchor -> 状态 的映射
+ * 读取一组 IOBOX logstat JSON
  *
- * @param array $paths 例如 ['/mnt/ramdisk/logstat_IOBOX_IOBOX_A.json']
- * @return array anchor => ['status','is_meas_valid','meas_value','meas_unit']
+ * 返回：
+ *  - 'anchors'     => anchor => ['status','is_meas_valid','meas_value','meas_unit']
+ *  - 'connections' => Identifier => Connection_status
  */
 function iobox_load_anchor_map(array $paths): array
 {
-    $map = [];
+    $anchors     = [];
+    $connections = [];
 
     foreach ($paths as $jsonPath) {
         if (!is_file($jsonPath)) {
@@ -26,48 +28,52 @@ function iobox_load_anchor_map(array $paths): array
             continue;
         }
 
-        $channels = $data['channels'] ?? [];
-        if (!is_array($channels)) {
+        $identifier = $data['Identifier'] ?? null;
+        if (!is_numeric($identifier)) {
             continue;
         }
 
-        foreach ($channels as $ch) {
-            $anchor = $ch['anchor'] ?? null;
-            if (!$anchor) {
+        $connections[$identifier] = $data['Connection_status'] ?? null;
+
+        foreach ($data as $key => $rxData) {
+            if (!preg_match('/^RX(\d+)$/', $key, $m)) {
+                continue;
+            }
+            if (!is_array($rxData) || ($rxData === 'Disconnected')) {
                 continue;
             }
 
-            $cnt   = (int)($ch['CNT'] ?? 0);
-            $no    = !empty($ch['No_sensor']);
-            $disc  = !empty($ch['Disconnected']);
-            $value = $ch['meas_value'] ?? null;
-            $unit  = $ch['Unit'] ?? null;
+            foreach ($rxData as $chKey => $value) {
+                if (!ctype_digit((string)$chKey)) {
+                    continue;
+                }
 
-            $status = 'Okay';
-            $valid  = true;
+                $anchor = sprintf('%s.%s.CH%s', $identifier, strtoupper($key), $chKey);
 
-            if ($no) {
-                $status = 'No sensor';
-                $valid  = false;
-                $value  = null;
-            } elseif ($disc) {
-                $status = 'Disconnected';
-                $valid  = false;
-                $value  = null;
-            } elseif ($cnt === 0) {
-                // 这里给个 Stall 示例（你也可以不要）
-                $status = 'Stall';
-                $valid  = false;
+                $status = 'Okay';
+                $valid  = is_numeric($value);
+                $meas   = $valid ? (float)$value : null;
+
+                if (is_string($value) && strcasecmp($value, 'No sensor') === 0) {
+                    $status = 'No sensor';
+                    $valid  = false;
+                    $meas   = null;
+                } elseif (!$valid) {
+                    $status = 'Unclassified';
+                }
+
+                $anchors[$anchor] = [
+                    'status'        => $status,
+                    'is_meas_valid' => $valid,
+                    'meas_value'    => $meas,
+                    'meas_unit'     => null,
+                ];
             }
-
-            $map[$anchor] = [
-                'status'        => $status,
-                'is_meas_valid' => $valid,
-                'meas_value'    => is_numeric($value) ? (float)$value : null,
-                'meas_unit'     => is_string($unit) ? $unit : null,
-            ];
         }
     }
 
-    return $map;
+    return [
+        'anchors'     => $anchors,
+        'connections' => $connections,
+    ];
 }

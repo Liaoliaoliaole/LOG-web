@@ -137,6 +137,159 @@
                     "Last_Meas": null
                 }
             ]
+        },
+        {
+            "Last_seen_UNIX": 1764155690,
+            "Address": 3,
+            "Serial_number": 700000001,
+            "SDAQ_type": "SDAQ-TC1",
+            "Timediff": 0,
+            "SDAQ_Status": {
+                "SDAQ_status_val": 3,
+                "In_sync": true,
+                "Error": false,
+                "State": "Measuring",
+                "Mode": "Normal",
+                "Registration_status": "Done"
+            },
+            "SDAQ_info": {
+                "input_mode": "K",
+                "firm_rev": 5,
+                "hw_rev": 2,
+                "Number_of_channels": 1,
+                "Sample_rate": 10,
+                "Max_cal_point": 5
+            },
+            "Calibration_Data": [
+                {
+                    "Channel": 1,
+                    "Calibration_date_UNIX": 1690000000,
+                    "Calibration_period": 180,
+                    "Amount_of_points": 3,
+                    "Unit": "°C",
+                    "Is_calibrated": true,
+                    "Unit_code": 1
+                }
+            ],
+            "Meas": [
+                {
+                    "Channel": 1,
+                    "Channel_Status": {
+                        "Channel_status_val": 3,
+                        "Out_of_Range": false,
+                        "No_Sensor": false,
+                        "Over_Range": true
+                    },
+                    "Unit": "°C",
+                    "CNT": 5,
+                    "Meas_avg": 260.1,
+                    "Meas_max": 270.0,
+                    "Meas_min": 255.0,
+                    "Last_Meas": 265.0
+                }
+            ]
+        },
+        {
+            "Last_seen_UNIX": 1764155680,
+            "Address": 4,
+            "Serial_number": 700000002,
+            "SDAQ_type": "SDAQ-RTD",
+            "Timediff": 0,
+            "SDAQ_Status": {
+                "SDAQ_status_val": 3,
+                "In_sync": true,
+                "Error": false,
+                "State": "Measuring",
+                "Mode": "Normal",
+                "Registration_status": "Done"
+            },
+            "SDAQ_info": {
+                "input_mode": "PT100-4W",
+                "firm_rev": 4,
+                "hw_rev": 2,
+                "Number_of_channels": 1,
+                "Sample_rate": 10,
+                "Max_cal_point": 8
+            },
+            "Calibration_Data": [
+                {
+                    "Channel": 1,
+                    "Calibration_date_UNIX": 1680000000,
+                    "Calibration_period": 365,
+                    "Amount_of_points": 2,
+                    "Unit": "°C",
+                    "Is_calibrated": true,
+                    "Unit_code": 28
+                }
+            ],
+            "Meas": [
+                {
+                    "Channel": 1,
+                    "Channel_Status": {
+                        "Channel_status_val": 7,
+                        "Out_of_Range": false,
+                        "No_Sensor": false,
+                        "Over_Range": false
+                    },
+                    "Unit": "°C",
+                    "CNT": 12,
+                    "Meas_avg": 30.5,
+                    "Meas_max": 31.0,
+                    "Meas_min": 30.0,
+                    "Last_Meas": 30.1
+                }
+            ]
+        },
+        {
+            "Last_seen_UNIX": 1764155695,
+            "Address": 5,
+            "Serial_number": 700000010,
+            "SDAQ_type": "SDAQ-TC1",
+            "Timediff": 0,
+            "SDAQ_Status": {
+                "SDAQ_status_val": 3,
+                "In_sync": true,
+                "Error": false,
+                "State": "Measuring",
+                "Mode": "Normal",
+                "Registration_status": "Done"
+            },
+            "SDAQ_info": {
+                "input_mode": "K",
+                "firm_rev": 5,
+                "hw_rev": 2,
+                "Number_of_channels": 1,
+                "Sample_rate": 5,
+                "Max_cal_point": 5
+            },
+            "Calibration_Data": [
+                {
+                    "Channel": 1,
+                    "Calibration_date_UNIX": 1763000000,
+                    "Calibration_period": 400,
+                    "Amount_of_points": 2,
+                    "Unit": "°C",
+                    "Is_calibrated": true,
+                    "Unit_code": 1
+                }
+            ],
+            "Meas": [
+                {
+                    "Channel": 1,
+                    "Channel_Status": {
+                        "Channel_status_val": 0,
+                        "Out_of_Range": false,
+                        "No_Sensor": false,
+                        "Over_Range": false
+                    },
+                    "Unit": "°C",
+                    "CNT": 50,
+                    "Meas_avg": 22.8,
+                    "Meas_max": 23.5,
+                    "Meas_min": 22.3,
+                    "Last_Meas": 22.9
+                }
+            ]
         }
     ]
 }
