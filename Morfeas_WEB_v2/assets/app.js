@@ -396,6 +396,7 @@
       if (s === 'unclassified') return 'st-Error';
       if (s === 'open wire') return 'st-Error';
       if (s === 'short circuit') return 'st-Error';
+      if (s === 'unlinked' || s === 'unlink') return 'st-Unlinked';
       if (s === 'off-line' || s === 'offline') return 'st-Offline';
       if (s === 'disconnected') return 'st-Offline';
 

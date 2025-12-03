@@ -71,12 +71,25 @@ function build_rows_with_logstat(
 ): array {
     $channels = iso_load_channels($xmlPath);
 
+    $sdaqAnchorsFromXml = [];
+    foreach ($channels as $ch) {
+        if (strcasecmp($ch['interface_type'] ?? '', 'SDAQ') === 0 && !empty($ch['anchor'])) {
+            $sdaqAnchorsFromXml[strtoupper($ch['anchor'])] = true;
+        }
+    }
+
     $sdaqMap = [];
+    $sdaqChannels = [];
     foreach ($sdaqLogFiles as $path) {
-        $newMap = sdaq_load_anchor_map($path);
-        if (is_array($newMap)) {
-            foreach ($newMap as $anchor => $entry) {
+        $dataset = sdaq_load_anchor_map($path, $sdaqAnchorsFromXml);
+        if (is_array($dataset)) {
+            $anchors = $dataset['anchors'] ?? [];
+            foreach ($anchors as $anchor => $entry) {
                 $sdaqMap[$anchor] = $entry;
+            }
+
+            if (!empty($dataset['channels']) && is_array($dataset['channels'])) {
+                $sdaqChannels = array_merge($sdaqChannels, $dataset['channels']);
             }
         }
     }
@@ -101,6 +114,7 @@ function build_rows_with_logstat(
 
     $rows = [];
 
+    $rowsByAnchorUpper = [];
     foreach ($channels as $ch) {
         $row    = $ch;
         $anchor = $ch['anchor'] ?? '';
@@ -128,7 +142,8 @@ function build_rows_with_logstat(
         if ($type === 'SDAQ') {
             if ($anchor && isset($sdaqMap[$anchor])) {
                 $ls = $sdaqMap[$anchor];
-                $status = $ls['status'] ?? 'Unknown';
+                $explain = $ls['error_explanation'] ?? null;
+                $status = $explain === 'Unlinked' ? 'Unlink' : ($ls['status'] ?? 'Unknown');
 
                 if (!empty($ls['device_user_identifier'])) {
                     $row['dev_type'] = $ls['device_user_identifier'];
@@ -219,6 +234,56 @@ function build_rows_with_logstat(
         $row['meas']   = $meas;
 
         $rows[] = $row;
+        if ($anchor) {
+            $rowsByAnchorUpper[strtoupper($anchor)] = true;
+        }
+    }
+
+    // 自动为 logstat 里已注册且有传感器、但 XML 未声明的 SDAQ 通道补行
+    foreach ($sdaqChannels as $chMeta) {
+        $linkState = $chMeta['link_state'] ?? 'Linked';
+        $hasSensor = !empty($chMeta['has_sensor']);
+        $regOk     = isset($chMeta['registration']) && strcasecmp($chMeta['registration'], 'Done') === 0;
+
+        if (!$hasSensor || !$regOk || strcasecmp($linkState, 'Unlinked') !== 0) {
+            continue;
+        }
+
+        $anchor = $chMeta['preferred_anchor'] ?? ($chMeta['aliases'][0] ?? null);
+        if (!$anchor) {
+            continue;
+        }
+
+        $anchorUpper = strtoupper($anchor);
+        if (isset($rowsByAnchorUpper[$anchorUpper])) {
+            continue;
+        }
+
+        $entry = $chMeta['entry'] ?? [];
+        $isoName = 'UNLINKED_' . preg_replace('/[^A-Z0-9_.:-]+/i', '_', $anchor);
+
+        $row = [
+            'iso_channel'    => $isoName,
+            'interface_type' => 'SDAQ',
+            'anchor'         => $anchor,
+            'description'    => 'Detected SDAQ channel without OPC UA mapping',
+            'min'            => '',
+            'max'            => '',
+            'unit'           => $entry['meas_unit'] ?? '',
+            'status'         => 'Unlink',
+            'meas'           => '—',
+            'dev_type'       => $entry['device_user_identifier'] ?? 'SDAQ',
+        ];
+
+        if (!empty($entry['cal_date'])) {
+            $row['cal_date'] = $entry['cal_date'];
+        }
+        if (!empty($entry['cal_period'])) {
+            $row['cal_period'] = $entry['cal_period'];
+        }
+
+        $rows[] = $row;
+        $rowsByAnchorUpper[$anchorUpper] = true;
     }
 
     return $rows;

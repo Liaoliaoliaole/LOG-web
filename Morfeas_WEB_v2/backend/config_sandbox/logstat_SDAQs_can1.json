@@ -366,6 +366,100 @@
                     "Last_Meas": null
                 }
             ]
+        },
+        {
+            "Last_seen_UNIX": 1764155820,
+            "Address": 40,
+            "Serial_number": 800000001,
+            "SDAQ_type": "SDAQ-TC1",
+            "Timediff": 0,
+            "SDAQ_Status": {
+                "SDAQ_status_val": 3,
+                "In_sync": true,
+                "Error": false,
+                "State": "Measuring",
+                "Mode": "Normal",
+                "Registration_status": "Done"
+            },
+            "SDAQ_info": {
+                "input_mode": "K",
+                "firm_rev": 6,
+                "hw_rev": 2,
+                "Number_of_channels": 2,
+                "Sample_rate": 5,
+                "Max_cal_point": 4
+            },
+            "Calibration_Data": [
+            ],
+            "Meas": [
+                {
+                    "Channel": 1,
+                    "Channel_Status": {
+                        "Channel_status_val": 8,
+                        "Out_of_Range": false,
+                        "No_Sensor": false,
+                        "Over_Range": false
+                    },
+                    "CNT": 4
+                }
+            ]
+        },
+        {
+            "Last_seen_UNIX": 1764155822,
+            "Address": 41,
+            "Serial_number": 726057806,
+            "SDAQ_type": "SDAQ-TC1",
+            "Timediff": 0,
+            "SDAQ_Status": {
+                "SDAQ_status_val": 3,
+                "In_sync": true,
+                "Error": false,
+                "State": "Measuring",
+                "Mode": "Normal",
+                "Registration_status": "Done"
+            },
+            "SDAQ_info": {
+                "input_mode": "K",
+                "firm_rev": 6,
+                "hw_rev": 2,
+                "Number_of_channels": 2,
+                "Sample_rate": 5,
+                "Max_cal_point": 4
+            },
+            "Calibration_Data": [
+            ],
+            "Meas": [
+                {
+                    "Channel": 16,
+                    "Channel_Status": {
+                        "Channel_status_val": 0,
+                        "Out_of_Range": false,
+                        "No_Sensor": false,
+                        "Over_Range": false
+                    },
+                    "Unit": "°C",
+                    "CNT": 12,
+                    "Meas_avg": 25.6,
+                    "Meas_max": 25.8,
+                    "Meas_min": 25.4,
+                    "Last_Meas": 25.7
+                },
+                {
+                    "Channel": 17,
+                    "Channel_Status": {
+                        "Channel_status_val": 0,
+                        "Out_of_Range": false,
+                        "No_Sensor": false,
+                        "Over_Range": false
+                    },
+                    "Unit": "°C",
+                    "CNT": 12,
+                    "Meas_avg": 26.2,
+                    "Meas_max": 26.5,
+                    "Meas_min": 26.0,
+                    "Last_Meas": 26.3
+                }
+            ]
         }
     ]
 }
