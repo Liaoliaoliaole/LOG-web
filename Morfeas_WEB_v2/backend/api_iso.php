@@ -71,6 +71,20 @@ function build_rows_with_logstat(
 ): array {
     $channels = iso_load_channels($xmlPath);
 
+    $formatSdaqDisplayAnchor = static function (?string $anchor): string {
+        $anchor = trim((string)$anchor);
+        if ($anchor === '') return '';
+
+        if (preg_match('/^(CAN\w+)\.ADDR:(\d+)\.CH:(\d+)/i', $anchor, $m)) {
+            return sprintf('%s.%d.CH%d', strtolower($m[1]), (int)$m[2], (int)$m[3]);
+        }
+        if (preg_match('/^(CAN\w+)\.?(\d+)\.CH(\d+)/i', $anchor, $m)) {
+            return sprintf('%s.%d.CH%d', strtolower($m[1]), (int)$m[2], (int)$m[3]);
+        }
+
+        return $anchor;
+    };
+
     $sdaqAnchorsFromXml = [];
     foreach ($channels as $ch) {
         if (strcasecmp($ch['interface_type'] ?? '', 'SDAQ') === 0 && !empty($ch['anchor'])) {
@@ -80,6 +94,7 @@ function build_rows_with_logstat(
 
     $sdaqMap = [];
     $sdaqChannels = [];
+
     foreach ($sdaqLogFiles as $path) {
         $dataset = sdaq_load_anchor_map($path, $sdaqAnchorsFromXml);
         if (is_array($dataset)) {
@@ -120,6 +135,7 @@ function build_rows_with_logstat(
         $anchor = $ch['anchor'] ?? '';
         $type   = strtoupper($ch['interface_type'] ?? '');
         $row['dev_type'] = $type;
+        $row['display_anchor'] = $anchor;
         $busAddrKey = null;
 
         if ($type === 'SDAQ' && $anchor) {
@@ -140,6 +156,7 @@ function build_rows_with_logstat(
         $meas   = '—';
 
         if ($type === 'SDAQ') {
+            $row['display_anchor'] = $formatSdaqDisplayAnchor($anchor);
             if ($anchor && isset($sdaqMap[$anchor])) {
                 $ls = $sdaqMap[$anchor];
                 $explain = $ls['error_explanation'] ?? null;
@@ -249,8 +266,13 @@ function build_rows_with_logstat(
             continue;
         }
 
-        $anchor = $chMeta['preferred_anchor'] ?? ($chMeta['aliases'][0] ?? null);
-        if (!$anchor) {
+        $anchor = $chMeta['connection_anchor'] ?? ($chMeta['aliases'][0] ?? null);
+        $displayAnchor = $chMeta['display_anchor'] ?? ($chMeta['preferred_anchor'] ?? $anchor);
+        if (preg_match('/^\d+\.CH\d+$/i', $displayAnchor ?? '') && !empty($chMeta['preferred_anchor'])) {
+            // 避免使用 Serial_number.CHx，优先展示传感器路径样式（can0.1.CH1 等）
+            $displayAnchor = $chMeta['preferred_anchor'];
+        }
+        if (!$anchor || !$displayAnchor) {
             continue;
         }
 
@@ -260,12 +282,13 @@ function build_rows_with_logstat(
         }
 
         $entry = $chMeta['entry'] ?? [];
-        $isoName = 'UNLINKED_' . preg_replace('/[^A-Z0-9_.:-]+/i', '_', $anchor);
+        $isoName = 'UNLINKED_' . preg_replace('/[^A-Z0-9_.:-]+/i', '_', $displayAnchor);
 
         $row = [
             'iso_channel'    => $isoName,
             'interface_type' => 'SDAQ',
             'anchor'         => $anchor,
+            'display_anchor' => $formatSdaqDisplayAnchor($displayAnchor),
             'description'    => 'Detected SDAQ channel without OPC UA mapping',
             'min'            => '',
             'max'            => '',

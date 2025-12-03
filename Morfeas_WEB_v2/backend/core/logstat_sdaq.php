@@ -148,13 +148,15 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
             if ($ch === null) continue;
 
             // 组装 anchor：CAN1.ADDR:01.CH:01，并附加一组兼容旧版/不补零的别名
-            $canonical = sprintf('%s.ADDR:%02d.CH:%02d', $can, $addr, $ch);
+            $canonical        = sprintf('%s.ADDR:%02d.CH:%02d', $can, $addr, $ch);
+            $sensorPathLower  = sprintf('%s.%d.CH%d', strtolower($can), $addr, $ch); // can0.1.CH1（UI 期望）
+            $sensorPathUpper  = sprintf('%s.%d.CH%d', strtoupper($can), $addr, $ch); // CAN0.1.CH1
 
             $aliases = [
                 $canonical,
                 sprintf('%s.ADDR:%d.CH:%d', $can, $addr, $ch),                 // 不补零
-                sprintf('%s.%d.CH%d', strtolower($can), $addr, $ch),            // can0.1.CH1
-                sprintf('%s.%d.CH%d', strtoupper($can), $addr, $ch),            // CAN0.1.CH1
+                $sensorPathLower,
+                $sensorPathUpper,
                 sprintf('%s.ADDR:%d.CH%d', $can, $addr, $ch),                   // CAN0.ADDR:1.CH1
                 sprintf('%s.addr:%02d.ch:%02d', strtolower($can), $addr, $ch), // 全小写
             ];
@@ -255,12 +257,14 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
             }
 
             $map['channels'][] = [
-                'preferred_anchor' => $serial !== null ? sprintf('%s.CH%d', $serial, $ch) : $canonical,
-                'aliases'          => $aliases,
-                'link_state'       => $linkedByConfig ? 'Linked' : 'Unlinked',
-                'has_sensor'       => $hasSensor,
-                'registration'     => $regStatus ?: 'Unknown',
-                'entry'            => $entry,
+                'preferred_anchor'  => $sensorPathLower,
+                'display_anchor'    => $sensorPathLower,
+                'connection_anchor' => $canonical,
+                'aliases'           => $aliases,
+                'link_state'        => $linkedByConfig ? 'Linked' : 'Unlinked',
+                'has_sensor'        => $hasSensor,
+                'registration'      => $regStatus ?: 'Unknown',
+                'entry'             => $entry,
             ];
         }
     }
