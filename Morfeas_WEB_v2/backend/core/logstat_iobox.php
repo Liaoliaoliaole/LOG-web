@@ -12,6 +12,7 @@ function iobox_load_anchor_map(array $paths): array
 {
     $anchors     = [];
     $connections = [];
+    $ipv4ById    = [];
 
     foreach ($paths as $jsonPath) {
         if (!is_file($jsonPath)) {
@@ -31,6 +32,10 @@ function iobox_load_anchor_map(array $paths): array
         $identifier = $data['Identifier'] ?? null;
         if (!is_numeric($identifier)) {
             continue;
+        }
+
+        if (!empty($data['IPv4_address']) && is_string($data['IPv4_address'])) {
+            $ipv4ById[(string)$identifier] = $data['IPv4_address'];
         }
 
         $connections[$identifier] = $data['Connection_status'] ?? null;
@@ -75,5 +80,6 @@ function iobox_load_anchor_map(array $paths): array
     return [
         'anchors'     => $anchors,
         'connections' => $connections,
+        'ipv4'        => $ipv4ById,
     ];
 }

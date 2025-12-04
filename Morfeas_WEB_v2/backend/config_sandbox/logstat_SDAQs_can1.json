@@ -408,7 +408,7 @@
             "Last_seen_UNIX": 1764155822,
             "Address": 41,
             "Serial_number": 726057806,
-            "SDAQ_type": "SDAQ-TC1",
+            "SDAQ_type": "SDAQ-TC16",
             "Timediff": 0,
             "SDAQ_Status": {
                 "SDAQ_status_val": 3,
@@ -422,7 +422,7 @@
                 "input_mode": "K",
                 "firm_rev": 6,
                 "hw_rev": 2,
-                "Number_of_channels": 2,
+                "Number_of_channels": 16,
                 "Sample_rate": 5,
                 "Max_cal_point": 4
             },
@@ -430,7 +430,7 @@
             ],
             "Meas": [
                 {
-                    "Channel": 16,
+                    "Channel": 15,
                     "Channel_Status": {
                         "Channel_status_val": 0,
                         "Out_of_Range": false,
@@ -445,7 +445,7 @@
                     "Last_Meas": 25.7
                 },
                 {
-                    "Channel": 17,
+                    "Channel": 16,
                     "Channel_Status": {
                         "Channel_status_val": 0,
                         "Out_of_Range": false,

@@ -75,14 +75,30 @@ function build_rows_with_logstat(
         $anchor = trim((string)$anchor);
         if ($anchor === '') return '';
 
-        if (preg_match('/^(CAN\w+)\.ADDR:(\d+)\.CH:(\d+)/i', $anchor, $m)) {
-            return sprintf('%s.%d.CH%d', strtolower($m[1]), (int)$m[2], (int)$m[3]);
+        if (preg_match('/^(CAN\w+)\.ADDR:(\d+)\.CH:?([\d]+)/i', $anchor, $m)) {
+            return sprintf('%s.ADDR:%02d.CH:%02d', strtoupper($m[1]), (int)$m[2], (int)$m[3]);
         }
-        if (preg_match('/^(CAN\w+)\.?(\d+)\.CH(\d+)/i', $anchor, $m)) {
-            return sprintf('%s.%d.CH%d', strtolower($m[1]), (int)$m[2], (int)$m[3]);
+        if (preg_match('/^(CAN\w+)\.?(\d+)\.CH:?([\d]+)/i', $anchor, $m)) {
+            return sprintf('%s.ADDR:%02d.CH:%02d', strtoupper($m[1]), (int)$m[2], (int)$m[3]);
         }
 
-        return $anchor;
+        return strtoupper($anchor);
+    };
+
+    $formatNetworkAnchor = static function (?string $anchor, array $ipv4Map): string {
+        $anchor = trim((string)$anchor);
+        if ($anchor === '') return '';
+
+        $parts = explode('.', $anchor, 2);
+        if (count($parts) !== 2) {
+            return strtoupper($anchor);
+        }
+
+        [$deviceId, $rest] = $parts;
+        $deviceKey = (string)$deviceId;
+
+        $prefix = $ipv4Map[$deviceKey] ?? $deviceId;
+        return $prefix . '.' . strtoupper($rest);
     };
 
     $sdaqAnchorsFromXml = [];
@@ -112,10 +128,12 @@ function build_rows_with_logstat(
     $ioboxData = iobox_load_anchor_map($ioboxLogFiles);
     $ioboxMap  = $ioboxData['anchors'] ?? [];
     $ioboxConn = $ioboxData['connections'] ?? [];
+    $ioboxIPv4 = $ioboxData['ipv4'] ?? [];
 
     $mtiData = mti_load_anchor_map($mtiLogFiles);
     $mtiMap  = $mtiData['anchors'] ?? [];
     $mtiConn = $mtiData['connections'] ?? [];
+    $mtiIPv4 = $mtiData['ipv4'] ?? [];
 
     $noxMap = [];
     foreach ($noxLogFiles as $path) {
@@ -130,12 +148,15 @@ function build_rows_with_logstat(
     $rows = [];
 
     $rowsByAnchorUpper = [];
+    $idx = 0;
+
     foreach ($channels as $ch) {
         $row    = $ch;
         $anchor = $ch['anchor'] ?? '';
         $type   = strtoupper($ch['interface_type'] ?? '');
         $row['dev_type'] = $type;
         $row['display_anchor'] = $anchor;
+        $row['_order'] = $idx++; // 记录 XML 中出现的顺序
         $busAddrKey = null;
 
         if ($type === 'SDAQ' && $anchor) {
@@ -187,6 +208,8 @@ function build_rows_with_logstat(
             }
 
         } elseif ($type === 'IOBOX') {
+            $row['display_anchor'] = $formatNetworkAnchor($anchor, $ioboxIPv4);
+
             if ($anchor && isset($ioboxMap[$anchor])) {
                 $ls = $ioboxMap[$anchor];
                 $status = $ls['status'] ?? 'Unknown';
@@ -208,6 +231,8 @@ function build_rows_with_logstat(
             }
 
         } elseif ($type === 'MTI') {
+            $row['display_anchor'] = $formatNetworkAnchor($anchor, $mtiIPv4);
+
             if ($anchor && isset($mtiMap[$anchor])) {
                 $ls = $mtiMap[$anchor];
                 $status = $ls['status'] ?? 'Unknown';
@@ -296,6 +321,7 @@ function build_rows_with_logstat(
             'status'         => 'Unlink',
             'meas'           => '—',
             'dev_type'       => $entry['device_user_identifier'] ?? 'SDAQ',
+            '_order'         => $idx++, // 追加到 SDAQ 分组末尾
         ];
 
         if (!empty($entry['cal_date'])) {
@@ -307,6 +333,30 @@ function build_rows_with_logstat(
 
         $rows[] = $row;
         $rowsByAnchorUpper[$anchorUpper] = true;
+    }
+
+    // 仿照旧版 Morfeas WEB：先显示所有 SDAQ，再依次显示其他类型
+    $priority = [
+        'SDAQ'  => 0,
+        'NOX'   => 1,
+        'NOx'   => 1,
+        'MTI'   => 2,
+        'IOBOX' => 3,
+    ];
+
+    usort($rows, static function ($a, $b) use ($priority) {
+        $pa = $priority[$a['interface_type'] ?? $a['dev_type'] ?? ''] ?? 99;
+        $pb = $priority[$b['interface_type'] ?? $b['dev_type'] ?? ''] ?? 99;
+
+        if ($pa === $pb) {
+            return ($a['_order'] ?? 0) <=> ($b['_order'] ?? 0);
+        }
+        return $pa <=> $pb;
+    });
+
+    // 清理排序辅助字段
+    foreach ($rows as &$r) {
+        unset($r['_order']);
     }
 
     return $rows;

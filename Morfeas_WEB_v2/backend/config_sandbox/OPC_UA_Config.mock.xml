@@ -3,6 +3,15 @@
 <NODESet>
     <!-- SDAQ channels across can0 and can1 -->
     <CHANNEL>
+        <ISO_CHANNEL>TEST_OFFLINE_CH</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>can0.34.CH3</ANCHOR>
+        <DESCRIPTION>SDAQ address 34 on can0 measuring thermocouple 4</DESCRIPTION>
+        <MIN>-50</MIN>
+        <MAX>200</MAX>
+        <UNIT>°C</UNIT>
+    </CHANNEL>
+    <CHANNEL>
         <ISO_CHANNEL>TE_CAN0_CH1</ISO_CHANNEL>
         <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
         <ANCHOR>can0.1.CH1</ANCHOR>

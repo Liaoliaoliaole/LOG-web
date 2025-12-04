@@ -436,7 +436,7 @@
       const rowIndex = index + 1;
       const isoName  = ch.iso_channel || '';
       const type     = ch.dev_type || ch.interface_type || '';
-      const anchor   = ch.anchor || ch.display_anchor || '';
+      const anchor   = (ch.display_anchor || ch.anchor || '').toString().toUpperCase();
       const desc     = ch.description || '';
       const min      = ch.min ?? '—';
       const max      = ch.max ?? '—';
