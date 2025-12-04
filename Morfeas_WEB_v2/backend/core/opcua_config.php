@@ -1,5 +1,5 @@
 <?php
-// backend/core/iso_channel_config.php
+// backend/core/opcua_config.php
 
 /**
  * 读取 OPC_UA_Config.xml，返回每个 CHANNEL 的配置
@@ -14,8 +14,8 @@
  *     <MIN>0</MIN>
  *     <MAX>100</MAX>
  *     <UNIT>°C</UNIT>
- *     <CAL_DATE>2020/01/01</CAL_DATE>   <!-- 可选 -->
- *     <CAL_PERIOD>12</CAL_PERIOD>       <!-- 可选，单位: 月 -->
+ *     <CAL_DATE>2020/01/01</CAL_DATE>   <!-- option -->
+ *     <CAL_PERIOD>12</CAL_PERIOD>       <!-- option,unit: month -->
  *   </CHANNEL>
  *   ...
  * </OPC_UA_CONFIG>

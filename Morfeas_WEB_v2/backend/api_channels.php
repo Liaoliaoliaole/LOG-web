@@ -1,8 +1,8 @@
 <?php
-// backend/api_iso.php  //li@vmvm:~/LOG_project/LOG-web/Morfeas_WEB_v2$ php -S 0.0.0.0:8080 -t .
+// backend/api_channels.php  //li@vmvm:~/LOG_project/LOG-web/Morfeas_WEB_v2$ php -S 0.0.0.0:8080 -t .
 //http://localhost:8080/LOG_WEB_v2/index.html
 
-require __DIR__ . '/core/iso_channel_config.php';
+require __DIR__ . '/core/opcua_config.php';
 require __DIR__ . '/core/logstat_sdaq.php';
 require __DIR__ . '/core/logstat_iobox.php';
 require __DIR__ . '/core/logstat_mti.php';

@@ -30,7 +30,7 @@
     const master = $('#masterCheck');
     const tbody  = $('tbody');
 
-    const API_ISO = '/backend/api_iso.php';
+    const API_ISO = '/backend/api_channels.php';
 
     const ctx = $('#ctx');
 
