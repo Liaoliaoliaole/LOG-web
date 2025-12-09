@@ -80,6 +80,10 @@ function iso_add_channel(string $xmlPath, array $data): void
     if (!empty($data['unit']))       $new->addChild('UNIT',       $data['unit']);
     if (!empty($data['cal_date']))   $new->addChild('CAL_DATE',   $data['cal_date']);
     if (!empty($data['cal_period'])) $new->addChild('CAL_PERIOD', $data['cal_period']);
+    if (array_key_exists('alarm_high', $data))     $new->addChild('ALARM_HIGH',     $data['alarm_high']);
+    if (array_key_exists('alarm_high_val', $data)) $new->addChild('ALARM_HIGH_VAL', $data['alarm_high_val']);
+    if (array_key_exists('alarm_low', $data))      $new->addChild('ALARM_LOW',      $data['alarm_low']);
+    if (array_key_exists('alarm_low_val', $data))  $new->addChild('ALARM_LOW_VAL',  $data['alarm_low_val']);
 
     $xml->asXML($xmlPath);
 }

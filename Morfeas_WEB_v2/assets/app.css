@@ -362,10 +362,6 @@ body {
   background: var(--color-status-offline);
 }
 
-.st-Unlinked {
-  background: var(--s-unlink);
-}
-
 .st-Idle {
   background: var(--color-status-idle);
 }

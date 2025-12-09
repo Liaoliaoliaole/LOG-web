@@ -1,5 +1,5 @@
-<?xml version="1.0" ?>
-<!DOCTYPE NODESet SYSTEM 'Morfeas.dtd'>
+<?xml version="1.0"?>
+<!DOCTYPE NODESet SYSTEM "Morfeas.dtd">
 <NODESet>
     <!-- SDAQ channels across can0 and can1 -->
     <CHANNEL>
@@ -9,7 +9,7 @@
         <DESCRIPTION>SDAQ address 34 on can0 measuring thermocouple 4</DESCRIPTION>
         <MIN>-50</MIN>
         <MAX>200</MAX>
-        <UNIT>°C</UNIT>
+        <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
     <CHANNEL>
         <ISO_CHANNEL>TE_CAN0_CH1</ISO_CHANNEL>
@@ -18,7 +18,7 @@
         <DESCRIPTION>SDAQ address 1 on can0 measuring thermocouple 1</DESCRIPTION>
         <MIN>-50</MIN>
         <MAX>200</MAX>
-        <UNIT>°C</UNIT>
+        <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
     <CHANNEL>
         <ISO_CHANNEL>TE_CAN0_CH2</ISO_CHANNEL>
@@ -27,7 +27,7 @@
         <DESCRIPTION>SDAQ address 1 on can0 measuring thermocouple 2</DESCRIPTION>
         <MIN>-50</MIN>
         <MAX>200</MAX>
-        <UNIT>°C</UNIT>
+        <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
     <CHANNEL>
         <ISO_CHANNEL>BRIDGE_CAN0_CH1</ISO_CHANNEL>
@@ -45,7 +45,7 @@
         <DESCRIPTION>Thermistor SDAQ on can1 address 3</DESCRIPTION>
         <MIN>-20</MIN>
         <MAX>120</MAX>
-        <UNIT>°C</UNIT>
+        <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
     <CHANNEL>
         <ISO_CHANNEL>OVER_RANGE_CAN0_CH1</ISO_CHANNEL>
@@ -54,7 +54,7 @@
         <DESCRIPTION>SDAQ over-range scenario on can0 address 3 channel 1</DESCRIPTION>
         <MIN>-50</MIN>
         <MAX>400</MAX>
-        <UNIT>°C</UNIT>
+        <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
     <CHANNEL>
         <ISO_CHANNEL>UNCLASSIFIED_CAN0_CH1</ISO_CHANNEL>
@@ -63,7 +63,7 @@
         <DESCRIPTION>SDAQ unknown error scenario on can0 address 4 channel 1</DESCRIPTION>
         <MIN>-50</MIN>
         <MAX>400</MAX>
-        <UNIT>°C</UNIT>
+        <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
     <CHANNEL>
         <ISO_CHANNEL>CAL_VALID_CAN0_CH1</ISO_CHANNEL>
@@ -72,7 +72,7 @@
         <DESCRIPTION>SDAQ with valid calibration on can0 address 5 channel 1</DESCRIPTION>
         <MIN>-50</MIN>
         <MAX>200</MAX>
-        <UNIT>°C</UNIT>
+        <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
     <CHANNEL>
         <ISO_CHANNEL>NO_SENSOR_CAN1_CH1</ISO_CHANNEL>
@@ -81,7 +81,7 @@
         <DESCRIPTION>SDAQ reporting no sensor on can1 address 27</DESCRIPTION>
         <MIN>-50</MIN>
         <MAX>200</MAX>
-        <UNIT>°C</UNIT>
+        <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
 
     <!-- NOx sensor values mapped from can2 and can3 handlers -->
@@ -148,7 +148,7 @@
         <DESCRIPTION>TC4 telemetry channel 1 temperature</DESCRIPTION>
         <MIN>-40</MIN>
         <MAX>250</MAX>
-        <UNIT>°C</UNIT>
+        <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
     <CHANNEL>
         <ISO_CHANNEL>MTI_TC4_CH2</ISO_CHANNEL>
@@ -157,7 +157,7 @@
         <DESCRIPTION>TC4 telemetry channel 2 temperature</DESCRIPTION>
         <MIN>-40</MIN>
         <MAX>250</MAX>
-        <UNIT>°C</UNIT>
+        <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
     <CHANNEL>
         <ISO_CHANNEL>MTI_TC4_CH3</ISO_CHANNEL>
@@ -166,7 +166,7 @@
         <DESCRIPTION>TC4 telemetry channel 3 temperature or no sensor</DESCRIPTION>
         <MIN>-40</MIN>
         <MAX>250</MAX>
-        <UNIT>°C</UNIT>
+        <UNIT>&#xB0;C</UNIT>
     </CHANNEL>
 
     <!-- IOBOX RX inputs mapped to OPC UA -->
@@ -215,4 +215,4 @@
         <MAX>60</MAX>
         <UNIT>V</UNIT>
     </CHANNEL>
-</NODESet>
+<CHANNEL><ISO_CHANNEL>tt</ISO_CHANNEL><INTERFACE_TYPE>SDAQ</INTERFACE_TYPE><ANCHOR>CAN1.ADDR:02.CH:01</ANCHOR><DESCRIPTION>tt</DESCRIPTION><MIN>0</MIN><MAX>12</MAX><ALARM_HIGH>no</ALARM_HIGH><ALARM_HIGH_VAL>12</ALARM_HIGH_VAL><ALARM_LOW>no</ALARM_LOW><ALARM_LOW_VAL>0</ALARM_LOW_VAL></CHANNEL><CHANNEL><ISO_CHANNEL>fdd</ISO_CHANNEL><INTERFACE_TYPE>SDAQ</INTERFACE_TYPE><ANCHOR>CAN1.ADDR:11.CH:01</ANCHOR><DESCRIPTION>fdd</DESCRIPTION><MIN>4</MIN><MAX>20</MAX><ALARM_HIGH>no</ALARM_HIGH><ALARM_HIGH_VAL>20</ALARM_HIGH_VAL><ALARM_LOW>no</ALARM_LOW><ALARM_LOW_VAL>4</ALARM_LOW_VAL></CHANNEL><CHANNEL><ISO_CHANNEL>test15</ISO_CHANNEL><INTERFACE_TYPE>SDAQ</INTERFACE_TYPE><ANCHOR>CAN1.ADDR:41.CH:15</ANCHOR><DESCRIPTION>test15</DESCRIPTION><MIN>0</MIN><MAX>0</MAX><ALARM_HIGH>no</ALARM_HIGH><ALARM_HIGH_VAL>0</ALARM_HIGH_VAL><ALARM_LOW>no</ALARM_LOW><ALARM_LOW_VAL>0</ALARM_LOW_VAL></CHANNEL><CHANNEL><ISO_CHANNEL>test16</ISO_CHANNEL><INTERFACE_TYPE>SDAQ</INTERFACE_TYPE><ANCHOR>CAN1.ADDR:41.CH:16</ANCHOR><DESCRIPTION>test16</DESCRIPTION><MIN>0</MIN><MAX>0</MAX><ALARM_HIGH>no</ALARM_HIGH><ALARM_HIGH_VAL>0</ALARM_HIGH_VAL><ALARM_LOW>no</ALARM_LOW><ALARM_LOW_VAL>0</ALARM_LOW_VAL></CHANNEL></NODESet>

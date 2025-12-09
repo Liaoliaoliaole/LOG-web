@@ -17,6 +17,31 @@ $sandboxDir = __DIR__ . '/config_sandbox/';
 // 前端期望总是读取 sandbox 的 mock 配置；如需真实路径请后续再扩展
 $xmlPath = $sandboxDir.'OPC_UA_Config.mock.xml';
 
+// === ISOstandard.xml（legacy: /home/pi/Morfeas_config/ISOstandard.xml） ===
+if (isset($_GET['include']) && $_GET['include'] === 'iso_standard') {
+    $candidates = [
+        '/home/pi/Morfeas_config/ISOstandard.xml',
+        $sandboxDir.'ISOstandard.mock.xml',
+        dirname(__DIR__) . '/menu/advanced-settings/ISOstandard.xml',
+    ];
+
+    foreach ($candidates as $path) {
+        if (is_file($path)) {
+            $xml = file_get_contents($path);
+            if ($xml !== false) {
+                header_remove('Content-Type');
+                header('Content-Type: application/xml; charset=utf-8');
+                echo $xml;
+                exit;
+            }
+        }
+    }
+
+    http_response_code(404);
+    echo json_encode(['ok' => false, 'error' => 'ISOstandard.xml not found'], JSON_PRETTY_PRINT);
+    exit;
+}
+
 // === 2) logstat 路径（真实 ramdisk -> sandbox） =====================
 
 $ramdisk = '/mnt/ramdisk/';
@@ -67,7 +92,8 @@ function build_rows_with_logstat(
     array  $ioboxLogFiles,
     array  $mtiLogFiles,
     array  $noxLogFiles,
-    array  $sdaqDeviceTypes
+    array  $sdaqDeviceTypes,
+    ?array &$extras = null
 ): array {
     $channels = iso_load_channels($xmlPath);
 
@@ -147,8 +173,18 @@ function build_rows_with_logstat(
 
     $rows = [];
 
-    $rowsByAnchorUpper = [];
+    // 真正来自 XML 的 anchor（用于标记 linked_in_xml）
+    $anchorsInXmlUpper = [];
+    // 所有已插入到 $rows 的 anchor（用于去重，不影响 linked_in_xml 标记）
+    $seenAnchorsUpper = [];
     $idx = 0;
+
+    $searchPool = [
+        'SDAQ'  => [],
+        'IOBOX' => [],
+        'MTI'   => [],
+        'NOX'   => [],
+    ];
 
     foreach ($channels as $ch) {
         $row    = $ch;
@@ -181,7 +217,10 @@ function build_rows_with_logstat(
             if ($anchor && isset($sdaqMap[$anchor])) {
                 $ls = $sdaqMap[$anchor];
                 $explain = $ls['error_explanation'] ?? null;
-                $status = $explain === 'Unlinked' ? 'Unlink' : ($ls['status'] ?? 'Unknown');
+                $status = $ls['status'] ?? 'Unknown';
+                if (($explain && strcasecmp($explain, 'Unlinked') === 0) || strcasecmp($status, 'Unlinked') === 0) {
+                    $status = 'Unknown';
+                }
 
                 if (!empty($ls['device_user_identifier'])) {
                     $row['dev_type'] = $ls['device_user_identifier'];
@@ -277,62 +316,73 @@ function build_rows_with_logstat(
 
         $rows[] = $row;
         if ($anchor) {
-            $rowsByAnchorUpper[strtoupper($anchor)] = true;
+            $upper = strtoupper($anchor);
+            $anchorsInXmlUpper[$upper] = true;
+            $seenAnchorsUpper[$upper] = true;
         }
     }
 
-    // 自动为 logstat 里已注册且有传感器、但 XML 未声明的 SDAQ 通道补行
+    // 搜索池：包含 logstat 探测到的通道，标注是否已在 XML 中声明
     foreach ($sdaqChannels as $chMeta) {
-        $linkState = $chMeta['link_state'] ?? 'Linked';
-        $hasSensor = !empty($chMeta['has_sensor']);
-        $regOk     = isset($chMeta['registration']) && strcasecmp($chMeta['registration'], 'Done') === 0;
-
-        if (!$hasSensor || !$regOk || strcasecmp($linkState, 'Unlinked') !== 0) {
-            continue;
-        }
-
         $anchor = $chMeta['connection_anchor'] ?? ($chMeta['aliases'][0] ?? null);
-        $displayAnchor = $chMeta['display_anchor'] ?? ($chMeta['preferred_anchor'] ?? $anchor);
-        if (preg_match('/^\d+\.CH\d+$/i', $displayAnchor ?? '') && !empty($chMeta['preferred_anchor'])) {
-            // 避免使用 Serial_number.CHx，优先展示传感器路径样式（can0.1.CH1 等）
-            $displayAnchor = $chMeta['preferred_anchor'];
-        }
-        if (!$anchor || !$displayAnchor) {
+        $display = $chMeta['display_anchor'] ?? $anchor;
+        if (!$anchor || !$display) {
             continue;
         }
 
-        $anchorUpper = strtoupper($anchor);
-        if (isset($rowsByAnchorUpper[$anchorUpper])) {
-            continue;
-        }
-
-        $entry = $chMeta['entry'] ?? [];
-        $isoName = 'UNLINKED_' . preg_replace('/[^A-Z0-9_.:-]+/i', '_', $displayAnchor);
-
-        $row = [
-            'iso_channel'    => $isoName,
-            'interface_type' => 'SDAQ',
-            'anchor'         => $anchor,
-            'display_anchor' => $formatSdaqDisplayAnchor($displayAnchor),
-            'description'    => 'Detected SDAQ channel without OPC UA mapping',
-            'min'            => '',
-            'max'            => '',
-            'unit'           => $entry['meas_unit'] ?? '',
-            'status'         => 'Unlink',
-            'meas'           => '—',
-            'dev_type'       => $entry['device_user_identifier'] ?? 'SDAQ',
-            '_order'         => $idx++, // 追加到 SDAQ 分组末尾
+        $upper = strtoupper($anchor);
+        $searchPool['SDAQ'][] = [
+            'anchor'          => $anchor,
+            'display_anchor'  => $formatSdaqDisplayAnchor($display),
+            'link_state'      => $chMeta['link_state'] ?? 'Linked',
+            'has_sensor'      => !empty($chMeta['has_sensor']),
+            'registration'    => $chMeta['registration'] ?? null,
+            'unit'            => $chMeta['entry']['meas_unit'] ?? null,
+            'device_type'     => $chMeta['entry']['device_user_identifier'] ?? null,
+            'status'          => $chMeta['entry']['status'] ?? null,
+            'is_meas_valid'   => $chMeta['entry']['is_meas_valid'] ?? null,
+            'meas_value'      => $chMeta['entry']['meas_value'] ?? null,
+            'linked_in_xml'   => isset($anchorsInXmlUpper[$upper]),
         ];
+    }
 
-        if (!empty($entry['cal_date'])) {
-            $row['cal_date'] = $entry['cal_date'];
-        }
-        if (!empty($entry['cal_period'])) {
-            $row['cal_period'] = $entry['cal_period'];
-        }
+    foreach ($ioboxMap as $anchor => $entry) {
+        $upper = strtoupper($anchor);
+        $searchPool['IOBOX'][] = [
+            'anchor'         => $anchor,
+            'display_anchor' => $formatNetworkAnchor($anchor, $ioboxIPv4),
+            'status'         => $entry['status'] ?? null,
+            'is_meas_valid'  => $entry['is_meas_valid'] ?? null,
+            'meas_value'     => $entry['meas_value'] ?? null,
+            'meas_unit'      => $entry['meas_unit'] ?? null,
+            'linked_in_xml'  => isset($anchorsInXmlUpper[$upper]),
+        ];
+    }
 
-        $rows[] = $row;
-        $rowsByAnchorUpper[$anchorUpper] = true;
+    foreach ($mtiMap as $anchor => $entry) {
+        $upper = strtoupper($anchor);
+        $searchPool['MTI'][] = [
+            'anchor'         => $anchor,
+            'display_anchor' => $formatNetworkAnchor($anchor, $mtiIPv4),
+            'status'         => $entry['status'] ?? null,
+            'is_meas_valid'  => $entry['is_meas_valid'] ?? null,
+            'meas_value'     => $entry['meas_value'] ?? null,
+            'meas_unit'      => $entry['meas_unit'] ?? null,
+            'linked_in_xml'  => isset($anchorsInXmlUpper[$upper]),
+        ];
+    }
+
+    foreach ($noxMap as $anchor => $entry) {
+        $upper = strtoupper($anchor);
+        $searchPool['NOX'][] = [
+            'anchor'         => $anchor,
+            'display_anchor' => $anchor,
+            'status'         => $entry['status'] ?? null,
+            'is_meas_valid'  => $entry['is_meas_valid'] ?? null,
+            'meas_value'     => $entry['meas_value'] ?? null,
+            'meas_unit'      => $entry['meas_unit'] ?? null,
+            'linked_in_xml'  => isset($anchorsInXmlUpper[$upper]),
+        ];
     }
 
     // 仿照旧版 Morfeas WEB：先显示所有 SDAQ，再依次显示其他类型
@@ -359,6 +409,12 @@ function build_rows_with_logstat(
         unset($r['_order']);
     }
 
+    if (is_array($extras)) {
+        $extras = [
+            'search_pool' => $searchPool,
+        ];
+    }
+
     return $rows;
 }
 
@@ -374,17 +430,25 @@ try {
         case 'GET':
             $iso = $_GET['iso'] ?? null;
 
+            $includeExtras = isset($_GET['include']) && $_GET['include'] === 'pool';
+            $extras = [];
+
             $rows = build_rows_with_logstat(
                 $xmlPath,
                 $sdaqLogFiles,
                 $ioboxLogFiles,
                 $mtiLogFiles,
                 $noxLogFiles,
-                $sdaqDeviceTypes
+                $sdaqDeviceTypes,
+                $extras
             );
 
             if ($iso === null) {
-                echo json_encode(['ok' => true, 'data' => $rows], JSON_PRETTY_PRINT);
+                $payload = ['ok' => true, 'data' => $rows];
+                if ($includeExtras && !empty($extras)) {
+                    $payload['extras'] = $extras;
+                }
+                echo json_encode($payload, JSON_PRETTY_PRINT);
                 break;
             }
 

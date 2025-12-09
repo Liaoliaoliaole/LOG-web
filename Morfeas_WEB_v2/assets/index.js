@@ -98,16 +98,39 @@
       );
     }
 
-    function deleteSelectedRows() {
+    async function deleteSelectedRows() {
       const rows = selectedRows();
       if (!rows.length) return;
 
-      const ok = confirm(`Delete ${rows.length} selected row(s)?`);
+      const isoList = rows
+        .map((tr) => tr.dataset.iso || tr.querySelector('td:nth-child(5)')?.textContent || '')
+        .map((t) => t.trim())
+        .filter(Boolean);
+
+      const label = isoList.length === 1 ? isoList[0] : `${isoList.length} selected channels`;
+      const ok = confirm(`Delete ${label}?`);
       if (!ok) return;
 
-      rows.forEach((tr) => tr.parentNode && tr.parentNode.removeChild(tr));
-      updateMasterCheckbox();
-      hideCtx && hideCtx();
+      try {
+        for (const iso of isoList) {
+          const res = await fetch(`${API_ISO}?iso=${encodeURIComponent(iso)}`, {
+            method: 'DELETE',
+            headers: { Accept: 'application/json' }
+          });
+          if (!res.ok) {
+            throw new Error('HTTP ' + res.status);
+          }
+          const json = await res.json();
+          if (json && json.ok === false) {
+            throw new Error(json.error || 'Delete failed');
+          }
+        }
+        loadIsoTable();
+      } catch (err) {
+        alert('Failed to delete channel(s): ' + (err?.message || err));
+      } finally {
+        hideCtx && hideCtx();
+      }
     }
 
     function visibleRows() {
@@ -396,7 +419,6 @@
       if (s === 'unclassified') return 'st-Error';
       if (s === 'open wire') return 'st-Error';
       if (s === 'short circuit') return 'st-Error';
-      if (s === 'unlinked' || s === 'unlink') return 'st-Unlinked';
       if (s === 'off-line' || s === 'offline') return 'st-Offline';
       if (s === 'disconnected') return 'st-Offline';
 
@@ -433,15 +455,21 @@
       const tr = document.createElement('tr');
       tr.className = 'row';
 
-      const rowIndex = index + 1;
       const isoName  = ch.iso_channel || '';
+      tr.dataset.iso = isoName;
+
+      const rowIndex = index + 1;
       const type     = ch.dev_type || ch.interface_type || '';
       const anchor   = (ch.display_anchor || ch.anchor || '').toString().toUpperCase();
       const desc     = ch.description || '';
       const min      = ch.min ?? '—';
       const max      = ch.max ?? '—';
 
-      const statusText = ch.status || 'Unknown';
+      const statusText = (() => {
+        const raw = ch.status || 'Unknown';
+        const lowered = raw.toLowerCase();
+        return lowered === 'unlinked' || lowered === 'unlink' ? 'Unknown' : raw;
+      })();
       const dotClass   = statusToDotClass(statusText);
       const valueText  = ch.meas != null && ch.meas !== '' ? ch.meas : '—';
 
@@ -798,7 +826,18 @@
     });
 
     /* =======================================================================
-     * 11) GLOBAL KEYS + INITIAL LOAD
+     * 11) CROSS-WINDOW EVENTS
+     * ======================================================================= */
+
+    window.addEventListener('message', (e) => {
+      const data = e.data || {};
+      if (data.type === 'channel-added') {
+        loadIsoTable();
+      }
+    });
+
+    /* =======================================================================
+     * 12) GLOBAL KEYS + INITIAL LOAD
      * ======================================================================= */
 
     loadIsoTable();

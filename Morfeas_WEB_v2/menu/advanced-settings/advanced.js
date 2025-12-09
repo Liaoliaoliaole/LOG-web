@@ -31,13 +31,16 @@
    *     - Later, change ISO_URL to any served path (e.g. /home alias).
    * -------------------------------------------------- */
 
-  // 1) Current location (same folder as this HTML):
-  let ISO_URL = 'ISOstandard.xml';
+  // 1) Legacy source (Pi runtime):
+  const ISO_LEGACY_PATH = '/home/pi/Morfeas_config/ISOstandard.xml';
 
-  // 2) If relocate on the Pi, change ONLY this line, e.g.:
-  // ISO_URL = '/morfeas/iso/ISOstandard.xml';  // (served by the web server)
+  // 2) Runtime loader (backend serves legacy or sandbox mock):
+  let ISO_URL = '../../backend/api_channels.php?include=iso_standard';
 
-  byId('isoPath').textContent = ISO_URL;
+  // 3) (Optional) Local fallback if you want to override manually:
+  // ISO_URL = 'ISOstandard.xml';
+
+  byId('isoPath').textContent = ISO_LEGACY_PATH;
 
   const isoTbody = $('#isoTable tbody');
   const isoEmpty = byId('isoEmpty');
