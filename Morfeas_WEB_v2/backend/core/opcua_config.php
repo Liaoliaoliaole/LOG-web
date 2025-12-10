@@ -112,6 +112,18 @@ function iso_update_channel(string $xmlPath, string $isoChannel, array $data): v
         throw new RuntimeException("ISO_CHANNEL not found: ".$isoChannel);
     }
 
+    if (array_key_exists('iso_channel', $data)) {
+        $newIso = $data['iso_channel'];
+        if ($newIso !== $isoChannel) {
+            foreach ($xml->CHANNEL as $ch) {
+                if ((string)$ch->ISO_CHANNEL === $newIso) {
+                    throw new RuntimeException("ISO_CHANNEL already exists: " . $newIso);
+                }
+            }
+        }
+        $target->ISO_CHANNEL = $newIso;
+    }
+
     if (isset($data['interface_type'])) $target->INTERFACE_TYPE = $data['interface_type'];
     if (isset($data['anchor']))         $target->ANCHOR         = $data['anchor'];
     if (isset($data['description']))    $target->DESCRIPTION    = $data['description'];
@@ -120,6 +132,10 @@ function iso_update_channel(string $xmlPath, string $isoChannel, array $data): v
     if (isset($data['unit']))           $target->UNIT           = $data['unit'];
     if (isset($data['cal_date']))       $target->CAL_DATE       = $data['cal_date'];
     if (isset($data['cal_period']))     $target->CAL_PERIOD     = $data['cal_period'];
+    if (array_key_exists('alarm_high', $data))     $target->ALARM_HIGH     = $data['alarm_high'];
+    if (array_key_exists('alarm_high_val', $data)) $target->ALARM_HIGH_VAL = $data['alarm_high_val'];
+    if (array_key_exists('alarm_low', $data))      $target->ALARM_LOW      = $data['alarm_low'];
+    if (array_key_exists('alarm_low_val', $data))  $target->ALARM_LOW_VAL  = $data['alarm_low_val'];
 
     $xml->asXML($xmlPath);
 }

@@ -1,197 +1,412 @@
 /* ===========================================================================
- * Edit Link popup (theme: LOG WEB v2)
- * - Mirrors original ISO_CH_MOD.html behavior:
- *   • Type / Path / ISO are read-only.
- *   • Description / Min / Max / Alarms / Unit are editable.
- *   • Alarm “Enable” toggles enable/disable the numeric boxes.
- *   • Save builds a payload similar to legacy MOD command.
- *
- * Integration notes:
- *   1) The parent window may pass the row data via:
- *      - window.name (JSON string), or
- *      - sessionStorage["edit_channel_payload"], or
- *      - window.opener.__EDIT_LINK_DATA (object).
- *      The first one found wins. A small MOCK is used as fallback.
- *   2) Hook "doSubmit" to your backend (POST to /morfeas_php/... if you keep
- *      the legacy endpoint). The file keeps a fully isolated UI layer.
+ * Edit Link popup (LOG WEB v2)
+ * - Mirrors Link Creator behaviors for path search and ISO suggestions.
+ * - Prefills fields from the selected row; Type stays locked/disabled.
+ * - Allows editing path, ISO, description, min/max, alarms, and unit.
  * ========================================================================== */
 
-(function () {
-    const $ = (s, r = document) => r.querySelector(s);
-  
-    // --- Field refs
-    const f = {
-      status:   $('#status'),
-      type:     $('#type'),
-      path:     $('#path'),
-      iso:      $('#iso'),
-      desc:     $('#desc'),
-      min:      $('#min'),
-      max:      $('#max'),
-      alarmLow: $('#alarmLow'),
-      alarmLowV:$('#alarmLowVal'),
-      alarmHigh:$('#alarmHigh'),
-      alarmHighV:$('#alarmHighVal'),
-      unit:     $('#unit'),
-      save:     $('#btnSave'),
-      cancel:   $('#btnCancel'),
-    };
-  
-    // --- Get initial data from parent in a tolerant way
-    function readPayload() {
-      // 1) window.name as JSON
-      try {
-        if (window.name && window.name.trim().startsWith('{')) {
-          return JSON.parse(window.name);
-        }
-      } catch (_) {}
-  
-      // 2) sessionStorage
-      try {
-        const s = sessionStorage.getItem('edit_channel_payload');
-        if (s) return JSON.parse(s);
-      } catch (_) {}
-  
-      // 3) global on opener
-      try {
-        if (window.opener && window.opener.__EDIT_LINK_DATA) {
-          return window.opener.__EDIT_LINK_DATA;
-        }
-      } catch (_) {}
-  
-      // 4) Fallback (MOCK) for manual testing
-      return {
-        IF_type:      'SDAQ',
-        Connection:   'CAN1.ADDR:01.CH:16',
-        ISOChannel:   '_TE1041A',
-        Description:  'Fuel Oil Temp Pump 1',
-        Min:          0,
-        Max:          150,
-        AlarmLow:     'no',
-        AlarmLowVal:  0,
-        AlarmHigh:    'no',
-        AlarmHighVal: 150,
-        Unit:         '°C',
-        Anchor:       'mock-anchor',     // kept for compatibility with legacy MOD
-      };
-    }
-  
-    // --- Alarm enabled <-> input disabled sync
-    function syncAlarmInputs() {
-      f.alarmLowV.disabled  = !f.alarmLow.checked;
-      f.alarmHighV.disabled = !f.alarmHigh.checked;
-      f.alarmLowV.style.background  = f.alarmLowV.disabled  ? 'var(--bg-weak)' : '';
-      f.alarmHighV.style.background = f.alarmHighV.disabled ? 'var(--bg-weak)' : '';
-    }
-  
-    // --- Validation similar to the original
-    function validate() {
-      const min = Number(f.min.value);
-      const max = Number(f.max.value);
-      const lo  = Number(f.alarmLowV.value);
-      const hi  = Number(f.alarmHighV.value);
-  
-      f.status.style.color = 'inherit';
-      f.status.textContent = 'Review and update fields, then Save.';
-  
-      if (Number.isFinite(min) && Number.isFinite(max) && min > max) {
-        f.status.textContent = 'Error: Min > Max';
-        f.status.style.color = '#e11d48';
-        return false;
-      }
-      if (f.alarmLow.checked && f.alarmHigh.checked &&
-          Number.isFinite(lo) && Number.isFinite(hi) && lo > hi) {
-        f.status.textContent = 'Error: Alarm Low > Alarm High';
-        f.status.style.color = '#e11d48';
-        return false;
-      }
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+
+  const typeSel      = $('#type');
+  const pathInput    = $('#path');
+  const isoInput     = $('#iso');
+  const isoDropdown  = $('#isoDropdown');
+  const descInput    = $('#desc');
+
+  const minInput     = $('#min');
+  const maxInput     = $('#max');
+  const alarmLowVal  = $('#alarmLowVal');
+  const alarmLowChk  = $('#alarmLow');
+  const alarmHighVal = $('#alarmHighVal');
+  const alarmHighChk = $('#alarmHigh');
+  const unitInput    = $('#unit');
+
+  const statusBar    = $('#status');
+  const btnSave      = $('#btnSave');
+  const btnCancel    = $('#btnCancel');
+  const btnSearch    = $('#btnSearch');
+
+  const state = {
+    isoCatalog: {},
+    isoList: [],
+    searchPool: {},
+    selectedDevice: null,
+    searchWin: null,
+    originalIso: '',
+  };
+
+  const setDisabled = (el, on) => {
+    if (!el) return;
+    el.disabled = !!on;
+    el.style.background = on ? 'var(--bg-weak)' : '';
+  };
+
+  function setStatus(msg, tone = 'info') {
+    statusBar.textContent = msg;
+    statusBar.style.color = tone === 'error' ? '#e11d48' : (tone === 'ok' ? '#16a34a' : 'inherit');
+  }
+
+  // ----- LOADERS -----
+  async function loadIsoCatalog() {
+    const parseIsoXml = (xmlText) => {
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(xmlText, 'application/xml');
+      const points = xml.querySelector('points');
+      if (!points) return false;
+      points.childNodes.forEach((node) => {
+        if (node.nodeType !== 1) return;
+        const code = node.nodeName.trim();
+        const read = (tag) => {
+          const el = node.querySelector(tag);
+          return el ? el.textContent.trim() : '';
+        };
+        const entry = {
+          code,
+          description: read('description'),
+          unit: read('unit'),
+          min: read('min'),
+          max: read('max'),
+          alarmHigh: read('alarmHigh'),
+          alarmHighVal: read('alarmHighVal'),
+          alarmLow: read('alarmLow'),
+          alarmLowVal: read('alarmLowVal'),
+        };
+        state.isoCatalog[code] = entry;
+        state.isoList.push(entry);
+      });
       return true;
+    };
+
+    const sources = [
+      '/backend/api_channels.php?include=iso_standard',
+      '../menu/advanced-settings/ISOstandard.xml',
+    ];
+
+    state.isoCatalog = {};
+    state.isoList = [];
+
+    for (const src of sources) {
+      try {
+        const res = await fetch(src, { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const xmlText = await res.text();
+        if (parseIsoXml(xmlText)) return;
+      } catch (err) {
+        console.error('Failed to load ISOstandard.xml from', src, err);
+      }
     }
-  
-    // --- Fill UI from payload
-    const payload = readPayload();
-    (function hydrate() {
-      f.type.value     = payload.IF_type || payload.Type || '';
-      f.path.value     = payload.Connection || payload.Path || '';
-      f.iso.value      = payload.ISOChannel || payload.ISO || '';
-      f.desc.value     = payload.Description || '';
-      f.min.value      = payload.Min ?? '';
-      f.max.value      = payload.Max ?? '';
-      f.unit.value     = payload.Unit || '';
-  
-      // alarms
-      f.alarmLow.checked  = (payload.AlarmLow  || 'no') === 'yes';
-      f.alarmHigh.checked = (payload.AlarmHigh || 'no') === 'yes';
-      f.alarmLowV.value   = payload.AlarmLowVal  ?? (f.min.value || 0);
-      f.alarmHighV.value  = payload.AlarmHighVal ?? (f.max.value || 0);
-      syncAlarmInputs();
-    })();
-  
-    // --- Events
-    f.alarmLow.addEventListener('change', syncAlarmInputs);
-    f.alarmHigh.addEventListener('change', syncAlarmInputs);
-  
-    // Basic live validation like legacy “vals_check”
-    ['input','change'].forEach(ev => {
-      [f.desc, f.min, f.max, f.alarmLowV, f.alarmHighV, f.unit].forEach(el =>
-        el.addEventListener(ev, validate)
+  }
+
+  async function loadSearchPool() {
+    try {
+      const res = await fetch('../backend/api_channels.php?include=pool', {
+        headers: { Accept: 'application/json' }
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if (json && json.extras && json.extras.search_pool) {
+        state.searchPool = json.extras.search_pool;
+      }
+    } catch (err) {
+      console.error('Failed to load device pool', err);
+    }
+  }
+
+  function lookupIso(codeRaw) {
+    if (!codeRaw) return null;
+    const code = codeRaw.startsWith('_') ? codeRaw : '_' + codeRaw;
+    return state.isoCatalog[code] || null;
+  }
+
+  function normalizeUnit(u) {
+    return (u || '').trim().toLowerCase();
+  }
+
+  function renderIsoSuggestions(filter = '') {
+    if (!isoDropdown) return;
+
+    const shouldShow = document.activeElement === isoInput || !!filter.trim();
+    if (!shouldShow) {
+      isoDropdown.classList.add('hidden');
+      return;
+    }
+
+    const unitPref = normalizeUnit(unitInput.value);
+    const allEntries = (state.isoList || []).slice().sort((a, b) =>
+      (a.code || '').localeCompare(b.code || '')
+    );
+    let entries = allEntries;
+
+    const unitMatches = allEntries.filter((e) => unitPref && normalizeUnit(e.unit) === unitPref);
+    if (unitMatches.length) {
+      entries = unitMatches;
+    }
+    if (!unitMatches.length && unitPref) {
+      setStatus('No exact unit matches, showing all codes');
+    }
+
+    const term = filter.trim().toLowerCase();
+    if (term) {
+      entries = entries.filter((e) =>
+        (e.code || '').toLowerCase().includes(term) ||
+        (e.description || '').toLowerCase().includes(term)
       );
-    });
-  
-    f.cancel.addEventListener('click', () => window.close());
-  
-    // --- Submit
-    f.save.addEventListener('click', async () => {
-      if (!validate()) return;
-  
-      // Build a MOD-like record (field names follow the legacy format)
-      const now = Math.trunc(Date.now() / 1000);
-      const record = {
-        COMMAND: 'MOD',
-        DATA: [{
-          IF_type:      f.type.value,
-          Anchor:       payload.Anchor || '',          // important for backend to identify the link
-          ISOChannel:   f.iso.value,
-          Description:  f.desc.value,
-          Min:          f.min.value,
-          Max:          f.max.value,
-          AlarmLow:     f.alarmLow.checked  ? 'yes' : 'no',
-          AlarmLowVal:  f.alarmLowV.value,
-          AlarmHigh:    f.alarmHigh.checked ? 'yes' : 'no',
-          AlarmHighVal: f.alarmHighV.value,
-          Unit:         f.unit.value,
-          Mod_date_UNIX: now
-        }]
-      };
-  
-      // Hook to backend here:
-      // await doSubmit(record);
-      console.log('[EditLink] outgoing MOD payload:', record);
-  
-      // Notify parent (optional). Parent can listen for this and refresh the row.
-      try { window.opener && window.opener.postMessage({type:'edit-link-saved', record}, '*'); } catch(_) {}
-  
-      window.close();
-    });
-  
-    // --- Backend submission stub (keep signature; wire later if needed)
-    async function doSubmit(modPayload) {
-      // Example (legacy endpoint):
-      // const res = await fetch('/morfeas_php/morfeas_web_if.php', {
-      //   method: 'POST',
-      //   body: compress(JSON.stringify(modPayload))   // if you still use legacy compress()
-      // });
-      // if (!res.ok) throw new Error('Network error');
-      // const ct = res.headers.get('Content-Type') || '';
-      // if (ct.includes('report/text')) {
-      //   const msg = await res.text();
-      //   throw new Error(msg || 'Server reported error');
-      // }
-      // const json = await res.json();
-      // if (!json?.success) throw new Error('Operation failed');
     }
-  
-    // Esc to close
-    document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') window.close(); });
+
+    isoDropdown.innerHTML = '';
+
+    const inputRect = isoInput.getBoundingClientRect();
+    isoDropdown.style.width = `${inputRect.width}px`;
+    isoDropdown.style.minWidth = `${inputRect.width}px`;
+    isoDropdown.style.left = `${isoInput.offsetLeft}px`;
+
+    entries.slice(0, 256).forEach((e) => {
+      const code = (e.code || '').replace(/^_/, '');
+      const item = document.createElement('div');
+      item.className = 'iso-suggestion';
+      item.innerHTML = `
+        <div class="title">${code}</div>
+        <div class="meta">${e.description || ''}${e.unit ? ` · ${e.unit}` : ''}</div>
+      `;
+      item.addEventListener('mousedown', (ev) => {
+        ev.preventDefault();
+        isoDropdown.classList.add('hidden');
+        isoInput.value = code;
+        hydrateFromIso(code, { skipSuggestions: true, forceDefaults: true });
+        isoInput.focus();
+      });
+      isoDropdown.appendChild(item);
+    });
+
+    isoDropdown.classList.toggle('hidden', !isoDropdown.children.length);
+  }
+
+  function syncAlarmInputs() {
+    const lockLow  = !alarmLowChk.checked;
+    const lockHigh = !alarmHighChk.checked;
+    setDisabled(alarmLowVal, lockLow);
+    setDisabled(alarmHighVal, lockHigh);
+  }
+
+  // ----- PAYLOAD / PREFILL -----
+  function readPayload() {
+    try {
+      const fromSession = sessionStorage.getItem('edit_channel_payload');
+      if (fromSession) return JSON.parse(fromSession);
+    } catch (_) {}
+
+    try {
+      if (window.name && window.name.trim().startsWith('{')) {
+        return JSON.parse(window.name);
+      }
+    } catch (_) {}
+
+    try {
+      if (window.opener && window.opener.__EDIT_LINK_DATA) {
+        return window.opener.__EDIT_LINK_DATA;
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  function hydrateFromIso(codeRaw, options = {}) {
+    const entry = lookupIso(codeRaw);
+    if (!entry) return;
+
+    const shouldOverride = (el) => !el.dataset.userEdited && (!el.value || options.forceDefaults);
+
+    if (shouldOverride(descInput) && entry.description) descInput.value = entry.description;
+    if (shouldOverride(minInput) && entry.min) minInput.value = entry.min;
+    if (shouldOverride(maxInput) && entry.max) maxInput.value = entry.max;
+    if (shouldOverride(unitInput) && entry.unit) unitInput.value = entry.unit;
+
+    const highVal = entry.alarmHighVal || entry.max;
+    const lowVal = entry.alarmLowVal || entry.min;
+    if (shouldOverride(alarmHighVal) && highVal != null) alarmHighVal.value = highVal;
+    if (shouldOverride(alarmLowVal) && lowVal != null) alarmLowVal.value = lowVal;
+    if (options.forceDefaults || !alarmHighChk.dataset.userEdited) {
+      alarmHighChk.checked = (entry.alarmHigh || '').toLowerCase() === 'yes';
+    }
+    if (options.forceDefaults || !alarmLowChk.dataset.userEdited) {
+      alarmLowChk.checked  = (entry.alarmLow  || '').toLowerCase() === 'yes';
+    }
+    syncAlarmInputs();
+
+    if (!options.skipSuggestions) {
+      renderIsoSuggestions(isoInput.value);
+    }
+  }
+
+  function hydrateFromPayload(payload) {
+    if (!payload) return;
+    const type = payload.interface_type || payload.IF_type || payload.Type || '';
+    const iso  = payload.iso_channel || payload.ISOChannel || payload.ISO || '';
+
+    typeSel.value = type || '-';
+    state.originalIso = iso || '';
+    pathInput.value = payload.display_anchor || payload.anchor || payload.Connection || '';
+    isoInput.value = iso.replace(/^_/, '');
+    descInput.value = payload.description || payload.Description || '';
+    minInput.value = payload.min ?? payload.Min ?? '';
+    maxInput.value = payload.max ?? payload.Max ?? '';
+    unitInput.value = payload.unit || payload.Unit || '';
+
+    alarmLowChk.checked  = ((payload.alarm_low || payload.AlarmLow || 'no').toString().toLowerCase()) === 'yes';
+    alarmHighChk.checked = ((payload.alarm_high || payload.AlarmHigh || 'no').toString().toLowerCase()) === 'yes';
+    alarmLowVal.value    = payload.alarm_low_val ?? payload.AlarmLowVal ?? (minInput.value || '');
+    alarmHighVal.value   = payload.alarm_high_val ?? payload.AlarmHighVal ?? (maxInput.value || '');
+    syncAlarmInputs();
+  }
+
+  // ----- SEARCH POPUP -----
+  function openSearchPopup() {
+    const type = typeSel.value;
+    if (!type || type === '-') {
+      setStatus('Type is locked but required to search');
+      return;
+    }
+    const url = `../tool-bar/device_search.html?type=${encodeURIComponent(type)}`;
+    const features = 'width=780,height=720,resizable=yes,scrollbars=yes';
+    if (state.searchWin && !state.searchWin.closed) {
+      try { state.searchWin.focus(); return; } catch (_) {}
+    }
+    state.searchWin = window.open(url, 'device_search', features);
+  }
+
+  // ----- SAVE -----
+  function normalizeIsoValue() {
+    return isoInput.value.trim();
+  }
+
+  async function save() {
+    const type = typeSel.value;
+    const isoVal = normalizeIsoValue();
+    const anchor = (pathInput.value || '').trim();
+
+    if (!isoVal) {
+      setStatus('ISO Code is required', 'error');
+      return;
+    }
+    if (!anchor) {
+      setStatus('Sensor path is required', 'error');
+      return;
+    }
+
+    const isoEntry = lookupIso(isoVal);
+    const minVal = minInput.value || (isoEntry ? isoEntry.min : '0');
+    const maxVal = maxInput.value || (isoEntry ? isoEntry.max : '0');
+
+    const body = {
+      iso_channel: isoVal,
+      interface_type: type,
+      anchor,
+      description: descInput.value,
+      min: minVal,
+      max: maxVal,
+      unit: unitInput.value,
+      alarm_high: alarmHighChk.checked ? 'yes' : 'no',
+      alarm_high_val: alarmHighVal.value || maxVal,
+      alarm_low: alarmLowChk.checked ? 'yes' : 'no',
+      alarm_low_val: alarmLowVal.value || minVal,
+    };
+
+    btnSave.disabled = true;
+    try {
+      const res = await fetch(`/backend/api_channels.php?iso=${encodeURIComponent(state.originalIso || isoVal)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if (json && json.ok === false) {
+        throw new Error(json.error || 'Operation failed');
+      }
+      setStatus('Saved changes.');
+      try { window.opener?.postMessage({ type: 'channel-updated' }, '*'); } catch (_) {}
+      setTimeout(() => window.close(), 400);
+    } catch (err) {
+      console.error(err);
+      setStatus(err.message || 'Failed to save changes', 'error');
+      btnSave.disabled = false;
+    }
+  }
+
+  // ----- EVENTS -----
+  [descInput, minInput, maxInput, unitInput, alarmLowVal, alarmHighVal, isoInput].forEach((el) => {
+    el?.addEventListener('input', () => { el.dataset.userEdited = '1'; });
+  });
+
+  [alarmLowChk, alarmHighChk].forEach((el) => {
+    el?.addEventListener('change', () => {
+      el.dataset.userEdited = '1';
+      syncAlarmInputs();
+    });
+  });
+
+  isoInput.addEventListener('change', (e) => {
+    hydrateFromIso(e.target.value.trim(), { forceDefaults: true });
+  });
+
+  isoInput.addEventListener('input', (e) => {
+    if (!e.target.value.trim()) {
+      isoDropdown.classList.add('hidden');
+    }
+    renderIsoSuggestions(e.target.value);
+  });
+
+  isoInput.addEventListener('focus', (e) => {
+    renderIsoSuggestions(e.target.value);
+  });
+
+  isoInput.addEventListener('blur', () => {
+    setTimeout(() => isoDropdown.classList.add('hidden'), 120);
+  });
+
+  btnSearch.addEventListener('click', (e) => {
+    e.preventDefault();
+    openSearchPopup();
+  });
+
+  btnSave.addEventListener('click', (e) => {
+    e.preventDefault();
+    save();
+  });
+
+  btnCancel.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.close();
+  });
+
+  window.addEventListener('message', (e) => {
+    const data = e.data;
+    if (!data || data.type !== 'device-selected') return;
+    state.selectedDevice = data.payload || null;
+    if (state.selectedDevice) {
+      pathInput.value = state.selectedDevice.display_anchor || state.selectedDevice.anchor || '';
+      if (!unitInput.dataset.userEdited && state.selectedDevice.unit) {
+        unitInput.value = state.selectedDevice.unit;
+      }
+      renderIsoSuggestions(isoInput.value);
+      setStatus(`Selected ${pathInput.value}`);
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') window.close();
+  });
+
+  // ----- INIT -----
+  (async function init() {
+    const payload = readPayload();
+    hydrateFromPayload(payload);
+    await Promise.all([loadIsoCatalog(), loadSearchPool()]);
+    if (isoInput.value) {
+      hydrateFromIso(isoInput.value, { skipSuggestions: false });
+    }
+    syncAlarmInputs();
+    if (!payload) setStatus('No row data provided', 'error');
   })();
-  
+})();

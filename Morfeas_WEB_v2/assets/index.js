@@ -44,6 +44,10 @@
     };
     let openFilterMenu = null;
 
+    // Cache of the latest channel payloads (for Edit popup prefill)
+    let isoChannelCache = [];
+    const isoChannelMap = new Map();
+
     /* =======================================================================
      * 2) GENERIC UTILITIES (SELECTION, POPUPS, ETC.)
      * ======================================================================= */
@@ -52,6 +56,20 @@
       $$('tbody input[type="checkbox"]').filter(
         (c) => c.closest('tr').style.display !== 'none'
       );
+
+    function updateChannelCache(channels) {
+      isoChannelCache = Array.isArray(channels) ? channels : [];
+      isoChannelMap.clear();
+      isoChannelCache.forEach((ch) => {
+        const key = (ch.iso_channel || '').toString().toUpperCase();
+        if (key) isoChannelMap.set(key, ch);
+      });
+    }
+
+    function findChannelByIso(iso) {
+      if (!iso) return null;
+      return isoChannelMap.get(iso.toString().toUpperCase()) || null;
+    }
 
     const selectedRows = () =>
       rowChecks()
@@ -567,6 +585,7 @@
     function loadIsoTable() {
       fetchIsoChannels()
         .then((channels) => {
+          updateChannelCache(channels);
           renderIsoTable(channels);
         })
         .catch((err) => {
@@ -640,6 +659,22 @@
       ctx.appendChild(div);
     }
 
+    function buildRowDataFromDom(tr) {
+      if (!tr) return null;
+      const read = (n) => (tr.querySelector(`td:nth-child(${n})`)?.textContent || '').trim();
+      const iso = (tr.dataset.iso || read(5) || '').trim();
+      if (!iso) return null;
+      return {
+        iso_channel: iso,
+        interface_type: read(6),
+        anchor: read(7),
+        description: read(13),
+        min: read(11),
+        max: read(12),
+        unit: '',
+      };
+    }
+
     function buildCtxFor(count) {
       clearCtx();
       if (count === 1) {
@@ -706,7 +741,17 @@
       const action = item.dataset.action;
       switch (action) {
         case 'edit':
-          const rowData = {/* TODO: build from selected row when你需要 */};
+          const trEdit = selectedRows()[0];
+          const iso = (trEdit?.dataset.iso || trEdit?.querySelector('td:nth-child(5)')?.textContent || '').trim();
+          const cached = findChannelByIso(iso);
+          const rowData = cached || buildRowDataFromDom(trEdit);
+          if (!rowData) {
+            alert('No channel data available for edit');
+            break;
+          }
+          try {
+            sessionStorage.setItem('edit_channel_payload', JSON.stringify(rowData));
+          } catch (_) {}
           const win = openCenteredPopup('linker-table/edit_channel.html', 'edit_channel_popup', {width: 880, height: 820});
           if (win) { win.name = JSON.stringify(rowData); }
           break;
@@ -831,7 +876,7 @@
 
     window.addEventListener('message', (e) => {
       const data = e.data || {};
-      if (data.type === 'channel-added') {
+      if (data.type === 'channel-added' || data.type === 'channel-updated') {
         loadIsoTable();
       }
     });

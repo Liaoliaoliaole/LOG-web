@@ -70,17 +70,101 @@
             width: 120px
         }
 
+        /* ISO dropdown styling (shared with Link Creator) */
+        .iso-field {
+            align-items: center;
+            flex-direction: row;
+            gap: 6px;
+            flex-wrap: nowrap;
+        }
+
+        .iso-input-wrap {
+            position: relative;
+            display: inline-block;
+            min-width: 110px;
+            max-width: 240px;
+            width: auto;
+            flex: 0 0 auto;
+        }
+
+        .iso-suggestions {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            width: 100%;
+            min-width: 100%;
+            max-height: 260px;
+            padding: 6px 0;
+            background: #fff;
+            opacity: 1;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, .18);
+            overflow-y: auto;
+            z-index: 20;
+        }
+
+        .iso-suggestions.hidden {
+            display: none;
+        }
+
+        .iso-suggestion {
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .iso-suggestion:hover,
+        .iso-suggestion.active {
+            background: rgba(52, 152, 219, .12);
+        }
+
+        .iso-suggestion .title {
+            font-weight: 800;
+        }
+
+        .iso-suggestion .meta {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .disabled {
+            opacity: .6;
+            pointer-events: none;
+        }
+
         /* Make read-only fields visually consistent with disabled look */
         .ro {
             background: var(--bg-weak) !important;
             color: var(--muted) !important;
-            pointer-events: none;
-            /* prevent caret/focus */
         }
 
         /* Tighten small inputs used beside checkboxes */
         .num {
             width: 140px;
+        }
+
+        /* THEME-CONSISTENT DROPDOWN HIGHLIGHT */
+        select.input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, .15);
+        }
+
+        select.input option:checked {
+            background: var(--accent) !important;
+            color: #fff !important;
+        }
+
+        select.input option:hover {
+            background: rgba(52, 152, 219, .15) !important;
+            color: var(--text);
         }
     </style>
 </head>
@@ -96,19 +180,30 @@
 
             <!-- Type (read-only like the original) -->
             <div class="label">Type</div>
-            <div><input id="type" class="input ro" readonly /></div>
-
-            <!-- Sensor Path (read-only) -->
-            <div class="label">Sensor's Path</div>
-            <div class="inline">
-                <input id="path" class="input ro" readonly />
-                <button class="btn" title="Search" disabled>🔍</button>
+            <div>
+                <select id="type" class="input w-120 ro" disabled>
+                    <option value>-</option>
+                    <option value="SDAQ">SDAQ</option>
+                    <option value="IOBOX">IOBOX</option>
+                    <option value="MTI">MTI</option>
+                    <option value="NOX">NOX</option>
+                </select>
             </div>
 
-            <!-- ISO Code (read-only, underscore kept to match the legacy UI) -->
-            <div class="label">ISO Code</div>
+            <!-- Sensor Path -->
+            <div class="label">Sensor's Path</div>
             <div class="inline">
-                <input id="iso" class="input ro w-120" readonly />
+                <input id="path" class="input" placeholder="Select from search" />
+                <button id="btnSearch" class="btn" title="Search">🔍</button>
+            </div>
+
+            <!-- ISO Code -->
+            <div class="label">ISO Code</div>
+            <div class="inline iso-field">
+                <div class="iso-input-wrap">
+                    <input id="iso" class="input w-120" placeholder="Search..." />
+                    <div id="isoDropdown" class="iso-suggestions hidden"></div>
+                </div>
             </div>
 
             <!-- Description -->

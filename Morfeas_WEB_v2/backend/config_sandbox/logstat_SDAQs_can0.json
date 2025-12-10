@@ -2,10 +2,10 @@
     "logstat_build_date_UNIX": 1764155700,
     "CANBus_interface": "can0",
     "Electrics": {
-        "Last_calibration_UNIX": 1705000000,
-        "BUS_voltage": 24.5,
-        "BUS_amperage": 2.1,
-        "BUS_Shunt_Res_temp": 35.2
+        "Last_calibration_UNIX": 0,
+        "BUS_voltage": 24.038000106811523,
+        "BUS_amperage": 0.028106000274419785,
+        "BUS_Shunt_Res_temp": 103.71199798583984
     },
     "BUS_Utilization": 42.5,
     "BUS_Error_rate": 0.1,
