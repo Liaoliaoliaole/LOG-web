@@ -151,7 +151,7 @@
     syncAlarmInputs();
   }
 
-  function hydrateFromIso(codeRaw) {
+  function hydrateFromIso(codeRaw, options = {}) {
     const entry = lookupIso(codeRaw);
     if (!entry) return;
     if (!descInput.dataset.userEdited && !descInput.value) descInput.value = entry.description;
@@ -166,7 +166,9 @@
     alarmHighChk.checked = (entry.alarmHigh || '').toLowerCase() === 'yes';
     alarmLowChk.checked  = (entry.alarmLow  || '').toLowerCase() === 'yes';
     syncAlarmInputs();
-    renderIsoSuggestions(isoInput.value);
+    if (!options.skipSuggestions) {
+      renderIsoSuggestions(isoInput.value);
+    }
   }
 
   function normalizeUnit(u) {
@@ -206,6 +208,11 @@
 
     isoDropdown.innerHTML = '';
 
+    const inputRect = isoInput.getBoundingClientRect();
+    isoDropdown.style.width = `${inputRect.width}px`;
+    isoDropdown.style.minWidth = `${inputRect.width}px`;
+    isoDropdown.style.left = `${isoInput.offsetLeft}px`;
+
     entries.slice(0, 256).forEach((e) => {
       const code = (e.code || '').replace(/^_/, '');
       const item = document.createElement('div');
@@ -219,7 +226,7 @@
         isoDropdown.classList.add('hidden');
         isoInput.value = code;
         postfixSel.value = 'N/A';
-        hydrateFromIso(code);
+        hydrateFromIso(code, { skipSuggestions: true });
         isoInput.focus();
       });
       isoDropdown.appendChild(item);
