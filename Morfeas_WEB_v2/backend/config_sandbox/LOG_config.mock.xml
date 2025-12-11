@@ -24,5 +24,9 @@
       <DEV_NAME>MTI_LAB</DEV_NAME>
       <IPv4_ADDR>10.0.0.20</IPv4_ADDR>
     </MTI_HANDLER>
+    <IOBOX_HANDLER Disable="false">
+      <DEV_NAME>iobox_lab</DEV_NAME>
+      <IPv4_ADDR>10.0.0.6</IPv4_ADDR>
+    </IOBOX_HANDLER>
   </COMPONENTS>
 </CONFIG>
