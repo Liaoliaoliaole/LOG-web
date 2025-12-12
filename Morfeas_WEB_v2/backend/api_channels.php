@@ -19,7 +19,7 @@ function collect_iso_files(string $sandboxDir): array
 {
     $paths = [];
     $locations = [
-        ['pi', '/home/morfeas/configuration/iso_standards/', '*.xml'],
+        ['pi', '/home/pi/Morfeas_config/iso_standards/', '*.xml'],
         ['sandbox', $sandboxDir . 'iso_standards/', '*.xml'],
     ];
 
@@ -57,7 +57,7 @@ if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_list') {
     exit;
 }
 
-if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_list') {
+if (isset($_GET['include']) && $_GET['include'] === 'iso_standard') {
     $items = collect_iso_files($sandboxDir);
     $target = $_GET['file'] ?? null;
 

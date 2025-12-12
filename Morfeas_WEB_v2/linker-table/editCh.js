@@ -36,6 +36,23 @@
     originalIso: '',
   };
 
+  const ISO_STORAGE_KEY = 'iso_standard_selected_id';
+  const isoStore = {
+    get() {
+      try {
+        return localStorage.getItem(ISO_STORAGE_KEY) || '';
+      } catch (_) {
+        return '';
+      }
+    },
+    set(id) {
+      try {
+        if (id) localStorage.setItem(ISO_STORAGE_KEY, id);
+        else localStorage.removeItem(ISO_STORAGE_KEY);
+      } catch (_) {}
+    },
+  };
+
   const setDisabled = (el, on) => {
     if (!el) return;
     el.disabled = !!on;
@@ -78,9 +95,26 @@
       return true;
     };
 
-    const sources = [
-      '/backend/api_channels.php?include=iso_standard',
-    ];
+    const buildIsoUrl = () => {
+      const params = new URLSearchParams({ include: 'iso_standard' });
+      const fileId = isoStore.get();
+      if (fileId) params.set('file', fileId);
+      return `/backend/api_channels.php?${params.toString()}`;
+    };
+
+    const listRes = await fetch('/backend/api_channels.php?include=iso_standard_list', { cache: 'no-store' });
+    const listJson = listRes.ok ? await listRes.json() : { files: [] };
+    const files = listJson.files || [];
+
+    const stored = isoStore.get();
+    const chosen = files.find((f) => f.id === stored)
+      || files.find((f) => f.is_default)
+      || files[0];
+    if (chosen?.id && chosen.id !== stored) {
+      isoStore.set(chosen.id);
+    }
+
+    const sources = [buildIsoUrl()];
 
     state.isoCatalog = {};
     state.isoList = [];

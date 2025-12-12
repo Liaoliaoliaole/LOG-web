@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="en">
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Advanced Settings</title>
-  <link rel="stylesheet" href="../../assets/app.css" />
-  <style>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Advanced Settings</title>
+    <link rel="stylesheet" href="../../assets/app.css" />
+    <style>
     /* Layout */
     .wrap {
       max-width: 860px;
@@ -137,83 +137,103 @@
       background: #f3f4f6;
       font-weight: 800;
     }
+
+    .table-wrap {
+      margin-top: 12px;
+      overflow-x: auto;
+    }
+
+    #isoSelect {
+      display: block;
+      width: 100%;
+      max-width: 420px;
+    }
   </style>
-</head>
+  </head>
 
-<body>
-  <div class="wrap">
-    <div class="card">
-      <div class="card-head">
-        Advanced Settings
-      </div>
-
-      <div class="card-body">
-        <!-- Machine Identifier -->
-        <div class="section">
-          <div class="section-title">Machine Identifier</div>
-          <div class="rows">
-            <div class="row">
-              <label>MAC Address</label>
-              <div id="macText" class="value">—</div>
-            </div>
-          </div>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <div class="card-head">
+          Advanced Settings
         </div>
 
-        <!-- SDAQNet (CAN-IFs) -->
-        <div class="section">
-          <div class="section-title">SDAQNet (CAN-IFs)</div>
-          <div class="rows">
-            <div class="row">
-              <label>CAN0</label>
-              <div id="can0" class="value readonly">—</div>
-            </div>
-            <div class="row">
-              <label>CAN1</label>
-              <div id="can1" class="value readonly">—</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ISOstandard -->
-        <div class="section">
-          <div class="section-title">ISOstandard</div>
-          <div class="rows">
-            <div class="row">
-              <label>Source</label>
-              <div class="value path" id="isoPath">/home/pi/Morfeas_config/iso_standards/</div>
-            <div class="row tight">
-              <label>Choose file</label>
-              <div>
-                <select id="isoSelect" class="input sel" style="margin-bottom:6px;"></select>
-                <div class="muted">Affects all modules (system-wide).</div>
+        <div class="card-body">
+          <!-- Machine Identifier -->
+          <div class="section">
+            <div class="section-title">Machine Identifier</div>
+            <div class="rows">
+              <div class="row">
+                <label>MAC Address</label>
+                <div id="macText" class="value">—</div>
               </div>
             </div>
-            <div class="table-wrap">
-              <table class="table" id="isoTable">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>NAME</th>
-                    <th>DESCRIPTION</th>
-                    <th>UNIT</th>
-                    <th>MAX</th>
-                    <th>MIN</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
+          </div>
+
+          <!-- SDAQNet (CAN-IFs) -->
+          <div class="section">
+            <div class="section-title">SDAQNet (CAN-IFs)</div>
+            <div class="rows">
+              <div class="row">
+                <label>CAN0</label>
+                <div id="can0" class="value readonly">—</div>
+              </div>
+              <div class="row">
+                <label>CAN1</label>
+                <div id="can1" class="value readonly">—</div>
+              </div>
             </div>
-            <div id="isoEmpty" class="muted" style="display:none;">No ISOstandard loaded.</div>
+          </div>
+
+          <!-- ISOstandard -->
+          <div class="section">
+            <div class="section-title">ISOstandard</div>
+            <div class="rows">
+              <div class="row">
+                <label>Source</label>
+                <div>
+                  <div class="value path"
+                    id="isoPath">/home/pi/Morfeas_config/iso_standards/</div>
+                  <div class="muted">Files are auto-detected from
+                    /home/pi/Morfeas_config/iso_standards/ and
+                    backend/config_sandbox/iso_standards/.</div>
+                </div>
+              </div>
+              <div class="row tight">
+                <label>Choose file</label>
+                <div>
+                  <select id="isoSelect" class="input sel"
+                    style="margin-bottom:6px;"></select>
+                  <div class="muted">Affects all modules (system-wide).</div>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="table" id="isoTable">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>NAME</th>
+                      <th>DESCRIPTION</th>
+                      <th>UNIT</th>
+                      <th>MAX</th>
+                      <th>MIN</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <div id="isoEmpty" class="muted" style="display:none;">No
+                ISOstandard loaded.</div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Optional: include the original validator if want to reuse it for local-file fallback -->
-  <!-- <script src="../../isoSTD_xml_file_validation.js"></script> -->
-  <script src="./advanced.js"></script>
-  <script>document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });</script>
-</body>
+    <!-- Optional: include the original validator if want to reuse it for local-file fallback -->
+    <!-- <script src="../../isoSTD_xml_file_validation.js"></script> -->
+    <script src="./advanced.js"></script>
+    <script>document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });</script>
+  </body>
 
 </html>

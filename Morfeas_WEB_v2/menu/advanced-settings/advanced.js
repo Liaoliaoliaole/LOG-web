@@ -36,6 +36,7 @@
 
   // 1) Legacy source (Pi runtime):
   const ISO_LEGACY_PATH = '/home/pi/Morfeas_config/iso_standards/';
+  const ISO_STORAGE_KEY = 'iso_standard_selected_id';
 
   // 2) Runtime loader (backend serves legacy or sandbox mock):
   let ISO_URL = '../../backend/api_channels.php?include=iso_standard';
@@ -48,6 +49,22 @@
   const isoState = {
     options: [],
     ready: false,
+  };
+
+  const isoStorage = {
+    get() {
+      try {
+        return localStorage.getItem(ISO_STORAGE_KEY) || '';
+      } catch (_) {
+        return '';
+      }
+    },
+    set(val) {
+      try {
+        if (val) localStorage.setItem(ISO_STORAGE_KEY, val);
+        else localStorage.removeItem(ISO_STORAGE_KEY);
+      } catch (_) {}
+    },
   };
 
   const isoTbody = $('#isoTable tbody');
@@ -127,22 +144,31 @@
         isoSelect.appendChild(opt);
       });
 
-      const selected = files.find((f) => f.is_default) ?? files[0];
+      const savedId = isoStorage.get();
+      const selected = files.find((f) => f.id === savedId)
+        ?? files.find((f) => f.is_default)
+        ?? files[0];
       if (selected) {
         isoSelect.value = selected.id;
         byId('isoPath').textContent = selected.path ?? ISO_LEGACY_PATH;
         await loadISOOverHTTP(selected.id);
         isoState.options = files;
         isoState.ready = true;
+        isoStorage.set(selected.id);
       }
 
       isoSelect.addEventListener('change', () => {
         if (!isoState.ready) return;
         const current = isoState.options.find((f) => f.id === isoSelect.value);
         byId('isoPath').textContent = current?.path ?? ISO_LEGACY_PATH;
-        loadISOOverHTTP(isoSelect.value).catch(() => attachLocalFilePicker());
+        isoStorage.set(current?.id || '');
+        loadISOOverHTTP(isoSelect.value).catch(() => {
+          toast('Failed to load ISO XML over HTTP, falling back to local file');
+          attachLocalFilePicker();
+        });
       });
     } catch {
+      toast('No ISOstandard files found via HTTP; choose a local XML instead');
       attachLocalFilePicker();   // desktop preview
     }
   })();
