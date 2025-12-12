@@ -12,35 +12,24 @@
       max-width: 860px;
       margin: 16px auto;
     }
-  
+
     .card {
       background: #fff;
       border: 1px solid var(--border);
       border-radius: 14px;
       overflow: hidden;
     }
-  
+
     .card-head {
       padding: 16px 18px;
       border-bottom: 1px solid var(--border);
       font-weight: 900;
-      font-size: var(--fz); 
+      font-size: var(--fz);
       display: flex;
       align-items: center;
       gap: 10px;
     }
-  
-    .mock-badge {
-      margin-left: auto;
-      padding: 4px 8px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 800;
-      color: #1f2937;
-      background: linear-gradient(#fde68a, #fcd34d);
-      border: 1px solid #f59e0b;
-    }
-  
+
     .card-body {
       padding: 12px 18px 18px;
     }
@@ -50,60 +39,74 @@
       color: var(--text);
       font-size: var(--fz);
     }
-  
+
     .section {
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 10px 12px;
       margin-bottom: 12px;
     }
-  
+
     .section-title {
       font-weight: 900;
       margin-bottom: 6px;
     }
-  
+
     .rows {
       display: grid;
       gap: 10px;
     }
-  
+
     .row {
       display: grid;
       grid-template-columns: 160px 1fr;
       align-items: center;
       gap: 10px;
     }
-  
+
+    .row.tight {
+      align-items: start;
+    }
+
     .row.actions {
       grid-template-columns: 1fr auto auto;
       justify-content: end;
     }
-  
+
     .row.actions .btn {
       justify-self: end;
     }
-  
+
     .value {
       font-weight: 800;
     }
-  
+
+    .readonly {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #f9fafb;
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+    }
+
     /* Use normal text color for the “Source” path */
     .path {
       color: var(--text);
       font-weight: 600;
     }
-  
+
     /* Only elements with .muted stay gray */
     .muted {
       color: var(--muted);
     }
-  
+
     .sel {
       height: 42px;
       min-width: 160px;
     }
-  
+
     /* Inputs/selects should follow theme color & size */
     .input,
     .sel,
@@ -113,14 +116,14 @@
       color: var(--text);
       font-size: var(--fz);
     }
-  
+
     /* Table styling consistent with the main app */
     .table {
       width: 100%;
       border-collapse: collapse;
       background: #fff;
     }
-  
+
     .table th,
     .table td {
       border: 1px solid #e5e7eb;
@@ -129,12 +132,12 @@
       color: var(--text);
       font-size: var(--fz);
     }
-  
+
     .table thead th {
       background: #f3f4f6;
       font-weight: 800;
     }
-  </style>  
+  </style>
 </head>
 
 <body>
@@ -142,7 +145,6 @@
     <div class="card">
       <div class="card-head">
         Advanced Settings
-        <span id="mockBadge" class="mock-badge">MOCK DATA</span>
       </div>
 
       <div class="card-body">
@@ -163,25 +165,11 @@
           <div class="rows">
             <div class="row">
               <label>CAN0</label>
-              <select id="can0" class="input sel">
-                <option>125 kbps</option>
-                <option>250 kbps</option>
-                <option selected>500 kbps</option>
-                <option>1000 kbps</option>
-              </select>
+              <div id="can0" class="value readonly">—</div>
             </div>
             <div class="row">
               <label>CAN1</label>
-              <select id="can1" class="input sel">
-                <option>125 kbps</option>
-                <option>250 kbps</option>
-                <option selected>500 kbps</option>
-                <option>1000 kbps</option>
-              </select>
-            </div>
-            <div class="row actions">
-              <button id="loadLast" class="btn">Load Last</button>
-              <button id="apply" class="btn primary">Set</button>
+              <div id="can1" class="value readonly">—</div>
             </div>
           </div>
         </div>
@@ -192,7 +180,13 @@
           <div class="rows">
             <div class="row">
               <label>Source</label>
-              <div class="value path" id="isoPath">ISOstandard.xml</div>
+              <div class="value path" id="isoPath">/home/pi/Morfeas_config/iso_standards/</div>
+            <div class="row tight">
+              <label>Choose file</label>
+              <div>
+                <select id="isoSelect" class="input sel" style="margin-bottom:6px;"></select>
+                <div class="muted">Affects all modules (system-wide).</div>
+              </div>
             </div>
             <div class="table-wrap">
               <table class="table" id="isoTable">

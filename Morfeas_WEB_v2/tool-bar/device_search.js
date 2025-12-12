@@ -3,6 +3,9 @@
   const listEl = $('#list');
   const statusEl = $('#status');
   const typeLabel = $('#typeLabel');
+  const refreshBtn = $('#refreshBtn');
+
+  let isLoading = false;
 
   const params = new URLSearchParams(window.location.search);
   const type = (params.get('type') || '').toUpperCase();
@@ -23,6 +26,12 @@
 
   function renderList(items) {
     listEl.innerHTML = '';
+
+    const columns = document.createElement('div');
+    columns.className = 'columns';
+    columns.innerHTML = `<div>Channel</div><div>Status</div><div>Measurement</div>`;
+    listEl.appendChild(columns);
+
     items.forEach((item) => {
       const row = document.createElement('button');
       row.type = 'button';
@@ -42,11 +51,7 @@
         meas.textContent = '—';
       }
 
-      const badge = document.createElement('div');
-      badge.className = 'badge';
-      badge.textContent = item.link_state || 'Unknown';
-
-      row.append(anchor, status, meas, badge);
+      row.append(anchor, status, meas);
       row.addEventListener('click', () => {
         try {
           window.opener?.postMessage({
@@ -80,16 +85,21 @@
     });
   }
 
-  async function init() {
+  async function loadPool(manual = false) {
     if (!type) {
       setStatus('Missing device type', 'error');
       renderEmpty('No device type specified.');
       return;
     }
 
+    if (isLoading) return;
+    isLoading = true;
+    setStatus(manual ? 'Refreshing…' : 'Loading...');
+
     try {
       const res = await fetch('../backend/api_channels.php?include=pool', {
-        headers: { Accept: 'application/json' }
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
@@ -99,6 +109,7 @@
       if (!pool.length) {
         setStatus('No available channels');
         renderEmpty('No channels available for this type.');
+        isLoading = false;
         return;
       }
 
@@ -108,8 +119,15 @@
       console.error(err);
       setStatus(err.message || 'Failed to load devices', 'error');
       renderEmpty('Failed to load devices.');
+    } finally {
+      isLoading = false;
     }
   }
 
-  init();
+  refreshBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    loadPool(true);
+  });
+
+  loadPool();
 })();

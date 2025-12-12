@@ -40,6 +40,10 @@
     searchWin: null,
   };
 
+  const SEARCH_POOL_REFRESH_MS = 1000; // legacy logstat polling cadence
+  let searchPoolLoading = false;
+  let pendingPoolRefresh = false;
+
   const setDisabled = (el, on) => {
     if (!el) return;
     el.disabled = !!on;
@@ -99,7 +103,6 @@
 
     const sources = [
       '/backend/api_channels.php?include=iso_standard',
-      '../menu/advanced-settings/ISOstandard.xml',
     ];
 
     state.isoCatalog = {};
@@ -117,10 +120,18 @@
     }
   }
 
-  async function loadSearchPool() {
+  async function loadSearchPool(force = false) {
+    if (searchPoolLoading) {
+      if (force) pendingPoolRefresh = true;
+      return;
+    }
+
+    searchPoolLoading = true;
+
     try {
       const res = await fetch('../backend/api_channels.php?include=pool', {
-        headers: { Accept: 'application/json' }
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
@@ -129,8 +140,15 @@
       }
     } catch (err) {
       console.error('Failed to load device pool', err);
+    } finally {
+      searchPoolLoading = false;
+      if (pendingPoolRefresh) {
+        pendingPoolRefresh = false;
+        loadSearchPool();
+      }
     }
   }
+
 
   function lookupIso(codeRaw) {
     if (!codeRaw) return null;
@@ -412,7 +430,7 @@
     btnSave.disabled = true;
     try {
       for (const rec of records) {
-        const res = await fetch('/backend/api_channels.php', {
+        const res = await fetch('../backend/api_channels.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(rec),
@@ -503,6 +521,7 @@
   (async function init() {
     fillPostfix();
     await Promise.all([loadIsoCatalog(), loadSearchPool()]);
+    setInterval(() => loadSearchPool(), SEARCH_POOL_REFRESH_MS);
     applyTypeRules();
     onRangeChange();
     syncAlarmInputs();

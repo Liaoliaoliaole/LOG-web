@@ -80,7 +80,6 @@
 
     const sources = [
       '/backend/api_channels.php?include=iso_standard',
-      '../menu/advanced-settings/ISOstandard.xml',
     ];
 
     state.isoCatalog = {};

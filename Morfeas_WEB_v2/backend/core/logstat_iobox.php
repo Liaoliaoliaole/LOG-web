@@ -49,11 +49,18 @@ function iobox_load_anchor_map(array $paths): array
             }
 
             foreach ($rxData as $chKey => $value) {
-                if (!ctype_digit((string)$chKey)) {
+                $chNum = null;
+                if (ctype_digit((string)$chKey)) {
+                    $chNum = (string)$chKey;
+                } elseif (is_string($chKey) && preg_match('/^CH(\d+)$/i', $chKey, $cm)) {
+                    $chNum = $cm[1];
+                }
+
+                if ($chNum === null) {
                     continue;
                 }
 
-                $anchor = sprintf('%s.%s.CH%s', $identifier, strtoupper($key), $chKey);
+                $anchor = sprintf('%s.%s.CH%s', $identifier, strtoupper($key), $chNum);
 
                 $status = 'Okay';
                 $valid  = is_numeric($value);

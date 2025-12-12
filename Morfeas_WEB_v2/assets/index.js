@@ -32,6 +32,8 @@
 
     const API_ISO = '/backend/api_channels.php';
 
+    const AUTO_REFRESH_MS = 1000; // legacy: poll JSON every second
+
     const ctx = $('#ctx');
 
     const addBtn    = $('#addBtn');
@@ -47,6 +49,9 @@
     // Cache of the latest channel payloads (for Edit popup prefill)
     let isoChannelCache = [];
     const isoChannelMap = new Map();
+
+    let tableFetchInFlight = false;
+    let pendingTableReload = false;
 
     /* =======================================================================
      * 2) GENERIC UTILITIES (SELECTION, POPUPS, ETC.)
@@ -143,7 +148,7 @@
             throw new Error(json.error || 'Delete failed');
           }
         }
-        loadIsoTable();
+        loadIsoTable(true);
       } catch (err) {
         alert('Failed to delete channel(s): ' + (err?.message || err));
       } finally {
@@ -582,7 +587,14 @@
       updateRowVisibility();
     }
 
-    function loadIsoTable() {
+    function loadIsoTable(force = false) {
+      if (tableFetchInFlight) {
+        if (force) pendingTableReload = true;
+        return;
+      }
+
+      tableFetchInFlight = true;
+
       fetchIsoChannels()
         .then((channels) => {
           updateChannelCache(channels);
@@ -590,6 +602,13 @@
         })
         .catch((err) => {
           console.error('Failed to load ISO channels:', err);
+        })
+        .finally(() => {
+          tableFetchInFlight = false;
+          if (pendingTableReload) {
+            pendingTableReload = false;
+            loadIsoTable();
+          }
         });
     }
 
@@ -877,7 +896,7 @@
     window.addEventListener('message', (e) => {
       const data = e.data || {};
       if (data.type === 'channel-added' || data.type === 'channel-updated') {
-        loadIsoTable();
+        loadIsoTable(true);
       }
     });
 
@@ -885,7 +904,9 @@
      * 12) GLOBAL KEYS + INITIAL LOAD
      * ======================================================================= */
 
-    loadIsoTable();
+    setInterval(() => loadIsoTable(), AUTO_REFRESH_MS);
+
+    loadIsoTable(true);
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Delete' && canUseGlobalDelete(e)) {

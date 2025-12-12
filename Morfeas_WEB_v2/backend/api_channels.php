@@ -7,6 +7,7 @@ require __DIR__ . '/core/logstat_sdaq.php';
 require __DIR__ . '/core/logstat_iobox.php';
 require __DIR__ . '/core/logstat_mti.php';
 require __DIR__ . '/core/logstat_nox.php';
+require __DIR__ . '/core/system_info.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -14,18 +15,63 @@ header('Content-Type: application/json; charset=utf-8');
 
 $sandboxDir = __DIR__ . '/config_sandbox/';
 
+function collect_iso_files(string $sandboxDir): array
+{
+    $paths = [];
+    $locations = [
+        ['pi', '/home/morfeas/configuration/iso_standards/', '*.xml'],
+        ['sandbox', $sandboxDir . 'iso_standards/', '*.xml'],
+    ];
+
+    foreach ($locations as [$source, $dir, $pattern]) {
+        $dir = rtrim($dir, '/') . '/';
+        foreach (glob($dir . $pattern) ?: [] as $path) {
+            $paths[$path] = $source;
+        }
+    }
+
+    $items = [];
+    $index = 0;
+    foreach ($paths as $path => $source) {
+        $items[] = [
+            'id'         => base64_encode($path),
+            'name'       => basename($path),
+            'path'       => $path,
+            'source'     => $source,
+            'is_default' => $index === 0,
+        ];
+        $index++;
+    }
+
+    return $items;
+}
+
 // 前端期望总是读取 sandbox 的 mock 配置；如需真实路径请后续再扩展
 $xmlPath = $sandboxDir.'OPC_UA_Config.mock.xml';
 
 // === ISOstandard.xml（legacy: /home/pi/Morfeas_config/ISOstandard.xml） ===
-if (isset($_GET['include']) && $_GET['include'] === 'iso_standard') {
-    $candidates = [
-        '/home/pi/Morfeas_config/ISOstandard.xml',
-        $sandboxDir.'ISOstandard.mock.xml',
-        dirname(__DIR__) . '/menu/advanced-settings/ISOstandard.xml',
-    ];
+if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_list') {
+    $items = collect_iso_files($sandboxDir);
 
-    foreach ($candidates as $path) {
+    echo json_encode(['files' => $items], JSON_PRETTY_PRINT);
+    exit;
+}
+
+if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_list') {
+    $items = collect_iso_files($sandboxDir);
+    $target = $_GET['file'] ?? null;
+
+    $pathLookup = [];
+    foreach ($items as $item) {
+        $pathLookup[$item['id']] = $item['path'];
+    }
+
+    $paths = array_values($pathLookup);
+    if ($target && isset($pathLookup[$target])) {
+        $paths = [$pathLookup[$target]];
+    }
+
+    foreach ($paths as $path) {
         if (is_file($path)) {
             $xml = file_get_contents($path);
             if ($xml !== false) {
@@ -39,6 +85,17 @@ if (isset($_GET['include']) && $_GET['include'] === 'iso_standard') {
 
     http_response_code(404);
     echo json_encode(['ok' => false, 'error' => 'ISOstandard.xml not found'], JSON_PRETTY_PRINT);
+    exit;
+}
+
+if (isset($_GET['include']) && $_GET['include'] === 'machine_info') {
+    $mac    = primary_mac_address();
+    $canMap = system_can_bitrates();
+
+    echo json_encode([
+        'mac'  => $mac,
+        'can'  => $canMap,
+    ], JSON_PRETTY_PRINT);
     exit;
 }
 
@@ -351,6 +408,7 @@ function build_rows_with_logstat(
         $searchPool['IOBOX'][] = [
             'anchor'         => $anchor,
             'display_anchor' => $formatNetworkAnchor($anchor, $ioboxIPv4),
+            'link_state'     => 'Unlinked',
             'status'         => $entry['status'] ?? null,
             'is_meas_valid'  => $entry['is_meas_valid'] ?? null,
             'meas_value'     => $entry['meas_value'] ?? null,

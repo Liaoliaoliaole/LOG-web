@@ -3,25 +3,28 @@
   const $ = (s, r = document) => r.querySelector(s);
   const byId = (id) => document.getElementById(id);
 
-  /* -------------------------------
-   *  A) Mocked bits (safe defaults)
-   * ----------------------------- */
-  const MOCK = {
-    mac: 'E4:5F:01:A1:1C:B8',
-    canBitrates: { can0: '500 kbps', can1: '500 kbps' },
-  };
-  byId('macText').textContent = MOCK.mac;
-  byId('can0').value = MOCK.canBitrates.can0;
-  byId('can1').value = MOCK.canBitrates.can1;
+  const macText = byId('macText');
+  const can0El = byId('can0');
+  const can1El = byId('can1');
+  macText.textContent = '—';
+  can0El.textContent = '—';
+  can1El.textContent = '—';
 
-  byId('loadLast').addEventListener('click', () => {
-    byId('can0').value = MOCK.canBitrates.can0;
-    byId('can1').value = MOCK.canBitrates.can1;
-    toast('Loaded last configuration (mock).');
-  });
+  async function loadMachineInfo() {
+    const res = await fetch('../../backend/api_channels.php?include=machine_info', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
 
-  byId('apply').addEventListener('click', () => {
-    toast(`Applied: CAN0 ${byId('can0').value}, CAN1 ${byId('can1').value} (mock).`);
+    if (data.mac) macText.textContent = data.mac;
+    const can = data.can || {};
+    can0El.textContent = can.can0 || '—';
+    can1El.textContent = can.can1 || '—';
+  }
+
+  loadMachineInfo().catch(() => {
+    macText.textContent = macText.textContent || '—';
+    can0El.textContent = can0El.textContent || '—';
+    can1El.textContent = can1El.textContent || '—';
   });
 
   /* ----------------------------------------------------
@@ -32,7 +35,7 @@
    * -------------------------------------------------- */
 
   // 1) Legacy source (Pi runtime):
-  const ISO_LEGACY_PATH = '/home/pi/Morfeas_config/ISOstandard.xml';
+  const ISO_LEGACY_PATH = '/home/pi/Morfeas_config/iso_standards/';
 
   // 2) Runtime loader (backend serves legacy or sandbox mock):
   let ISO_URL = '../../backend/api_channels.php?include=iso_standard';
@@ -41,6 +44,11 @@
   // ISO_URL = 'ISOstandard.xml';
 
   byId('isoPath').textContent = ISO_LEGACY_PATH;
+  const isoSelect = byId('isoSelect');
+  const isoState = {
+    options: [],
+    ready: false,
+  };
 
   const isoTbody = $('#isoTable tbody');
   const isoEmpty = byId('isoEmpty');
@@ -49,6 +57,7 @@
     const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
     const points = doc.querySelector('points');
     isoTbody.innerHTML = '';
+    isoEmpty.style.display = 'none';
     if (!points) { isoEmpty.style.display = 'block'; return; }
 
     let i = 1;
@@ -69,10 +78,19 @@
     if (!isoTbody.children.length) isoEmpty.style.display = 'block';
   }
 
-  async function loadISOOverHTTP() {
-    const res = await fetch(ISO_URL, { cache: 'no-store' });
+  async function loadISOOverHTTP(fileId) {
+    const url = new URL(ISO_URL, location.href);
+    if (fileId) url.searchParams.set('file', fileId);
+
+    const res = await fetch(url.toString(), { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     renderISO(await res.text());
+  }
+
+  async function loadISOList() {
+    const res = await fetch('../../backend/api_channels.php?include=iso_standard_list', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
   }
 
   function attachLocalFilePicker() {
@@ -88,13 +106,42 @@
     });
     byId('isoPath').textContent = 'Choose local XML…';
     byId('isoPath').insertAdjacentElement('afterend', input);
+    isoSelect.disabled = true;
   }
 
   (async () => {
     try {
       // If opened as file:// most browsers block fetch of local files.
       if (location.protocol === 'file:') throw new Error('file://');
-      await loadISOOverHTTP();   // RPi path (matches Morfeas)
+
+      const list = await loadISOList();
+      const files = list?.files ?? [];
+      if (!files.length) throw new Error('No ISOstandard files');
+
+      isoSelect.innerHTML = '';
+      files.forEach((f) => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = `${f.name} (${f.source})`;
+        opt.dataset.path = f.path;
+        isoSelect.appendChild(opt);
+      });
+
+      const selected = files.find((f) => f.is_default) ?? files[0];
+      if (selected) {
+        isoSelect.value = selected.id;
+        byId('isoPath').textContent = selected.path ?? ISO_LEGACY_PATH;
+        await loadISOOverHTTP(selected.id);
+        isoState.options = files;
+        isoState.ready = true;
+      }
+
+      isoSelect.addEventListener('change', () => {
+        if (!isoState.ready) return;
+        const current = isoState.options.find((f) => f.id === isoSelect.value);
+        byId('isoPath').textContent = current?.path ?? ISO_LEGACY_PATH;
+        loadISOOverHTTP(isoSelect.value).catch(() => attachLocalFilePicker());
+      });
     } catch {
       attachLocalFilePicker();   // desktop preview
     }
