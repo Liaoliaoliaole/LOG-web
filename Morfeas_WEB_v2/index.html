@@ -1,177 +1,181 @@
 <!doctype html>
 <html lang="en">
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ISO Channels Linker · LOG WEB</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>LOG WEB · ISO Channels Linker</title>
 
-  <!-- Shared theme (do not inline; many popups reuse this) -->
-  <link rel="stylesheet" href="assets/app.css" />
-</head>
+    <!-- Shared theme (do not inline; many popups reuse this) -->
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
 
-<body>
-  <!-- =========================================================================
+  <body>
+    <!-- =========================================================================
          1) TOP BAR
-         - Left: logo + page title
-         - Right: FTP backup chip + status ticker chip + menu (popup links)
          ========================================================================= -->
-  <div class="topbar">
-    <div class="top-inner">
-      <!-- Brand -->
-      <div class="brand">
-        <img src="assets/logo.png" alt="Logo" />
-        <div class="page-title">ISO Channels Linker</div>
-      </div>
+    <div class="topbar">
+      <div class="top-inner">
+        <!-- Brand -->
+        <div class="brand">
+          <img src="assets/logo.png" alt="Logo" />
+          <div class="page-title">ISO Channels Linker</div>
+        </div>
 
-      <!-- Info chips (FTP dir + rolling status summary) -->
-      <div class="info">
-        <div class="chip">FTP backup dir: engine number</div>
-        <div class="chip">
-          <div class="ticker"><!-- filled by JS -->
-            <div class="track"></div>
+        <!-- Info chips (FTP dir + rolling status summary) -->
+        <div class="info">
+          <div class="chip">FTP backup dir: engine number</div>
+          <div class="chip">
+            <div class="ticker"><!-- filled by JS -->
+              <div class="track"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Menu Button -->
+        <div class="menu-wrap">
+          <button id="menuBtn" class="menu-btn" aria-haspopup="true"
+            aria-expanded="false">
+            <span class="burger"></span> Menu
+          </button>
+
+          <div id="mainMenu" class="dropdown" role="menu">
+            <div class="group">Main</div>
+
+            <!-- Network Configuration -->
+            <a class="menu-item" href="menu/network-config/network_config.html"
+              data-popup data-name="netconf"
+              data-width="760" data-height="820">
+              Network Configuration
+            </a>
+
+            <!-- Add Devices -->
+            <a class="menu-item" href="menu/add-devices/add_devices.html"
+              data-popup data-name="adddev" data-width="880"
+              data-height="860">
+              Add Devices
+            </a>
+
+            <!-- Backup & Restore Channels -->
+            <a class="menu-item" href="menu/backup-restore/backup_restore.html"
+              data-popup data-name="backup"
+              data-width="720" data-height="760">
+              Backup & Restore Channels
+            </a>
+
+            <div class="menu-sep"></div>
+            <div class="group">Advanced</div>
+
+            <!-- Check System Status -->
+            <a class="menu-item" href="menu/system-status/system_status.html"
+              data-popup data-name="sysstatus"
+              data-width="960" data-height="960">
+              Check System Status
+            </a>
+
+            <!-- Advanced Settings -->
+            <a class="menu-item"
+              href="menu/advanced-settings/advanced_setting.html" data-popup
+              data-name="advset"
+              data-width="960" data-height="960">
+              Advanced Settings
+            </a>
+
+            <div class="menu-sep"></div>
+            <div class="group">System</div>
+            <!-- System actions open in a new tab (placeholder destinations) -->
+            <a class="menu-item" href="menu/system-control/index.html"
+              target="_blank">System Update</a>
+            <a class="menu-item" href="menu/system-control/index.html"
+              target="_blank">System Reboot</a>
+            <a class="menu-item" href="menu/system-control/index.html"
+              target="_blank">System Shutdown</a>
           </div>
         </div>
       </div>
-
-      <!-- Menu (each item opens/activates a singleton popup window) -->
-      <div class="menu-wrap">
-        <button id="menuBtn" class="menu-btn" aria-haspopup="true" aria-expanded="false">
-          <span class="burger"></span> Menu
-        </button>
-
-        <div id="mainMenu" class="dropdown" role="menu">
-          <div class="group">Main</div>
-
-          <!-- Network Configuration -->
-          <a class="menu-item" href="menu/network-config/network_config.html" data-popup data-name="netconf"
-            data-width="760" data-height="820">
-            Network Configuration
-          </a>
-
-          <!-- Add Devices -->
-          <a class="menu-item" href="menu/add-devices/add_devices.html" data-popup data-name="adddev" data-width="880"
-            data-height="860">
-            Add Devices
-          </a>
-
-          <!-- Backup & Restore Channels -->
-          <a class="menu-item" href="menu/backup-restore/backup_restore.html" data-popup data-name="backup"
-            data-width="720" data-height="760">
-            Backup & Restore Channels
-          </a>
-
-          <div class="menu-sep"></div>
-          <div class="group">Advanced</div>
-
-          <!-- Check System Status -->
-          <a class="menu-item" href="menu/system-status/system_status.html" data-popup data-name="sysstatus"
-            data-width="860" data-height="920">
-            Check System Status
-          </a>
-
-          <!-- Advanced Settings -->
-          <a class="menu-item" href="menu/advanced-settings/advanced_setting.html" data-popup data-name="advset"
-            data-width="960" data-height="960">
-            Advanced Settings
-          </a>
-
-          <div class="menu-sep"></div>
-          <div class="group">System</div>
-          <!-- System actions open in a new tab (placeholder destinations) -->
-          <a class="menu-item" href="menu/system-control/index.html" target="_blank">System Update</a>
-          <a class="menu-item" href="menu/system-control/index.html" target="_blank">System Reboot</a>
-          <a class="menu-item" href="menu/system-control/index.html" target="_blank">System Shutdown</a>
-        </div>
-      </div>
     </div>
-  </div>
 
-  <!-- =========================================================================
+    <!-- =========================================================================
          2) TOOL BAR
-         - Search box (Enter to search)
-         - Import / Add buttons (primary actions)
          ========================================================================= -->
-  <div class="toolbar">
-    <input id="searchInput" class="input" type="text" placeholder="Search Input" />
-    <button id="searchBtn" class="btn">Search</button>
+    <div class="toolbar">
+      <input id="searchInput" class="input" type="text"
+        placeholder="Search Input" />
+      <button id="searchBtn" class="btn">Search</button>
 
-    <div style="flex: 1"></div>
+      <div class="spacer"></div>
 
-    <!-- Import opens classic import page in a new tab (kept from legacy flow) -->
-    <button id="importBtn" class="btn primary">Import Channels</button>
+      <!-- Import opens classic import page in a new tab (kept from legacy flow) -->
+      <button id="importBtn" class="btn primary">Import Channels</button>
 
-    <!-- Add opens our modern Link Creator popup (singleton window) -->
-    <button id="addBtn" class="btn primary">Add Channels</button>
-  </div>
+      <!-- Add opens Link Creator popup-->
+      <button id="addBtn" class="btn primary">Add Channels</button>
+    </div>
 
-  <!-- =========================================================================
+    <!-- =========================================================================
          3) DATA TABLE
-         - Master checkbox controls all visible rows
-         - Right-click context menu is dynamic (single vs multi-select)
          ========================================================================= -->
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>
-            <input id="masterCheck" type="checkbox" aria-label="Select all rows" />
-          </th>
-          <th>#</th>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>
+              <input id="masterCheck" type="checkbox"
+                aria-label="Select all rows" />
+            </th>
+            <th>#</th>
 
-          <!-- NEW: Color column (pure status color) -->
-          <th>Color</th>
+            <th>Color</th>
 
-          <!-- Status with filter dropdown -->
-          <th data-filter-key="status" class="th-filterable">
-            <span>Status</span>
-            <span class="filter-icon" aria-hidden="true">▾</span>
-          </th>
+            <!-- Status with filter dropdown -->
+            <th data-filter-key="status" class="th-filterable">
+              <span>Status</span>
+              <span class="filter-icon" aria-hidden="true">▾</span>
+            </th>
 
-          <th>ISOChannel</th>
+            <th>ISOChannel</th>
 
-          <!-- Type with filter dropdown -->
-          <th data-filter-key="type" class="th-filterable">
-            <span>Type</span>
-            <span class="filter-icon" aria-hidden="true">▾</span>
-          </th>
+            <!-- Type with filter dropdown -->
+            <th data-filter-key="type" class="th-filterable">
+              <span>Type</span>
+              <span class="filter-icon" aria-hidden="true">▾</span>
+            </th>
 
-          <th>Connection</th>
-          <th>Value</th>
-          <th>History</th>
-          <th>Next Calibration</th>
-          <th>Min</th>
-          <th>Max</th>
-          <th>Description</th>
-        </tr>
-      </thead>
+            <th>Connection</th>
+            <th>Value</th>
+            <th>History</th>
+            <th>Next Calibration</th>
+            <th>Min</th>
+            <th>Max</th>
+            <th>Description</th>
+          </tr>
+        </thead>
 
-      <!-- 由 assets/index.js 通过 /backend/api_channels.php 自动注入数据行 -->
-      <tbody id="isoTableBody">
-        <!-- rows will be injected dynamically -->
-      </tbody>
-    </table>
-  </div>
+        <!-- Data rows are injected by assets/index.js via /backend/api_channels.php -->
+        <tbody id="isoTableBody">
+        </tbody>
+      </table>
+    </div>
 
-  <!-- =========================================================================
-         4) CONTEXT MENU (built dynamically in JS based on selection size)
+    <!-- =========================================================================
+         4) CONTEXT MENU
          ========================================================================= -->
-  <div id="ctx" class="ctx" role="menu">
-    <!-- Default filler (real items rendered by JS at runtime) -->
-    <div class="item" data-action="edit">Edit</div>
-    <div class="item" data-action="delete">Delete</div>
-    <div class="item" data-action="change-mode">Change mode</div>
-    <div class="item" data-action="calibration">Calibration</div>
-    <div class="item" data-action="export">Export</div>
-  </div>
+    <div id="ctx" class="ctx" role="menu">
+      <div class="item" data-action="edit">Edit</div>
+      <div class="item" data-action="delete">Delete</div>
+      <div class="item" data-action="change-mode">Scale</div>
+      <div class="item" data-action="calibration">Calibration</div>
+      <div class="item" data-action="export">Export</div>
+    </div>
 
-  <!-- =========================================================================
+    <!-- =========================================================================
          5) FOOTER (placeholder for version / last update)
          ========================================================================= -->
-  <div class="footer">Placeholder for last update timestamp and version number.</div>
+    <div class="footer">Placeholder for last update timestamp and version
+      number.</div>
 
-  <!-- App bootstrap (handles menu, ticker, selection, popups, etc.) -->
-  <script src="assets/index.js"></script>
-</body>
+    <!-- Index bootstrap -->
+    <script src="assets/index.js"></script>
+  </body>
 
 </html>

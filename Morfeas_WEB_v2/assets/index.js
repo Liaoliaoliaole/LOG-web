@@ -1,5 +1,5 @@
 /* ===========================================================================
- * Morfeas WEB – App bootstrap
+ * LOG WEB --- Index Bootstrap
  * ========================================================================== */
 
 (function () {
@@ -9,34 +9,34 @@
      * 0) CONSTANTS & LIGHT HELPERS
      * ======================================================================= */
 
-    const ORIG_BASE_PATH = window.ORIG_BASE_PATH || '../LOG_WEB_v2';
+    const ORIG_BASE_PATH = window.ORIG_BASE_PATH;
 
-    const $  = (sel, root = document) => root.querySelector(sel);
+    const $ = (sel, root = document) => root.querySelector(sel);
     const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
     /* =======================================================================
      * 1) DOM REFERENCES
      * ======================================================================= */
 
-    const menuBtn  = $('#menuBtn');
+    const menuBtn = $('#menuBtn');
     const dropdown = $('#mainMenu');
 
     const ticker = $('.ticker');
-    const track  = ticker ? ticker.querySelector('.track') : null;
+    const track = ticker ? ticker.querySelector('.track') : null;
 
     const searchInput = $('#searchInput');
-    const searchBtn   = $('#searchBtn');
+    const searchBtn = $('#searchBtn');
 
     const master = $('#masterCheck');
-    const tbody  = $('tbody');
+    const tbody = $('#isoTableBody');
 
     const API_ISO = '/backend/api_channels.php';
 
-    const AUTO_REFRESH_MS = 1000; // legacy: poll JSON every second
+    const AUTO_REFRESH_MS = 1000; // poll JSON every second
 
     const ctx = $('#ctx');
 
-    const addBtn    = $('#addBtn');
+    const addBtn = $('#addBtn');
     const importBtn = $('#importBtn');
 
     let currentSearch = '';
@@ -46,20 +46,29 @@
     };
     let openFilterMenu = null;
 
+    const GRAPH_LENGTH = 120;
+    const measurementHistory = new Map();
+
     // Cache of the latest channel payloads (for Edit popup prefill)
     let isoChannelCache = [];
     const isoChannelMap = new Map();
 
     let tableFetchInFlight = false;
     let pendingTableReload = false;
+    let lastTableSignature = null;
 
     /* =======================================================================
      * 2) GENERIC UTILITIES (SELECTION, POPUPS, ETC.)
      * ======================================================================= */
 
+    const isRowVisible = (tr) => {
+      if (!tr) return false;
+      return !!(tr.offsetParent || tr.getClientRects().length);
+    };
+
     const rowChecks = () =>
-      $$('tbody input[type="checkbox"]').filter(
-        (c) => c.closest('tr').style.display !== 'none'
+      $$('tbody input[type="checkbox"]').filter((c) =>
+        isRowVisible(c.closest('tr'))
       );
 
     function updateChannelCache(channels) {
@@ -74,6 +83,60 @@
     function findChannelByIso(iso) {
       if (!iso) return null;
       return isoChannelMap.get(iso.toString().toUpperCase()) || null;
+    }
+
+    function pushMeasurement(isoKey, measValue) {
+      if (!isoKey) return;
+      const arr = measurementHistory.get(isoKey) || [];
+      if (Number.isFinite(measValue)) {
+        arr.push(measValue);
+        if (arr.length > GRAPH_LENGTH) {
+          arr.splice(0, arr.length - GRAPH_LENGTH);
+        }
+      } else if (!measurementHistory.has(isoKey)) {
+        measurementHistory.set(isoKey, []);
+        return;
+      }
+      measurementHistory.set(isoKey, arr);
+    }
+
+    function buildSparkline(values) {
+      const data = Array.isArray(values) ? values.filter(Number.isFinite) : [];
+      if (data.length < 2) return null;
+
+      const w = 80;
+      const h = 24;
+      const min = Math.min(...data);
+      const max = Math.max(...data);
+      const span = max - min || 1;
+
+      const points = data.map((v, idx) => {
+        const x = (idx / Math.max(1, data.length - 1)) * (w - 2) + 1;
+        const y = h - 1 - ((v - min) / span) * (h - 2);
+        return [x, y];
+      });
+
+      const pathData = points
+        .map(([x, y], idx) => `${idx === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`)
+        .join(' ');
+
+      const areaPath = `M1 ${h - 1} ${pathData} L${points[points.length - 1][0].toFixed(2)} ${h - 1} Z`;
+
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.classList.add('sparkline');
+      svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      svg.setAttribute('preserveAspectRatio', 'none');
+
+      const fill = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      fill.setAttribute('d', areaPath);
+      fill.setAttribute('class', 'spark-fill');
+      svg.appendChild(fill);
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', pathData);
+      svg.appendChild(path);
+
+      return svg;
     }
 
     const selectedRows = () =>
@@ -126,7 +189,7 @@
       if (!rows.length) return;
 
       const isoList = rows
-        .map((tr) => tr.dataset.iso || tr.querySelector('td:nth-child(5)')?.textContent || '')
+        .map((tr) => tr.dataset.iso || tr.querySelector('td[data-col="iso"]')?.textContent || '')
         .map((t) => t.trim())
         .filter(Boolean);
 
@@ -158,7 +221,7 @@
 
     function visibleRows() {
       if (!tbody) return [];
-      return $$('.row', tbody).filter((r) => r.style.display !== 'none');
+      return $$('.row', tbody).filter((r) => isRowVisible(r));
     }
 
     /* =======================================================================
@@ -344,11 +407,19 @@
         body.appendChild(btn);
       }
 
-      const values = new Set();
-      $$('tbody td[data-col="' + key + '"]').forEach((td) => {
-        const txt = td.textContent.trim();
-        if (txt) values.add(txt);
-      });
+      const values = new Set((isoChannelCache || []).map((ch) => {
+        if (!ch) return null;
+        if (key === 'status') return ch.status || ch.Status || null;
+        if (key === 'type') return ch.dev_type || ch.interface_type || null;
+        return null;
+      }).filter(Boolean));
+
+      if (!values.size) {
+        $$('tbody td[data-col="' + key + '"]').forEach((td) => {
+          const txt = td.textContent.trim();
+          if (txt) values.add(txt);
+        });
+      }
 
       addItem('All', null);
       Array.from(values).sort().forEach((v) => addItem(v, v));
@@ -380,6 +451,8 @@
     });
 
     function markCalibrationCells() {
+      if (!tbody || !tbody.children.length) return;
+
       const now = new Date();
 
       $$('tbody td[data-col="next-cal"]').forEach((td) => {
@@ -397,9 +470,6 @@
           m = raw.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/);
           if (m) {
             dt = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
-          } else {
-            const tmp = new Date(raw);
-            if (!isNaN(tmp.getTime())) dt = tmp;
           }
         }
 
@@ -410,8 +480,6 @@
         }
       });
     }
-
-    markCalibrationCells();
 
     /* =======================================================================
      * 6) LOAD TABLE DATA FROM BACKEND
@@ -448,29 +516,32 @@
       return 'st-Unknown';
     }
 
-    // 根据 cal_date + cal_period 算 Next Calibration（YYYY-MM-DD）
+    // Compute Next Calibration（YYYY-MM-DD）from cal_date + cal_period
     function computeNextCalibration(ch) {
       const calDate = ch.cal_date;
-      const period  = ch.cal_period;
+      const period = ch.cal_period;
 
       if (!calDate || !period) return '—';
 
       const m = String(calDate).match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
       if (!m) return '—';
 
-      const year  = parseInt(m[1], 10);
+      const year = parseInt(m[1], 10);
       const month = parseInt(m[2], 10) - 1;
-      const day   = parseInt(m[3], 10);
+      const day = parseInt(m[3], 10);
       const monthsToAdd = parseInt(period, 10);
 
       if (isNaN(monthsToAdd)) return '—';
 
-      const dt = new Date(year, month + monthsToAdd, day);
+      const targetMonth = month + monthsToAdd;
+      const lastOfTargetMonth = new Date(Date.UTC(year, targetMonth + 1, 0));
+      const safeDay = Math.min(day, lastOfTargetMonth.getUTCDate());
+      const dt = new Date(Date.UTC(year, targetMonth, safeDay));
       if (isNaN(dt.getTime())) return '—';
 
-      const yyyy = dt.getFullYear();
-      const mm   = String(dt.getMonth() + 1).padStart(2, '0');
-      const dd   = String(dt.getDate()).padStart(2, '0');
+      const yyyy = dt.getUTCFullYear();
+      const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(dt.getUTCDate()).padStart(2, '0');
       return `${yyyy}-${mm}-${dd}`;
     }
 
@@ -478,25 +549,30 @@
       const tr = document.createElement('tr');
       tr.className = 'row';
 
-      const isoName  = ch.iso_channel || '';
-      tr.dataset.iso = isoName;
-
       const rowIndex = index + 1;
-      const type     = ch.dev_type || ch.interface_type || '';
-      const anchor   = (ch.display_anchor || ch.anchor || '').toString().toUpperCase();
-      const desc     = ch.description || '';
-      const min      = ch.min ?? '—';
-      const max      = ch.max ?? '—';
+      const type = ch.dev_type || ch.interface_type || '';
+      const anchor = (ch.display_anchor || ch.anchor || '').toString().toUpperCase();
+      const desc = ch.description || '';
+      const min = ch.min ?? '—';
+      const max = ch.max ?? '—';
+      const isoName  = ch.iso_channel || '';
+      const isoKey   = isoName.toString().toUpperCase();
+      tr.dataset.iso = isoName;
+      tr.dataset.type = type;
+      tr.dataset.anchor = anchor;
+      tr.dataset.description = desc;
+      tr.dataset.min = min;
+      tr.dataset.max = max;
 
       const statusText = (() => {
         const raw = ch.status || 'Unknown';
         const lowered = raw.toLowerCase();
         return lowered === 'unlinked' || lowered === 'unlink' ? 'Unknown' : raw;
       })();
-      const dotClass   = statusToDotClass(statusText);
-      const valueText  = ch.meas != null && ch.meas !== '' ? ch.meas : '—';
+      const dotClass = statusToDotClass(statusText);
+      const valueText = ch.meas != null && ch.meas !== '' ? ch.meas : '—';
 
-      const nextCal    = computeNextCalibration(ch);
+      const nextCal = computeNextCalibration(ch);
 
       // 1 checkbox
       const tdCheck = document.createElement('td');
@@ -531,23 +607,32 @@
 
       // 6 Type
       const tdType = document.createElement('td');
+      tdIso.setAttribute('data-col', 'iso');
       tdType.setAttribute('data-col', 'type');
       tdType.textContent = type;
       tr.appendChild(tdType);
 
       // 7 Connection
       const tdConn = document.createElement('td');
+      tdConn.setAttribute('data-col', 'anchor');
       tdConn.textContent = anchor;
       tr.appendChild(tdConn);
 
       // 8 Value
       const tdVal = document.createElement('td');
+      tdVal.setAttribute('data-col', 'value');
       tdVal.textContent = valueText;
       tr.appendChild(tdVal);
 
       // 9 History
       const tdHist = document.createElement('td');
-      tdHist.textContent = '(history)';
+      const history = measurementHistory.get(isoKey) || [];
+      const spark = buildSparkline(history);
+      if (spark) {
+        tdHist.appendChild(spark);
+      } else {
+        tdHist.textContent = '—';
+      }
       tr.appendChild(tdHist);
 
       // 10 Next Calibration
@@ -558,28 +643,36 @@
 
       // 11 Min
       const tdMin = document.createElement('td');
+      tdMin.setAttribute('data-col', 'min');
       tdMin.textContent = min;
       tr.appendChild(tdMin);
 
       // 12 Max
       const tdMax = document.createElement('td');
+      tdMax.setAttribute('data-col', 'max');
       tdMax.textContent = max;
       tr.appendChild(tdMax);
 
       // 13 Description
       const tdDesc = document.createElement('td');
+      tdDesc.setAttribute('data-col', 'description');
       tdDesc.textContent = desc;
       tr.appendChild(tdDesc);
 
       return tr;
     }
 
-    function renderIsoTable(channels) {
+    function renderIsoTable(channels, selectedIsoSet = new Set()) {
       if (!tbody) return;
       tbody.innerHTML = '';
 
       channels.forEach((ch, idx) => {
         const tr = buildIsoRow(ch, idx);
+        const isoKey = (tr.dataset.iso || '').toString().toUpperCase();
+        const cb = tr.querySelector('input[type="checkbox"]');
+        if (cb && selectedIsoSet.has(isoKey)) {
+          cb.checked = true;
+        }
         tbody.appendChild(tr);
       });
 
@@ -588,6 +681,7 @@
     }
 
     function loadIsoTable(force = false) {
+      if (document.hidden && !force) return;
       if (tableFetchInFlight) {
         if (force) pendingTableReload = true;
         return;
@@ -597,8 +691,38 @@
 
       fetchIsoChannels()
         .then((channels) => {
+          const signature = JSON.stringify(channels);
+          const shouldRender = force || signature !== lastTableSignature;
+
           updateChannelCache(channels);
-          renderIsoTable(channels);
+          lastTableSignature = signature;
+
+          const seenIsoKeys = new Set();
+          channels.forEach((ch) => {
+            const isoKey = (ch.iso_channel || '').toString().toUpperCase();
+            if (!isoKey) return;
+            seenIsoKeys.add(isoKey);
+            const meas = parseFloat(ch.meas);
+            const hasMeas = ch.meas !== null && ch.meas !== '' && Number.isFinite(meas);
+            pushMeasurement(isoKey, hasMeas ? meas : NaN);
+          });
+
+          measurementHistory.forEach((_, key) => {
+            if (!seenIsoKeys.has(key)) {
+              measurementHistory.delete(key);
+            }
+          });
+
+          if (!shouldRender) return;
+
+          const selectedIsoSet = new Set(
+            selectedRows()
+              .map((tr) => (tr.dataset.iso || tr.querySelector('td[data-col="iso"]')?.textContent || '').toString().trim())
+              .filter(Boolean)
+              .map((iso) => iso.toUpperCase())
+          );
+
+          renderIsoTable(channels, selectedIsoSet);
         })
         .catch((err) => {
           console.error('Failed to load ISO channels:', err);
@@ -643,8 +767,8 @@
       if (e.target.closest('.more, a, button')) return;
 
       const rows = visibleRows();
-      const idx  = rows.indexOf(tr);
-      const cb   = tr.querySelector('input[type="checkbox"]');
+      const idx = rows.indexOf(tr);
+      const cb = tr.querySelector('input[type="checkbox"]');
       if (!cb) return;
 
       if (e.shiftKey && lastClickedIndex !== null && lastClickedIndex !== -1) {
@@ -680,16 +804,17 @@
 
     function buildRowDataFromDom(tr) {
       if (!tr) return null;
-      const read = (n) => (tr.querySelector(`td:nth-child(${n})`)?.textContent || '').trim();
-      const iso = (tr.dataset.iso || read(5) || '').trim();
+      const readByDataCol = (key) => (tr.querySelector(`td[data-col="${key}"]`)?.textContent || '').trim();
+      const iso = (tr.dataset.iso || readByDataCol('iso') || '').trim();
       if (!iso) return null;
+
       return {
         iso_channel: iso,
-        interface_type: read(6),
-        anchor: read(7),
-        description: read(13),
-        min: read(11),
-        max: read(12),
+        interface_type: tr.dataset.type || readByDataCol('type'),
+        anchor: tr.dataset.anchor || readByDataCol('anchor'),
+        description: tr.dataset.description || readByDataCol('description'),
+        min: tr.dataset.min || readByDataCol('min'),
+        max: tr.dataset.max || readByDataCol('max'),
         unit: '',
       };
     }
@@ -711,7 +836,7 @@
     function showCtx(x, y) {
       if (!ctx) return;
       ctx.style.left = x + 'px';
-      ctx.style.top  = y + 'px';
+      ctx.style.top = y + 'px';
       ctx.style.display = 'block';
     }
 
@@ -761,7 +886,7 @@
       switch (action) {
         case 'edit':
           const trEdit = selectedRows()[0];
-          const iso = (trEdit?.dataset.iso || trEdit?.querySelector('td:nth-child(5)')?.textContent || '').trim();
+          const iso = (trEdit?.dataset.iso || trEdit?.querySelector('td[data-col="iso"]')?.textContent || '').trim();
           const cached = findChannelByIso(iso);
           const rowData = cached || buildRowDataFromDom(trEdit);
           if (!rowData) {
@@ -770,20 +895,20 @@
           }
           try {
             sessionStorage.setItem('edit_channel_payload', JSON.stringify(rowData));
-          } catch (_) {}
-          const win = openCenteredPopup('linker-table/edit_channel.html', 'edit_channel_popup', {width: 880, height: 820});
-          if (win) { win.name = JSON.stringify(rowData); }
+          } catch (_) { }
+          const win = openCenteredPopup('linker-table/edit_channel.html', 'edit_channel_popup', { width: 880, height: 820 });
+          try { window.__EDIT_LINK_DATA = rowData; } catch (_) { }
           break;
         case 'scale':
           alert('Scale (placeholder)');
           break;
         case 'calibration':
           const tr = selectedRows()[0];
-          const conn = tr?.querySelector('td:nth-child(7)')?.textContent || '';
+          const conn = tr?.querySelector('td[data-col="anchor"]')?.textContent || '';
           const match = conn.match(/CH:(\d+)/i);
           const ch = match ? match[1] : 1;
           openCenteredPopup('linker-table/calibration.html?ch=' + ch + '&unit=%C&points=8',
-                            'calibration_popup', { width: 1280, height: 1080 });
+            'calibration_popup', { width: 1280, height: 1080 });
           break;
         case 'delete':
           deleteSelectedRows();
@@ -827,17 +952,17 @@
           existing.focus();
           return existing;
         } catch (_) {
-          try { existing.focus(); } catch (_) {}
+          try { existing.focus(); } catch (_) { }
           return existing;
         }
       }
 
       const dualLeft = (window.screenLeft !== undefined ? window.screenLeft : window.screenX) || 0;
-      const dualTop  = (window.screenTop  !== undefined ? window.screenTop : window.screenY)  || 0;
-      const vw = window.innerWidth  || document.documentElement.clientWidth  || screen.width;
+      const dualTop = (window.screenTop !== undefined ? window.screenTop : window.screenY) || 0;
+      const vw = window.innerWidth || document.documentElement.clientWidth || screen.width;
       const vh = window.innerHeight || document.documentElement.clientHeight || screen.height;
       const left = Math.max(0, Math.round((vw - w) / 2 + dualLeft));
-      const top  = Math.max(0, Math.round((vh - h) / 2 + dualTop));
+      const top = Math.max(0, Math.round((vh - h) / 2 + dualTop));
 
       const features = [
         `width=${w}`, `height=${h}`,
@@ -850,7 +975,7 @@
       const win = window.open(url, name || 'popup', features);
       if (win) {
         popupRegistry.set(name, win);
-        try { win.focus(); } catch (_) {}
+        try { win.focus(); } catch (_) { }
       }
       return win;
     }
@@ -863,12 +988,12 @@
 
       e.preventDefault();
 
-      const url  = a.dataset.url || a.getAttribute('href') || '#';
+      const url = a.dataset.url || a.getAttribute('href') || '#';
       const name = a.dataset.name || a.id || 'popup';
-      const w    = parseInt(a.dataset.width  || a.dataset.w || '760', 10);
-      const h    = parseInt(a.dataset.height || a.dataset.h || '820', 10);
-      const res  = a.dataset.resizable !== 'false';
-      const scr  = a.dataset.scrollbars !== 'false';
+      const w = parseInt(a.dataset.width || a.dataset.w || '760', 10);
+      const h = parseInt(a.dataset.height || a.dataset.h || '820', 10);
+      const res = a.dataset.resizable !== 'false';
+      const scr = a.dataset.scrollbars !== 'false';
 
       openCenteredPopup(url, name, { width: w, height: h, resizable: res, scrollbars: scr });
     });
