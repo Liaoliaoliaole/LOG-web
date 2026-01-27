@@ -1,13 +1,4 @@
 <?php
-// backend/api_devices.php
-// 设备清单 API：
-//   - GET  : 合并“logstat 自动发现的 SDAQ” + “手动添加的 MTI/NOX/IO-BOX/MDAQ（存储在 LOG_config.mock.xml）”
-//   - POST : 写入 LOG_config.mock.xml，新增手动设备
-//   - DELETE: 从 LOG_config.mock.xml 删除手动设备
-//
-// 约束：
-//   * SDAQ 行只能通过 logstat 自动发现，不能手动新增/删除。
-//   * 不再写入/创建任何 device*.json；手动设备仅落在 LOG_config mock XML。
 
 header('Content-Type: application/json; charset=utf-8');
 

@@ -1,12 +1,5 @@
 <?php
-// backend/core/logstat_nox.php
 
-/**
- * 读取 NOX logstat JSON，生成 anchor -> 状态 的映射
- *
- * @param string $jsonPath 例如 '/mnt/ramdisk/logstat_NOX_can2.json'
- * @return array anchor => ['status','is_meas_valid','meas_value','meas_unit']
- */
 function nox_load_anchor_map(string $jsonPath): array
 {
     if (!is_file($jsonPath)) {
@@ -26,7 +19,7 @@ function nox_load_anchor_map(string $jsonPath): array
     $iface   = $data['CANBus_interface'] ?? 'can2';
     $ifaceUc = strtoupper($iface);
 
-    // 兼容不同字段名：新的 logstat 用 NOx_sensors
+
     $sensors = $data['NOx_sensors'] ?? $data['sensors'] ?? [];
     if (!is_array($sensors)) {
         return [];
@@ -58,7 +51,7 @@ function nox_load_anchor_map(string $jsonPath): array
 
         $errText = null;
         if (!$noxValid || !$o2Valid) {
-            // 优先级：heater 错误 > NOx 错误 > O2 错误；仅接受原版错误文案
+            
             foreach (['heater', 'NOx', 'O2'] as $key) {
                 $val = trim((string)($errors[$key] ?? ''));
                 foreach ($allowedErrors as $allowed) {
@@ -74,7 +67,7 @@ function nox_load_anchor_map(string $jsonPath): array
             $errText = 'Unclassified';
         }
 
-        // NOx measurement
+
         $noxVal    = $s['NOx_value_avg'] ?? $s['NOx_ppm'] ?? null;
         $noxStatus = $noxValid ? 'Okay' : ($errText ?: 'Unclassified');
 

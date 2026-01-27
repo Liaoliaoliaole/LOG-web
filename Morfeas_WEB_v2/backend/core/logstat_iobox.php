@@ -1,13 +1,5 @@
 <?php
-// backend/core/logstat_iobox.php
 
-/**
- * 读取一组 IOBOX logstat JSON
- *
- * 返回：
- *  - 'anchors'     => anchor => ['status','is_meas_valid','meas_value','meas_unit']
- *  - 'connections' => Identifier => Connection_status
- */
 function iobox_load_anchor_map(array $paths): array
 {
     $anchors     = [];

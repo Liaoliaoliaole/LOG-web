@@ -1,13 +1,5 @@
 <?php
-// backend/core/logstat_mti.php
 
-/**
- * 读取一组 MTI logstat JSON
- *
- * 返回：
- *  - 'anchors'     => anchor -> 状态/测量
- *  - 'connections' => Identifier -> Connection_status
- */
 function mti_load_anchor_map(array $paths): array
 {
     $anchors     = [];

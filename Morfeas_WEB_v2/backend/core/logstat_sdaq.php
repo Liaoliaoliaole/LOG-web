@@ -1,44 +1,11 @@
 <?php
-// backend/core/logstat_sdaq.php
 
-/**
- * 从 SDAQ logstat JSON 生成 “anchor -> 状态/测量值” 的映射，
- * 同时附带每个通道的链接态信息，便于前端展示“未链接”通道。
- *
- * @param string $jsonPath    例如 /mnt/ramdisk/logstat_SDAQs_can1.json
- * @param array  $xmlAnchors  来自 OPC_UA_Config.xml 的 SDAQ anchor 集合（已大写）
- * @return array 形如：
- *   [
- *     'anchors'  => [
- *       'CAN1.ADDR:01.CH:01' => [
- *         'status'        => 'Okay' | 'Stall' | 'Out of Range' | 'Over Range' | 'No sensor' | 'Unclassified' | 'Unlinked',
- *         'is_meas_valid' => bool,
- *         'meas_value'    => float|null,
- *         'meas_unit'     => string|null,
- *         'link_state'    => 'Linked' | 'Unlinked',
- *       ],
- *       ...
- *     ],
- *     'channels' => [
- *       [
- *         'preferred_anchor' => '726057806.CH16', // Serial + CH 用于自动补行
- *         'aliases'          => [...],
- *         'link_state'       => 'Linked' | 'Unlinked',
- *         'has_sensor'       => bool,
- *         'registration'     => 'Done' | 'Unknown',
- *         'entry'            => 上述 anchors 里的 entry
- *       ],
- *       ...
- *     ]
- *   ]
- */
 function sdaq_detect_bus(array $data, string $jsonPath): string
 {
     if (!empty($data['CANBus_interface'])) {
         return strtoupper((string)$data['CANBus_interface']);
     }
 
-    // 尝试从文件名推断：logstat_SDAQs_can0.json -> CAN0
     $name = strtolower(basename($jsonPath));
     if (preg_match('/logstat_sdaq.*_(can\w+)/i', $name, $m)) {
         return strtoupper($m[1]);
@@ -47,10 +14,6 @@ function sdaq_detect_bus(array $data, string $jsonPath): string
     return 'CAN1';
 }
 
-/**
- * 收集每个 SDAQ 的设备类型（按总线 + 地址）
- * 返回形如：['CAN1.ADDR:01' => 'SDAQ-I', ...]
- */
 function sdaq_collect_device_types($jsonPaths): array
 {
     if (!is_array($jsonPaths)) {
@@ -103,7 +66,6 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
 
     $map = ['anchors' => [], 'channels' => []];
 
-    // CAN 接口名字：can1 -> CAN1（若字段缺失则从文件名推断）
     $can = sdaq_detect_bus($data, $jsonPath);
 
     if (empty($data['SDAQs_data']) || !is_array($data['SDAQs_data'])) {
@@ -123,7 +85,6 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
         $measArr = $sdaq['Meas'] ?? [];
         if (!is_array($measArr)) continue;
 
-        // 构建 channel -> 校准信息的快速索引（若存在）
         $calibByCh = [];
         if (!empty($sdaq['Calibration_Data']) && is_array($sdaq['Calibration_Data'])) {
             foreach ($sdaq['Calibration_Data'] as $cal) {

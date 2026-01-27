@@ -1,7 +1,5 @@
 <?php
 
-// Utilities for reading system-level data on Pi or sandbox environments.
-
 function format_bitrate_kbps($bps)
 {
     if (!is_numeric($bps) || $bps <= 0) {

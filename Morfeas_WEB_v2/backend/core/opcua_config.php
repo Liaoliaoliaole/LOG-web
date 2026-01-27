@@ -1,25 +1,5 @@
 <?php
-// backend/core/opcua_config.php
 
-/**
- * 读取 OPC_UA_Config.xml，返回每个 CHANNEL 的配置
- *
- * 预期 XML 结构示例：
- * <OPC_UA_CONFIG>
- *   <CHANNEL>
- *     <ISO_CHANNEL>SDAQ_OK_1</ISO_CHANNEL>
- *     <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
- *     <ANCHOR>CAN1.ADDR:01.CH:01</ANCHOR>
- *     <DESCRIPTION>...</DESCRIPTION>
- *     <MIN>0</MIN>
- *     <MAX>100</MAX>
- *     <UNIT>°C</UNIT>
- *     <CAL_DATE>2020/01/01</CAL_DATE>   <!-- option -->
- *     <CAL_PERIOD>12</CAL_PERIOD>       <!-- option,unit: month -->
- *   </CHANNEL>
- *   ...
- * </OPC_UA_CONFIG>
- */
 function iso_load_channels(string $xmlPath): array
 {
     if (!is_file($xmlPath)) {
@@ -171,10 +151,6 @@ function iso_pick_value(array $data, array $keys)
     return null;
 }
 
-/**
- * 新增一个 CHANNEL（写回 XML）
- * $data 至少需要: iso_channel, interface_type, anchor
- */
 function iso_add_channel(string $xmlPath, array $data): void
 {
     if (!file_exists($xmlPath)) {
@@ -187,7 +163,6 @@ function iso_add_channel(string $xmlPath, array $data): void
 
     $isoChannel = iso_normalize_iso_channel($data['iso_channel']);
 
-    // 防止重复 ISO_CHANNEL
     foreach ($xml->CHANNEL as $ch) {
         if ((string)$ch->ISO_CHANNEL === $isoChannel) {
             throw new RuntimeException("ISO_CHANNEL already exists: ".$isoChannel);
@@ -221,9 +196,6 @@ function iso_add_channel(string $xmlPath, array $data): void
     iso_save_xml($xml, $xmlPath);
 }
 
-/**
- * 更新指定 ISO_CHANNEL（只改传入的字段）
- */
 function iso_update_channel(string $xmlPath, string $isoChannel, array $data): void
 {
     if (!file_exists($xmlPath)) {
@@ -287,9 +259,6 @@ function iso_update_channel(string $xmlPath, string $isoChannel, array $data): v
     iso_save_xml($xml, $xmlPath);
 }
 
-/**
- * 删除一个 CHANNEL
- */
 function iso_delete_channel(string $xmlPath, string $isoChannel): void
 {
     if (!file_exists($xmlPath)) {
