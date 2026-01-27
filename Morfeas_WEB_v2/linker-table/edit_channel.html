@@ -134,10 +134,14 @@
             display: none;
         }
 
-        .disabled {
-            opacity: .6;
-            pointer-events: none;
-        }
+    .disabled {
+      opacity: .6;
+      pointer-events: none;
+    }
+
+    .cal-data {
+      display: none;
+    }
 
         /* Make read-only fields visually consistent with disabled look */
         .ro {
@@ -235,6 +239,14 @@
                     <input id="alarmHigh" type="checkbox" /> Enable
                 </label>
             </div>
+
+            <!-- Cal Date -->
+            <div class="label cal-data">Cal Date</div>
+            <div class="cal-data"><input id="calDate" type="date" class="input num" /></div>
+
+            <!-- Cal Period -->
+            <div class="label cal-data">Cal Period</div>
+            <div class="cal-data"><input id="calPeriod" type="number" min="1" max="255" class="input num" /></div>
 
             <!-- Unit -->
             <div class="label">Unit</div>

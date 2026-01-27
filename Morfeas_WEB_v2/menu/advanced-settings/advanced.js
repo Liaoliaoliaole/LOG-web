@@ -46,6 +46,8 @@
 
   byId('isoPath').textContent = ISO_LEGACY_PATH;
   const isoSelect = byId('isoSelect');
+  const isoUploadBtn = byId('isoUploadBtn');
+  const isoUploadInput = byId('isoUploadInput');
   const isoState = {
     options: [],
     ready: false,
@@ -63,7 +65,7 @@
       try {
         if (val) localStorage.setItem(ISO_STORAGE_KEY, val);
         else localStorage.removeItem(ISO_STORAGE_KEY);
-      } catch (_) {}
+      } catch (_) { }
     },
   };
 
@@ -108,6 +110,19 @@
     const res = await fetch('../../backend/api_channels.php?include=iso_standard_list', { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
+  }
+
+  async function uploadISO(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('../../backend/api_channels.php?include=iso_standard_upload', {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const payload = await res.json();
+    if (!payload.ok) throw new Error(payload.error || 'Upload failed');
+    return payload.path;
   }
 
   function attachLocalFilePicker() {
@@ -172,6 +187,45 @@
       attachLocalFilePicker();   // desktop preview
     }
   })();
+
+  if (location.protocol === 'file:' && isoUploadBtn) {
+    isoUploadBtn.disabled = true;
+    isoUploadBtn.title = 'Upload requires a running backend';
+  }
+
+  isoUploadBtn?.addEventListener('click', () => {
+    isoUploadInput?.click();
+  });
+
+  isoUploadInput?.addEventListener('change', async () => {
+    const file = isoUploadInput.files?.[0];
+    if (!file) return;
+    try {
+      const uploadedPath = await uploadISO(file);
+      const list = await loadISOList();
+      const files = list?.files ?? [];
+      isoSelect.innerHTML = '';
+      files.forEach((f) => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = `${f.name} (${f.source})`;
+        opt.dataset.path = f.path;
+        isoSelect.appendChild(opt);
+      });
+      const uploaded = files.find((f) => f.path === uploadedPath) || files.find((f) => f.name === file.name) || files[files.length - 1];
+      if (uploaded) {
+        isoSelect.value = uploaded.id;
+        isoStorage.set(uploaded.id);
+        byId('isoPath').textContent = uploaded.path ?? ISO_LEGACY_PATH;
+        await loadISOOverHTTP(uploaded.id);
+      }
+      toast('ISOstandard uploaded.');
+    } catch (err) {
+      toast(`Upload failed: ${err.message || err}`);
+    } finally {
+      isoUploadInput.value = '';
+    }
+  });
 
   /* -------------------------------
    *  Small toast helper

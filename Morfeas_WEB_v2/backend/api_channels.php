@@ -46,10 +46,64 @@ function collect_iso_files(string $sandboxDir): array
     return $items;
 }
 
+function resolve_iso_upload_dir(string $sandboxDir): string
+{
+    $piDir = '/home/pi/Morfeas_config/iso_standards/';
+    if (is_dir($piDir) && is_writable($piDir)) {
+        return rtrim($piDir, '/') . '/';
+    }
+
+    $sandboxIso = $sandboxDir . 'iso_standards/';
+    if (!is_dir($sandboxIso)) {
+        @mkdir($sandboxIso, 0775, true);
+    }
+    return rtrim($sandboxIso, '/') . '/';
+}
+
+function sanitize_iso_filename(string $name): string
+{
+    $base = basename($name);
+    $base = preg_replace('/[^A-Za-z0-9._-]/', '_', $base);
+    if ($base === '' || $base === '.' || $base === '..') {
+        $base = 'ISOstandard.xml';
+    }
+    if (!str_ends_with(strtolower($base), '.xml')) {
+        $base .= '.xml';
+    }
+    return $base;
+}
+
 // 前端期望总是读取 sandbox 的 mock 配置；如需真实路径请后续再扩展
 $xmlPath = $sandboxDir.'OPC_UA_Config.mock.xml';
 
 // === ISOstandard.xml（legacy: /home/pi/Morfeas_config/ISOstandard.xml） ===
+if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_upload') {
+    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['ok' => false, 'error' => 'Method not allowed'], JSON_PRETTY_PRINT);
+        exit;
+    }
+
+    if (empty($_FILES['file']) || !is_uploaded_file($_FILES['file']['tmp_name'])) {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'error' => 'Missing upload file'], JSON_PRETTY_PRINT);
+        exit;
+    }
+
+    $targetDir = resolve_iso_upload_dir($sandboxDir);
+    $filename = sanitize_iso_filename($_FILES['file']['name'] ?? 'ISOstandard.xml');
+    $dest = $targetDir . $filename;
+
+    if (!move_uploaded_file($_FILES['file']['tmp_name'], $dest)) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => 'Failed to save uploaded XML'], JSON_PRETTY_PRINT);
+        exit;
+    }
+
+    echo json_encode(['ok' => true, 'path' => $dest], JSON_PRETTY_PRINT);
+    exit;
+}
+
 if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_list') {
     $items = collect_iso_files($sandboxDir);
 
@@ -290,6 +344,14 @@ function build_rows_with_logstat(
                     $row['cal_period'] = $ls['cal_period'];
                 }
 
+                if (!empty($ls['address_anchor'])) {
+                    $row['display_anchor'] = $ls['address_anchor'];
+                }
+
+                if (!empty($ls['address_anchor'])) {
+                    $row['display_anchor'] = $ls['address_anchor'];
+                }
+
 
                 if (!empty($ls['is_meas_valid']) && $ls['meas_value'] !== null) {
                     $value = $ls['meas_value'];
@@ -381,7 +443,7 @@ function build_rows_with_logstat(
 
     // 搜索池：包含 logstat 探测到的通道，标注是否已在 XML 中声明
     foreach ($sdaqChannels as $chMeta) {
-        $anchor = $chMeta['connection_anchor'] ?? ($chMeta['aliases'][0] ?? null);
+        $anchor = $chMeta['connection_anchor'] ?? ($chMeta['preferred_anchor'] ?? ($chMeta['aliases'][0] ?? null));
         $display = $chMeta['display_anchor'] ?? $anchor;
         if (!$anchor || !$display) {
             continue;
@@ -391,10 +453,16 @@ function build_rows_with_logstat(
         $searchPool['SDAQ'][] = [
             'anchor'          => $anchor,
             'display_anchor'  => $formatSdaqDisplayAnchor($display),
+            'serial_anchor'   => $chMeta['serial_anchor'] ?? null,
+            'address_anchor'  => $chMeta['address_anchor'] ?? null,
+            'serial_anchor'   => $chMeta['serial_anchor'] ?? null,
+            'address_anchor'  => $chMeta['address_anchor'] ?? null,
             'link_state'      => $chMeta['link_state'] ?? 'Linked',
             'has_sensor'      => !empty($chMeta['has_sensor']),
             'registration'    => $chMeta['registration'] ?? null,
             'unit'            => $chMeta['entry']['meas_unit'] ?? null,
+            'meas_unit'       => $chMeta['entry']['meas_unit'] ?? null,
+            'meas_unit'       => $chMeta['entry']['meas_unit'] ?? null,
             'device_type'     => $chMeta['entry']['device_user_identifier'] ?? null,
             'status'          => $chMeta['entry']['status'] ?? null,
             'is_meas_valid'   => $chMeta['entry']['is_meas_valid'] ?? null,

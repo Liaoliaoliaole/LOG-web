@@ -92,7 +92,7 @@
       if (/^SDAQnet_\(.+\)_outVoltage$/i.test(row.name)) return 'Bus Voltage';
       if (/^SDAQnet_\(.+\)_outAmperage$/i.test(row.name)) return 'Bus Amperage';
       if (/^SDAQnet_\(.+\)_ShuntTemp$/i.test(row.name)) return 'Shunt Temperature';
-      if (/^SDAQnet_\(.+\)_last_calibration_UNIX$/i.test(row.name)) return 'Last Calibration';
+      if (/^SDAQnet_\(.+\)_last_calibration_UNIX$/i.test(row.name)) return 'Last SDAQ Net Power Calibration';
       return row.name.replace('_UNIX', '');
     })();
 

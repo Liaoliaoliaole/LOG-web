@@ -151,6 +151,7 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
             $canonical        = sprintf('%s.ADDR:%02d.CH:%02d', $can, $addr, $ch);
             $sensorPathLower  = sprintf('%s.%d.CH%d', strtolower($can), $addr, $ch); // can0.1.CH1（UI 期望）
             $sensorPathUpper  = sprintf('%s.%d.CH%d', strtoupper($can), $addr, $ch); // CAN0.1.CH1
+            $serialAnchor     = null;
 
             $aliases = [
                 $canonical,
@@ -160,8 +161,9 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
                 sprintf('%s.ADDR:%d.CH%d', $can, $addr, $ch),                   // CAN0.ADDR:1.CH1
                 sprintf('%s.addr:%02d.ch:%02d', strtolower($can), $addr, $ch), // 全小写
             ];
-            if ($serial !== null) {
-                $aliases[] = sprintf('%s.CH%d', $serial, $ch);                 // Serial_number + CHx
+            if ($serial !== null && $serial !== '') {
+                $serialAnchor = sprintf('%s.CH%d', $serial, $ch);
+                $aliases[] = $serialAnchor;                 // Serial_number + CHx
             }
 
             $cnt   = (int)($meas['CNT'] ?? 0);
@@ -241,6 +243,7 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
                 'meas_unit'     => is_string($unit) ? $unit : null,
                 'device_user_identifier' => is_string($deviceType) ? $deviceType : null,
                 'link_state'    => $linkedByConfig ? 'Linked' : 'Unlinked',
+                'address_anchor' => $canonical,
             ];
 
             if ($explain !== null) {
@@ -256,10 +259,14 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
                 $map['anchors'][$alias] = $entry;
             }
 
+            $preferred = $serialAnchor ?: $sensorPathLower;
+
             $map['channels'][] = [
-                'preferred_anchor'  => $sensorPathLower,
-                'display_anchor'    => $sensorPathLower,
-                'connection_anchor' => $canonical,
+                'preferred_anchor'  => $preferred,
+                'display_anchor'    => $preferred,
+                'connection_anchor' => $preferred,
+                'serial_anchor'     => $serialAnchor,
+                'address_anchor'    => $canonical,
                 'aliases'           => $aliases,
                 'link_state'        => $linkedByConfig ? 'Linked' : 'Unlinked',
                 'has_sensor'        => $hasSensor,

@@ -276,26 +276,101 @@
     });
 
     /* =======================================================================
-     * 4) TICKER (MOCK DATA SCROLLER)
+     * 4) TICKER (SYSTEM STATUS)
      * ======================================================================= */
 
-    if (track && track.children.length === 0) {
-      [
-        'MOCK DATA',
-        'CPU_temp\t121.4°F',
-        'CPU_Util\t0.25%',
-        'RAM_Util\t1.79%',
-        'Disk_Util\t23.92%',
-        'Up_time\t1 day 2:12:27'
-      ].forEach((t) => {
-        const div = document.createElement('div');
-        div.className = 'item';
-        div.textContent = t;
-        track.appendChild(div);
-      });
+    function formatTickerValue(name, value, unit) {
+      if (value === null || value === undefined || value === '') {
+        return '—';
+      }
+
+      const numeric = typeof value === 'number' ? value : Number(value);
+      const hasNumber = Number.isFinite(numeric);
+
+      if (name === 'CPU_temp' && hasNumber) {
+        return `${numeric.toFixed(1)}°C`;
+      }
+      if (name === 'CPU_Util' && hasNumber) {
+        return `${numeric.toFixed(2)}%`;
+      }
+      if (name === 'RAM_Util' && hasNumber) {
+        return `${numeric.toFixed(2)}%`;
+      }
+      if (name === 'Disk_Util' && hasNumber) {
+        return `${numeric.toFixed(1)}%`;
+      }
+      if (name === 'Up_time' && hasNumber) {
+        const sec = Math.max(0, Math.floor(numeric));
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        const s = sec % 60;
+        return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      }
+
+      if (hasNumber) {
+        const abs = Math.abs(numeric);
+        const digits = abs >= 100 ? 0 : abs >= 10 ? 1 : 2;
+        return `${numeric.toFixed(digits)}${unit || ''}`;
+      }
+
+      return `${value}${unit || ''}`;
     }
 
-    if (ticker && track && track.children.length) {
+    async function loadTickerData() {
+      if (!track || track.children.length) {
+        setupTicker();
+        return;
+      }
+
+      const fallback = [
+        'CPU_temp\t—',
+        'CPU_Util\t—',
+        'RAM_Util\t—',
+        'Disk_Util\t—',
+        'Up_time\t—',
+      ];
+
+      try {
+        const res = await fetch('backend/api_system_status.php?action=details', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const payload = await res.json();
+        if (!payload.ok) throw new Error('Invalid system status payload');
+
+        const sysEntry = (payload.entries || []).find((entry) => entry.if_name === 'RPi_Health_Status');
+        const connections = Array.isArray(sysEntry?.connections) ? sysEntry.connections : [];
+        const items = connections
+          .filter((row) => row && row.name && row.name !== 'logstat_build_date_UNIX')
+          .map((row) => {
+            const name = row.name || '';
+            const value = formatTickerValue(name, row.value, row.unit || '');
+            return `${name}\t${value}`;
+          })
+          .filter(Boolean);
+
+        const list = items.length ? items : fallback;
+        list.forEach((t) => {
+          const div = document.createElement('div');
+          div.className = 'item';
+          div.textContent = t;
+          track.appendChild(div);
+        });
+        setupTicker();
+      } catch (err) {
+        fallback.forEach((t) => {
+          const div = document.createElement('div');
+          div.className = 'item';
+          div.textContent = t;
+          track.appendChild(div);
+        });
+        setupTicker();
+      }
+    }
+
+    loadTickerData();
+
+    function setupTicker() {
+      if (!ticker || !track || !track.children.length) return;
+
       const first = track.children[0];
       const ITEM_H = Math.max(1, Math.round(first.getBoundingClientRect().height));
 
@@ -414,15 +489,30 @@
         return null;
       }).filter(Boolean));
 
-      if (!values.size) {
-        $$('tbody td[data-col="' + key + '"]').forEach((td) => {
-          const txt = td.textContent.trim();
-          if (txt) values.add(txt);
+      $$('tbody td[data-col="' + key + '"]').forEach((td) => {
+        const txt = td.textContent.trim();
+        if (txt) values.add(txt);
+      });
+
+      const sortTypeValues = (items) => {
+        const order = ['SDAQ', 'IOBOX', 'MTI', 'NOX'];
+        const rank = (val) => {
+          const upper = String(val || '').toUpperCase();
+          const idx = order.findIndex((prefix) => upper.startsWith(prefix));
+          return idx === -1 ? order.length : idx;
+        };
+        return items.sort((a, b) => {
+          const ra = rank(a);
+          const rb = rank(b);
+          if (ra !== rb) return ra - rb;
+          return String(a).localeCompare(String(b));
         });
-      }
+      };
 
       addItem('All', null);
-      Array.from(values).sort().forEach((v) => addItem(v, v));
+      const sorted = Array.from(values).sort();
+      const finalValues = key === 'type' ? sortTypeValues(sorted) : sorted;
+      finalValues.forEach((v) => addItem(v, v));
 
       menu.appendChild(body);
 
@@ -551,7 +641,8 @@
 
       const rowIndex = index + 1;
       const type = ch.dev_type || ch.interface_type || '';
-      const anchor = (ch.display_anchor || ch.anchor || '').toString().toUpperCase();
+      const rawAnchor = (ch.anchor || '').toString();
+      const displayAnchor = (ch.display_anchor || ch.anchor || '').toString().toUpperCase();
       const desc = ch.description || '';
       const min = ch.min ?? '—';
       const max = ch.max ?? '—';
@@ -559,7 +650,7 @@
       const isoKey   = isoName.toString().toUpperCase();
       tr.dataset.iso = isoName;
       tr.dataset.type = type;
-      tr.dataset.anchor = anchor;
+      tr.dataset.anchor = rawAnchor;
       tr.dataset.description = desc;
       tr.dataset.min = min;
       tr.dataset.max = max;
@@ -615,7 +706,7 @@
       // 7 Connection
       const tdConn = document.createElement('td');
       tdConn.setAttribute('data-col', 'anchor');
-      tdConn.textContent = anchor;
+      tdConn.textContent = displayAnchor;
       tr.appendChild(tdConn);
 
       // 8 Value

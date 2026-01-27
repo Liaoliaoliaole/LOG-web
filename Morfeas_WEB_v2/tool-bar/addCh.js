@@ -6,31 +6,34 @@
  * ========================================================================== */
 
 (() => {
-  const $  = (s, r = document) => r.querySelector(s);
+  const $ = (s, r = document) => r.querySelector(s);
 
-  const typeSel      = $('#type');
-  const pathInput    = $('#path');
-  const isoInput     = $('#iso');
-  const postfixSel   = $('#postfix');
-  const isoDropdown  = $('#isoDropdown');
-  const descInput    = $('#desc');
+  const typeSel = $('#type');
+  const pathInput = $('#path');
+  const isoInput = $('#iso');
+  const postfixSel = $('#postfix');
+  const isoDropdown = $('#isoDropdown');
+  const descInput = $('#desc');
 
-  const rangeLabel   = $('#rangeLabel');
-  const rangeRow     = $('#rangeRow');
-  const rangeInput   = $('#range');
+  const rangeLabel = $('#rangeLabel');
+  const rangeRow = $('#rangeRow');
+  const rangeInput = $('#range');
 
-  const minInput     = $('#min');
-  const maxInput     = $('#max');
-  const alarmLowVal  = $('#alarmLowVal');
-  const alarmLowChk  = $('#alarmLow');
+  const minInput = $('#min');
+  const maxInput = $('#max');
+  const alarmLowVal = $('#alarmLowVal');
+  const alarmLowChk = $('#alarmLow');
   const alarmHighVal = $('#alarmHighVal');
   const alarmHighChk = $('#alarmHigh');
-  const unitInput    = $('#unit');
+  const unitInput = $('#unit');
+  const calDateInput = $('#calDate');
+  const calPeriodInput = $('#calPeriod');
+  const calRows = Array.from(document.querySelectorAll('.cal-data'));
 
-  const statusBar    = $('#status');
-  const btnSave      = $('#btnSave');
-  const btnCancel    = $('#btnCancel');
-  const btnSearch    = $('#btnSearch');
+  const statusBar = $('#status');
+  const btnSave = $('#btnSave');
+  const btnCancel = $('#btnCancel');
+  const btnSearch = $('#btnSearch');
 
   const state = {
     isoCatalog: {},
@@ -53,7 +56,7 @@
       try {
         if (id) localStorage.setItem(ISO_STORAGE_KEY, id);
         else localStorage.removeItem(ISO_STORAGE_KEY);
-      } catch (_) {}
+      } catch (_) { }
     },
   };
 
@@ -218,7 +221,7 @@
     alarmHighVal.value = highVal;
     alarmLowVal.value = lowVal;
     alarmHighChk.checked = (entry.alarmHigh || '').toLowerCase() === 'yes';
-    alarmLowChk.checked  = (entry.alarmLow  || '').toLowerCase() === 'yes';
+    alarmLowChk.checked = (entry.alarmLow || '').toLowerCase() === 'yes';
     syncAlarmInputs();
     if (!options.skipSuggestions) {
       renderIsoSuggestions(isoInput.value);
@@ -290,7 +293,7 @@
   }
 
   function syncAlarmInputs() {
-    const lockLow  = !alarmLowChk.checked;
+    const lockLow = !alarmLowChk.checked;
     const lockHigh = !alarmHighChk.checked;
     setDisabled(alarmLowVal, lockLow);
     setDisabled(alarmHighVal, lockHigh);
@@ -304,6 +307,7 @@
   function applyTypeRules() {
     const t = typeSel.value;
     const isSdaq = t === 'SDAQ';
+    const showCal = t !== '-' && !isSdaq;
 
     const placeholders = {
       SDAQ: 'CAN1.ADDR:01.CH:01',
@@ -314,6 +318,21 @@
 
     rangeLabel.classList.toggle('hidden', !isSdaq);
     rangeRow.classList.toggle('hidden', !isSdaq);
+    calRows.forEach((row) => {
+      row.style.display = showCal ? '' : 'none';
+    });
+
+    if (showCal) {
+      const now = new Date();
+      if (calDateInput && !calDateInput.value) {
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        calDateInput.value = `${now.getFullYear()}-${month}-${day}`;
+      }
+      if (calPeriodInput && !calPeriodInput.value) {
+        calPeriodInput.value = '12';
+      }
+    }
 
     if (!isSdaq) {
       rangeInput.value = 1;
@@ -344,7 +363,7 @@
     const url = `device_search.html?type=${encodeURIComponent(typeSel.value)}`;
     const features = 'width=780,height=720,resizable=yes,scrollbars=yes';
     if (state.searchWin && !state.searchWin.closed) {
-      try { state.searchWin.focus(); return; } catch (_) {}
+      try { state.searchWin.focus(); return; } catch (_) { }
     }
     state.searchWin = window.open(url, 'device_search', features);
   }
@@ -366,7 +385,9 @@
     if (offset === 0) return base;
     const m = base.match(/^(.*CH:?)(\d+)$/i);
     if (!m) return null;
-    return `${m[1]}${pad2(parseInt(m[2], 10) + offset)}`;
+    const width = m[2].length;
+    const next = parseInt(m[2], 10) + offset;
+    return `${m[1]}${String(next).padStart(width, '0')}`;
   }
 
   function validateSelection(range) {
@@ -414,8 +435,11 @@
     const min = minInput.value || (entryFromIso ? entryFromIso.min : '0');
     const max = maxInput.value || (entryFromIso ? entryFromIso.max : '0');
     const unit = unitInput.value || (entryFromIso ? entryFromIso.unit : '') || (state.selectedDevice?.unit || '');
+    const type = typeSel.value;
+    const calDate = calDateInput?.value || '';
+    const calPeriod = calPeriodInput?.value || '';
 
-    return {
+    const payload = {
       iso_channel: postfix ? `${isoName}_${postfix}` : isoName,
       interface_type: typeSel.value,
       anchor,
@@ -428,6 +452,13 @@
       alarm_low: alarmLowChk.checked ? 'yes' : 'no',
       alarm_low_val: alarmLowVal.value || min,
     };
+
+    if (type !== 'SDAQ' && calDate && calPeriod) {
+      payload.cal_date = calDate.replaceAll('-', '/');
+      payload.cal_period = calPeriod;
+    }
+
+    return payload;
   }
 
   async function save() {
@@ -481,7 +512,7 @@
       if (window.opener && !window.opener.closed) {
         try {
           window.opener.postMessage({ type: 'channel-added' }, '*');
-        } catch (_) {}
+        } catch (_) { }
       }
       setTimeout(() => window.close(), 400);
     } catch (err) {

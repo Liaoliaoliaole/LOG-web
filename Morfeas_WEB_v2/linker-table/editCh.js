@@ -21,6 +21,9 @@
   const alarmHighVal = $('#alarmHighVal');
   const alarmHighChk = $('#alarmHigh');
   const unitInput    = $('#unit');
+  const calDateInput = $('#calDate');
+  const calPeriodInput = $('#calPeriod');
+  const calRows = Array.from(document.querySelectorAll('.cal-data'));
 
   const statusBar    = $('#status');
   const btnSave      = $('#btnSave');
@@ -222,6 +225,35 @@
     setDisabled(alarmHighVal, lockHigh);
   }
 
+  function applyCalibrationRules(type, payload) {
+    const showCal = type && type !== '-' && type !== 'SDAQ';
+    calRows.forEach((row) => {
+      row.style.display = showCal ? '' : 'none';
+    });
+
+    if (!showCal) {
+      return;
+    }
+
+    const calDateRaw = payload?.cal_date || payload?.Cal_date || '';
+    const calPeriodRaw = payload?.cal_period || payload?.Cal_period || '';
+
+    if (calDateInput && !calDateInput.value) {
+      if (calDateRaw) {
+        calDateInput.value = calDateRaw.replaceAll('/', '-');
+      } else {
+        const now = new Date();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        calDateInput.value = `${now.getFullYear()}-${month}-${day}`;
+      }
+    }
+
+    if (calPeriodInput && !calPeriodInput.value) {
+      calPeriodInput.value = calPeriodRaw || '12';
+    }
+  }
+
   // ----- PAYLOAD / PREFILL -----
   function readPayload() {
     try {
@@ -291,6 +323,7 @@
     alarmLowVal.value    = payload.alarm_low_val ?? payload.AlarmLowVal ?? (minInput.value || '');
     alarmHighVal.value   = payload.alarm_high_val ?? payload.AlarmHighVal ?? (maxInput.value || '');
     syncAlarmInputs();
+    applyCalibrationRules(type, payload);
   }
 
   // ----- SEARCH POPUP -----
@@ -344,6 +377,15 @@
       alarm_low: alarmLowChk.checked ? 'yes' : 'no',
       alarm_low_val: alarmLowVal.value || minVal,
     };
+
+    if (type !== 'SDAQ') {
+      const calDate = calDateInput?.value || '';
+      const calPeriod = calPeriodInput?.value || '';
+      if (calDate && calPeriod) {
+        body.cal_date = calDate.replaceAll('-', '/');
+        body.cal_period = calPeriod;
+      }
+    }
 
     btnSave.disabled = true;
     try {

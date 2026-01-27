@@ -199,8 +199,15 @@
               <div class="row tight">
                 <label>Choose file</label>
                 <div>
-                  <select id="isoSelect" class="input sel"
-                    style="margin-bottom:6px;"></select>
+                  <div class="row actions"
+                    style="grid-template-columns: 1fr auto; gap: 8px;">
+                    <select id="isoSelect" class="input sel"
+                      style="margin-bottom:6px;"></select>
+                    <button id="isoUploadBtn" class="btn" type="button">Upload
+                      new ISOStandard</button>
+                  </div>
+                  <input id="isoUploadInput" type="file" accept=".xml"
+                    style="display:none" />
                   <div class="muted">The selected XML applies system-wide and is
                     used when adding or editing ISO channels.</div>
                 </div>

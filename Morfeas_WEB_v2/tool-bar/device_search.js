@@ -29,7 +29,12 @@
 
     const columns = document.createElement('div');
     columns.className = 'columns';
-    columns.innerHTML = `<div>Channel</div><div>Status</div><div>Measurement</div>`;
+    if (type === 'SDAQ') {
+      columns.style.gridTemplateColumns = '1.4fr 1.4fr 0.8fr 1fr';
+      columns.innerHTML = `<div>Serial Channel</div><div>Address</div><div>Status</div><div>Measurement</div>`;
+    } else {
+      columns.innerHTML = `<div>Channel</div><div>Status</div><div>Measurement</div>`;
+    }
     listEl.appendChild(columns);
 
     items.forEach((item) => {
@@ -44,14 +49,22 @@
       status.textContent = item.status || 'Unknown';
 
       const meas = document.createElement('div');
+      const measUnit = item.meas_unit || item.unit || '';
       if (item.is_meas_valid && item.meas_value != null) {
-        const unit = item.meas_unit ? ` ${item.meas_unit}` : '';
+        const unit = measUnit ? ` ${measUnit}` : '';
         meas.textContent = `${item.meas_value}${unit}`;
       } else {
         meas.textContent = '—';
       }
 
-      row.append(anchor, status, meas);
+      if (type === 'SDAQ') {
+        row.style.gridTemplateColumns = '1.4fr 1.4fr 0.8fr 1fr';
+        const address = document.createElement('div');
+        address.textContent = item.address_anchor || '—';
+        row.append(anchor, address, status, meas);
+      } else {
+        row.append(anchor, status, meas);
+      }
       row.addEventListener('click', () => {
         try {
           window.opener?.postMessage({
@@ -60,7 +73,7 @@
               type,
               anchor: item.anchor,
               display_anchor: item.display_anchor || item.anchor,
-              unit: item.meas_unit || '',
+              unit: measUnit,
               device_type: item.device_type || type,
             },
           }, '*');
