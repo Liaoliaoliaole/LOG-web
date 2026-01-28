@@ -92,12 +92,12 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
                 if ($chId === null) continue;
 
                 $calDate   = $cal['Calibration_date_UNIX'] ?? null;
-                $calPeriod = $cal['Calibration_period'] ?? null; // 单位：天（旧版按天累加）
+                $calPeriod = $cal['Calibration_period'] ?? null; // Unit: days (legacy behavior).
 
                 if ($calDate !== null) {
                     $calibByCh[$chId] = [
                         'cal_date'   => gmdate('Y-m-d', (int)$calDate),
-                        // 前端按“月”累加，下方把天数换算成约等的月份（向上取整，避免提前过期）
+                        // UI uses months; convert days to months (round up).
                         'cal_period' => is_numeric($calPeriod) ? (int)ceil(((float)$calPeriod) / 30) : null,
                     ];
                 }
@@ -108,19 +108,19 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
             $ch = $meas['Channel'] ?? null;
             if ($ch === null) continue;
 
-            // 组装 anchor：CAN1.ADDR:01.CH:01，并附加一组兼容旧版/不补零的别名
+            // Build anchor and legacy-compatible aliases.
             $canonical        = sprintf('%s.ADDR:%02d.CH:%02d', $can, $addr, $ch);
-            $sensorPathLower  = sprintf('%s.%d.CH%d', strtolower($can), $addr, $ch); // can0.1.CH1（UI 期望）
+            $sensorPathLower  = sprintf('%s.%d.CH%d', strtolower($can), $addr, $ch); // UI expects can0.1.CH1.
             $sensorPathUpper  = sprintf('%s.%d.CH%d', strtoupper($can), $addr, $ch); // CAN0.1.CH1
             $serialAnchor     = null;
 
             $aliases = [
                 $canonical,
-                sprintf('%s.ADDR:%d.CH:%d', $can, $addr, $ch),                 // 不补零
+                sprintf('%s.ADDR:%d.CH:%d', $can, $addr, $ch),                 // No zero padding.
                 $sensorPathLower,
                 $sensorPathUpper,
                 sprintf('%s.ADDR:%d.CH%d', $can, $addr, $ch),                   // CAN0.ADDR:1.CH1
-                sprintf('%s.addr:%02d.ch:%02d', strtolower($can), $addr, $ch), // 全小写
+                sprintf('%s.addr:%02d.ch:%02d', strtolower($can), $addr, $ch), // Lowercase variant.
             ];
             if ($serial !== null && $serial !== '') {
                 $serialAnchor = sprintf('%s.CH%d', $serial, $ch);
@@ -157,7 +157,7 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
                 || (isset($meas['Meas_min']) && is_numeric($meas['Meas_min']));
 
             if ($stVal && !$hasUnit && !$hasValueInfo) {
-                // 设备报告了物理通道存在，但缺乏 Channel/Sensor 定义
+                // Device reports a physical channel but no Channel/Sensor definition.
                 $status  = 'Unlinked';
                 $valid   = false;
                 $value   = null;
@@ -167,7 +167,7 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
             $regDone   = is_string($regStatus) && strcasecmp($regStatus, 'Done') === 0;
             $hasSensor = !$noSens;
             if ($explain === null && $regDone && $hasSensor && !$linkedByConfig) {
-                // SDAQ 已注册 + 有传感器，但 OPC UA 中没有对应 anchor
+                // SDAQ registered + has sensor, but no OPC UA anchor.
                 $status  = 'Unlinked';
                 $valid   = false;
                 $value   = null;
@@ -189,9 +189,9 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
                     $value  = null;
                 } elseif ($out) {
                     $status = 'Out of Range';
-                    $valid  = false;   // 这里按“有错误”处理
+                    $valid  = false;   // Treat as error.
                 } elseif (!empty($stVal)) {
-                    // 有错误标志但不在以上几类
+                    // Error flag without a specific category.
                     $status = 'Unclassified';
                     $valid  = false;
                 }

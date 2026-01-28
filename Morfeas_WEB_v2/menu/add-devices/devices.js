@@ -283,7 +283,7 @@
   async function deleteDevices() {
     const rows = $$('#devBody tr').filter(r => r.querySelector('input[type="checkbox"]').checked);
     if (!rows.length) {
-      alert('请选择要删除的设备');
+      alert('Please select devices to delete.');
       return;
     }
     const manualIds = rows
@@ -307,12 +307,12 @@
         }
       }
 
-      // 前端即时移除已选条目；SDAQ 会在下次刷新时根据 logstat 自动回归
+      // Remove selected entries locally; SDAQ will reappear on the next logstat refresh.
       const killSet = new Set([...manualIds, ...autoIds]);
       devices = devices.filter(d => !killSet.has(d.id));
       render();
 
-      // 全量刷新以同步组件计数与后端状态
+      // Full refresh to sync component counts with backend state.
       await loadDevices();
     } catch (err) {
       alert('Failed to delete: ' + err.message);
