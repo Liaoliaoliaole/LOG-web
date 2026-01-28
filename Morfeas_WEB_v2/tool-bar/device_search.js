@@ -5,6 +5,8 @@
   const typeLabel = $('#typeLabel');
   const refreshBtn = $('#refreshBtn');
 
+  const searchPoolService = window.LOG_WEB?.services?.searchPool;
+
   let isLoading = false;
 
   const params = new URLSearchParams(window.location.search);
@@ -110,13 +112,8 @@
     setStatus(manual ? 'Refreshing…' : 'Loading...');
 
     try {
-      const res = await fetch('../backend/api_channels.php?include=pool', {
-        headers: { Accept: 'application/json' },
-        cache: 'no-store',
-      });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const json = await res.json();
-      const poolAll = json?.extras?.search_pool || {};
+      if (!searchPoolService) throw new Error('Search pool service unavailable');
+      const poolAll = await searchPoolService.loadSearchPool();
       const pool = filterPool(poolAll[type] || []);
 
       if (!pool.length) {

@@ -4,7 +4,7 @@
  * - Preset buttons LOG1…LOG10 (mock values)
  * - Static/DHCP toggle (disables IP/GW/DNS in DHCP)
  * - Small UX helpers: numeric guard, auto-advance across octets
- * - Actions are placeholders (no backend calls)
+ * -  - TODO: Actions are placeholders (no backend calls)
  * ========================================================================== */
 
 (function () {

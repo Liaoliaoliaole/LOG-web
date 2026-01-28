@@ -3,6 +3,9 @@
   const $ = (s, r = document) => r.querySelector(s);
   const byId = (id) => document.getElementById(id);
 
+  const channelsApi = window.LOG_WEB?.api?.channels;
+  const isoCatalogService = window.LOG_WEB?.services?.isoCatalog;
+
   const macText = byId('macText');
   const can0El = byId('can0');
   const can1El = byId('can1');
@@ -11,9 +14,8 @@
   can1El.textContent = '—';
 
   async function loadMachineInfo() {
-    const res = await fetch('../../backend/api_channels.php?include=machine_info', { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    if (!channelsApi) throw new Error('Channels API unavailable');
+    const data = await channelsApi.fetchMachineInfo();
 
     if (data.mac) macText.textContent = data.mac;
     const can = data.can || {};
@@ -31,20 +33,17 @@
    *  B) ISO XML loader
    *     - On Pi (http://…): loads via same-origin fetch.
    *     - On desktop (file://): shows a file picker fallback.
-   *     - Later, change ISO_URL to any served path (e.g. /home alias).
+   *     - Later,  override via backend config or local file picker fallback.
    * -------------------------------------------------- */
 
-  // 1) Legacy source (Pi runtime):
-  const ISO_LEGACY_PATH = '/home/pi/Morfeas_config/iso_standards/';
+  // 1) Legacy source (now server-provided in ISO list):
   const ISO_STORAGE_KEY = 'iso_standard_selected_id';
-
-  // 2) Runtime loader (backend serves legacy or sandbox mock):
-  let ISO_URL = '../../backend/api_channels.php?include=iso_standard';
+  const ISO_LEGACY_HINT = 'Server-provided path';
 
   // 3) (Optional) Local fallback if you want to override manually:
-  // ISO_URL = 'ISOstandard.xml';
+  // (use the local file picker below when no backend is available)
 
-  byId('isoPath').textContent = ISO_LEGACY_PATH;
+  byId('isoPath').textContent = ISO_LEGACY_HINT;
   const isoSelect = byId('isoSelect');
   const isoUploadBtn = byId('isoUploadBtn');
   const isoUploadInput = byId('isoUploadInput');
@@ -98,29 +97,18 @@
   }
 
   async function loadISOOverHTTP(fileId) {
-    const url = new URL(ISO_URL, location.href);
-    if (fileId) url.searchParams.set('file', fileId);
-
-    const res = await fetch(url.toString(), { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    renderISO(await res.text());
+    if (!channelsApi) throw new Error('Channels API unavailable');
+    renderISO(await channelsApi.fetchIsoStandard(fileId));
   }
 
   async function loadISOList() {
-    const res = await fetch('../../backend/api_channels.php?include=iso_standard_list', { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
+    if (!channelsApi) throw new Error('Channels API unavailable');
+    return channelsApi.fetchIsoStandardList();
   }
 
   async function uploadISO(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    const res = await fetch('../../backend/api_channels.php?include=iso_standard_upload', {
-      method: 'POST',
-      body: formData,
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const payload = await res.json();
+    if (!channelsApi) throw new Error('Channels API unavailable');
+    const payload = await channelsApi.uploadIsoStandard(file);
     if (!payload.ok) throw new Error(payload.error || 'Upload failed');
     return payload.path;
   }
@@ -159,24 +147,24 @@
         isoSelect.appendChild(opt);
       });
 
-      const savedId = isoStorage.get();
+      const savedId = isoCatalogService?.storage?.get?.() || isoStorage.get();
       const selected = files.find((f) => f.id === savedId)
         ?? files.find((f) => f.is_default)
         ?? files[0];
       if (selected) {
         isoSelect.value = selected.id;
-        byId('isoPath').textContent = selected.path ?? ISO_LEGACY_PATH;
+        byId('isoPath').textContent = selected.path ?? ISO_LEGACY_HINT;
         await loadISOOverHTTP(selected.id);
         isoState.options = files;
         isoState.ready = true;
-        isoStorage.set(selected.id);
+        isoCatalogService?.storage?.set?.(selected.id) || isoStorage.set(selected.id);
       }
 
       isoSelect.addEventListener('change', () => {
         if (!isoState.ready) return;
         const current = isoState.options.find((f) => f.id === isoSelect.value);
-        byId('isoPath').textContent = current?.path ?? ISO_LEGACY_PATH;
-        isoStorage.set(current?.id || '');
+        byId('isoPath').textContent = current?.path ?? ISO_LEGACY_HINT;
+        isoCatalogService?.storage?.set?.(current?.id || '') || isoStorage.set(current?.id || '');
         loadISOOverHTTP(isoSelect.value).catch(() => {
           toast('Failed to load ISO XML over HTTP, falling back to local file');
           attachLocalFilePicker();

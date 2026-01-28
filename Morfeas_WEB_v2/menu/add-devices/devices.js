@@ -14,7 +14,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
-  const API_DEVICES = '/backend/api_devices.php';
+  const devicesApi = window.LOG_WEB?.api?.devices;
   const MAX_COMPONENTS = 16; // legacy Morfeas_comp_amount_max
 
   // --------------------------------------------------------------------------
@@ -226,14 +226,10 @@
     };
 
     try {
-      const res = await fetch(API_DEVICES, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const json = await res.json();
-      if (!res.ok || json.ok === false) {
-        throw new Error(json.error || ('HTTP ' + res.status));
+      if (!devicesApi) throw new Error('Devices API unavailable');
+      const json = await devicesApi.updateDevices(payload, 'POST');
+      if (json.ok === false) {
+        throw new Error(json.error || 'HTTP error');
       }
       propCard.style.display = 'none';
       await loadDevices();
@@ -296,14 +292,10 @@
       .filter(Boolean);
     try {
       if (manualIds.length) {
-        const res = await fetch(API_DEVICES, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ids: manualIds }),
-        });
-        const json = await res.json();
-        if (!res.ok || json.ok === false) {
-          throw new Error(json.error || ('HTTP ' + res.status));
+        if (!devicesApi) throw new Error('Devices API unavailable');
+        const json = await devicesApi.updateDevices({ ids: manualIds }, 'DELETE');
+        if (json.ok === false) {
+          throw new Error(json.error || 'HTTP error');
         }
       }
 
@@ -341,9 +333,8 @@
   // --------------------------------------------------------------------------
   async function loadDevices() {
     try {
-      const res = await fetch(API_DEVICES);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const json = await res.json();
+      if (!devicesApi) throw new Error('Devices API unavailable');
+      const json = await devicesApi.fetchDevices();
       if (json.ok === false) throw new Error(json.error || 'Load failed');
       devices = json.data || [];
       const meta = json.components || {};

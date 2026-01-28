@@ -30,6 +30,10 @@
   const btnCancel    = $('#btnCancel');
   const btnSearch    = $('#btnSearch');
 
+  const channelsApi = window.LOG_WEB?.api?.channels;
+  const isoCatalogService = window.LOG_WEB?.services?.isoCatalog;
+  const searchPoolService = window.LOG_WEB?.services?.searchPool;
+
   const state = {
     isoCatalog: {},
     isoList: [],
@@ -37,23 +41,6 @@
     selectedDevice: null,
     searchWin: null,
     originalIso: '',
-  };
-
-  const ISO_STORAGE_KEY = 'iso_standard_selected_id';
-  const isoStore = {
-    get() {
-      try {
-        return localStorage.getItem(ISO_STORAGE_KEY) || '';
-      } catch (_) {
-        return '';
-      }
-    },
-    set(id) {
-      try {
-        if (id) localStorage.setItem(ISO_STORAGE_KEY, id);
-        else localStorage.removeItem(ISO_STORAGE_KEY);
-      } catch (_) {}
-    },
   };
 
   const setDisabled = (el, on) => {
@@ -69,81 +56,20 @@
 
   // ----- LOADERS -----
   async function loadIsoCatalog() {
-    const parseIsoXml = (xmlText) => {
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(xmlText, 'application/xml');
-      const points = xml.querySelector('points');
-      if (!points) return false;
-      points.childNodes.forEach((node) => {
-        if (node.nodeType !== 1) return;
-        const code = node.nodeName.trim();
-        const read = (tag) => {
-          const el = node.querySelector(tag);
-          return el ? el.textContent.trim() : '';
-        };
-        const entry = {
-          code,
-          description: read('description'),
-          unit: read('unit'),
-          min: read('min'),
-          max: read('max'),
-          alarmHigh: read('alarmHigh'),
-          alarmHighVal: read('alarmHighVal'),
-          alarmLow: read('alarmLow'),
-          alarmLowVal: read('alarmLowVal'),
-        };
-        state.isoCatalog[code] = entry;
-        state.isoList.push(entry);
-      });
-      return true;
-    };
-
-    const buildIsoUrl = () => {
-      const params = new URLSearchParams({ include: 'iso_standard' });
-      const fileId = isoStore.get();
-      if (fileId) params.set('file', fileId);
-      return `/backend/api_channels.php?${params.toString()}`;
-    };
-
-    const listRes = await fetch('/backend/api_channels.php?include=iso_standard_list', { cache: 'no-store' });
-    const listJson = listRes.ok ? await listRes.json() : { files: [] };
-    const files = listJson.files || [];
-
-    const stored = isoStore.get();
-    const chosen = files.find((f) => f.id === stored)
-      || files.find((f) => f.is_default)
-      || files[0];
-    if (chosen?.id && chosen.id !== stored) {
-      isoStore.set(chosen.id);
-    }
-
-    const sources = [buildIsoUrl()];
-
-    state.isoCatalog = {};
-    state.isoList = [];
-
-    for (const src of sources) {
-      try {
-        const res = await fetch(src, { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const xmlText = await res.text();
-        if (parseIsoXml(xmlText)) return;
-      } catch (err) {
-        console.error('Failed to load ISOstandard.xml from', src, err);
-      }
+    if (!isoCatalogService) return;
+    try {
+      const payload = await isoCatalogService.loadCatalog();
+      state.isoCatalog = payload.catalog || {};
+      state.isoList = payload.list || [];
+    } catch (err) {
+      console.error('Failed to load ISO catalog', err);
     }
   }
 
   async function loadSearchPool() {
     try {
-      const res = await fetch('../backend/api_channels.php?include=pool', {
-        headers: { Accept: 'application/json' }
-      });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const json = await res.json();
-      if (json && json.extras && json.extras.search_pool) {
-        state.searchPool = json.extras.search_pool;
-      }
+      if (!searchPoolService) throw new Error('Search pool service unavailable');
+      state.searchPool = await searchPoolService.loadSearchPool();
     } catch (err) {
       console.error('Failed to load device pool', err);
     }
@@ -389,13 +315,8 @@
 
     btnSave.disabled = true;
     try {
-      const res = await fetch(`/backend/api_channels.php?iso=${encodeURIComponent(state.originalIso || isoVal)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const json = await res.json();
+      if (!channelsApi) throw new Error('Channels API unavailable');
+      const json = await channelsApi.updateChannel(state.originalIso || isoVal, body);
       if (json && json.ok === false) {
         throw new Error(json.error || 'Operation failed');
       }

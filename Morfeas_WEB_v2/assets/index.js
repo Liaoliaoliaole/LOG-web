@@ -9,7 +9,11 @@
      * 0) CONSTANTS & LIGHT HELPERS
      * ======================================================================= */
 
-    const ORIG_BASE_PATH = window.ORIG_BASE_PATH;
+    const config = window.LOG_WEB?.config;
+    const channelsApi = window.LOG_WEB?.api?.channels;
+    const systemStatusApi = window.LOG_WEB?.api?.systemStatus;
+    const statusFormatter = window.LOG_WEB?.ui?.systemStatusFormatter;
+    const ORIG_BASE_PATH = config?.basePath || window.ORIG_BASE_PATH || '';
 
     const $ = (sel, root = document) => root.querySelector(sel);
     const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -30,7 +34,7 @@
     const master = $('#masterCheck');
     const tbody = $('#isoTableBody');
 
-    const API_ISO = '/backend/api_channels.php';
+    const API_ISO = channelsApi?.buildUrl?.() || '/backend/api_channels.php';
 
     const AUTO_REFRESH_MS = 1000; // poll JSON every second
 
@@ -199,14 +203,18 @@
 
       try {
         for (const iso of isoList) {
-          const res = await fetch(`${API_ISO}?iso=${encodeURIComponent(iso)}`, {
-            method: 'DELETE',
-            headers: { Accept: 'application/json' }
-          });
-          if (!res.ok) {
-            throw new Error('HTTP ' + res.status);
-          }
-          const json = await res.json();
+          const json = channelsApi
+            ? await channelsApi.deleteChannel(iso)
+            : await (async () => {
+              const res = await fetch(`${API_ISO}?iso=${encodeURIComponent(iso)}`, {
+                method: 'DELETE',
+                headers: { Accept: 'application/json' }
+              });
+              if (!res.ok) {
+                throw new Error('HTTP ' + res.status);
+              }
+              return res.json();
+            })();
           if (json && json.ok === false) {
             throw new Error(json.error || 'Delete failed');
           }
@@ -280,6 +288,9 @@
      * ======================================================================= */
 
     function formatTickerValue(name, value, unit) {
+      if (statusFormatter?.formatTickerValue) {
+        return statusFormatter.formatTickerValue(name, value, unit);
+      }
       if (value === null || value === undefined || value === '') {
         return '—';
       }
@@ -331,9 +342,13 @@
       ];
 
       try {
-        const res = await fetch('backend/api_system_status.php?action=details', { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const payload = await res.json();
+        const payload = systemStatusApi
+          ? await systemStatusApi.fetchDetails()
+          : await (async () => {
+            const res = await fetch('backend/api_system_status.php?action=details', { cache: 'no-store' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.json();
+          })();
         if (!payload.ok) throw new Error('Invalid system status payload');
 
         const sysEntry = (payload.entries || []).find((entry) => entry.if_name === 'RPi_Health_Status');
@@ -451,6 +466,13 @@
       if (e.key === 'Enter') {
         e.preventDefault();
         launchSearch();
+      }
+    });
+
+    searchInput?.addEventListener('input', (e) => {
+      const value = e.target?.value || '';
+      if (!value.trim()) {
+        filterTable('');
       }
     });
 
@@ -576,13 +598,17 @@
      * ======================================================================= */
 
     async function fetchIsoChannels() {
-      const res = await fetch(API_ISO, {
-        headers: { 'Accept': 'application/json' }
-      });
-      if (!res.ok) {
-        throw new Error('HTTP ' + res.status + ' from ' + API_ISO);
-      }
-      const json = await res.json();
+      const json = channelsApi
+        ? await channelsApi.fetchChannels()
+        : await (async () => {
+          const res = await fetch(API_ISO, {
+            headers: { 'Accept': 'application/json' }
+          });
+          if (!res.ok) {
+            throw new Error('HTTP ' + res.status + ' from ' + API_ISO);
+          }
+          return res.json();
+        })();
       if (!json || json.ok === false) {
         throw new Error(json && json.error ? json.error : 'Invalid response');
       }
@@ -936,6 +962,86 @@
       ctx.style.display = 'none';
     }
 
+    function buildExportEntry(channel) {
+      if (!channel) return null;
+      const entry = {
+        ISO_CHANNEL: channel.iso_channel,
+        INTERFACE_TYPE: channel.interface_type || channel.dev_type || '',
+        ANCHOR: channel.anchor || '',
+        DESCRIPTION: channel.description || '',
+        MIN: channel.min ?? '',
+        MAX: channel.max ?? '',
+      };
+
+      if (channel.alarm_high_val !== undefined) {
+        entry.ALARM_HIGH_VAL = channel.alarm_high_val;
+      }
+      if (channel.alarm_low_val !== undefined) {
+        entry.ALARM_LOW_VAL = channel.alarm_low_val;
+      }
+      if (channel.alarm_high !== undefined) {
+        entry.ALARM_HIGH = channel.alarm_high;
+      }
+      if (channel.alarm_low !== undefined) {
+        entry.ALARM_LOW = channel.alarm_low;
+      }
+
+      const type = entry.INTERFACE_TYPE;
+      if (type && type !== 'SDAQ') {
+        entry.UNIT = channel.unit || '';
+        if (channel.cal_date && channel.cal_period) {
+          entry.CAL_DATE = channel.cal_date;
+          entry.CAL_PERIOD = channel.cal_period;
+        }
+      }
+
+      return entry;
+    }
+
+    function downloadJson(filename, data) {
+      const payload = JSON.stringify(data, null, '\t');
+      const blob = new Blob([payload], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function exportSelectedChannels() {
+      const rows = selectedRows();
+      if (!rows.length) {
+        alert('No channels selected for export.');
+        return;
+      }
+
+      const entries = rows.map((row) => {
+        const iso = (row.dataset.iso || row.querySelector('td[data-col="iso"]')?.textContent || '').trim();
+        const cached = findChannelByIso(iso);
+        if (cached) return buildExportEntry(cached);
+        const fallback = buildRowDataFromDom(row);
+        return fallback ? buildExportEntry(fallback) : null;
+      }).filter(Boolean);
+
+      if (!entries.length) {
+        alert('No channel data available for export.');
+        return;
+      }
+
+      const now = new Date();
+      const pad = (val) => String(val).padStart(2, '0');
+      const timestamp = [
+        now.getFullYear(),
+        pad(now.getMonth() + 1),
+        pad(now.getDate())
+      ].join('') + '_' + [pad(now.getHours()), pad(now.getMinutes()), pad(now.getSeconds())].join('');
+      const filename = `LOG_ISOChannel_Linker_Export_Selection_${timestamp}.json`;
+      downloadJson(filename, entries);
+    }
+
     document.addEventListener('contextmenu', (e) => {
       const tr = e.target.closest('tr.row');
       if (!tr) return;
@@ -991,6 +1097,7 @@
           try { window.__EDIT_LINK_DATA = rowData; } catch (_) { }
           break;
         case 'scale':
+          // TODO: implement scale behavior
           alert('Scale (placeholder)');
           break;
         case 'calibration':
@@ -1005,9 +1112,10 @@
           deleteSelectedRows();
           break;
         case 'export':
-          alert('Export JSON (placeholder)');
+          exportSelectedChannels();
           break;
         default:
+          // TODO: replace placeholder action
           alert(`${action} (placeholder)`);
       }
       hideCtx();
@@ -1052,11 +1160,13 @@
       const dualTop = (window.screenTop !== undefined ? window.screenTop : window.screenY) || 0;
       const vw = window.innerWidth || document.documentElement.clientWidth || screen.width;
       const vh = window.innerHeight || document.documentElement.clientHeight || screen.height;
-      const left = Math.max(0, Math.round((vw - w) / 2 + dualLeft));
-      const top = Math.max(0, Math.round((vh - h) / 2 + dualTop));
+      const safeW = Math.max(320, Math.min(w, Math.floor(vw * 0.95)));
+      const safeH = Math.max(320, Math.min(h, Math.floor(vh * 0.95)));
+      const left = Math.max(0, Math.round((vw - safeW) / 2 + dualLeft));
+      const top = Math.max(0, Math.round((vh - safeH) / 2 + dualTop));
 
       const features = [
-        `width=${w}`, `height=${h}`,
+        `width=${safeW}`, `height=${safeH}`,
         `left=${left}`, `top=${top}`,
         `resizable=${resizable ? 'yes' : 'no'}`,
         `scrollbars=${scrollbars ? 'yes' : 'no'}`,
@@ -1098,11 +1208,101 @@
       openCenteredPopup('tool-bar/add_channel.html', 'add_channel_popup', { width: 880, height: 820 });
     });
 
+    const importInput = document.createElement('input');
+    importInput.type = 'file';
+    importInput.accept = '.json,application/json';
+    importInput.style.display = 'none';
+    document.body.appendChild(importInput);
+
+    function mapImportEntry(entry) {
+      if (!entry) return null;
+      const iso = entry.ISO_CHANNEL;
+      const type = entry.INTERFACE_TYPE;
+      const anchor = entry.ANCHOR;
+      if (!iso || !type || !anchor) return null;
+
+      const payload = {
+        iso_channel: iso,
+        interface_type: type,
+        anchor,
+        description: entry.DESCRIPTION || '',
+        min: entry.MIN ?? '',
+        max: entry.MAX ?? '',
+        unit: entry.UNIT || '',
+        alarm_high_val: entry.ALARM_HIGH_VAL,
+        alarm_low_val: entry.ALARM_LOW_VAL,
+        alarm_high: entry.ALARM_HIGH,
+        alarm_low: entry.ALARM_LOW,
+        cal_date: entry.CAL_DATE,
+        cal_period: entry.CAL_PERIOD,
+      };
+
+      if (payload.interface_type === 'SDAQ') {
+        delete payload.unit;
+        delete payload.cal_date;
+        delete payload.cal_period;
+      }
+
+      return payload;
+    }
+
+    async function importChannelsFromFile(file) {
+      if (!file) return;
+      let data;
+      try {
+        const text = await file.text();
+        data = JSON.parse(text);
+      } catch (err) {
+        alert('Invalid JSON file: ' + (err?.message || err));
+        return;
+      }
+
+      if (!Array.isArray(data)) {
+        alert('Import expects a JSON array of ISO channels.');
+        return;
+      }
+
+      const payloads = data.map(mapImportEntry).filter(Boolean);
+      if (!payloads.length) {
+        alert('No valid ISO channels found in the JSON file.');
+        return;
+      }
+
+      for (const payload of payloads) {
+        try {
+          if (channelsApi?.createChannel) {
+            await channelsApi.createChannel(payload);
+          } else {
+            const res = await fetch(API_ISO, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const json = await res.json();
+            if (json && json.ok === false) {
+              throw new Error(json.error || 'Import failed');
+            }
+          }
+        } catch (err) {
+          alert('Failed to import channel ' + payload.iso_channel + ': ' + (err?.message || err));
+          return;
+        }
+      }
+
+      loadIsoTable(true);
+    }
+
+    importInput.addEventListener('change', () => {
+      const file = importInput.files?.[0];
+      if (!file) return;
+      importChannelsFromFile(file).finally(() => {
+        importInput.value = '';
+      });
+    });
+
     importBtn?.addEventListener('click', () => {
-      window.open(
-        `${ORIG_BASE_PATH}/tool-bar/import_channel.html`,
-        '_blank'
-      );
+      importInput.click();
     });
 
     /* =======================================================================

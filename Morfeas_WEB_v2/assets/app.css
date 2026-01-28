@@ -252,7 +252,7 @@ body {
 
 .input {
   height: 42px;
-  min-width: 380px;
+  min-width: clamp(200px, 40vw, 380px);
   font-size: var(--font-size-base);
   border: 1px solid var(--color-border);
   border-radius: 12px;
@@ -285,10 +285,35 @@ body {
 }
 
 .table {
-  width: 1620px;
+  width: 100%;
+  min-width: 1200px;
   border-collapse: collapse;
   background: #f3f4f6;
   table-layout: auto;
+}
+
+@media (max-width: 960px) {
+  .top-inner {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .info {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .menu-wrap {
+    margin-left: auto;
+  }
+
+  .toolbar {
+    gap: 8px;
+  }
+
+  .table {
+    min-width: 960px;
+  }
 }
 
 .table th,

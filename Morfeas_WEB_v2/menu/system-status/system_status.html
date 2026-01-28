@@ -1,15 +1,15 @@
 <!doctype html>
 <html lang="en">
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>System Status</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>System Status</title>
 
-  <!-- Shared site theme -->
-  <link rel="stylesheet" href="../../assets/app.css" />
+    <!-- Shared site theme -->
+    <link rel="stylesheet" href="../../assets/app.css" />
 
-  <style>
+    <style>
     /* =========================================================================
        * Local layout (popup-sized card). Visuals inherit from the shared theme.
        * ========================================================================= */
@@ -123,51 +123,58 @@
       line-height: 1.5;
     }
   </style>
-</head>
+  </head>
 
-<body>
-  <div class="wrap">
-    <div class="card">
-      <div class="card-head">
-        System Status
-        <span id="mockBadge" class="mock-badge" hidden>MOCK DATA</span>
-      </div>
-
-      <div class="card-body">
-        <!-- Tabs -->
-        <div class="tabs" role="tablist" aria-label="System status tabs">
-          <button class="tab btn primary" data-tab="details" role="tab" aria-selected="true">Details</button>
-          <button class="tab btn" data-tab="logs" role="tab" aria-selected="false">System logs</button>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <div class="card-head">
+          System Status
+          <span id="mockBadge" class="mock-badge" hidden>MOCK DATA</span>
         </div>
 
-        <!-- Details (BUS-related metrics are merged into the table) -->
-        <section id="panel-details" class="panel show" role="tabpanel" aria-labelledby="details">
-          <div id="detailsWrap" class="stack"></div>
-        </section>
-
-        <!-- System logs (placeholder) -->
-        <section id="panel-logs" class="panel" role="tabpanel" aria-labelledby="logs" aria-live="polite">
-          <div class="logs-bar">
-            <label class="label" for="loggerSelect">Logger</label>
-            <select id="loggerSelect" class="input" aria-label="Log file">
-              <option value="">system.log</option>
-              <option>opcua.log</option>
-              <option>sdaq0.log</option>
-            </select>
-            <button id="reloadLoggers" class="btn">Reload</button>
+        <div class="card-body">
+          <!-- Tabs -->
+          <div class="tabs" role="tablist" aria-label="System status tabs">
+            <button class="tab btn primary" data-tab="details" role="tab"
+              aria-selected="true">Details</button>
+            <button class="tab btn" data-tab="logs" role="tab"
+              aria-selected="false">System logs</button>
           </div>
-          <pre id="logTerminal" class="terminal"></pre>
-        </section>
+
+          <!-- Details (BUS-related metrics are merged into the table) -->
+          <section id="panel-details" class="panel show" role="tabpanel"
+            aria-labelledby="details">
+            <div id="detailsWrap" class="stack"></div>
+          </section>
+
+          <!-- TODO: System logs (placeholder) -->
+          <section id="panel-logs" class="panel" role="tabpanel"
+            aria-labelledby="logs" aria-live="polite">
+            <div class="logs-bar">
+              <label class="label" for="loggerSelect">Logger</label>
+              <select id="loggerSelect" class="input" aria-label="Log file">
+                <option value>system.log</option>
+                <option>opcua.log</option>
+                <option>sdaq0.log</option>
+              </select>
+              <button id="reloadLoggers" class="btn">Reload</button>
+            </div>
+            <pre id="logTerminal" class="terminal"></pre>
+          </section>
+        </div>
       </div>
     </div>
-  </div>
 
   <!-- Scripts -->
+  <script src="../../assets/config.js"></script>
+  <script src="../../assets/api/systemStatus.js"></script>
+  <script src="../../assets/ui/systemStatusFormatter.js"></script>
   <script src="./status.js"></script>
-  <script>
+    <script>
     // Close popup with ESC (consistent with other popups)
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.close(); });
   </script>
-</body>
+  </body>
 
 </html>

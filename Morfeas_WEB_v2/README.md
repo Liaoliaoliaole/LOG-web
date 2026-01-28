@@ -7,6 +7,9 @@ This folder contains the v2 web UI and PHP backend for Morfeas/LOG devices. The 
 ```
 Morfeas_WEB_v2/
 ├─ assets/               # Static assets
+│  ├─ api/               # Frontend API wrappers (channels/devices/status)
+│  ├─ services/          # Frontend data helpers (ISO catalog, search pool)
+│  └─ ui/                # Shared UI helpers/formatters
 ├─ backend/              # PHP API endpoints and core helpers
 │  ├─ api_channels.php   # Channel table + ISO XML CRUD
 │  ├─ api_devices.php    # Device list + LOG config CRUD
@@ -23,6 +26,13 @@ Morfeas_WEB_v2/
 ├─ menu/
 └─ tool-bar/
 ```
+
+### Frontend modules
+
+- `assets/config.js` defines `LOG_WEB.config` (base path + endpoint resolver).
+- `assets/api/` holds page-agnostic API wrappers used by index + popups.
+- `assets/services/` provides shared ISO catalog and search pool loaders.
+- `assets/ui/` contains cross-page formatters (system status, ticker values).
 
 ## Environment configuration
 

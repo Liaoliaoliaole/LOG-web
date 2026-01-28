@@ -2,7 +2,7 @@
  * System Status (popup)
  * ----------------------------------------------------------------------------
  * Purpose : Render system details + logs (Details wired to backend logstat feed).
- * Tabs    : Details (tables) / Logs (simple viewer placeholder).
+ * Tabs    : Details (tables) / Logs (TODO: simple viewer placeholder).
  * ========================================================================== */
 
 (function () {
@@ -11,6 +11,9 @@
    * ------------------------------------------ */
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+  const systemStatusApi = window.LOG_WEB?.api?.systemStatus;
+  const statusFormatter = window.LOG_WEB?.ui?.systemStatusFormatter;
 
   /* ------------------------------------------
    * Backend endpoint
@@ -86,7 +89,7 @@
     return `${c.toFixed(1)}°C (${value.toFixed(1)}°F)`;
   }
 
-  function formatRow(row) {
+  function fallbackFormatRow(row) {
     const label = (() => {
       if (prettyLabels[row.name]) return prettyLabels[row.name];
       if (/^SDAQnet_\(.+\)_outVoltage$/i.test(row.name)) return 'Bus Voltage';
@@ -139,6 +142,8 @@
 
     return { label, value: `${row.value}${row.unit || ''}` };
   }
+
+  const formatRow = (row) => statusFormatter?.formatRow?.(row) || fallbackFormatRow(row);
 
   function mkDetailsTable(block) {
     const tbl = document.createElement('table');
@@ -200,10 +205,13 @@
     if (detailsCache || detailsError) return;
 
     try {
-      const res = await fetch(resolveEndpoint(), { cache: 'no-store' });
-      if (!res.ok) throw new Error('Failed to load system status');
-
-      const payload = await res.json();
+      const payload = systemStatusApi
+        ? await systemStatusApi.fetchDetails()
+        : await (async () => {
+          const res = await fetch(resolveEndpoint(), { cache: 'no-store' });
+          if (!res.ok) throw new Error('Failed to load system status');
+          return res.json();
+        })();
       if (!payload.ok) throw new Error(payload.error || 'Malformed response');
 
       detailsCache = payload.entries || [];

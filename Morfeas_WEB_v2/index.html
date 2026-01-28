@@ -83,12 +83,12 @@
 
             <div class="menu-sep"></div>
             <div class="group">System</div>
-            <!-- System actions open in a new tab (placeholder destinations) -->
-            <a class="menu-item" href="menu/system-control/index.html"
+            <!-- TODO: System actions open in a new tab (placeholder destinations) -->
+            <a class="menu-item" href="menu/system-control/update.html"
               target="_blank">System Update</a>
-            <a class="menu-item" href="menu/system-control/index.html"
+            <a class="menu-item" href="menu/system-control/reboot.html"
               target="_blank">System Reboot</a>
-            <a class="menu-item" href="menu/system-control/index.html"
+            <a class="menu-item" href="menu/system-control/shutdown.html"
               target="_blank">System Shutdown</a>
           </div>
         </div>
@@ -169,10 +169,16 @@
     </div>
 
     <!-- =========================================================================
-         5) FOOTER (placeholder for version / last update)
+         5) FOOTER (TODO: placeholder for version / last update)
          ========================================================================= -->
     <div class="footer">Placeholder for last update timestamp and version
       number.</div>
+
+    <!-- Shared config + APIs -->
+    <script src="assets/config.js"></script>
+    <script src="assets/api/channels.js"></script>
+    <script src="assets/api/systemStatus.js"></script>
+    <script src="assets/ui/systemStatusFormatter.js"></script>
 
     <!-- Index bootstrap -->
     <script src="assets/index.js"></script>
