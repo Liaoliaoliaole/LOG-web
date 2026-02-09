@@ -18,6 +18,8 @@
   const rangeLabel = $('#rangeLabel');
   const rangeRow = $('#rangeRow');
   const rangeInput = $('#range');
+  const rangeHelp = $('#rangeHelp');
+  const rangeHelpPopup = $('#rangeHelpPopup');
 
   const minInput = $('#min');
   const maxInput = $('#max');
@@ -45,6 +47,8 @@
     searchPool: {},
     selectedDevice: null,
     searchWin: null,
+    suppressIsoSuggestions: false,
+    manualPath: false,
   };
 
   const SEARCH_POOL_REFRESH_MS = 1000; // legacy logstat polling cadence
@@ -129,6 +133,7 @@
   function clearIsoDefaults() {
     postfixSel.value = 'N/A';
     if (!descInput.dataset.userEdited) descInput.value = '';
+    if (!descInput.dataset.userEdited) descInput.dataset.base = '';
     if (!minInput.dataset.userEdited) minInput.value = '';
     if (!maxInput.dataset.userEdited) maxInput.value = '';
     if (!unitInput.dataset.userEdited) unitInput.value = '';
@@ -142,7 +147,11 @@
   function hydrateFromIso(codeRaw, options = {}) {
     const entry = lookupIso(codeRaw);
     if (!entry) return;
-    if (!descInput.dataset.userEdited && !descInput.value) descInput.value = entry.description;
+    if (!descInput.dataset.userEdited && !descInput.value) {
+      descInput.value = entry.description;
+      descInput.dataset.base = entry.description || '';
+      updateDescriptionWithPostfix();
+    }
     if (!minInput.dataset.userEdited && !minInput.value) minInput.value = entry.min;
     if (!maxInput.dataset.userEdited && !maxInput.value) maxInput.value = entry.max;
     if (!unitInput.dataset.userEdited && !unitInput.value) unitInput.value = entry.unit;
@@ -165,6 +174,11 @@
 
   function renderIsoSuggestions(filter = '') {
     if (!isoDropdown) return;
+
+    if (state.suppressIsoSuggestions && !filter.trim()) {
+      isoDropdown.classList.add('hidden');
+      return;
+    }
 
     const shouldShow = document.activeElement === isoInput || !!filter.trim();
     if (!shouldShow) {
@@ -275,15 +289,18 @@
     }
 
     state.selectedDevice = null;
+    state.manualPath = false;
     pathInput.value = '';
     pathInput.placeholder = placeholders[t] || 'Select from search';
     setStatus(t === '-' ? 'Select Type' : `Type selected: ${t}`);
+    updateRangeValidity();
   }
 
   function onRangeChange() {
     const n = Math.max(1, parseInt(rangeInput.value || '1', 10));
     rangeInput.value = n;
     toggleMultiLock(typeSel.value === 'SDAQ' && n >= 2);
+    updateRangeValidity();
   }
 
   function openSearchPopup() {
@@ -304,6 +321,20 @@
     return `${baseDesc} Cyl:${postfix}`;
   }
 
+  function normalizeBaseDescription(value) {
+    return (value || '').replace(/\s*Cyl:\s*\d+$/i, '').trim();
+  }
+
+  function updateDescriptionWithPostfix() {
+    const postfix = postfixSel.value;
+    const base = descInput.dataset.base || normalizeBaseDescription(descInput.value);
+    if (!base) {
+      descInput.value = '';
+      return;
+    }
+    descInput.value = formatDescription(base, postfix);
+  }
+
   function buildIsoName(base, offset) {
     if (offset === 0) return base;
     const m = base.match(/^(.*?)(\d+)$/);
@@ -321,6 +352,75 @@
     return `${m[1]}${String(next).padStart(width, '0')}`;
   }
 
+  function findPoolEntry(type, anchor) {
+    const pool = state.searchPool[type] || [];
+    const target = (anchor || '').toUpperCase();
+    return pool.find((p) =>
+      (p.anchor || '').toUpperCase() === target ||
+      (p.display_anchor || '').toUpperCase() === target
+    ) || null;
+  }
+
+  function setManualPath(anchor) {
+    if (!anchor) {
+      state.selectedDevice = null;
+      state.manualPath = false;
+      updateRangeValidity();
+      return;
+    }
+    state.selectedDevice = { anchor, display_anchor: anchor, manual: true };
+    state.manualPath = true;
+    setStatus(`Manual path: ${anchor} (offline)`);
+    updateRangeValidity();
+  }
+
+  function isAvailableEntry(entry, type) {
+    if (!entry) return false;
+    if (entry.link_state && entry.link_state.toLowerCase() !== 'unlinked') return false;
+    if (entry.linked_in_xml) return false;
+    if (type === 'SDAQ') {
+      const regDone = (entry.registration || '').toLowerCase() === 'done';
+      if (!regDone || !entry.has_sensor) return false;
+    }
+    return true;
+  }
+
+  function getMaxValidRange() {
+    const type = typeSel.value;
+    if (type !== 'SDAQ' || !state.selectedDevice) return 1;
+    const pool = state.searchPool[type] || [];
+    const baseAnchor = state.selectedDevice.anchor;
+    if (!baseAnchor) return 1;
+    let count = 0;
+    for (let i = 0; i < 64; i++) {
+      const anchor = buildAnchor(baseAnchor, i);
+      if (!anchor) break;
+      const entry = pool.find((p) => (p.anchor || '').toUpperCase() === anchor.toUpperCase());
+      if (!isAvailableEntry(entry, type)) break;
+      count += 1;
+    }
+    return Math.max(1, count || 1);
+  }
+
+  function updateRangeValidity() {
+    if (!rangeInput) return;
+    const type = typeSel.value;
+    if (type !== 'SDAQ' || !state.selectedDevice) {
+      rangeInput.classList.remove('invalid');
+      rangeInput.removeAttribute('title');
+      return;
+    }
+    const maxRange = getMaxValidRange();
+    const current = Math.max(1, parseInt(rangeInput.value || '1', 10));
+    const invalid = current > maxRange;
+    rangeInput.classList.toggle('invalid', invalid);
+    if (invalid) {
+      rangeInput.title = `Only ${maxRange} valid channel(s) available.`;
+    } else {
+      rangeInput.removeAttribute('title');
+    }
+  }
+
   function validateSelection(range) {
     if (!state.selectedDevice) {
       setStatus('Select a sensor from search first', 'error');
@@ -329,6 +429,7 @@
 
     const type = typeSel.value;
     const pool = state.searchPool[type] || [];
+    const manual = state.selectedDevice?.manual;
 
     for (let i = 0; i < range; i++) {
       const anchor = buildAnchor(state.selectedDevice.anchor, i);
@@ -338,6 +439,9 @@
       }
       const entry = pool.find((p) => (p.anchor || '').toUpperCase() === anchor.toUpperCase());
       if (!entry) {
+        if (manual && range === 1) {
+          continue;
+        }
         setStatus(`Channel ${anchor} is not available`, 'error');
         return false;
       }
@@ -362,7 +466,8 @@
 
   function collectSingleRecord(anchor, isoName, baseDesc, entryFromIso) {
     const postfix = postfixSel.value !== 'N/A' ? postfixSel.value : '';
-    const desc = formatDescription(baseDesc || isoName, postfix);
+    const base = normalizeBaseDescription(baseDesc || isoName);
+    const desc = formatDescription(base, postfix);
     const min = minInput.value || (entryFromIso ? entryFromIso.min : '0');
     const max = maxInput.value || (entryFromIso ? entryFromIso.max : '0');
     const unit = unitInput.value || (entryFromIso ? entryFromIso.unit : '') || (state.selectedDevice?.unit || '');
@@ -456,6 +561,10 @@
   [descInput, minInput, maxInput, unitInput].forEach((el) => {
     el.addEventListener('input', () => {
       el.dataset.userEdited = '1';
+      if (el === descInput) {
+        descInput.dataset.base = normalizeBaseDescription(descInput.value);
+        updateDescriptionWithPostfix();
+      }
       if (el === unitInput) renderIsoSuggestions(isoInput.value);
     });
   });
@@ -465,10 +574,28 @@
   });
 
   isoInput.addEventListener('input', (e) => {
+    state.suppressIsoSuggestions = false;
     if (!e.target.value.trim()) {
       clearIsoDefaults();
     }
     renderIsoSuggestions(e.target.value);
+  });
+
+  isoInput.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    state.suppressIsoSuggestions = true;
+    isoDropdown.classList.add('hidden');
+    const custom = isoInput.value.trim();
+    isoInput.value = custom;
+    postfixSel.value = 'N/A';
+    descInput.value = '';
+    descInput.dataset.base = '';
+    delete descInput.dataset.userEdited;
+  });
+
+  postfixSel.addEventListener('change', () => {
+    updateDescriptionWithPostfix();
   });
 
   isoInput.addEventListener('focus', (e) => {
@@ -496,10 +623,65 @@
     window.close();
   });
 
+  pathInput.addEventListener('input', (e) => {
+    const val = e.target.value.trim();
+    if (!val) {
+      state.selectedDevice = null;
+      state.manualPath = false;
+      updateRangeValidity();
+      return;
+    }
+    const entry = findPoolEntry(typeSel.value, val);
+    if (entry) {
+      state.selectedDevice = entry;
+      state.manualPath = false;
+      if (!unitInput.dataset.userEdited && entry.unit) {
+        unitInput.value = entry.unit;
+      }
+      setStatus(`Selected ${entry.display_anchor || entry.anchor || val}`);
+    } else {
+      setManualPath(val);
+    }
+  });
+
+  pathInput.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const val = pathInput.value.trim();
+    if (!val) return;
+    const entry = findPoolEntry(typeSel.value, val);
+    if (entry) {
+      state.selectedDevice = entry;
+      state.manualPath = false;
+      if (!unitInput.dataset.userEdited && entry.unit) {
+        unitInput.value = entry.unit;
+      }
+      setStatus(`Selected ${entry.display_anchor || entry.anchor || val}`);
+    } else {
+      setManualPath(val);
+    }
+  });
+
+  if (rangeHelp && rangeHelpPopup) {
+    rangeHelp.addEventListener('click', (e) => {
+      e.preventDefault();
+      rangeHelpPopup.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!rangeHelpPopup.classList.contains('hidden')) {
+        if (!rangeHelpPopup.contains(e.target) && e.target !== rangeHelp) {
+          rangeHelpPopup.classList.add('hidden');
+        }
+      }
+    });
+  }
+
   window.addEventListener('message', (e) => {
     const data = e.data;
     if (!data || data.type !== 'device-selected') return;
     state.selectedDevice = data.payload || null;
+    state.manualPath = false;
     if (state.selectedDevice) {
       pathInput.value = state.selectedDevice.display_anchor || state.selectedDevice.anchor || '';
       if (!unitInput.dataset.userEdited && state.selectedDevice.unit) {
@@ -507,6 +689,7 @@
       }
       renderIsoSuggestions(isoInput.value);
       setStatus(`Selected ${pathInput.value}`);
+      updateRangeValidity();
     }
   });
 
@@ -518,5 +701,6 @@
     applyTypeRules();
     onRangeChange();
     syncAlarmInputs();
+    updateDescriptionWithPostfix();
   })();
 })();

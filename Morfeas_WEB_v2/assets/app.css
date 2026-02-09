@@ -416,6 +416,34 @@ th.th-filterable .filter-icon {
   color: var(--color-muted);
 }
 
+.th-sortable {
+  position: relative;
+  padding-right: 20px;
+}
+
+.sort-icons {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  vertical-align: middle;
+  color: var(--color-muted);
+  user-select: none;
+}
+
+.sort-icon {
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sort-icon.active {
+  color: var(--color-text);
+}
+
 /* Dropdown menu for column filters */
 .col-filter-menu {
   position: absolute;

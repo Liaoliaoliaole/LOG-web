@@ -36,7 +36,7 @@
     /* ---------- Form grid ---------- */
     .formgrid {
       display: grid !important;
-      grid-template-columns: 220px 1fr;
+      grid-template-columns: 220px minmax(0, 1fr);
       gap: 14px 16px;
       align-items: center;
     }
@@ -49,6 +49,8 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      width: 100%;
+      min-width: 0;
     }
 
     .iso-field {
@@ -56,15 +58,32 @@
       flex-direction: row;
       gap: 6px;
       flex-wrap: nowrap;
+      width: 100%;
     }
 
     .iso-input-wrap {
       position: relative;
       display: inline-block;
-      min-width: 110px;
-      max-width: 240px;
+      min-width: 0;
+      max-width: none;
       width: auto;
-      flex: 0 0 auto;
+      flex: 2 1 0;
+    }
+
+    .iso-input-wrap .input {
+      width: 100%;
+    }
+
+    /* Make ISO input + postfix scale together with the dialog width */
+    .iso-field .input {
+      min-width: 0;
+    }
+
+    .iso-field .w-48 {
+      width: 100% !important;
+      min-width: 0 !important;
+      flex: 1 1 0 !important;
+      padding-inline: 8px !important;
     }
 
     .row-actions {
@@ -155,6 +174,42 @@
       display: none;
     }
 
+    .invalid {
+      border-color: #e11d48 !important;
+      color: #e11d48;
+      box-shadow: 0 0 0 3px rgba(225, 29, 72, .12);
+    }
+
+    .help-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      margin-left: 6px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      color: #6b7280;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .help-pop {
+      position: absolute;
+      z-index: 30;
+      max-width: 280px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      box-shadow: 0 12px 30px rgba(0,0,0,.12);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
     /* ---------- THEME-CONSISTENT DROPDOWN HIGHLIGHT ---------- */
     /* Focus ring on selects (same accent as home) */
     select.input:focus {
@@ -199,8 +254,7 @@
         <!-- Sensor Properties -->
         <div class="label">Sensor Properties</div>
         <div class="inline">
-          <input id="path" class="input" placeholder="Select from search"
-            readonly />
+          <input id="path" class="input" placeholder="Select from search" />
           <button id="btnSearch" class="btn" title="Search">🔍</button>
         </div>
 
@@ -219,11 +273,19 @@
         <div class="label">Description</div>
         <div><input id="desc" class="input" placeholder="Description" /></div>
 
-        <!-- Range (only for SDAQ) -->
-        <div class="label" id="rangeLabel">Range (for SDAQ)</div>
-        <div class="inline" id="rangeRow">
+        <!-- Multilinking Range (only for SDAQ) -->
+        <div class="label" id="rangeLabel">
+          Multilinking Range
+          <span id="rangeHelp" class="help-icon">?</span>
+        </div>
+        <div class="inline" id="rangeRow" style="position:relative;">
           <input id="range" type="number" min="1" value="1"
             class="input w-56" />
+          <div id="rangeHelpPopup" class="help-pop hidden">
+            Multilinking Range lets you create multiple channels at once.
+            It only works when consecutive channels are available and valid.
+            If the device has only one valid channel, the range must stay at 1.
+          </div>
         </div>
 
         <!-- Min -->

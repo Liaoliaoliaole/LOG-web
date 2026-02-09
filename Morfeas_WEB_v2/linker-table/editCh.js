@@ -11,6 +11,7 @@
   const typeSel      = $('#type');
   const pathInput    = $('#path');
   const isoInput     = $('#iso');
+  const postfixSel   = $('#postfix');
   const isoDropdown  = $('#isoDropdown');
   const descInput    = $('#desc');
 
@@ -29,6 +30,7 @@
   const btnSave      = $('#btnSave');
   const btnCancel    = $('#btnCancel');
   const btnSearch    = $('#btnSearch');
+  const titleEl      = document.querySelector('h1');
 
   const channelsApi = window.LOG_WEB?.api?.channels;
   const isoCatalogService = window.LOG_WEB?.services?.isoCatalog;
@@ -43,11 +45,33 @@
     originalIso: '',
   };
 
+  function fillPostfix() {
+    if (!postfixSel) return;
+    postfixSel.innerHTML = '';
+    const add = (v, txt = v) => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = txt;
+      postfixSel.appendChild(o);
+    };
+    add('N/A', 'N/A');
+    for (let i = 1; i <= 20; i++) add(String(i));
+    postfixSel.value = 'N/A';
+  }
+
   const setDisabled = (el, on) => {
     if (!el) return;
     el.disabled = !!on;
-    el.style.background = on ? 'var(--bg-weak)' : '';
+    el.style.background = on ? 'var(--color-bg-weak)' : '';
   };
+
+  function isReplaceMode() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('mode') === 'replace';
+    } catch (_) {
+      return false;
+    }
+  }
 
   function setStatus(msg, tone = 'info') {
     statusBar.textContent = msg;
@@ -87,6 +111,10 @@
 
   function renderIsoSuggestions(filter = '') {
     if (!isoDropdown) return;
+    if (isReplaceMode()) {
+      isoDropdown.classList.add('hidden');
+      return;
+    }
 
     const shouldShow = document.activeElement === isoInput || !!filter.trim();
     if (!shouldShow) {
@@ -238,7 +266,16 @@
     typeSel.value = type || '-';
     state.originalIso = iso || '';
     pathInput.value = payload.display_anchor || payload.anchor || payload.Connection || '';
-    isoInput.value = iso.replace(/^_/, '');
+    const isoClean = iso.replace(/^_/, '');
+    let baseIso = isoClean;
+    let postfix = 'N/A';
+    const m = isoClean.match(/^(.*)_(\d+)$/);
+    if (m) {
+      baseIso = m[1];
+      postfix = m[2];
+    }
+    isoInput.value = baseIso;
+    if (postfixSel) postfixSel.value = postfix;
     descInput.value = payload.description || payload.Description || '';
     minInput.value = payload.min ?? payload.Min ?? '';
     maxInput.value = payload.max ?? payload.Max ?? '';
@@ -290,8 +327,10 @@
     const minVal = minInput.value || (isoEntry ? isoEntry.min : '0');
     const maxVal = maxInput.value || (isoEntry ? isoEntry.max : '0');
 
+    const postfix = postfixSel && postfixSel.value !== 'N/A' ? postfixSel.value : '';
+    const isoFull = postfix ? `${isoVal}_${postfix}` : isoVal;
     const body = {
-      iso_channel: isoVal,
+      iso_channel: isoFull,
       interface_type: type,
       anchor,
       description: descInput.value,
@@ -331,7 +370,7 @@
   }
 
   // ----- EVENTS -----
-  [descInput, minInput, maxInput, unitInput, alarmLowVal, alarmHighVal, isoInput].forEach((el) => {
+  [minInput, maxInput, unitInput, alarmLowVal, alarmHighVal].forEach((el) => {
     el?.addEventListener('input', () => { el.dataset.userEdited = '1'; });
   });
 
@@ -397,12 +436,40 @@
   // ----- INIT -----
   (async function init() {
     const payload = readPayload();
+    fillPostfix();
     hydrateFromPayload(payload);
+    const replaceMode = isReplaceMode();
+    if (replaceMode) {
+      document.title = 'Replace Link';
+      if (titleEl) titleEl.textContent = 'Replace Link';
+      statusBar.textContent = 'Select a new sensor path, then Save.';
+    }
+    setDisabled(typeSel, true);
+    setDisabled(isoInput, true);
+    setDisabled(postfixSel, true);
+    setDisabled(descInput, true);
+    if (replaceMode) {
+      setDisabled(pathInput, false);
+      setDisabled(btnSearch, false);
+      pathInput.classList.remove('ro');
+      btnSearch.classList.remove('ro');
+      setDisabled(minInput, true);
+      setDisabled(maxInput, true);
+      setDisabled(unitInput, true);
+      setDisabled(alarmLowVal, true);
+      setDisabled(alarmHighVal, true);
+      setDisabled(alarmLowChk, true);
+      setDisabled(alarmHighChk, true);
+    } else {
+      setDisabled(pathInput, true);
+      setDisabled(btnSearch, true);
+    }
     await Promise.all([loadIsoCatalog(), loadSearchPool()]);
     if (isoInput.value) {
-      hydrateFromIso(isoInput.value, { skipSuggestions: false });
+      hydrateFromIso(isoInput.value, { skipSuggestions: true });
     }
     syncAlarmInputs();
+    isoDropdown?.classList.add('hidden');
     if (!payload) setStatus('No row data provided', 'error');
   })();
 })();

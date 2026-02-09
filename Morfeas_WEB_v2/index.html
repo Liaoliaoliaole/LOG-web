@@ -128,20 +128,40 @@
             <th>Color</th>
 
             <!-- Status with filter dropdown -->
-            <th data-filter-key="status" class="th-filterable">
+            <th data-filter-key="status" class="th-filterable th-sortable">
               <span>Status</span>
               <span class="filter-icon" aria-hidden="true">▾</span>
+              <span class="sort-icons" data-sort-key="status" aria-hidden="true">
+                <span class="sort-icon up" data-dir="asc">▲</span>
+                <span class="sort-icon down" data-dir="desc">▼</span>
+              </span>
             </th>
 
-            <th>ISOChannel</th>
+            <th class="th-sortable">
+              <span>ISOChannel</span>
+              <span class="sort-icons" data-sort-key="iso" aria-hidden="true">
+                <span class="sort-icon up" data-dir="asc">▲</span>
+                <span class="sort-icon down" data-dir="desc">▼</span>
+              </span>
+            </th>
 
             <!-- Type with filter dropdown -->
-            <th data-filter-key="type" class="th-filterable">
+            <th data-filter-key="type" class="th-filterable th-sortable">
               <span>Type</span>
               <span class="filter-icon" aria-hidden="true">▾</span>
+              <span class="sort-icons" data-sort-key="type" aria-hidden="true">
+                <span class="sort-icon up" data-dir="asc">▲</span>
+                <span class="sort-icon down" data-dir="desc">▼</span>
+              </span>
             </th>
 
-            <th>Connection</th>
+            <th class="th-sortable">
+              <span>Connection</span>
+              <span class="sort-icons" data-sort-key="anchor" aria-hidden="true">
+                <span class="sort-icon up" data-dir="asc">▲</span>
+                <span class="sort-icon down" data-dir="desc">▼</span>
+              </span>
+            </th>
             <th>Value</th>
             <th>History</th>
             <th>Next Calibration</th>

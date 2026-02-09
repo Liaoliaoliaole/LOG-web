@@ -49,6 +49,10 @@
       type: null
     };
     let openFilterMenu = null;
+    const sortState = {
+      key: null,
+      dir: 'asc',
+    };
 
     const GRAPH_LENGTH = 120;
     const measurementHistory = new Map();
@@ -446,6 +450,44 @@
       });
 
       updateMasterCheckbox();
+      applySort();
+    }
+
+    function getSortValue(tr, key) {
+      const cell = tr.querySelector(`td[data-col="${key}"]`);
+      if (!cell) return '';
+      return (cell.textContent || '').trim().toLowerCase();
+    }
+
+    function applySort() {
+      if (!tbody || !tbody.children.length) return;
+      const { key, dir } = sortState;
+      if (!key) return;
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const factor = dir === 'desc' ? -1 : 1;
+      rows.sort((a, b) => {
+        const av = getSortValue(a, key);
+        const bv = getSortValue(b, key);
+        if (av === bv) return 0;
+        return av > bv ? factor : -factor;
+      });
+      rows.forEach((row) => tbody.appendChild(row));
+      rows.forEach((row, idx) => {
+        const indexCell = row.children[1];
+        if (indexCell) indexCell.textContent = String(idx + 1);
+      });
+    }
+
+    function setSortState(key, dir) {
+      sortState.key = key;
+      sortState.dir = dir;
+      document.querySelectorAll('.sort-icon').forEach((icon) => {
+        const parent = icon.closest('.sort-icons');
+        const matchKey = parent?.dataset.sortKey;
+        const matchDir = icon.dataset.dir;
+        icon.classList.toggle('active', matchKey === key && matchDir === dir);
+      });
+      applySort();
     }
 
     function filterTable(query) {
@@ -549,6 +591,15 @@
 
     const thead = $('thead');
     thead?.addEventListener('click', (e) => {
+      const sortIcon = e.target.closest('.sort-icon');
+      if (sortIcon) {
+        e.preventDefault();
+        e.stopPropagation();
+        const sortKey = sortIcon.closest('.sort-icons')?.dataset.sortKey;
+        const dir = sortIcon.dataset.dir;
+        if (sortKey) setSortState(sortKey, dir);
+        return;
+      }
       const th = e.target.closest('th[data-filter-key]');
       if (!th) return;
       const key = th.getAttribute('data-filter-key');
@@ -794,6 +845,7 @@
       });
 
       markCalibrationCells();
+      applySort();
       updateRowVisibility();
     }
 
@@ -936,9 +988,13 @@
       };
     }
 
-    function buildCtxFor(count) {
+    function buildCtxFor(count, row) {
       clearCtx();
       if (count === 1) {
+        const status = row ? getCellText(row, 'status') : '';
+        if (status === 'off-line' || status === 'offline') {
+          addCtxItem('Replace', 'replace');
+        }
         addCtxItem('Edit', 'edit');
         addCtxItem('Delete', 'delete');
         addCtxItem('Scale', 'scale');
@@ -1067,7 +1123,7 @@
       if (count < 1) return;
 
       e.preventDefault();
-      buildCtxFor(count);
+      buildCtxFor(count, selectedRows()[0]);
       showCtx(e.clientX, e.clientY);
     });
 
@@ -1095,6 +1151,21 @@
           } catch (_) { }
           const win = openCenteredPopup('linker-table/edit_channel.html', 'edit_channel_popup', { width: 880, height: 820 });
           try { window.__EDIT_LINK_DATA = rowData; } catch (_) { }
+          break;
+        case 'replace':
+          const trReplace = selectedRows()[0];
+          const isoReplace = (trReplace?.dataset.iso || trReplace?.querySelector('td[data-col="iso"]')?.textContent || '').trim();
+          const cachedReplace = findChannelByIso(isoReplace);
+          const rowDataReplace = cachedReplace || buildRowDataFromDom(trReplace);
+          if (!rowDataReplace) {
+            alert('No channel data available for replace');
+            break;
+          }
+          try {
+            sessionStorage.setItem('edit_channel_payload', JSON.stringify(rowDataReplace));
+          } catch (_) { }
+          openCenteredPopup('linker-table/edit_channel.html?mode=replace', 'replace_channel_popup', { width: 880, height: 820 });
+          try { window.__EDIT_LINK_DATA = rowDataReplace; } catch (_) { }
           break;
         case 'scale':
           // TODO: implement scale behavior

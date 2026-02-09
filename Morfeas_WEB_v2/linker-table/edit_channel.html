@@ -40,7 +40,7 @@
         /* 2-column form grid */
         .formgrid {
             display: grid !important;
-            grid-template-columns: 220px 1fr;
+            grid-template-columns: 220px minmax(0, 1fr);
             gap: 14px 16px;
             align-items: center;
         }
@@ -52,7 +52,9 @@
         .inline {
             display: inline-flex;
             align-items: center;
-            gap: 8px
+            gap: 8px;
+            width: 100%;
+            min-width: 0;
         }
 
         .row-actions {
@@ -76,15 +78,32 @@
             flex-direction: row;
             gap: 6px;
             flex-wrap: nowrap;
+            width: 100%;
         }
 
         .iso-input-wrap {
             position: relative;
             display: inline-block;
-            min-width: 110px;
-            max-width: 240px;
+            min-width: 0;
+            max-width: none;
             width: auto;
-            flex: 0 0 auto;
+            flex: 2 1 0;
+        }
+
+        .iso-input-wrap .input {
+            width: 100%;
+        }
+
+        .iso-field .input {
+            min-width: 0;
+        }
+
+        /* Keep postfix dropdown aligned with ISO input (dynamic ratio) */
+        .w-48 {
+            width: 100% !important;
+            min-width: 0 !important;
+            flex: 1 1 0 !important;
+            padding-inline: 8px !important;
         }
 
         .iso-suggestions {
@@ -145,8 +164,15 @@
 
         /* Make read-only fields visually consistent with disabled look */
         .ro {
-            background: var(--bg-weak) !important;
-            color: var(--muted) !important;
+            background: var(--color-bg-weak) !important;
+            color: var(--color-muted) !important;
+        }
+
+        .input:disabled,
+        select.input:disabled,
+        button.btn:disabled {
+            background: var(--color-bg-weak) !important;
+            color: var(--color-muted) !important;
         }
 
         /* Tighten small inputs used beside checkboxes */
@@ -197,22 +223,24 @@
             <!-- Sensor Path -->
             <div class="label">Sensor's Path</div>
             <div class="inline">
-                <input id="path" class="input" placeholder="Select from search" />
-                <button id="btnSearch" class="btn" title="Search">🔍</button>
+                <input id="path" class="input ro" placeholder="Select from search" disabled />
+                <button id="btnSearch" class="btn" title="Search" disabled>🔍</button>
             </div>
 
             <!-- ISO Code -->
             <div class="label">ISO Code</div>
             <div class="inline iso-field">
                 <div class="iso-input-wrap">
-                    <input id="iso" class="input w-120" placeholder="Search..." />
+                    <input id="iso" class="input w-120 ro" placeholder="Search..." disabled />
                     <div id="isoDropdown" class="iso-suggestions hidden"></div>
                 </div>
+                <span class="muted">_</span>
+                <select id="postfix" class="input w-48 ro" disabled></select>
             </div>
 
             <!-- Description -->
             <div class="label">Description</div>
-            <div><input id="desc" class="input" placeholder="Description" /></div>
+            <div><input id="desc" class="input ro" placeholder="Description" disabled /></div>
 
             <!-- Min -->
             <div class="label">Min</div>
