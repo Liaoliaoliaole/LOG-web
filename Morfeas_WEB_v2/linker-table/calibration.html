@@ -8,8 +8,9 @@
     <link rel="stylesheet" href="../assets/app.css" />
     <style>
         .wrap {
-            max-width: 1080px;
-            margin: 16px auto;
+            max-width: none;
+            width: calc(100vw - 20px);
+            margin: 8px auto;
         }
 
         .card {
@@ -27,7 +28,7 @@
         }
 
         .card-body {
-            padding: 12px 18px 18px
+            padding: 8px 12px 12px
         }
 
         .grid {
@@ -36,6 +37,10 @@
             gap: 10px 14px;
             align-items: center;
             margin-bottom: 12px
+        }
+
+        .grid--info {
+            margin-bottom: 18px
         }
 
         .label {
@@ -62,7 +67,7 @@
         .table th,
         .table td {
             border: 1px solid #e5e7eb;
-            padding: 10px 12px;
+            padding: 6px 8px;
             white-space: nowrap;
             text-align: left
         }
@@ -77,11 +82,16 @@
             opacity: .6
         }
 
+        .cell-invalid {
+            border-color: #dc2626 !important;
+            background: #fef2f2 !important
+        }
+
         .row-actions {
             display: flex;
             gap: 10px;
             justify-content: flex-end;
-            margin-top: 12px
+            margin-top: 8px
         }
 
         .note {
@@ -103,13 +113,38 @@
             <div class="card-body">
 
                 <!-- Channel & scope -->
-                <div class="grid">
+                <div class="grid grid--info">
+                    <div class="label">SerialNumber</div>
+                    <div id="devSerial">-</div>
+
+                    <div class="label">Type</div>
+                    <div id="devType">-</div>
+
+                    <div class="label">Available_Channels</div>
+                    <div id="devAvailChannels">-</div>
+
+                    <div class="label">Samplerate</div>
+                    <div id="devSampleRate">-</div>
+
+                    <div class="label">Max_num_of_cal_points</div>
+                    <div id="devMaxPoints">-</div>
+
                     <div class="label">Channel</div>
+                    <div id="channelFixed">-</div>
+                </div>
+
+                <div class="grid" style="grid-template-columns: 150px 150px 230px 100px 90px 130px 110px 90px;">
+                    <div class="label">Calibration Date</div>
                     <div>
-                        <select id="chSel" class="input" style="height:42px;min-width:120px"></select>
+                        <input id="calDate" type="date" class="input input--w110" />
                     </div>
 
-                    <div class="label">Unit</div>
+                    <div class="label">Re-Calibration Period (Months)</div>
+                    <div>
+                        <input id="calPeriod" type="number" min="0" class="input input--w80" />
+                    </div>
+
+                    <div class="label">CH's Unit</div>
                     <div>
                         <input id="unitBox" class="input input--w110" placeholder="°C, A, V" />
                     </div>
@@ -117,7 +152,6 @@
                     <div class="label">Used Points</div>
                     <div>
                         <input id="usedPoints" type="number" min="1" value="2" class="input input--w80" />
-                        <span class="note">Only the first N rows are enabled.</span>
                     </div>
                 </div>
 
@@ -133,7 +167,6 @@
                                 <th>Gain</th>
                                 <th>C2</th>
                                 <th>C3</th>
-                                <th style="text-align:center">Actions</th>
                             </tr>
                         </thead>
                         <tbody><!-- filled by JS --></tbody>
@@ -141,9 +174,7 @@
                 </div>
 
                 <div class="row-actions">
-                    <button id="btnCalcAll" class="btn">Auto-calc (2-point)</button>
                     <button id="btnSave" class="btn primary">Save</button>
-                    <button id="btnClose" class="btn">Close</button>
                 </div>
 
                 <div id="status" class="note" style="margin-top:8px"></div>

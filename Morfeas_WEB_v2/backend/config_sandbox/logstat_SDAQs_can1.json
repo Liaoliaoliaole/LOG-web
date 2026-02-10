@@ -341,7 +341,7 @@
             "Calibration_Data": [
                 {
                     "Channel": 1,
-                    "Calibration_date_UNIX": 1713996000,
+                    "Calibration_date_UNIX": 1714003200,
                     "Calibration_period": 5,
                     "Amount_of_points": 0,
                     "Unit": "°C",

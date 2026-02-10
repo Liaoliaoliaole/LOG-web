@@ -93,8 +93,9 @@
       if (item.linked_in_xml) return false;
       if (item.link_state && item.link_state.toLowerCase() !== 'unlinked') return false;
       if (type === 'SDAQ') {
-        const reg = (item.registration || '').toLowerCase() === 'done';
-        return reg && item.has_sensor;
+        // Legacy behavior: list unlinked SDAQ channels regardless of No_Sensor.
+        // Only filter out channels already linked in XML (handled above).
+        return true;
       }
       return true;
     });

@@ -180,7 +180,7 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
                     $valid  = false;
                     $value  = null;
                 } elseif ($noSens) {
-                    $status = 'No sensor';
+                    $status = 'NO_Sensor';
                     $valid  = false;
                     $value  = null;
                 } elseif ($over) {

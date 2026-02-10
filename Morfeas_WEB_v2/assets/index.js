@@ -674,6 +674,7 @@
       if (s === 'out of range') return 'st-Error';
       if (s === 'over range') return 'st-Error';
       if (s === 'no sensor') return 'st-Error';
+      if (s === 'no_sensor') return 'st-Error';
       if (s === 'unclassified') return 'st-Error';
       if (s === 'open wire') return 'st-Error';
       if (s === 'short circuit') return 'st-Error';
@@ -1006,6 +1007,33 @@
       }
     }
 
+    function parseSdaqCalibrationContext(anchorText) {
+      const raw = (anchorText || '').toString().trim();
+      if (!raw) return null;
+
+      let match = raw.match(/CAN\s*(\d+)\.ADDR:\s*(\d+)\.CH:\s*(\d+)/i);
+      if (!match) {
+        match = raw.match(/CAN\s*(\d+)\.ADDR:\s*(\d+)\.CH\s*(\d+)/i);
+      }
+      if (!match) {
+        match = raw.match(/CAN\s*(\d+)\.(\d+)\.CH\s*(\d+)/i);
+      }
+      if (!match) return null;
+
+      return {
+        bus: `can${parseInt(match[1], 10)}`,
+        addr: parseInt(match[2], 10),
+        ch: parseInt(match[3], 10),
+      };
+    }
+
+    function parseSerialFromAnchor(anchorText) {
+      const raw = (anchorText || '').toString().trim();
+      if (!raw) return '';
+      const match = raw.match(/^(\d+)\.CH\d+$/i);
+      return match ? match[1] : '';
+    }
+
     function showCtx(x, y) {
       if (!ctx) return;
       ctx.style.left = x + 'px';
@@ -1172,12 +1200,34 @@
           alert('Scale (placeholder)');
           break;
         case 'calibration':
-          const tr = selectedRows()[0];
-          const conn = tr?.querySelector('td[data-col="anchor"]')?.textContent || '';
-          const match = conn.match(/CH:(\d+)/i);
-          const ch = match ? match[1] : 1;
-          openCenteredPopup('linker-table/calibration.html?ch=' + ch + '&unit=%C&points=8',
-            'calibration_popup', { width: 1280, height: 1080 });
+          const trCal = selectedRows()[0];
+          const isoCal = (trCal?.dataset.iso || trCal?.querySelector('td[data-col="iso"]')?.textContent || '').trim();
+          const cachedCal = findChannelByIso(isoCal);
+          const rawAnchorCal = (cachedCal?.anchor || trCal?.dataset.anchor || '').trim();
+          const displayAnchorCal = (cachedCal?.display_anchor
+            || trCal?.querySelector('td[data-col="anchor"]')?.textContent
+            || rawAnchorCal
+            || '').trim();
+
+          const calCtx = parseSdaqCalibrationContext(displayAnchorCal);
+          if (!calCtx) {
+            alert(`Cannot parse SDAQ context from anchor: ${displayAnchorCal || '(empty)'}`);
+            break;
+          }
+
+          const snCal = parseSerialFromAnchor(rawAnchorCal) || parseSerialFromAnchor(displayAnchorCal);
+
+          const params = new URLSearchParams({
+            bus: calCtx.bus,
+            addr: String(calCtx.addr),
+            ch: String(calCtx.ch),
+            points: '8',
+            iso: isoCal,
+          });
+          if (snCal) params.set('sn', snCal);
+
+          openCenteredPopup(`linker-table/calibration.html?${params.toString()}`,
+            'calibration_popup', { width: 2200, height: 1600 });
           break;
         case 'delete':
           deleteSelectedRows();

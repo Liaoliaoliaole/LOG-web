@@ -378,10 +378,6 @@
     if (!entry) return false;
     if (entry.link_state && entry.link_state.toLowerCase() !== 'unlinked') return false;
     if (entry.linked_in_xml) return false;
-    if (type === 'SDAQ') {
-      const regDone = (entry.registration || '').toLowerCase() === 'done';
-      if (!regDone || !entry.has_sensor) return false;
-    }
     return true;
   }
 
@@ -452,13 +448,6 @@
       if (entry.linked_in_xml) {
         setStatus(`Channel ${anchor} already exists in configuration`, 'error');
         return false;
-      }
-      if (type === 'SDAQ') {
-        const regDone = (entry.registration || '').toLowerCase() === 'done';
-        if (!regDone || !entry.has_sensor) {
-          setStatus(`Channel ${anchor} is not ready for linking`, 'error');
-          return false;
-        }
       }
     }
     return true;
