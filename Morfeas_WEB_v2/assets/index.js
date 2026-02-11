@@ -993,13 +993,22 @@
       clearCtx();
       if (count === 1) {
         const status = row ? getCellText(row, 'status') : '';
+        const type = (row?.dataset.type || getCellText(row, 'type') || '').toString().trim().toUpperCase();
+        const iso = (row?.dataset.iso || row?.querySelector('td[data-col="iso"]')?.textContent || '').trim();
+        const cached = findChannelByIso(iso);
+        const devType = (cached?.dev_type || type || '').toString().trim().toUpperCase();
+        const isSdaq = devType === 'SDAQ' || devType.startsWith('SDAQ');
+        const isSdaqIU = devType === 'SDAQ-I' || devType === 'SDAQ-U';
         if (status === 'off-line' || status === 'offline') {
           addCtxItem('Replace', 'replace');
         }
         addCtxItem('Edit', 'edit');
         addCtxItem('Delete', 'delete');
-        addCtxItem('Scale', 'scale');
-        addCtxItem('Calibration', 'calibration');
+        if (isSdaq) {
+          addCtxItem('Change Mode', 'change-mode');
+          if (isSdaqIU) addCtxItem('Scale', 'scale');
+          addCtxItem('Calibration', 'calibration');
+        }
         addCtxItem('Export', 'export');
       } else if (count >= 2) {
         addCtxItem('Delete', 'delete');
@@ -1032,6 +1041,56 @@
       if (!raw) return '';
       const match = raw.match(/^(\d+)\.CH\d+$/i);
       return match ? match[1] : '';
+    }
+
+    function parseMeasNumber(text) {
+      const raw = (text || '').toString().trim();
+      if (!raw || raw === '—' || raw === '-') return null;
+      const m = raw.match(/^-?\d+(?:\.\d+)?/);
+      if (!m) return null;
+      const n = Number(m[0]);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function openSdaqScalePopup(focus = 'scale') {
+      const tr = selectedRows()[0];
+      const iso = (tr?.dataset.iso || tr?.querySelector('td[data-col="iso"]')?.textContent || '').trim();
+      const cached = findChannelByIso(iso);
+      const rawAnchor = (cached?.anchor || tr?.dataset.anchor || '').trim();
+      const displayAnchor = (cached?.display_anchor
+        || tr?.querySelector('td[data-col="anchor"]')?.textContent
+        || rawAnchor
+        || '').trim();
+
+      const ctx = parseSdaqCalibrationContext(displayAnchor);
+      if (!ctx) {
+        alert(`Cannot parse SDAQ context from anchor: ${displayAnchor || '(empty)'}`);
+        return;
+      }
+
+      const sn = parseSerialFromAnchor(rawAnchor) || parseSerialFromAnchor(displayAnchor);
+      const measText = tr?.querySelector('td[data-col="value"]')?.textContent || '';
+      const rawMeas = parseMeasNumber(measText);
+      const devType = (cached?.dev_type || tr?.querySelector('td[data-col="type"]')?.textContent || '').trim();
+      const devTypeUpper = devType.toUpperCase();
+      if (focus === 'scale' && devTypeUpper !== 'SDAQ-I' && devTypeUpper !== 'SDAQ-U') {
+        alert(`Scale is available only for SDAQ-I / SDAQ-U. Current type: ${devType || '(unknown)'}`);
+        return;
+      }
+
+      const params = new URLSearchParams({
+        bus: ctx.bus,
+        addr: String(ctx.addr),
+        ch: String(ctx.ch),
+        iso,
+        focus,
+      });
+      if (sn) params.set('sn', sn);
+      if (devType) params.set('devType', devType);
+      if (rawMeas !== null) params.set('raw', String(rawMeas));
+
+      openCenteredPopup(`linker-table/sdaq_scale.html?${params.toString()}`,
+        'sdaq_scale_popup', { width: 1200, height: 820 });
     }
 
     function showCtx(x, y) {
@@ -1195,9 +1254,11 @@
           openCenteredPopup('linker-table/edit_channel.html?mode=replace', 'replace_channel_popup', { width: 880, height: 820 });
           try { window.__EDIT_LINK_DATA = rowDataReplace; } catch (_) { }
           break;
+        case 'change-mode':
+          openSdaqScalePopup('mode');
+          break;
         case 'scale':
-          // TODO: implement scale behavior
-          alert('Scale (placeholder)');
+          openSdaqScalePopup('scale');
           break;
         case 'calibration':
           const trCal = selectedRows()[0];
