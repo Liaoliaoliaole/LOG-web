@@ -42,7 +42,7 @@
                 </Point_2>
                 <Point_3>
                     <Measure>158</Measure>
-                    <Reference>-nan</Reference>
+                    <Reference>0</Reference>
                     <Offset>0</Offset>
                     <Gain>0.1</Gain>
                     <C2>0</C2>

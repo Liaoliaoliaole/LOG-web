@@ -1446,12 +1446,21 @@
     loadIsoTable(true);
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Delete' && canUseGlobalDelete(e)) {
+      if (!canUseGlobalDelete(e)) return;
+
+      if (e.key === 'Delete') {
         const anySelected = selectedRows().length > 0;
         if (anySelected) {
           e.preventDefault();
           deleteSelectedRows();
         }
+        return;
+      }
+
+      // Add Channel shortcut: Ctrl/Cmd + Shift + A
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && String(e.key).toLowerCase() === 'a') {
+        e.preventDefault();
+        openCenteredPopup('tool-bar/add_channel.html', 'add_channel_popup', { width: 880, height: 820 });
       }
     });
 

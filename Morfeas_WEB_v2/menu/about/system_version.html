@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>System Version</title>
+    <link rel="stylesheet" href="../../assets/app.css" />
+    <style>
+    .wrap {
+      max-width: 520px;
+      margin: 16px auto;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 900;
+      font-size: 20px;
+    }
+
+    .card-body {
+      padding: 14px 16px;
+    }
+
+    .grid {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    .grid td {
+      border-bottom: 1px solid #eef0f3;
+      padding: 10px 8px;
+      vertical-align: middle;
+      color: var(--text);
+    }
+
+    .label {
+      width: 180px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .value {
+      font-weight: 700;
+    }
+  </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <div class="card-head">System Version</div>
+        <div class="card-body">
+          <table class="grid" aria-label="System version information">
+            <tbody>
+              <tr>
+                <td class="label">Version</td>
+                <td class="value">Morfeas WEB v2.0.0-mock</td>
+              </tr>
+              <tr>
+                <td class="label">Last Updated</td>
+                <td class="value">2026-02-11 09:10 (mock)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') window.close();
+    });
+  </script>
+  </body>
+
+</html>
