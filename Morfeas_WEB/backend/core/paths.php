@@ -81,9 +81,13 @@ function backend_log_config_path(): string
 
 function backend_iso_standard_dir(): string
 {
-    return backend_env_dir(
-        'LOG_WEB_ISO_STANDARD_DIR',
-        '/home/pi/Morfeas_config/iso_standards',
-        dirname(__DIR__)
-    );
+    // Legacy-style hardcoded live path.
+    return '/home/morfeas/configuration/';
+
+    // Env-based mode (kept for future use):
+    // return backend_env_dir(
+    //     'LOG_WEB_ISO_STANDARD_DIR',
+    //     '/home/pi/Morfeas_config/iso_standards',
+    //     dirname(__DIR__)
+    // );
 }
