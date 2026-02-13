@@ -26,7 +26,10 @@ function cal_fail(string $error, int $code = 400): void
 function cal_mode(?string $queryMode = null, ?array $body = null): string
 {
     $fromBody = is_array($body) ? ($body['mode'] ?? null) : null;
-    $raw = $queryMode ?? $fromBody ?? getenv('LOG_WEB_CALIBRATION_MODE') ?: 'mock';
+    // Legacy-style default: live.
+    $raw = $queryMode ?? $fromBody ?? getenv('LOG_WEB_CALIBRATION_MODE') ?: 'live';
+    // Sandbox-first default (kept for future use):
+    // $raw = $queryMode ?? $fromBody ?? getenv('LOG_WEB_CALIBRATION_MODE') ?: 'mock';
     $mode = strtolower(trim((string)$raw));
     return $mode === 'live' ? 'live' : 'mock';
 }

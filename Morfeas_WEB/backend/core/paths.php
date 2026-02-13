@@ -36,31 +36,47 @@ function backend_env_file(string $env, string $default, string $baseDir): string
 
 function backend_sandbox_dir(): string
 {
-    $baseDir = dirname(__DIR__);
-    return backend_env_dir('LOG_WEB_SANDBOX_DIR', $baseDir . '/config_sandbox', $baseDir);
+    // Legacy-style hardcoded path: keep sandbox as an empty local dir.
+    return '/var/lib/morfeas_web_empty/';
+
+    // Sandbox/env-based mode (kept for future use):
+    // $baseDir = dirname(__DIR__);
+    // return backend_env_dir('LOG_WEB_SANDBOX_DIR', $baseDir . '/config_sandbox', $baseDir);
 }
 
 function backend_ramdisk_dir(): string
 {
-    return backend_env_dir('LOG_WEB_RAMDISK_DIR', '/mnt/ramdisk', dirname(__DIR__));
+    // Legacy-style hardcoded live path.
+    return '/mnt/ramdisk/';
+
+    // Env-based mode (kept for future use):
+    // return backend_env_dir('LOG_WEB_RAMDISK_DIR', '/mnt/ramdisk', dirname(__DIR__));
 }
 
 function backend_opcua_config_path(): string
 {
-    return backend_env_file(
-        'LOG_WEB_OPCUA_CONFIG_PATH',
-        rtrim(backend_sandbox_dir(), '/') . '/OPC_UA_Config.mock.xml',
-        dirname(__DIR__)
-    );
+    // Legacy-style hardcoded live path.
+    return '/home/morfeas/configuration/OPC_UA_Config.xml';
+
+    // Env/sandbox-based mode (kept for future use):
+    // return backend_env_file(
+    //     'LOG_WEB_OPCUA_CONFIG_PATH',
+    //     rtrim(backend_sandbox_dir(), '/') . '/OPC_UA_Config.mock.xml',
+    //     dirname(__DIR__)
+    // );
 }
 
 function backend_log_config_path(): string
 {
-    return backend_env_file(
-        'LOG_WEB_LOG_CONFIG_PATH',
-        rtrim(backend_sandbox_dir(), '/') . '/LOG_config.mock.xml',
-        dirname(__DIR__)
-    );
+    // Legacy-style hardcoded live path.
+    return '/home/morfeas/configuration/Morfeas_config.xml';
+
+    // Env/sandbox-based mode (kept for future use):
+    // return backend_env_file(
+    //     'LOG_WEB_LOG_CONFIG_PATH',
+    //     rtrim(backend_sandbox_dir(), '/') . '/LOG_config.mock.xml',
+    //     dirname(__DIR__)
+    // );
 }
 
 function backend_iso_standard_dir(): string
