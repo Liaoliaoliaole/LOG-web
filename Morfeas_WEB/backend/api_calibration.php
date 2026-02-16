@@ -7,7 +7,6 @@ header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
 header('Expires: 0');
 
-$sandboxDir = backend_sandbox_dir();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 function cal_json(array $payload, int $code = 200): void
@@ -21,17 +20,6 @@ function cal_fail(string $error, int $code = 400): void
 {
     cal_json(['ok' => false, 'error' => $error], $code);
     exit;
-}
-
-function cal_mode(?string $queryMode = null, ?array $body = null): string
-{
-    $fromBody = is_array($body) ? ($body['mode'] ?? null) : null;
-    // Legacy-style default: live.
-    $raw = $queryMode ?? $fromBody ?? getenv('LOG_WEB_CALIBRATION_MODE') ?: 'live';
-    // Sandbox-first default (kept for future use):
-    // $raw = $queryMode ?? $fromBody ?? getenv('LOG_WEB_CALIBRATION_MODE') ?: 'mock';
-    $mode = strtolower(trim((string)$raw));
-    return $mode === 'live' ? 'live' : 'mock';
 }
 
 function cal_normalize_bus($bus): string
@@ -70,11 +58,6 @@ function cal_normalize_addr($addr): ?int
     return $value;
 }
 
-function cal_mock_xml_path(string $sandboxDir, string $bus, int $addr): string
-{
-    return sprintf('%s/sdaq_%s_addr%02d.xml', rtrim($sandboxDir, '/'), $bus, $addr);
-}
-
 function cal_run_command(string $cmd, ?string $stdin = null): array
 {
     $desc = [
@@ -108,21 +91,6 @@ function cal_run_command(string $cmd, ?string $stdin = null): array
     ];
 }
 
-function cal_get_units_mock(): array
-{
-    $unitsPath = rtrim(backend_sandbox_dir(), '/') . '/sdaq_units.json';
-    if (is_file($unitsPath)) {
-        $raw = file_get_contents($unitsPath);
-        $decoded = $raw !== false ? json_decode($raw, true) : null;
-        if (is_array($decoded) && isset($decoded['SDAQ_UNITs']) && is_array($decoded['SDAQ_UNITs'])) {
-            return $decoded;
-        }
-    }
-
-    // Fallback defaults when optional sdaq_units.json does not exist.
-    return ['SDAQ_UNITs' => ['V', 'mV', 'A', 'mA', 'Ohm', 'degC', 'degF', 'K', '%', '%RH', 'ppm', 'Pa', 'kPa', 'bar', 'm/s', 'g']];
-}
-
 function cal_get_units_live(): array
 {
     $res = cal_run_command('SDAQ_psim -u');
@@ -137,21 +105,6 @@ function cal_get_units_live(): array
     }
 
     return $decoded;
-}
-
-function cal_get_xml_mock(string $sandboxDir, string $bus, int $addr): string
-{
-    $path = cal_mock_xml_path($sandboxDir, $bus, $addr);
-    if (!is_file($path)) {
-        throw new RuntimeException('Mock calibration XML not found: ' . basename($path), 404);
-    }
-
-    $xml = file_get_contents($path);
-    if ($xml === false || trim($xml) === '') {
-        throw new RuntimeException('Mock calibration XML is empty: ' . basename($path));
-    }
-
-    return $xml;
 }
 
 function cal_get_xml_live(string $bus, int $addr): string
@@ -174,25 +127,6 @@ function cal_get_xml_live(string $bus, int $addr): string
     }
 
     return $xml;
-}
-
-function cal_save_xml_mock(string $sandboxDir, string $bus, int $addr, string $xml): array
-{
-    $path = cal_mock_xml_path($sandboxDir, $bus, $addr);
-    $dir = dirname($path);
-
-    if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
-        throw new RuntimeException('Failed to create mock calibration directory');
-    }
-
-    if (file_put_contents($path, $xml) === false) {
-        throw new RuntimeException('Failed to write mock calibration XML');
-    }
-
-    return [
-        'message' => sprintf('Mock calibration saved for %s addr %d', strtoupper($bus), $addr),
-        'path' => $path,
-    ];
 }
 
 function cal_save_xml_live(string $bus, int $addr, string $xml): array
@@ -225,10 +159,10 @@ try {
                 $action = 'xml';
             }
         }
-        $mode = cal_mode($_GET['mode'] ?? null);
+        $mode = 'live';
 
         if ($action === 'units') {
-            $units = $mode === 'live' ? cal_get_units_live() : cal_get_units_mock();
+            $units = cal_get_units_live();
             cal_json([
                 'ok' => true,
                 'mode' => $mode,
@@ -245,9 +179,7 @@ try {
                 cal_fail('Missing or invalid bus/addr for action=xml', 400);
             }
 
-            $xml = $mode === 'live'
-                ? cal_get_xml_live($bus, $addr)
-                : cal_get_xml_mock($sandboxDir, $bus, $addr);
+            $xml = cal_get_xml_live($bus, $addr);
 
             header('Content-Type: application/xml; charset=utf-8');
             header('X-Calibration-Mode: ' . $mode);
@@ -260,7 +192,7 @@ try {
 
     if ($method === 'POST') {
         $body = read_json_body();
-        $mode = cal_mode($_GET['mode'] ?? null, $body);
+        $mode = 'live';
 
         $bus = cal_normalize_bus($body['bus'] ?? ($body['SDAQnet'] ?? ''));
         $addr = cal_normalize_addr($body['addr'] ?? ($body['SDAQaddr'] ?? null));
@@ -274,9 +206,7 @@ try {
             cal_fail('xmlContent is required', 400);
         }
 
-        $result = $mode === 'live'
-            ? cal_save_xml_live($bus, $addr, $xml)
-            : cal_save_xml_mock($sandboxDir, $bus, $addr, $xml);
+        $result = cal_save_xml_live($bus, $addr, $xml);
 
         cal_json([
             'ok' => true,

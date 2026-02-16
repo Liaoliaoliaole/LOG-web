@@ -2,12 +2,9 @@
 
 require_once __DIR__ . '/../repositories/log_config_repository.php';
 
-function device_collect_sdaq_devices(string $ramdisk, string $sandboxDir): array
+function device_collect_sdaq_devices(string $ramdisk): array
 {
-    $paths = array_merge(
-        glob($sandboxDir . 'logstat*.json') ?: [],
-        glob($ramdisk . 'logstat*.json') ?: []
-    );
+    $paths = glob($ramdisk . 'logstat*.json') ?: [];
 
     $devices = [];
 
@@ -66,9 +63,9 @@ function device_collect_sdaq_devices(string $ramdisk, string $sandboxDir): array
     return array_values($devices);
 }
 
-function device_list(string $ramdisk, string $sandboxDir, string $logConfig, int $maxComponents): array
+function device_list(string $ramdisk, string $logConfig, int $maxComponents): array
 {
-    $auto   = device_collect_sdaq_devices($ramdisk, $sandboxDir);
+    $auto   = device_collect_sdaq_devices($ramdisk);
     $manual = log_config_load_manual_devices($logConfig);
     $all    = array_merge($manual, $auto);
 

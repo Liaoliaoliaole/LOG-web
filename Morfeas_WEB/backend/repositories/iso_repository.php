@@ -1,6 +1,6 @@
 <?php
 
-function iso_collect_files(string $sandboxDir, string $isoStandardDir): array
+function iso_collect_files(string $isoStandardDir): array
 {
     $paths = [];
     $locations = [
@@ -32,22 +32,10 @@ function iso_collect_files(string $sandboxDir, string $isoStandardDir): array
     return $items;
 }
 
-function iso_resolve_upload_dir(string $sandboxDir, string $isoStandardDir): string
+function iso_resolve_upload_dir(string $isoStandardDir): string
 {
     $piDir = rtrim($isoStandardDir, '/') . '/';
     return $piDir;
-
-    // Sandbox fallback mode (kept for future use):
-    // if (is_dir($piDir) && is_writable($piDir)) {
-    //     return $piDir;
-    // }
-    //
-    // $sandboxIso = $sandboxDir . 'iso_standards/';
-    // if (!is_dir($sandboxIso)) {
-    //     @mkdir($sandboxIso, 0775, true);
-    // }
-    //
-    // return rtrim($sandboxIso, '/') . '/';
 }
 
 function iso_sanitize_filename(string $name): string

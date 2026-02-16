@@ -6,7 +6,6 @@ require __DIR__ . '/services/device_service.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-$sandboxDir = backend_sandbox_dir();
 $logConfig  = backend_log_config_path();
 $ramdisk    = backend_ramdisk_dir();
 $maxComponents = 16; // legacy limit (Morfeas_comp_amount_max)
@@ -16,7 +15,7 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 try {
     switch ($method) {
         case 'GET':
-            $payload = device_list($ramdisk, $sandboxDir, $logConfig, $maxComponents);
+            $payload = device_list($ramdisk, $logConfig, $maxComponents);
             echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
             break;
 

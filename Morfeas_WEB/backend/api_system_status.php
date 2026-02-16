@@ -1,14 +1,13 @@
 <?php
 // backend/api_system_status.php
-// Provides System Status (Details) by merging ramdisk and sandbox logstat data.
+// Provides System Status (Details) from live ramdisk logstat data.
 
 require __DIR__ . '/core/paths.php';
 require __DIR__ . '/services/system_status_service.php';
 
 header('Content-Type: application/json');
 
-$ramdisk    = backend_ramdisk_dir();
-$sandboxDir = backend_sandbox_dir();
+$ramdisk = backend_ramdisk_dir();
 
 $action = $_GET['action'] ?? 'details';
 if ($action !== 'details') {
@@ -16,6 +15,6 @@ if ($action !== 'details') {
     exit;
 }
 
-$entries = system_status_entries($sandboxDir, $ramdisk);
+$entries = system_status_entries($ramdisk);
 
 echo json_encode(['ok' => true, 'entries' => $entries], JSON_PRETTY_PRINT);

@@ -2,18 +2,18 @@
 
 require_once __DIR__ . '/../repositories/logstat_repository.php';
 
-function system_status_entries(string $sandboxDir, string $ramdisk): array
+function system_status_entries(string $ramdisk): array
 {
     $entries = [];
 
-    foreach (logstat_collect_paths('logstat_SDAQ*.json', $sandboxDir, $ramdisk) as $path) {
+    foreach (logstat_collect_paths('logstat_SDAQ*.json', $ramdisk) as $path) {
         $json = logstat_load_json($path);
         if ($json === null) continue;
 
         $entries[] = system_status_build_sdaq_entry($json, $path);
     }
 
-    foreach (logstat_collect_paths('logstat_sys.json', $sandboxDir, $ramdisk) as $path) {
+    foreach (logstat_collect_paths('logstat_sys.json', $ramdisk) as $path) {
         $json = logstat_load_json($path);
         if ($json === null) continue;
 

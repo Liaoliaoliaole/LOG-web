@@ -9,7 +9,6 @@
   const requestedSn = (params.get('sn') || '').trim();
   const bus = (params.get('bus') || '').trim().toLowerCase();
   const addrRaw = params.get('addr');
-  const mode = (params.get('mode') || '').trim().toLowerCase();
 
   const addr = addrRaw !== null && /^\d+$/.test(addrRaw) ? parseInt(addrRaw, 10) : null;
   const apiUrl = new URL('../backend/api_calibration.php', window.location.href);
@@ -394,7 +393,6 @@
   async function fetchUnits() {
     const url = new URL(apiUrl.toString());
     url.searchParams.set('action', 'units');
-    if (mode) url.searchParams.set('mode', mode);
 
     const res = await fetch(url.toString(), { method: 'GET', cache: 'no-store', headers: { Accept: 'application/json' } });
     if (!res.ok) throw new Error(`Units request failed: HTTP ${res.status}`);
@@ -426,7 +424,6 @@
     url.searchParams.set('action', 'xml');
     url.searchParams.set('bus', bus);
     url.searchParams.set('addr', String(addr));
-    if (mode) url.searchParams.set('mode', mode);
 
     const res = await fetch(url.toString(), { method: 'GET', cache: 'no-store', headers: { Accept: 'application/xml, text/xml' } });
     if (!res.ok) {
@@ -496,7 +493,6 @@
 
     const xmlContent = buildSaveXmlOnlySelectedChannel(currentObj);
     const payload = { bus, addr, xmlContent };
-    if (mode) payload.mode = mode;
 
     const res = await fetch(apiUrl.toString(), {
       method: 'POST',

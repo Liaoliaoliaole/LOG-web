@@ -1,7 +1,4 @@
 <?php
-// backend/api_channels.php  //li@vmvm:~/LOG_project/LOG-web/Morfeas_WEB_v2$ php -S 0.0.0.0:8080 -t .
-//http://localhost:8080/LOG_WEB_v2/index.html
-
 require __DIR__ . '/core/paths.php';
 require __DIR__ . '/core/request.php';
 require __DIR__ . '/core/system_info.php';
@@ -11,7 +8,6 @@ require __DIR__ . '/services/channel_service.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-$sandboxDir = backend_sandbox_dir();
 $isoStandardDir = backend_iso_standard_dir();
 $ramdisk = backend_ramdisk_dir();
 $xmlPath = backend_opcua_config_path();
@@ -29,7 +25,7 @@ if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_upload') {
         exit;
     }
 
-    $targetDir = iso_resolve_upload_dir($sandboxDir, $isoStandardDir);
+    $targetDir = iso_resolve_upload_dir($isoStandardDir);
     $filename = iso_sanitize_filename($_FILES['file']['name'] ?? 'ISOstandard.xml');
     $dest = $targetDir . $filename;
 
@@ -44,14 +40,14 @@ if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_upload') {
 }
 
 if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_list') {
-    $items = iso_collect_files($sandboxDir, $isoStandardDir);
+    $items = iso_collect_files($isoStandardDir);
 
     echo json_encode(['files' => $items], JSON_PRETTY_PRINT);
     exit;
 }
 
 if (isset($_GET['include']) && $_GET['include'] === 'iso_standard') {
-    $items = iso_collect_files($sandboxDir, $isoStandardDir);
+    $items = iso_collect_files($isoStandardDir);
     $target = $_GET['file'] ?? null;
 
     $paths = iso_find_file_path($items, $target);
@@ -83,10 +79,10 @@ if (isset($_GET['include']) && $_GET['include'] === 'machine_info') {
     exit;
 }
 
-$sdaqLogFiles      = logstat_collect_paths('logstat_SDAQ*.json', $sandboxDir, $ramdisk);
-$noxLogFiles       = logstat_collect_paths('logstat_NOX*.json', $sandboxDir, $ramdisk);
-$ioboxLogFiles     = logstat_collect_paths('logstat_IOBOX*.json', $sandboxDir, $ramdisk);
-$mtiLogFiles       = logstat_collect_paths('logstat_MTI*.json', $sandboxDir, $ramdisk);
+$sdaqLogFiles      = logstat_collect_paths('logstat_SDAQ*.json', $ramdisk);
+$noxLogFiles       = logstat_collect_paths('logstat_NOX*.json', $ramdisk);
+$ioboxLogFiles     = logstat_collect_paths('logstat_IOBOX*.json', $ramdisk);
+$mtiLogFiles       = logstat_collect_paths('logstat_MTI*.json', $ramdisk);
 $sdaqDeviceTypes   = sdaq_collect_device_types($sdaqLogFiles);
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
