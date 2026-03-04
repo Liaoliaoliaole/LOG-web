@@ -64,11 +64,11 @@
             <tbody>
               <tr>
                 <td class="label">Version</td>
-                <td class="value">Morfeas WEB v2.0.0-mock</td>
+                <td class="value" id="versionValue">Loading...</td>
               </tr>
               <tr>
                 <td class="label">Last Updated</td>
-                <td class="value">2026-02-11 09:10 (mock)</td>
+                <td class="value" id="lastUpdatedValue">Loading...</td>
               </tr>
             </tbody>
           </table>
@@ -77,9 +77,31 @@
     </div>
 
     <script>
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') window.close();
-    });
+    (function () {
+      const versionEl = document.getElementById('versionValue');
+      const updatedEl = document.getElementById('lastUpdatedValue');
+
+      async function loadSystemVersion() {
+        try {
+          const res = await fetch('../../backend/api_system_version.php', { cache: 'no-store' });
+          const data = await res.json();
+          if (!res.ok || !data || data.ok !== true) {
+            throw new Error((data && data.error) || 'Failed to load system version');
+          }
+          versionEl.textContent = data.version && data.version.label ? data.version.label : 'unknown';
+          updatedEl.textContent = data.last_updated || 'unknown';
+        } catch (err) {
+          versionEl.textContent = 'unknown';
+          updatedEl.textContent = 'unknown';
+        }
+      }
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') window.close();
+      });
+
+      loadSystemVersion();
+    })();
   </script>
   </body>
 
