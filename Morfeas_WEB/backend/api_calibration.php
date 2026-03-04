@@ -203,6 +203,21 @@ function cal_append_text_node(DOMDocument $doc, DOMElement $parent, string $tag,
     $parent->appendChild($node);
 }
 
+function cal_get_point_field_text(?DOMElement $chNode, int $pointIndex, string $field): string
+{
+    if (!$chNode) {
+        return '';
+    }
+
+    $xpath = new DOMXPath($chNode->ownerDocument);
+    $query = sprintf('./Points/Point_%d/%s', $pointIndex, $field);
+    $node = $xpath->query($query, $chNode)->item(0);
+    if (!$node instanceof DOMElement) {
+        return '';
+    }
+    return trim($node->textContent ?? '');
+}
+
 function cal_build_scale_xml_payload(
     string $sourceXml,
     int $ch,
@@ -257,20 +272,28 @@ function cal_build_scale_xml_payload(
     $dstCh->appendChild($points);
 
     $pointDefs = [
-        ['Point_0', $rawLow, $engLow],
-        ['Point_1', $rawHigh, $engHigh],
+        [0, $rawLow, $engLow],
+        [1, $rawHigh, $engHigh],
     ];
 
-    foreach ($pointDefs as [$name, $measure, $reference]) {
+    foreach ($pointDefs as [$idx, $measure, $reference]) {
+        $name = 'Point_' . $idx;
         $pointNode = $doc->createElement($name);
         $points->appendChild($pointNode);
 
         cal_append_text_node($doc, $pointNode, 'Measure', cal_num_to_string((float)$measure));
         cal_append_text_node($doc, $pointNode, 'Reference', cal_num_to_string((float)$reference));
-        cal_append_text_node($doc, $pointNode, 'Offset', '0');
-        cal_append_text_node($doc, $pointNode, 'Gain', '1');
-        cal_append_text_node($doc, $pointNode, 'C2', '0');
-        cal_append_text_node($doc, $pointNode, 'C3', '0');
+
+        // Preserve coefficient terms from current device XML when possible.
+        $offset = cal_get_point_field_text($sourceChNode instanceof DOMElement ? $sourceChNode : null, $idx, 'Offset');
+        $gain = cal_get_point_field_text($sourceChNode instanceof DOMElement ? $sourceChNode : null, $idx, 'Gain');
+        $c2 = cal_get_point_field_text($sourceChNode instanceof DOMElement ? $sourceChNode : null, $idx, 'C2');
+        $c3 = cal_get_point_field_text($sourceChNode instanceof DOMElement ? $sourceChNode : null, $idx, 'C3');
+
+        cal_append_text_node($doc, $pointNode, 'Offset', $offset !== '' ? $offset : '0');
+        cal_append_text_node($doc, $pointNode, 'Gain', $gain !== '' ? $gain : '1');
+        cal_append_text_node($doc, $pointNode, 'C2', $c2 !== '' ? $c2 : '0');
+        cal_append_text_node($doc, $pointNode, 'C3', $c3 !== '' ? $c3 : '0');
     }
 
     $xml = $doc->saveXML();
@@ -344,8 +367,8 @@ try {
             if ($rawLow === null || $rawHigh === null || $engLow === null || $engHigh === null) {
                 cal_fail('Scale values must be valid numbers', 400);
             }
-            if ((float)$rawHigh === (float)$rawLow) {
-                cal_fail('Invalid raw range: RawHigh equals RawLow', 400);
+            if ((float)$rawHigh <= (float)$rawLow) {
+                cal_fail('Invalid raw range: RawHigh must be greater than RawLow', 400);
             }
             if ($engUnit === '') {
                 cal_fail('engUnit is required for action=scale', 400);

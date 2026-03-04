@@ -160,8 +160,8 @@
       throw new Error('Raw and Engineering low/high values are required');
     }
 
-    if (rawHigh === rawLow) {
-      throw new Error('Invalid raw range: RawHigh equals RawLow');
+    if (rawHigh <= rawLow) {
+      throw new Error('Invalid raw range: RawHigh must be greater than RawLow');
     }
 
     const engUnit = getSelectedUnit();

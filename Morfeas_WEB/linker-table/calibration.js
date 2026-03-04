@@ -137,7 +137,7 @@
   }
 
   function invalidMessage(onlyUsed = true) {
-    const used = Math.max(1, toInt(usedInput.value, 1));
+    const used = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
     const items = Array.from(state.invalidCells.values())
       .filter((it) => !onlyUsed || it.rowIdx < used)
       .sort((a, b) => a.rowIdx - b.rowIdx);
@@ -146,7 +146,7 @@
   }
 
   function applyUsed() {
-    const used = Math.max(1, Math.min(state.maxPoints, toInt(usedInput.value, 1)));
+    const used = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
     if (String(used) !== usedInput.value) usedInput.value = String(used);
 
     rows.forEach((tr, idx) => {
@@ -205,7 +205,7 @@
       return {
         Calibration_date: ymdToSlash(todayYmd()),
         Calibration_Period: '0',
-        Used_Points: '1',
+        Used_Points: '0',
         Unit: requestedUnit || '',
         Points: {},
       };
@@ -214,7 +214,7 @@
     const out = {
       Calibration_date: getText(chNode, ':scope > Calibration_date', ymdToSlash(todayYmd())),
       Calibration_Period: getText(chNode, ':scope > Calibration_Period', '0'),
-      Used_Points: getText(chNode, ':scope > Used_Points', '1'),
+      Used_Points: getText(chNode, ':scope > Used_Points', '0'),
       Unit: getText(chNode, ':scope > Unit', requestedUnit || ''),
       Points: {},
     };
@@ -241,7 +241,7 @@
   function fillFormFromChannelObj(chObj) {
     clearAllInvalidMarks();
 
-    const used = Math.max(1, Math.min(state.maxPoints, toInt(chObj?.Used_Points ?? 1, 1)));
+    const used = Math.max(0, Math.min(state.maxPoints, toInt(chObj?.Used_Points ?? 0, 0)));
     usedInput.value = String(used);
 
     const ymd = slashToYmd(chObj?.Calibration_date || '');
@@ -280,7 +280,7 @@
   }
 
   function collectChannelObjFromForm() {
-    const used = Math.max(1, Math.min(state.maxPoints, toInt(usedInput.value, 1)));
+    const used = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
 
     const obj = {
       Calibration_date: ymdToSlash(calDateInput.value) || ymdToSlash(todayYmd()),
@@ -310,7 +310,7 @@
   }
 
   function normalizeChannelForDiff(chObj) {
-    const used = Math.max(1, Math.min(state.maxPoints, toInt(chObj?.Used_Points ?? 1, 1)));
+    const used = Math.max(0, Math.min(state.maxPoints, toInt(chObj?.Used_Points ?? 0, 0)));
     const out = {
       Calibration_date: normalizeScalar(chObj?.Calibration_date),
       Calibration_Period: normalizeScalar(chObj?.Calibration_Period),
@@ -371,7 +371,7 @@
     appendTextNode(outDoc, chNode, 'Unit', channelObj.Unit);
 
     const pointsNode = outDoc.createElement('Points');
-    const used = Math.max(1, Math.min(state.maxPoints, toInt(channelObj.Used_Points, 1)));
+    const used = Math.max(0, Math.min(state.maxPoints, toInt(channelObj.Used_Points, 0)));
 
     // Legacy-compatible: send only used points for selected channel.
     for (let i = 0; i < used; i++) {
@@ -464,7 +464,7 @@
   }
 
   function validateUsedRowsNoNan() {
-    const used = Math.max(1, Math.min(state.maxPoints, toInt(usedInput.value, 1)));
+    const used = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
 
     for (let i = 0; i < used; i++) {
       pointCols.forEach((c) => {
@@ -516,7 +516,7 @@
     const rowIdx = rows.indexOf(tr);
     const colKey = inp.dataset.k || '';
     const raw = String(inp.value || '').trim();
-    const used = Math.max(1, Math.min(state.maxPoints, toInt(usedInput.value, 1)));
+    const used = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
 
     if (rowIdx >= used) {
       inp.value = '0';
@@ -554,7 +554,7 @@
   (async function init() {
     try {
       buildRows();
-      usedInput.value = '1';
+      usedInput.value = '0';
       calPeriodInput.value = '0';
       calDateInput.value = todayYmd();
       unitBox.value = requestedUnit;
