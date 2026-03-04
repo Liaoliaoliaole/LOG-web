@@ -138,10 +138,20 @@
 
     const term = filter.trim().toLowerCase();
     if (term) {
-      entries = entries.filter((e) =>
-        (e.code || '').toLowerCase().includes(term) ||
-        (e.description || '').toLowerCase().includes(term)
-      );
+      entries = entries.filter((e) => {
+        const fields = [
+          e.code,
+          e.description,
+          e.unit,
+          e.min,
+          e.max,
+          e.alarmHigh,
+          e.alarmHighVal,
+          e.alarmLow,
+          e.alarmLowVal,
+        ];
+        return fields.some((v) => String(v || '').toLowerCase().includes(term));
+      });
     }
 
     isoDropdown.innerHTML = '';
