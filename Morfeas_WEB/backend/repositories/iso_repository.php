@@ -38,6 +38,16 @@ function iso_resolve_upload_dir(string $isoStandardDir): string
     return $piDir;
 }
 
+function iso_ensure_upload_dir(string $dir): void
+{
+    if (is_dir($dir)) {
+        return;
+    }
+    if (!mkdir($dir, 0775, true) && !is_dir($dir)) {
+        throw new RuntimeException("Failed to create ISO upload directory: {$dir}");
+    }
+}
+
 function iso_sanitize_filename(string $name): string
 {
     $base = basename($name);
@@ -49,6 +59,33 @@ function iso_sanitize_filename(string $name): string
         $base .= '.xml';
     }
     return $base;
+}
+
+function iso_unique_filename(string $dir, string $filename): string
+{
+    $dir = rtrim($dir, '/') . '/';
+    if (!file_exists($dir . $filename)) {
+        return $filename;
+    }
+
+    $base = pathinfo($filename, PATHINFO_FILENAME);
+    $ext = pathinfo($filename, PATHINFO_EXTENSION);
+    $ext = $ext !== '' ? '.' . $ext : '';
+    $stamp = date('Y_m_d_H_i_s');
+
+    $candidate = "{$base}_{$stamp}{$ext}";
+    if (!file_exists($dir . $candidate)) {
+        return $candidate;
+    }
+
+    for ($i = 1; $i <= 9999; $i++) {
+        $candidate = "{$base}_{$stamp}_{$i}{$ext}";
+        if (!file_exists($dir . $candidate)) {
+            return $candidate;
+        }
+    }
+
+    throw new RuntimeException('Unable to generate unique ISO file name');
 }
 
 function iso_find_file_path(array $items, ?string $targetId): array

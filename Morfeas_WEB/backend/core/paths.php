@@ -51,5 +51,5 @@ function backend_log_config_path(): string
 
 function backend_iso_standard_dir(): string
 {
-    return '/home/morfeas/configuration/';
+    return '/home/morfeas/configuration/iso_standards/';
 }

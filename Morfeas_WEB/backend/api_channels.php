@@ -26,7 +26,23 @@ if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_upload') {
     }
 
     $targetDir = iso_resolve_upload_dir($isoStandardDir);
-    $filename = iso_sanitize_filename($_FILES['file']['name'] ?? 'ISOstandard.xml');
+    try {
+        iso_ensure_upload_dir($targetDir);
+    } catch (Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_PRETTY_PRINT);
+        exit;
+    }
+
+    $originalName = iso_sanitize_filename($_FILES['file']['name'] ?? 'ISOstandard.xml');
+    try {
+        $filename = iso_unique_filename($targetDir, $originalName);
+    } catch (Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_PRETTY_PRINT);
+        exit;
+    }
+
     $dest = $targetDir . $filename;
 
     if (!move_uploaded_file($_FILES['file']['tmp_name'], $dest)) {
@@ -35,7 +51,13 @@ if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_upload') {
         exit;
     }
 
-    echo json_encode(['ok' => true, 'path' => $dest], JSON_PRETTY_PRINT);
+    echo json_encode([
+        'ok' => true,
+        'path' => $dest,
+        'name' => $filename,
+        'renamed' => $filename !== $originalName,
+        'original_name' => $originalName,
+    ], JSON_PRETTY_PRINT);
     exit;
 }
 

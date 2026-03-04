@@ -110,7 +110,7 @@
     if (!channelsApi) throw new Error('Channels API unavailable');
     const payload = await channelsApi.uploadIsoStandard(file);
     if (!payload.ok) throw new Error(payload.error || 'Upload failed');
-    return payload.path;
+    return payload;
   }
 
   function attachLocalFilePicker() {
@@ -189,7 +189,8 @@
     const file = isoUploadInput.files?.[0];
     if (!file) return;
     try {
-      const uploadedPath = await uploadISO(file);
+      const uploadResult = await uploadISO(file);
+      const uploadedPath = uploadResult?.path || '';
       const list = await loadISOList();
       const files = list?.files ?? [];
       isoSelect.innerHTML = '';
@@ -204,10 +205,14 @@
       if (uploaded) {
         isoSelect.value = uploaded.id;
         isoStorage.set(uploaded.id);
-        byId('isoPath').textContent = uploaded.path ?? ISO_LEGACY_PATH;
+        byId('isoPath').textContent = uploaded.path ?? ISO_LEGACY_HINT;
         await loadISOOverHTTP(uploaded.id);
       }
-      toast('ISOstandard uploaded.');
+      if (uploadResult?.renamed) {
+        toast(`ISOstandard uploaded with rename: ${uploadResult.original_name} -> ${uploadResult.name}`);
+      } else {
+        toast(`ISOstandard uploaded: ${uploadResult?.name || file.name}`);
+      }
     } catch (err) {
       toast(`Upload failed: ${err.message || err}`);
     } finally {
