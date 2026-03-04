@@ -203,19 +203,159 @@ function cal_append_text_node(DOMDocument $doc, DOMElement $parent, string $tag,
     $parent->appendChild($node);
 }
 
-function cal_get_point_field_text(?DOMElement $chNode, int $pointIndex, string $field): string
+function cal_set_point_field(DOMDocument $doc, DOMElement $pointNode, string $field, string $value): void
 {
-    if (!$chNode) {
-        return '';
+    $target = null;
+    foreach ($pointNode->childNodes as $child) {
+        if ($child instanceof DOMElement && $child->tagName === $field) {
+            $target = $child;
+            break;
+        }
     }
 
-    $xpath = new DOMXPath($chNode->ownerDocument);
-    $query = sprintf('./Points/Point_%d/%s', $pointIndex, $field);
-    $node = $xpath->query($query, $chNode)->item(0);
-    if (!$node instanceof DOMElement) {
-        return '';
+    if (!$target) {
+        $target = $doc->createElement($field);
+        $pointNode->appendChild($target);
     }
-    return trim($node->textContent ?? '');
+
+    while ($target->firstChild) {
+        $target->removeChild($target->firstChild);
+    }
+    $target->appendChild($doc->createTextNode($value));
+}
+
+function cal_compute_linear_coeff(float $x0, float $y0, float $x1, float $y1): array
+{
+    $dx = $x1 - $x0;
+    if (!is_finite($dx) || abs($dx) < 1e-12) {
+        throw new RuntimeException('Invalid calibration points: Measure values must be strictly increasing');
+    }
+
+    $gain = ($y1 - $y0) / $dx;
+    $offset = $y0 - $gain * $x0;
+    if (!is_finite($gain) || !is_finite($offset)) {
+        throw new RuntimeException('Invalid calibration coefficients: non-finite Offset/Gain');
+    }
+
+    return [$offset, $gain];
+}
+
+function cal_rebuild_linear_coeffs_for_iu(string $xmlContent): string
+{
+    $doc = new DOMDocument('1.0', 'utf-8');
+    if (!$doc->loadXML($xmlContent)) {
+        throw new RuntimeException('Failed to parse calibration XML');
+    }
+
+    $xpath = new DOMXPath($doc);
+    $devType = strtolower(trim((string)$xpath->evaluate('string(/SDAQ/SDAQ_info/Type)')));
+    if ($devType !== 'sdaq-i' && $devType !== 'sdaq-u') {
+        return $xmlContent;
+    }
+
+    $channels = $xpath->query('/SDAQ/Calibration_Data/*');
+    if (!$channels) {
+        return $xmlContent;
+    }
+
+    foreach ($channels as $chNode) {
+        if (!$chNode instanceof DOMElement) {
+            continue;
+        }
+
+        $usedRaw = trim((string)$xpath->evaluate('string(./Used_Points)', $chNode));
+        if ($usedRaw === '' || preg_match('/^\d+$/', $usedRaw) !== 1) {
+            continue;
+        }
+        $used = (int)$usedRaw;
+        if ($used < 2) {
+            continue;
+        }
+
+        $pointsNode = $xpath->query('./Points', $chNode)->item(0);
+        if (!$pointsNode instanceof DOMElement) {
+            throw new RuntimeException(sprintf('Invalid calibration XML: %s has no Points node', $chNode->tagName));
+        }
+
+        $points = [];
+        for ($i = 0; $i < $used; $i++) {
+            $p = $xpath->query(sprintf('./Point_%d', $i), $pointsNode)->item(0);
+            if (!$p instanceof DOMElement) {
+                throw new RuntimeException(sprintf('Invalid calibration XML: %s->Point_%d is missing', $chNode->tagName, $i));
+            }
+
+            $measureRaw = trim((string)$xpath->evaluate('string(./Measure)', $p));
+            $refRaw = trim((string)$xpath->evaluate('string(./Reference)', $p));
+            if ($measureRaw === '' || $refRaw === '') {
+                throw new RuntimeException(sprintf('Invalid calibration XML: %s->Point_%d Measure/Reference is empty', $chNode->tagName, $i));
+            }
+
+            $measure = filter_var($measureRaw, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE);
+            $reference = filter_var($refRaw, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE);
+            if ($measure === null || $reference === null || !is_finite((float)$measure) || !is_finite((float)$reference)) {
+                throw new RuntimeException(sprintf('Invalid calibration XML: %s->Point_%d Measure/Reference is not finite', $chNode->tagName, $i));
+            }
+
+            $points[] = [
+                'node' => $p,
+                'measure' => (float)$measure,
+                'reference' => (float)$reference,
+            ];
+        }
+
+        for ($i = 1; $i < $used; $i++) {
+            if ($points[$i]['measure'] <= $points[$i - 1]['measure']) {
+                throw new RuntimeException(sprintf(
+                    'Invalid calibration points in %s: Point_%d.Measure must be greater than Point_%d.Measure',
+                    $chNode->tagName,
+                    $i,
+                    $i - 1
+                ));
+            }
+        }
+
+        if ($used === 2) {
+            [$offset, $gain] = cal_compute_linear_coeff(
+                $points[0]['measure'],
+                $points[0]['reference'],
+                $points[1]['measure'],
+                $points[1]['reference']
+            );
+            for ($i = 0; $i < 2; $i++) {
+                cal_set_point_field($doc, $points[$i]['node'], 'Offset', cal_num_to_string($offset));
+                cal_set_point_field($doc, $points[$i]['node'], 'Gain', cal_num_to_string($gain));
+                cal_set_point_field($doc, $points[$i]['node'], 'C2', '0');
+                cal_set_point_field($doc, $points[$i]['node'], 'C3', '0');
+            }
+            continue;
+        }
+
+        for ($i = 0; $i < $used; $i++) {
+            if ($i < $used - 1) {
+                $x0 = $points[$i]['measure'];
+                $y0 = $points[$i]['reference'];
+                $x1 = $points[$i + 1]['measure'];
+                $y1 = $points[$i + 1]['reference'];
+            } else {
+                $x0 = $points[$i - 1]['measure'];
+                $y0 = $points[$i - 1]['reference'];
+                $x1 = $points[$i]['measure'];
+                $y1 = $points[$i]['reference'];
+            }
+
+            [$offset, $gain] = cal_compute_linear_coeff($x0, $y0, $x1, $y1);
+            cal_set_point_field($doc, $points[$i]['node'], 'Offset', cal_num_to_string($offset));
+            cal_set_point_field($doc, $points[$i]['node'], 'Gain', cal_num_to_string($gain));
+            cal_set_point_field($doc, $points[$i]['node'], 'C2', '0');
+            cal_set_point_field($doc, $points[$i]['node'], 'C3', '0');
+        }
+    }
+
+    $out = $doc->saveXML();
+    if (!is_string($out) || trim($out) === '') {
+        throw new RuntimeException('Failed to normalize calibration XML');
+    }
+    return $out;
 }
 
 function cal_build_scale_xml_payload(
@@ -275,6 +415,7 @@ function cal_build_scale_xml_payload(
         [0, $rawLow, $engLow],
         [1, $rawHigh, $engHigh],
     ];
+    [$linearOffset, $linearGain] = cal_compute_linear_coeff($rawLow, $engLow, $rawHigh, $engHigh);
 
     foreach ($pointDefs as [$idx, $measure, $reference]) {
         $name = 'Point_' . $idx;
@@ -283,17 +424,10 @@ function cal_build_scale_xml_payload(
 
         cal_append_text_node($doc, $pointNode, 'Measure', cal_num_to_string((float)$measure));
         cal_append_text_node($doc, $pointNode, 'Reference', cal_num_to_string((float)$reference));
-
-        // Preserve coefficient terms from current device XML when possible.
-        $offset = cal_get_point_field_text($sourceChNode instanceof DOMElement ? $sourceChNode : null, $idx, 'Offset');
-        $gain = cal_get_point_field_text($sourceChNode instanceof DOMElement ? $sourceChNode : null, $idx, 'Gain');
-        $c2 = cal_get_point_field_text($sourceChNode instanceof DOMElement ? $sourceChNode : null, $idx, 'C2');
-        $c3 = cal_get_point_field_text($sourceChNode instanceof DOMElement ? $sourceChNode : null, $idx, 'C3');
-
-        cal_append_text_node($doc, $pointNode, 'Offset', $offset !== '' ? $offset : '0');
-        cal_append_text_node($doc, $pointNode, 'Gain', $gain !== '' ? $gain : '1');
-        cal_append_text_node($doc, $pointNode, 'C2', $c2 !== '' ? $c2 : '0');
-        cal_append_text_node($doc, $pointNode, 'C3', $c3 !== '' ? $c3 : '0');
+        cal_append_text_node($doc, $pointNode, 'Offset', cal_num_to_string($linearOffset));
+        cal_append_text_node($doc, $pointNode, 'Gain', cal_num_to_string($linearGain));
+        cal_append_text_node($doc, $pointNode, 'C2', '0');
+        cal_append_text_node($doc, $pointNode, 'C3', '0');
     }
 
     $xml = $doc->saveXML();
@@ -390,6 +524,7 @@ try {
                 (float)$engHigh,
                 $engUnit
             );
+            $xml = cal_rebuild_linear_coeffs_for_iu($xml);
 
             $result = cal_save_xml_live($bus, $addr, $xml);
             cal_json([
@@ -417,6 +552,7 @@ try {
             cal_fail('xmlContent is required', 400);
         }
 
+        $xml = cal_rebuild_linear_coeffs_for_iu($xml);
         $result = cal_save_xml_live($bus, $addr, $xml);
 
         cal_json([
