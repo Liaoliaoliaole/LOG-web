@@ -55,7 +55,8 @@ function iso_sanitize_filename(string $name): string
     if ($base === '' || $base === '.' || $base === '..') {
         $base = 'ISOstandard.xml';
     }
-    if (!str_ends_with(strtolower($base), '.xml')) {
+    $lower = strtolower($base);
+    if (substr($lower, -4) !== '.xml') {
         $base .= '.xml';
     }
     return $base;

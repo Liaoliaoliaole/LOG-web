@@ -36,7 +36,7 @@ function mti_load_anchor_map(array $paths): array
         }
 
         $typeSlug = is_string($teleType) ? $teleType : '';
-        $typeSlug = str_starts_with($typeSlug, 'Tele_') ? substr($typeSlug, 5) : $typeSlug;
+        $typeSlug = (substr($typeSlug, 0, 5) === 'Tele_') ? substr($typeSlug, 5) : $typeSlug;
 
         foreach ($tele['CHs'] as $idx => $value) {
             $chNum = $idx + 1;
