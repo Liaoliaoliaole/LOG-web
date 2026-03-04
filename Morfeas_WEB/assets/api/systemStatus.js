@@ -22,6 +22,13 @@
   const systemStatusApi = {
     buildUrl,
     fetchDetails: () => fetchJson({ action: 'details' }),
+    fetchLoggers: () => fetchJson({ action: 'loggers' }),
+    fetchLogger: (name, options = {}) => {
+      const params = { action: 'logger', name };
+      if (options.ifUpdated) params.if_updated = '1';
+      if (Number.isFinite(options.mtime)) params.mtime = String(options.mtime);
+      return fetchJson(params);
+    },
   };
 
   root.api = root.api || {};
