@@ -166,6 +166,12 @@ function channel_build_rows_with_logstat(
                 $row['dev_type'] = $sdaqDeviceTypes[$busAddrKey];
             }
 
+            // For SDAQ channels, keep edit popup in sync with the device's latest runtime unit.
+            // This avoids showing stale OPC-UA-config unit after scale/calibration writes.
+            if (is_string($measUnit) && $measUnit !== '') {
+                $row['unit'] = $measUnit;
+            }
+
         } elseif ($type === 'IOBOX') {
             $row['display_anchor'] = $formatNetworkAnchor($anchor, $ioboxIPv4);
 

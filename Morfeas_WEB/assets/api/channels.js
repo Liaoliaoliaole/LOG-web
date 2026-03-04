@@ -34,6 +34,10 @@
       headers: { Accept: 'application/json' },
       ...options,
     }),
+    fetchChannel: (iso, options = {}) => fetchJson({ iso }, {
+      headers: { Accept: 'application/json' },
+      ...options,
+    }),
     createChannel: (payload) => fetchJson(undefined, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },

@@ -1025,6 +1025,35 @@
       };
     }
 
+    async function fetchLatestChannelByIso(iso) {
+      const key = (iso || '').toString().trim();
+      if (!key) return null;
+
+      try {
+        if (channelsApi?.fetchChannel) {
+          const json = await channelsApi.fetchChannel(key);
+          if (json && json.ok !== false && json.data) {
+            return json.data;
+          }
+          return null;
+        }
+
+        const res = await fetch(`${API_ISO}?iso=${encodeURIComponent(key)}`, {
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        });
+        if (!res.ok) return null;
+        const json = await res.json();
+        if (json && json.ok !== false && json.data) {
+          return json.data;
+        }
+      } catch (err) {
+        console.warn('Failed to fetch latest channel by ISO:', key, err);
+      }
+
+      return null;
+    }
+
     function buildCtxFor(count, row) {
       clearCtx();
       if (count === 1) {
@@ -1252,7 +1281,7 @@
       if (ctx && !ctx.contains(e.target)) hideCtx();
     });
 
-    ctx?.addEventListener('click', (e) => {
+    ctx?.addEventListener('click', async (e) => {
       const item = e.target.closest('.item');
       if (!item) return;
 
@@ -1261,8 +1290,9 @@
         case 'edit':
           const trEdit = selectedRows()[0];
           const iso = (trEdit?.dataset.iso || trEdit?.querySelector('td[data-col="iso"]')?.textContent || '').trim();
+          const latest = await fetchLatestChannelByIso(iso);
           const cached = findChannelByIso(iso);
-          const rowData = cached || buildRowDataFromDom(trEdit);
+          const rowData = latest || cached || buildRowDataFromDom(trEdit);
           if (!rowData) {
             alert('No channel data available for edit');
             break;
@@ -1276,8 +1306,9 @@
         case 'replace':
           const trReplace = selectedRows()[0];
           const isoReplace = (trReplace?.dataset.iso || trReplace?.querySelector('td[data-col="iso"]')?.textContent || '').trim();
+          const latestReplace = await fetchLatestChannelByIso(isoReplace);
           const cachedReplace = findChannelByIso(isoReplace);
-          const rowDataReplace = cachedReplace || buildRowDataFromDom(trReplace);
+          const rowDataReplace = latestReplace || cachedReplace || buildRowDataFromDom(trReplace);
           if (!rowDataReplace) {
             alert('No channel data available for replace');
             break;
