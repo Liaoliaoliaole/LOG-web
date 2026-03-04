@@ -422,7 +422,12 @@
 
     function getCellText(tr, key) {
       const cell = tr.querySelector('td[data-col="' + key + '"]');
-      return cell ? cell.textContent.trim().toLowerCase() : '';
+      if (!cell) return '';
+      if (key === 'status') {
+        const baseStatus = (cell.dataset.status || '').trim();
+        if (baseStatus) return baseStatus.toLowerCase();
+      }
+      return cell.textContent.trim().toLowerCase();
     }
 
     function updateRowVisibility() {
@@ -437,8 +442,13 @@
         }
 
         if (visible && columnFilters.status) {
-          const st = getCellText(tr, 'status');
-          if (st !== columnFilters.status.toLowerCase()) visible = false;
+          const wanted = columnFilters.status.toLowerCase();
+          if (wanted === 'needs scale') {
+            if (tr.dataset.needsScale !== '1') visible = false;
+          } else {
+            const st = getCellText(tr, 'status');
+            if (st !== wanted) visible = false;
+          }
         }
 
         if (visible && columnFilters.type) {
@@ -554,7 +564,9 @@
       }).filter(Boolean));
 
       $$('tbody td[data-col="' + key + '"]').forEach((td) => {
-        const txt = td.textContent.trim();
+        const txt = key === 'status'
+          ? (td.dataset.status || '').trim()
+          : td.textContent.trim();
         if (txt) values.add(txt);
       });
 
@@ -577,6 +589,9 @@
       const sorted = Array.from(values).sort();
       const finalValues = key === 'type' ? sortTypeValues(sorted) : sorted;
       finalValues.forEach((v) => addItem(v, v));
+      if (key === 'status') {
+        addItem('Needs Scale', 'Needs Scale');
+      }
 
       menu.appendChild(body);
 
@@ -684,6 +699,18 @@
       return 'st-Unknown';
     }
 
+    function computeNeedsScale(ch) {
+      const devType = (ch?.dev_type || ch?.interface_type || '').toString().trim().toUpperCase();
+      const isSdaqIU = devType === 'SDAQ-I' || devType === 'SDAQ-U';
+      if (!isSdaqIU) return false;
+
+      const configUnit = (ch?.unit || '').toString().trim();
+      const measUnit = (ch?.meas_unit || '').toString().trim();
+      if (!configUnit || !measUnit) return false;
+
+      return configUnit.toLowerCase() !== measUnit.toLowerCase();
+    }
+
     // Compute Next Calibration（YYYY-MM-DD）from cal_date + cal_period
     function computeNextCalibration(ch) {
       const calDate = ch.cal_date;
@@ -738,6 +765,8 @@
         const lowered = raw.toLowerCase();
         return lowered === 'unlinked' || lowered === 'unlink' ? 'Unknown' : raw;
       })();
+      const needsScale = computeNeedsScale(ch);
+      tr.dataset.needsScale = needsScale ? '1' : '0';
       const dotClass = statusToDotClass(statusText);
       const valueText = ch.meas != null && ch.meas !== '' ? ch.meas : '—';
 
@@ -766,7 +795,14 @@
       // 4 Status
       const tdStatus = document.createElement('td');
       tdStatus.setAttribute('data-col', 'status');
+      tdStatus.dataset.status = statusText;
       tdStatus.textContent = statusText;
+      if (needsScale) {
+        const tag = document.createElement('span');
+        tag.className = 'needs-scale-tag';
+        tag.textContent = ' [Needs Scale]';
+        tdStatus.appendChild(tag);
+      }
       tr.appendChild(tdStatus);
 
       // 5 ISOChannel
@@ -1005,7 +1041,6 @@
         addCtxItem('Edit', 'edit');
         addCtxItem('Delete', 'delete');
         if (isSdaq) {
-          addCtxItem('Change Mode', 'change-mode');
           if (isSdaqIU) addCtxItem('Scale', 'scale');
           addCtxItem('Calibration', 'calibration');
         }
@@ -1052,7 +1087,7 @@
       return Number.isFinite(n) ? n : null;
     }
 
-    function openSdaqScalePopup(focus = 'scale') {
+    function openSdaqScalePopup() {
       const tr = selectedRows()[0];
       const iso = (tr?.dataset.iso || tr?.querySelector('td[data-col="iso"]')?.textContent || '').trim();
       const cached = findChannelByIso(iso);
@@ -1073,7 +1108,7 @@
       const rawMeas = parseMeasNumber(measText);
       const devType = (cached?.dev_type || tr?.querySelector('td[data-col="type"]')?.textContent || '').trim();
       const devTypeUpper = devType.toUpperCase();
-      if (focus === 'scale' && devTypeUpper !== 'SDAQ-I' && devTypeUpper !== 'SDAQ-U') {
+      if (devTypeUpper !== 'SDAQ-I' && devTypeUpper !== 'SDAQ-U') {
         alert(`Scale is available only for SDAQ-I / SDAQ-U. Current type: ${devType || '(unknown)'}`);
         return;
       }
@@ -1083,7 +1118,6 @@
         addr: String(ctx.addr),
         ch: String(ctx.ch),
         iso,
-        focus,
       });
       if (sn) params.set('sn', sn);
       if (devType) params.set('devType', devType);
@@ -1254,11 +1288,8 @@
           openCenteredPopup('linker-table/edit_channel.html?mode=replace', 'replace_channel_popup', { width: 880, height: 820 });
           try { window.__EDIT_LINK_DATA = rowDataReplace; } catch (_) { }
           break;
-        case 'change-mode':
-          openSdaqScalePopup('mode');
-          break;
         case 'scale':
-          openSdaqScalePopup('scale');
+          openSdaqScalePopup();
           break;
         case 'calibration':
           const trCal = selectedRows()[0];

@@ -403,6 +403,11 @@ body {
   background: var(--color-status-disabled);
 }
 
+.needs-scale-tag {
+  color: var(--color-calib-expired-bg);
+  font-weight: 700;
+}
+
 /* Column filter headers */
 th.th-filterable {
   position: relative;

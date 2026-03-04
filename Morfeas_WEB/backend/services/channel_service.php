@@ -127,6 +127,7 @@ function channel_build_rows_with_logstat(
 
         $status = 'OFF-Line';
         $meas   = '—';
+        $measUnit = null;
 
         if ($type === 'SDAQ') {
             $row['display_anchor'] = $formatSdaqDisplayAnchor($anchor);
@@ -158,6 +159,7 @@ function channel_build_rows_with_logstat(
                     $meas  = sprintf('%.3f', $value);
                     if (!empty($ls['meas_unit'])) {
                         $meas .= ' ' . $ls['meas_unit'];
+                        $measUnit = $ls['meas_unit'];
                     }
                 }
             } elseif ($busAddrKey && isset($sdaqDeviceTypes[$busAddrKey])) {
@@ -176,6 +178,7 @@ function channel_build_rows_with_logstat(
                     $meas  = sprintf('%.3f', $value);
                     if (!empty($ls['meas_unit'])) {
                         $meas .= ' ' . $ls['meas_unit'];
+                        $measUnit = $ls['meas_unit'];
                     }
                 }
             }
@@ -199,6 +202,7 @@ function channel_build_rows_with_logstat(
                     $meas  = sprintf('%.3f', $value);
                     if (!empty($ls['meas_unit'])) {
                         $meas .= ' ' . $ls['meas_unit'];
+                        $measUnit = $ls['meas_unit'];
                     }
                 }
             }
@@ -220,6 +224,7 @@ function channel_build_rows_with_logstat(
                     $meas  = sprintf('%.3f', $value);
                     if (!empty($ls['meas_unit'])) {
                         $meas .= ' ' . $ls['meas_unit'];
+                        $measUnit = $ls['meas_unit'];
                     }
                 }
             }
@@ -230,6 +235,7 @@ function channel_build_rows_with_logstat(
 
         $row['status'] = $status;
         $row['meas']   = $meas;
+        $row['meas_unit'] = $measUnit;
 
         $rows[] = $row;
         if ($anchor) {
