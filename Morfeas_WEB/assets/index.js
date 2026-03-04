@@ -443,12 +443,8 @@
 
         if (visible && columnFilters.status) {
           const wanted = columnFilters.status.toLowerCase();
-          if (wanted === 'needs scale') {
-            if (tr.dataset.needsScale !== '1') visible = false;
-          } else {
-            const st = getCellText(tr, 'status');
-            if (st !== wanted) visible = false;
-          }
+          const st = getCellText(tr, 'status');
+          if (st !== wanted) visible = false;
         }
 
         if (visible && columnFilters.type) {
@@ -589,9 +585,6 @@
       const sorted = Array.from(values).sort();
       const finalValues = key === 'type' ? sortTypeValues(sorted) : sorted;
       finalValues.forEach((v) => addItem(v, v));
-      if (key === 'status') {
-        addItem('Needs Scale', 'Needs Scale');
-      }
 
       menu.appendChild(body);
 
@@ -699,18 +692,6 @@
       return 'st-Unknown';
     }
 
-    function computeNeedsScale(ch) {
-      const devType = (ch?.dev_type || ch?.interface_type || '').toString().trim().toUpperCase();
-      const isSdaqIU = devType === 'SDAQ-I' || devType === 'SDAQ-U';
-      if (!isSdaqIU) return false;
-
-      const configUnit = (ch?.unit || '').toString().trim();
-      const measUnit = (ch?.meas_unit || '').toString().trim();
-      if (!configUnit || !measUnit) return false;
-
-      return configUnit.toLowerCase() !== measUnit.toLowerCase();
-    }
-
     // Compute Next Calibration（YYYY-MM-DD）from cal_date + cal_period
     function computeNextCalibration(ch) {
       const calDate = ch.cal_date;
@@ -765,8 +746,6 @@
         const lowered = raw.toLowerCase();
         return lowered === 'unlinked' || lowered === 'unlink' ? 'Unknown' : raw;
       })();
-      const needsScale = computeNeedsScale(ch);
-      tr.dataset.needsScale = needsScale ? '1' : '0';
       const dotClass = statusToDotClass(statusText);
       const valueText = ch.meas != null && ch.meas !== '' ? ch.meas : '—';
 
@@ -797,12 +776,6 @@
       tdStatus.setAttribute('data-col', 'status');
       tdStatus.dataset.status = statusText;
       tdStatus.textContent = statusText;
-      if (needsScale) {
-        const tag = document.createElement('span');
-        tag.className = 'needs-scale-tag';
-        tag.textContent = ' [Needs Scale]';
-        tdStatus.appendChild(tag);
-      }
       tr.appendChild(tdStatus);
 
       // 5 ISOChannel
