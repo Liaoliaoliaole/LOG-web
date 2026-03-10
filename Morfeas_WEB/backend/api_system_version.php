@@ -32,6 +32,60 @@ function sv_git_cmd(string $repoRoot, string $cmd): ?string
     return $out === '' ? null : $out;
 }
 
+function sv_git_info(?string $repoRoot): array
+{
+    if ($repoRoot === null) {
+        return [
+            'repo_root' => null,
+            'branch' => 'unknown',
+            'commit' => 'unknown',
+            'label' => 'unknown @ unknown',
+            'commit_unix' => 0,
+            'commit_date' => 'unknown',
+        ];
+    }
+
+    $branch = sv_git_cmd($repoRoot, 'rev-parse --abbrev-ref HEAD') ?? 'unknown';
+    $commit = sv_git_cmd($repoRoot, 'rev-parse --short HEAD') ?? 'unknown';
+    $commitUnix = (int)(sv_git_cmd($repoRoot, 'log -1 --format=%ct') ?? '0');
+    $commitDate = $commitUnix > 0 ? date('Y-m-d H:i:s', $commitUnix) : 'unknown';
+
+    return [
+        'repo_root' => $repoRoot,
+        'branch' => $branch,
+        'commit' => $commit,
+        'label' => ($branch . ' @ ' . $commit),
+        'commit_unix' => $commitUnix,
+        'commit_date' => $commitDate,
+    ];
+}
+
+function sv_detect_core_repo(): ?string
+{
+    $candidates = [
+        getenv('MORFEAS_CORE_INSTALL_DIR') ?: null,
+        '/opt/Morfeas_project/Morfeas_core',
+        '/home/morfeas/Morfeas_project/Morfeas_core',
+        '/home/pi/Morfeas_project/Morfeas_core',
+        '/home/morfeas/LOG_project/LOG-core',
+        '/opt/Morfeas_project/LOG-core',
+    ];
+
+    foreach ($candidates as $cand) {
+        if (!is_string($cand) || $cand === '') {
+            continue;
+        }
+        if (!is_dir($cand)) {
+            continue;
+        }
+        $root = sv_find_git_root($cand);
+        if ($root !== null) {
+            return $root;
+        }
+    }
+    return null;
+}
+
 function sv_last_updated_unix(string $webRoot): int
 {
     $max = @filemtime($webRoot) ?: 0;
@@ -61,28 +115,27 @@ function sv_last_updated_unix(string $webRoot): int
 try {
     $backendDir = __DIR__;
     $webRoot = dirname($backendDir);
-    $gitRoot = sv_find_git_root($webRoot);
+    $webGitRoot = sv_find_git_root($webRoot);
+    $coreGitRoot = sv_detect_core_repo();
 
-    $branch = null;
-    $commit = null;
-
-    if ($gitRoot !== null) {
-        $branch = sv_git_cmd($gitRoot, 'rev-parse --abbrev-ref HEAD');
-        $commit = sv_git_cmd($gitRoot, 'rev-parse --short HEAD');
-    }
+    $webInfo = sv_git_info($webGitRoot);
+    $coreInfo = sv_git_info($coreGitRoot);
 
     $lastUpdatedUnix = sv_last_updated_unix($webRoot);
     $lastUpdatedIso = $lastUpdatedUnix > 0 ? date('Y-m-d H:i:s', $lastUpdatedUnix) : '';
 
     echo json_encode([
         'ok' => true,
-        'version' => [
-            'branch' => $branch ?? 'unknown',
-            'commit' => $commit ?? 'unknown',
-            'label' => (($branch ?? 'unknown') . ' @ ' . ($commit ?? 'unknown')),
-        ],
+        // Backward-compatible fields (existing UI).
+        'version' => $webInfo,
         'last_updated_unix' => $lastUpdatedUnix,
         'last_updated' => $lastUpdatedIso,
+        // Extended fields for split Web/Core display.
+        'web' => array_merge($webInfo, [
+            'files_last_updated_unix' => $lastUpdatedUnix,
+            'files_last_updated' => $lastUpdatedIso,
+        ]),
+        'core' => $coreInfo,
     ], JSON_PRETTY_PRINT);
 } catch (Throwable $e) {
     http_response_code(500);
@@ -91,4 +144,3 @@ try {
         'error' => $e->getMessage(),
     ], JSON_PRETTY_PRINT);
 }
-
