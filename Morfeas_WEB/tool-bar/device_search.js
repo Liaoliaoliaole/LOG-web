@@ -32,8 +32,8 @@
     const columns = document.createElement('div');
     columns.className = 'columns';
     if (type === 'SDAQ') {
-      columns.style.gridTemplateColumns = '1.4fr 1.4fr 0.8fr 1fr';
-      columns.innerHTML = `<div>Serial Channel</div><div>Address</div><div>Status</div><div>Measurement</div>`;
+      columns.style.gridTemplateColumns = '1.25fr 1.25fr 1fr 0.8fr 1fr';
+      columns.innerHTML = `<div>Serial Channel</div><div>Address</div><div>Device Type</div><div>Status</div><div>Measurement</div>`;
     } else {
       columns.innerHTML = `<div>Channel</div><div>Status</div><div>Measurement</div>`;
     }
@@ -60,10 +60,12 @@
       }
 
       if (type === 'SDAQ') {
-        row.style.gridTemplateColumns = '1.4fr 1.4fr 0.8fr 1fr';
+        row.style.gridTemplateColumns = '1.25fr 1.25fr 1fr 0.8fr 1fr';
         const address = document.createElement('div');
         address.textContent = item.address_anchor || '—';
-        row.append(anchor, address, status, meas);
+        const deviceType = document.createElement('div');
+        deviceType.textContent = item.device_type || '—';
+        row.append(anchor, address, deviceType, status, meas);
       } else {
         row.append(anchor, status, meas);
       }
