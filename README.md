@@ -1,4 +1,4 @@
-# LOG Web - Installation and Deploy Guide
+# LOG Web (Morfeas) - Installation and Deploy Guide
 
 ## Prerequisite
 
