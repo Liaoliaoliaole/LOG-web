@@ -39,10 +39,28 @@
     fetchState: () => fetchJson(undefined, {
       headers: { Accept: 'application/json' },
     }),
-    apply: (payload, timeoutSec = 90) => postAction('apply', {
-      payload,
-      timeout_sec: timeoutSec,
-    }),
+    apply: (payload, options = {}) => {
+      let timeoutSec = 90;
+      let autoConfirm = true;
+
+      if (typeof options === 'number') {
+        timeoutSec = options;
+        autoConfirm = false;
+      } else if (options && typeof options === 'object') {
+        if (Number.isFinite(options.timeoutSec)) {
+          timeoutSec = Number(options.timeoutSec);
+        }
+        if (typeof options.autoConfirm === 'boolean') {
+          autoConfirm = options.autoConfirm;
+        }
+      }
+
+      return postAction('apply', {
+        payload,
+        timeout_sec: timeoutSec,
+        auto_confirm: autoConfirm,
+      });
+    },
     confirm: (pendingId) => postAction('confirm', { pending_id: pendingId }),
     rollback: (pendingId) => postAction('rollback', pendingId ? { pending_id: pendingId } : {}),
   };

@@ -54,40 +54,71 @@
       if (wrapped) {
         return {
           fetchState: () => wrapped.fetchState(),
-          apply: (payload, timeoutSec = 90) => wrapped.apply(payload, timeoutSec),
-          confirm: (pendingId) => wrapped.confirm(pendingId),
-          rollback: (pendingId) => wrapped.rollback(pendingId),
+          apply: (payload, options = { autoConfirm: true, timeoutSec: 0 }) => wrapped.apply(payload, options),
         };
       }
 
       return {
         fetchState: () => fetchJson({ method: 'GET', headers: { Accept: 'application/json' } }),
-        apply: (payload, timeoutSec = 90) => fetchJson({
+        apply: (payload, options = { autoConfirm: true, timeoutSec: 0 }) => fetchJson({
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ action: 'apply', payload, timeout_sec: timeoutSec }),
-        }),
-        confirm: (pendingId) => fetchJson({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ action: 'confirm', pending_id: pendingId }),
-        }),
-        rollback: (pendingId) => fetchJson({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ action: 'rollback', ...(pendingId ? { pending_id: pendingId } : {}) }),
+          body: JSON.stringify({
+            action: 'apply',
+            payload,
+            timeout_sec: Number.isFinite(options?.timeoutSec) ? Number(options.timeoutSec) : 0,
+            auto_confirm: options?.autoConfirm !== false,
+          }),
         }),
       };
     })();
 
     let latestState = null;
-    let promptedPendingId = '';
 
-    function notify(msg, isError = false) {
-      if (isError) {
-        console.error(msg);
+    function ensureStatusEl() {
+      let el = document.getElementById('netconfStatus');
+      if (el) return el;
+
+      const cardBody = document.querySelector('.card .card-body');
+      if (!cardBody) return null;
+
+      el = document.createElement('div');
+      el.id = 'netconfStatus';
+      el.style.marginTop = '10px';
+      el.style.padding = '10px 12px';
+      el.style.border = '1px solid #d9dde3';
+      el.style.borderRadius = '10px';
+      el.style.background = '#f7f9fb';
+      el.style.fontWeight = '700';
+      el.textContent = 'Ready';
+      cardBody.appendChild(el);
+      return el;
+    }
+
+    function setStatus(message, type = 'info') {
+      const el = ensureStatusEl();
+      if (!el) {
+        console.log(message);
+        return;
+      }
+
+      el.textContent = message;
+      if (type === 'error') {
+        el.style.background = '#fff1f0';
+        el.style.borderColor = '#ffccc7';
+        el.style.color = '#a8071a';
+      } else if (type === 'success') {
+        el.style.background = '#f6ffed';
+        el.style.borderColor = '#b7eb8f';
+        el.style.color = '#135200';
+      } else if (type === 'progress') {
+        el.style.background = '#e6f4ff';
+        el.style.borderColor = '#91caff';
+        el.style.color = '#003a8c';
       } else {
-        console.log(msg);
+        el.style.background = '#f7f9fb';
+        el.style.borderColor = '#d9dde3';
+        el.style.color = '#1f2328';
       }
     }
 
@@ -168,6 +199,7 @@
       fillGroup(gwOcts, preset.gw || []);
       fillGroup(dnsOcts, preset.dns || []);
       setActivePresetBtn(key);
+      setStatus(`Preset ${key} loaded. Review values before Set.`);
     }
 
     function applyStateToForm(state) {
@@ -256,7 +288,7 @@
     function loadLastPayload() {
       const raw = localStorage.getItem(STORAGE_LAST);
       if (!raw) {
-        alert('No previously confirmed payload saved on this browser.');
+        setStatus('No previously saved payload in this browser.', 'error');
         return;
       }
 
@@ -264,7 +296,7 @@
       try {
         payload = JSON.parse(raw);
       } catch (_) {
-        alert('Saved payload is invalid JSON.');
+        setStatus('Saved payload JSON is invalid.', 'error');
         return;
       }
 
@@ -278,65 +310,22 @@
       fillGroup(gwOcts, splitIp(ipv4.gateway));
       fillGroup(dnsOcts, splitIp((ipv4.dns || [])[0] || ''));
       maskInp.value = Number.isFinite(Number(ipv4.prefix)) ? String(ipv4.prefix) : '24';
-    }
-
-    async function confirmPending(pendingId) {
-      const res = await apiFacade.confirm(pendingId);
-      if (!res?.ok) throw new Error(res?.error || 'Confirm failed');
-      notify('Pending apply confirmed.');
-      localStorage.setItem(STORAGE_LAST, JSON.stringify(buildPayloadFromForm()));
-      return res;
-    }
-
-    async function rollbackPending(pendingId) {
-      const res = await apiFacade.rollback(pendingId);
-      if (!res?.ok) throw new Error(res?.error || 'Rollback failed');
-      notify('Pending apply rolled back.');
-      return res;
-    }
-
-    async function maybePromptPending(pending) {
-      if (!pending || pending.state !== 'pending' || !pending.pending_id) return;
-      if (pending.pending_id === promptedPendingId) return;
-
-      promptedPendingId = pending.pending_id;
-      const remaining = Number(pending.remaining_sec || 0);
-
-      const wantConfirm = window.confirm(
-        `Pending network apply detected (${remaining}s left).\nClick OK to confirm now.\nClick Cancel to keep pending (auto-rollback on timeout).`
-      );
-      if (wantConfirm) {
-        try {
-          await confirmPending(pending.pending_id);
-          await loadState();
-          return;
-        } catch (err) {
-          alert(`Confirm failed: ${err.message || err}`);
-          return;
-        }
-      }
-
-      const wantRollback = window.confirm('Do you want to rollback this pending apply now?');
-      if (!wantRollback) return;
-
-      try {
-        await rollbackPending(pending.pending_id);
-        await loadState();
-      } catch (err) {
-        alert(`Rollback failed: ${err.message || err}`);
-      }
+      setStatus('Loaded last saved payload.');
     }
 
     async function loadState() {
+      setStatus('Loading current network configuration...', 'progress');
       try {
         const res = await apiFacade.fetchState();
         if (!res?.ok) throw new Error(res?.error || 'State query failed');
 
         applyStateToForm(res.data);
-        notify(`Loaded network state: ${res.data?.eth?.mode || 'N/A'} ${res.data?.eth?.ipv4?.address || ''}`);
-        await maybePromptPending(res.data?.pending || null);
+        const mode = (res.data?.eth?.mode || '').toUpperCase() || 'N/A';
+        const ip = res.data?.eth?.ipv4?.address || 'n/a';
+        const canBackend = res.data?.can_backend || 'legacy';
+        setStatus(`Loaded current config: mode=${mode}, ip=${ip}, can_backend=${canBackend}.`, 'success');
       } catch (err) {
-        alert(`Failed to load network state: ${err.message || err}`);
+        setStatus(`Failed to load state: ${err.message || err}`, 'error');
       }
     }
 
@@ -345,28 +334,28 @@
       try {
         payload = buildPayloadFromForm();
       } catch (err) {
-        alert(err.message || String(err));
+        setStatus(err.message || String(err), 'error');
         return;
       }
 
       commitBtn.disabled = true;
+      setStatus('Applying configuration: validating and writing system network settings...', 'progress');
+
       try {
-        const res = await apiFacade.apply(payload, 90);
+        const res = await apiFacade.apply(payload, { autoConfirm: true, timeoutSec: 0 });
         if (!res?.ok) throw new Error(res?.error || 'Apply failed');
 
-        const pending = res?.data?.pending;
-        if (pending?.state === 'pending') {
-          const wantConfirm = window.confirm(
-            `Apply succeeded. Confirm within ${pending.timeout_sec || 90}s to keep changes.\nClick OK to confirm now.\nClick Cancel to leave pending (auto-rollback on timeout).`
-          );
-          if (wantConfirm) {
-            await confirmPending(pending.pending_id);
-          }
-        }
+        localStorage.setItem(STORAGE_LAST, JSON.stringify(payload));
 
+        const appliedState = res?.data?.state || null;
+        const newIp = appliedState?.eth?.ipv4?.address || payload?.eth?.ipv4?.address || 'n/a';
+        const mode = (appliedState?.eth?.mode || payload?.eth?.mode || 'n/a').toUpperCase();
+        setStatus(`Apply completed successfully. mode=${mode}, ip=${newIp}.`, 'success');
+
+        // Refresh displayed values to match effective state.
         await loadState();
       } catch (err) {
-        alert(`Apply failed: ${err.message || err}`);
+        setStatus(`Apply failed: ${err.message || err}`, 'error');
       } finally {
         commitBtn.disabled = false;
       }

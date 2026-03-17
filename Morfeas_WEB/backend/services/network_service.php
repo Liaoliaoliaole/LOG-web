@@ -840,9 +840,13 @@ function network_rollback_locked(array $pending, string $reason): array
     return $pending;
 }
 
-function network_apply_staged(array $payload, int $timeoutSec = NETWORK_DEFAULT_TIMEOUT_SEC): array
+function network_apply_staged(array $payload, int $timeoutSec = NETWORK_DEFAULT_TIMEOUT_SEC, bool $autoConfirm = false): array
 {
-    $timeoutSec = max(60, min(120, $timeoutSec));
+    if (!$autoConfirm) {
+        $timeoutSec = max(60, min(120, $timeoutSec));
+    } else {
+        $timeoutSec = 0;
+    }
 
     return network_with_lock(function () use ($payload, $timeoutSec) {
         $existing = network_read_pending();
@@ -876,18 +880,23 @@ function network_apply_staged(array $payload, int $timeoutSec = NETWORK_DEFAULT_
         $now = network_now();
         $pending = [
             'pending_id' => $pendingId,
-            'state' => 'pending',
+            'state' => $autoConfirm ? 'confirmed' : 'pending',
             'created_at' => $now,
-            'expires_at' => $now + $timeoutSec,
+            'expires_at' => $autoConfirm ? $now : ($now + $timeoutSec),
             'timeout_sec' => $timeoutSec,
             'before_payload' => $beforePayload,
             'after_payload' => $normalized,
             'backup_dir' => $backupDir,
             'requested_by' => network_get_operator_ip(),
         ];
+        if ($autoConfirm) {
+            $pending['confirmed_at'] = $now;
+        }
         network_write_pending($pending);
 
-        network_start_rollback_watcher($pendingId, $timeoutSec);
+        if (!$autoConfirm) {
+            network_start_rollback_watcher($pendingId, $timeoutSec);
+        }
 
         return [
             'pending' => network_pending_summary($pending),

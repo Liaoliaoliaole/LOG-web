@@ -29,7 +29,14 @@ try {
                     exit;
                 }
                 $timeoutSec = (int) ($body['timeout_sec'] ?? NETWORK_DEFAULT_TIMEOUT_SEC);
-                $result = network_apply_staged($payload, $timeoutSec);
+                $autoConfirm = true;
+                if (array_key_exists('auto_confirm', $body)) {
+                    $autoConfirm = filter_var($body['auto_confirm'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                    if ($autoConfirm === null) {
+                        $autoConfirm = true;
+                    }
+                }
+                $result = network_apply_staged($payload, $timeoutSec, $autoConfirm);
                 echo json_encode(['ok' => true, 'data' => $result], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
                 exit;
 
