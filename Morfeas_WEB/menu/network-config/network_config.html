@@ -6,11 +6,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Network Configuration</title>
 
+  <!-- Shared theme -->
   <link rel="stylesheet" href="../../assets/app.css" />
 
   <style>
+    /* Local card layout (kept minimal — relies on global theme) */
     .card {
-      max-width: 760px;
+      max-width: 720px;
       margin: 16px auto;
       background: #fff;
       border: 1px solid var(--border);
@@ -23,16 +25,6 @@
       border-bottom: 1px solid var(--border);
       font-weight: 900;
       font-size: var(--fz);
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .readonly-note {
-      font-weight: 600;
-      color: var(--muted);
-      font-size: 12px;
     }
 
     .card-body {
@@ -76,66 +68,80 @@
       text-align: center;
     }
 
+    .presets {
+      max-width: 720px;
+      margin: 12px auto 0;
+      padding: 0 4px;
+    }
+
+    .presets .title {
+      display: block;
+      font-weight: 800;
+      margin: 0 0 8px 0;
+    }
+
+    .presets .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .presets .btn {
+      font-weight: 700;
+    }
+
+    .presets .btn.active {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: #fff;
+      box-shadow: 0 0 0 3px rgba(255, 232, 163, 0.75);
+    }
+
     .actions {
       display: flex;
       gap: 10px;
       justify-content: space-between;
-      align-items: center;
-      padding-top: 10px;
-      flex-wrap: wrap;
+      padding-top: 8px;
     }
 
     .right {
       margin-left: auto;
       display: flex;
       gap: 10px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .status-box {
-      margin-top: 10px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
-      background: #f9fafb;
-      display: grid;
-      gap: 6px;
-    }
-
-    .status-line {
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .status-hint {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .pending-controls {
-      display: none;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .pending-controls.active {
-      display: flex;
     }
   </style>
 </head>
 
 <body>
-  <div class="card">
-    <div class="card-head">
-      <span>Network Configuration</span>
-      <span class="readonly-note">NTP is managed at system level and shown in Advanced Settings.</span>
+  <!-- =======================================================================
+         1) PRESET BUTTONS
+         - LOG1…LOG10 set Hostname + IP/GW/DNS quickly (mock values)
+         ======================================================================= -->
+  <div class="presets">
+    <span class="title">Presets:</span>
+    <div class="buttons">
+      <button class="btn" data-preset="LOG1">LOG1</button>
+      <button class="btn" data-preset="LOG2">LOG2</button>
+      <button class="btn" data-preset="LOG3">LOG3</button>
+      <button class="btn" data-preset="LOG4">LOG4</button>
+      <button class="btn" data-preset="LOG5">LOG5</button>
+      <button class="btn" data-preset="LOG6">LOG6</button>
+      <button class="btn" data-preset="LOG7">LOG7</button>
+      <button class="btn" data-preset="LOG8">LOG8</button>
+      <button class="btn" data-preset="LOG9">LOG9</button>
+      <button class="btn" data-preset="LOG10">LOG10</button>
     </div>
+  </div>
 
+  <!-- =======================================================================
+         2) CONFIG CARD (Machine Identifier + Internet Configuration)
+         ======================================================================= -->
+  <div class="card">
+    <div class="card-head">Network Configuration</div>
     <div class="card-body">
       <table class="grid" aria-label="Network configuration">
         <tbody>
+          <!-- Machine Identifier -->
           <tr>
             <th class="section" colspan="4">Machine Identifier</th>
           </tr>
@@ -146,6 +152,7 @@
             </td>
           </tr>
 
+          <!-- Internet Configuration -->
           <tr>
             <th class="section" colspan="4">Internet Configuration</th>
           </tr>
@@ -159,6 +166,7 @@
             </td>
           </tr>
 
+          <!-- Network IP (CIDR) -->
           <tr class="row">
             <td class="label">Network IP</td>
             <td colspan="3">
@@ -171,6 +179,7 @@
             </td>
           </tr>
 
+          <!-- Gateway -->
           <tr class="row">
             <td class="label">Gateway</td>
             <td colspan="3">
@@ -181,6 +190,7 @@
             </td>
           </tr>
 
+          <!-- DNS -->
           <tr class="row">
             <td class="label">DNS addr</td>
             <td colspan="3">
@@ -193,33 +203,21 @@
         </tbody>
       </table>
 
+      <!-- Actions (mock) -->
       <div class="actions">
         <div><button id="loadLastBtn" class="btn">Load Last</button></div>
         <div class="right">
-          <div id="pendingControls" class="pending-controls" aria-live="polite">
-            <span id="pendingTimer" class="status-hint">Pending confirmation</span>
-            <button id="confirmBtn" class="btn primary" type="button">Confirm</button>
-            <button id="rollbackBtn" class="btn" type="button">Rollback</button>
-          </div>
-          <button id="commitBtn" class="btn primary" type="button">Set</button>
-          <button id="closeBtn" class="btn" type="button">Close</button>
-        </div>
-      </div>
-
-      <div class="status-box" role="status" aria-live="polite">
-        <div id="statusMsg" class="status-line">Loading current network state...</div>
-        <div class="status-hint">
-          Static IP test guard: only <code>192.168.137.0/24</code>, host <code>.2-.254</code>.
-          Reserved host addresses and current Pi/VM IP are blocked.
+          <button id="commitBtn" class="btn primary">Set</button>
+          <button id="closeBtn" class="btn">Close</button>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="../../assets/config.js"></script>
-  <script src="../../assets/api/networkConfig.js"></script>
+  <!-- Scripts -->
   <script src="./netconf.js"></script>
   <script>
+    // Close popup by pressing ESC (parity with other popups)
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') window.close();
     });
