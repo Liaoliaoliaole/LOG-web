@@ -36,10 +36,31 @@
       const endpoint = '../../backend/api_network_config.php';
 
       const fetchJson = async (opts = {}) => {
-        const res = await fetch(endpoint, {
-          cache: 'no-store',
-          ...opts,
-        });
+        const {
+          timeoutMs = 20000,
+          ...fetchOpts
+        } = opts || {};
+
+        const controller = new AbortController();
+        const timer = Number.isFinite(timeoutMs) && timeoutMs > 0
+          ? setTimeout(() => controller.abort(), Number(timeoutMs))
+          : null;
+
+        let res;
+        try {
+          res = await fetch(endpoint, {
+            cache: 'no-store',
+            signal: controller.signal,
+            ...fetchOpts,
+          });
+        } catch (err) {
+          if (err?.name === 'AbortError') {
+            throw new Error('Request timeout');
+          }
+          throw err;
+        } finally {
+          if (timer) clearTimeout(timer);
+        }
 
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -63,6 +84,7 @@
         apply: (payload, options = { autoConfirm: true, timeoutSec: 0 }) => fetchJson({
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          timeoutMs: Number.isFinite(options?.requestTimeoutMs) ? Number(options.requestTimeoutMs) : 15000,
           body: JSON.stringify({
             action: 'apply',
             payload,
