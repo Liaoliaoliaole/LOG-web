@@ -864,7 +864,7 @@ function network_apply_staged(array $payload, int $timeoutSec = NETWORK_DEFAULT_
         $timeoutSec = 0;
     }
 
-    return network_with_lock(function () use ($payload, $timeoutSec) {
+    return network_with_lock(function () use ($payload, $timeoutSec, $autoConfirm) {
         $existing = network_read_pending();
         if ($existing && ($existing['state'] ?? '') === 'pending' && network_now() >= (int) ($existing['expires_at'] ?? 0)) {
             $existing = network_rollback_locked($existing, 'expired_before_new_apply');

@@ -355,27 +355,33 @@
         const prevIp = latestState?.eth?.current_ip || latestState?.eth?.ipv4?.address || '';
         const res = await apiFacade.apply(payload, { autoConfirm: true, timeoutSec: 0 });
         if (!res?.ok) throw new Error(res?.error || 'Apply failed');
+        if (!res?.data?.state || typeof res.data.state !== 'object') {
+          throw new Error('Apply response missing effective state.');
+        }
 
         localStorage.setItem(STORAGE_LAST, JSON.stringify(payload));
 
         const appliedState = res?.data?.state || null;
-        const newIp = appliedState?.eth?.ipv4?.address || payload?.eth?.ipv4?.address || 'n/a';
-        const mode = (appliedState?.eth?.mode || payload?.eth?.mode || 'n/a').toUpperCase();
+        const newIp = appliedState?.eth?.ipv4?.address || '';
+        const mode = (appliedState?.eth?.mode || 'n/a').toUpperCase();
         const warnings = Array.isArray(res?.data?.warnings) ? res.data.warnings : [];
+        const requestedIp = payload?.eth?.mode === 'static' ? (payload?.eth?.ipv4?.address || '') : '';
 
         if (warnings.length) {
-          setStatus(`Apply completed with warnings. mode=${mode}, ip=${newIp}. ${warnings.join(' | ')}`, 'error');
+          setStatus(`Apply completed with warnings. mode=${mode}, effective ip=${newIp || 'n/a'}. ${warnings.join(' | ')}`, 'error');
+        } else if (requestedIp && newIp && requestedIp !== newIp) {
+          setStatus(`Apply request accepted but effective IP is still ${newIp} (requested ${requestedIp}). Please check backend logs and NM status.`, 'error');
         } else {
-          setStatus(`Apply completed successfully. mode=${mode}, ip=${newIp}.`, 'success');
+          setStatus(`Apply completed successfully. mode=${mode}, effective ip=${newIp || 'n/a'}.`, 'success');
         }
 
         const ipChanged = mode === 'STATIC'
           && typeof newIp === 'string'
-          && newIp !== 'n/a'
+          && newIp !== ''
           && prevIp
           && prevIp !== newIp;
         if (ipChanged) {
-          setStatus(`Apply completed. IP changed from ${prevIp} to ${newIp}. Reconnect web at http://${newIp}/`, 'success');
+          setStatus(`Apply completed. IP changed from ${prevIp} to ${newIp}. Reconnect web at https://${newIp}/`, 'success');
           return;
         }
 
