@@ -217,6 +217,16 @@
       maskInp.value = Number.isFinite(Number(ipv4.prefix)) ? String(ipv4.prefix) : '24';
     }
 
+    function summarizeCanEnabled(state) {
+      const can = state?.can || {};
+      const enabled = [];
+      ['can0', 'can1'].forEach((iface) => {
+        const bps = Number(can?.[iface]?.bitrate || 0);
+        if (bps > 0) enabled.push(iface);
+      });
+      return enabled.length ? enabled.join(', ') : 'none';
+    }
+
     function validateStaticAddress(address, currentIp, operatorIp) {
       const m = /^192\.168\.137\.(\d{1,3})$/.exec(address || '');
       if (!m) throw new Error('Static IP must be in 192.168.137.0/24.');
@@ -322,8 +332,8 @@
         applyStateToForm(res.data);
         const mode = (res.data?.eth?.mode || '').toUpperCase() || 'N/A';
         const ip = res.data?.eth?.ipv4?.address || 'n/a';
-        const canBackend = res.data?.can_backend || 'legacy';
-        setStatus(`Loaded current config: mode=${mode}, ip=${ip}, can_backend=${canBackend}.`, 'success');
+        const canEnabled = summarizeCanEnabled(res.data);
+        setStatus(`Loaded current config: mode=${mode}, ip=${ip}, CAN enabled interfaces=${canEnabled}.`, 'success');
       } catch (err) {
         setStatus(`Failed to load state: ${err.message || err}`, 'error');
       }
@@ -342,6 +352,7 @@
       setStatus('Applying configuration: validating and writing system network settings...', 'progress');
 
       try {
+        const prevIp = latestState?.eth?.current_ip || latestState?.eth?.ipv4?.address || '';
         const res = await apiFacade.apply(payload, { autoConfirm: true, timeoutSec: 0 });
         if (!res?.ok) throw new Error(res?.error || 'Apply failed');
 
@@ -350,7 +361,23 @@
         const appliedState = res?.data?.state || null;
         const newIp = appliedState?.eth?.ipv4?.address || payload?.eth?.ipv4?.address || 'n/a';
         const mode = (appliedState?.eth?.mode || payload?.eth?.mode || 'n/a').toUpperCase();
-        setStatus(`Apply completed successfully. mode=${mode}, ip=${newIp}.`, 'success');
+        const warnings = Array.isArray(res?.data?.warnings) ? res.data.warnings : [];
+
+        if (warnings.length) {
+          setStatus(`Apply completed with warnings. mode=${mode}, ip=${newIp}. ${warnings.join(' | ')}`, 'error');
+        } else {
+          setStatus(`Apply completed successfully. mode=${mode}, ip=${newIp}.`, 'success');
+        }
+
+        const ipChanged = mode === 'STATIC'
+          && typeof newIp === 'string'
+          && newIp !== 'n/a'
+          && prevIp
+          && prevIp !== newIp;
+        if (ipChanged) {
+          setStatus(`Apply completed. IP changed from ${prevIp} to ${newIp}. Reconnect web at http://${newIp}/`, 'success');
+          return;
+        }
 
         // Refresh displayed values to match effective state.
         await loadState();

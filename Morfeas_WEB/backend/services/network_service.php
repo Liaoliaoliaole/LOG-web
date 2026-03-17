@@ -741,9 +741,9 @@ function network_apply_can_legacy(array $can): void
         }
 
         network_update_can_interfaces_file($iface, $bitrate);
-        network_exec('ip link set ' . escapeshellarg($iface) . ' down', true);
+        network_exec('/sbin/ip link set ' . escapeshellarg($iface) . ' down', true);
         network_exec_ok(
-            'ip link set ' . escapeshellarg($iface)
+            '/sbin/ip link set ' . escapeshellarg($iface)
             . ' up type can bitrate ' . escapeshellarg((string) $bitrate),
             true,
             "Unable to bring up CAN interface $iface with bitrate $bitrate"
@@ -793,6 +793,22 @@ function network_apply_payload(array $normalized): void
     network_apply_hostname($normalized['hostname']);
     network_apply_eth($normalized['eth']);
     network_apply_can($normalized['can']);
+}
+
+function network_apply_payload_no_rollback(array $normalized): array
+{
+    $warnings = [];
+
+    network_apply_hostname($normalized['hostname']);
+    network_apply_eth($normalized['eth']);
+
+    try {
+        network_apply_can($normalized['can']);
+    } catch (Throwable $e) {
+        $warnings[] = 'CAN apply warning: ' . $e->getMessage();
+    }
+
+    return $warnings;
 }
 
 function network_start_rollback_watcher(string $pendingId, int $timeoutSec): void
@@ -866,15 +882,22 @@ function network_apply_staged(array $payload, int $timeoutSec = NETWORK_DEFAULT_
 
         network_prepare_cutover($backupDir);
 
-        try {
-            network_apply_payload($normalized);
-        } catch (Throwable $e) {
+        $warnings = [];
+        if ($autoConfirm) {
+            // Future production mode: no rollback loop, keep applied ETH/hostname;
+            // CAN failures are reported as warnings.
+            $warnings = network_apply_payload_no_rollback($normalized);
+        } else {
             try {
-                network_apply_payload($beforePayload);
-            } catch (Throwable $rollbackError) {
-                throw new RuntimeException('Apply failed and rollback failed: ' . $rollbackError->getMessage() . '; original error: ' . $e->getMessage());
+                network_apply_payload($normalized);
+            } catch (Throwable $e) {
+                try {
+                    network_apply_payload($beforePayload);
+                } catch (Throwable $rollbackError) {
+                    throw new RuntimeException('Apply failed and rollback failed: ' . $rollbackError->getMessage() . '; original error: ' . $e->getMessage());
+                }
+                throw new RuntimeException('Apply failed; restored previous network state. Error: ' . $e->getMessage());
             }
-            throw new RuntimeException('Apply failed; restored previous network state. Error: ' . $e->getMessage());
         }
 
         $now = network_now();
@@ -892,16 +915,23 @@ function network_apply_staged(array $payload, int $timeoutSec = NETWORK_DEFAULT_
         if ($autoConfirm) {
             $pending['confirmed_at'] = $now;
         }
+        if (!empty($warnings)) {
+            $pending['warnings'] = $warnings;
+        }
         network_write_pending($pending);
 
         if (!$autoConfirm) {
             network_start_rollback_watcher($pendingId, $timeoutSec);
         }
 
-        return [
+        $result = [
             'pending' => network_pending_summary($pending),
             'state' => network_get_state(),
         ];
+        if (!empty($warnings)) {
+            $result['warnings'] = $warnings;
+        }
+        return $result;
     });
 }
 
