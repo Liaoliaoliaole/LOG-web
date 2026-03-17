@@ -93,10 +93,15 @@ if (isset($_GET['include']) && $_GET['include'] === 'iso_standard') {
 if (isset($_GET['include']) && $_GET['include'] === 'machine_info') {
     $mac    = primary_mac_address();
     $canMap = system_can_bitrates();
+    $ntp    = read_timesyncd_ntp_server() ?? '—';
 
     echo json_encode([
         'mac'  => $mac,
         'can'  => $canMap,
+        'ntp'  => [
+            'server' => $ntp,
+            'readonly' => true,
+        ],
     ], JSON_PRETTY_PRINT);
     exit;
 }

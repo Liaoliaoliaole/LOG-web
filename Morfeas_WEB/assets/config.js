@@ -32,6 +32,7 @@
       channels: 'api_channels.php',
       devices: 'api_devices.php',
       systemStatus: 'api_system_status.php',
+      networkConfig: 'api_network_config.php',
     },
     resolveApi,
     resolvePath,

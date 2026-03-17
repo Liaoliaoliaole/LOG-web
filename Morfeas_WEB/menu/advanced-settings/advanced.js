@@ -9,9 +9,11 @@
   const macText = byId('macText');
   const can0El = byId('can0');
   const can1El = byId('can1');
+  const ntpServerEl = byId('ntpServer');
   macText.textContent = '—';
   can0El.textContent = '—';
   can1El.textContent = '—';
+  ntpServerEl.textContent = '—';
 
   async function loadMachineInfo() {
     if (!channelsApi) throw new Error('Channels API unavailable');
@@ -21,12 +23,14 @@
     const can = data.can || {};
     can0El.textContent = can.can0 || '—';
     can1El.textContent = can.can1 || '—';
+    ntpServerEl.textContent = data?.ntp?.server || '—';
   }
 
   loadMachineInfo().catch(() => {
     macText.textContent = macText.textContent || '—';
     can0El.textContent = can0El.textContent || '—';
     can1El.textContent = can1El.textContent || '—';
+    ntpServerEl.textContent = ntpServerEl.textContent || '—';
   });
 
   /* ----------------------------------------------------

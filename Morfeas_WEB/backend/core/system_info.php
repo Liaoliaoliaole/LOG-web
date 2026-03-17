@@ -45,6 +45,36 @@ function system_can_bitrates(): array
     return $map;
 }
 
+function read_timesyncd_ntp_server(): ?string
+{
+    $conf = '/etc/systemd/timesyncd.conf';
+    if (is_file($conf)) {
+        $lines = @file($conf, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        foreach ($lines as $line) {
+            $trim = trim($line);
+            if ($trim === '' || $trim[0] === '#') {
+                continue;
+            }
+            if (preg_match('/^NTP\s*=\s*(.+)$/i', $trim, $m)) {
+                $raw = trim((string) $m[1]);
+                if ($raw === '') {
+                    continue;
+                }
+
+                // Keep first token only (timesyncd allows multiple NTP servers).
+                $parts = preg_split('/\s+/', $raw) ?: [];
+                $first = trim((string) ($parts[0] ?? ''));
+                if ($first !== '') {
+                    return $first;
+                }
+            }
+        }
+    }
+
+    $server = trim((string) @shell_exec('timedatectl show-timesync --property=ServerName --value 2>/dev/null'));
+    return $server !== '' ? $server : null;
+}
+
 function primary_mac_address(): ?string
 {
     $preferred = ['eth0', 'en0', 'wlan0'];
