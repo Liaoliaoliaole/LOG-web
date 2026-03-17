@@ -3,8 +3,6 @@
     const $ = (sel, root = document) => root.querySelector(sel);
     const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-    const api = window.LOG_WEB?.api?.networkConfig;
-
     const modeSel = $('#modeSel');
     const hostInp = $('#host');
     const maskInp = $('#mask');
@@ -17,27 +15,79 @@
     const loadLastBtn = $('#loadLastBtn');
     const commitBtn = $('#commitBtn');
     const closeBtn = $('#closeBtn');
-    const confirmBtn = $('#confirmBtn');
-    const rollbackBtn = $('#rollbackBtn');
-    const pendingControls = $('#pendingControls');
-    const pendingTimer = $('#pendingTimer');
-    const statusMsg = $('#statusMsg');
 
     const STORAGE_LAST = 'netconf:lastConfirmedPayload';
 
+    const PRESETS = {
+      LOG1: { host: 'LOG1', ip: [192, 168, 1, 10], mask: 24, gw: [192, 168, 1, 1], dns: [8, 8, 8, 8] },
+      LOG2: { host: 'LOG2', ip: [192, 168, 2, 10], mask: 24, gw: [192, 168, 2, 1], dns: [1, 1, 1, 1] },
+      LOG3: { host: 'LOG3', ip: [192, 168, 3, 10], mask: 24, gw: [192, 168, 3, 1], dns: [8, 8, 4, 4] },
+      LOG4: { host: 'LOG4', ip: [10, 0, 4, 10], mask: 24, gw: [10, 0, 4, 1], dns: [9, 9, 9, 9] },
+      LOG5: { host: 'LOG5', ip: [10, 0, 5, 10], mask: 24, gw: [10, 0, 5, 1], dns: [8, 8, 8, 8] },
+      LOG6: { host: 'LOG6', ip: [10, 0, 6, 10], mask: 24, gw: [10, 0, 6, 1], dns: [1, 1, 1, 1] },
+      LOG7: { host: 'LOG7', ip: [172, 16, 7, 10], mask: 24, gw: [172, 16, 7, 1], dns: [8, 8, 4, 4] },
+      LOG8: { host: 'LOG8', ip: [172, 16, 8, 10], mask: 24, gw: [172, 16, 8, 1], dns: [9, 9, 9, 9] },
+      LOG9: { host: 'LOG9', ip: [192, 168, 9, 10], mask: 24, gw: [192, 168, 9, 1], dns: [1, 0, 0, 1] },
+      LOG10: { host: 'LOG10', ip: [192, 168, 10, 10], mask: 24, gw: [192, 168, 10, 1], dns: [8, 8, 8, 8] }
+    };
+
+    const apiFacade = (() => {
+      const wrapped = window.LOG_WEB?.api?.networkConfig;
+      const endpoint = '../../backend/api_network_config.php';
+
+      const fetchJson = async (opts = {}) => {
+        const res = await fetch(endpoint, {
+          cache: 'no-store',
+          ...opts,
+        });
+
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(body?.error || `HTTP ${res.status}`);
+        }
+        if (body?.ok === false) {
+          throw new Error(body?.error || 'API returned error');
+        }
+        return body;
+      };
+
+      if (wrapped) {
+        return {
+          fetchState: () => wrapped.fetchState(),
+          apply: (payload, timeoutSec = 90) => wrapped.apply(payload, timeoutSec),
+          confirm: (pendingId) => wrapped.confirm(pendingId),
+          rollback: (pendingId) => wrapped.rollback(pendingId),
+        };
+      }
+
+      return {
+        fetchState: () => fetchJson({ method: 'GET', headers: { Accept: 'application/json' } }),
+        apply: (payload, timeoutSec = 90) => fetchJson({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ action: 'apply', payload, timeout_sec: timeoutSec }),
+        }),
+        confirm: (pendingId) => fetchJson({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ action: 'confirm', pending_id: pendingId }),
+        }),
+        rollback: (pendingId) => fetchJson({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ action: 'rollback', ...(pendingId ? { pending_id: pendingId } : {}) }),
+        }),
+      };
+    })();
+
     let latestState = null;
-    let activePendingId = '';
-    let countdownHandle = null;
+    let promptedPendingId = '';
 
-    function setStatus(message, isError = false) {
-      statusMsg.textContent = message;
-      statusMsg.style.color = isError ? '#b42318' : 'var(--text)';
-    }
-
-    function clearCountdown() {
-      if (countdownHandle) {
-        clearInterval(countdownHandle);
-        countdownHandle = null;
+    function notify(msg, isError = false) {
+      if (isError) {
+        console.error(msg);
+      } else {
+        console.log(msg);
       }
     }
 
@@ -46,6 +96,25 @@
         el.disabled = !on;
         el.style.background = on ? '' : 'var(--bg-weak)';
       });
+    }
+
+    function fillGroup(nodes, values) {
+      for (let i = 0; i < nodes.length; i += 1) {
+        nodes[i].value = values && values[i] != null ? String(values[i]) : '';
+      }
+    }
+
+    function splitIp(ip) {
+      if (!ip || typeof ip !== 'string') return [];
+      const arr = ip.split('.').map((x) => Number(x));
+      if (arr.length !== 4 || arr.some((n) => !Number.isFinite(n))) return [];
+      return arr;
+    }
+
+    function joinIp(nodes) {
+      const parts = nodes.map((n) => n.value.trim());
+      if (parts.some((p) => p === '')) return '';
+      return parts.join('.');
     }
 
     function clampOctet(el) {
@@ -84,23 +153,21 @@
       });
     }
 
-    function fillGroup(nodes, values) {
-      for (let i = 0; i < nodes.length; i += 1) {
-        nodes[i].value = values && values[i] != null ? String(values[i]) : '';
-      }
+    function setActivePresetBtn(key) {
+      $$('[data-preset]').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.preset === key);
+      });
     }
 
-    function splitIp(ip) {
-      if (!ip || typeof ip !== 'string') return [];
-      const arr = ip.split('.').map((x) => Number(x));
-      if (arr.length !== 4 || arr.some((n) => !Number.isFinite(n))) return [];
-      return arr;
-    }
-
-    function joinIp(nodes) {
-      const parts = nodes.map((n) => n.value.trim());
-      if (parts.some((p) => p === '')) return '';
-      return parts.join('.');
+    function applyPreset(preset, key) {
+      modeSel.value = 'Static';
+      setStaticEnabled(true);
+      hostInp.value = preset.host || '';
+      maskInp.value = preset.mask ?? '';
+      fillGroup(ipOcts, preset.ip || []);
+      fillGroup(gwOcts, preset.gw || []);
+      fillGroup(dnsOcts, preset.dns || []);
+      setActivePresetBtn(key);
     }
 
     function applyStateToForm(state) {
@@ -116,34 +183,6 @@
       fillGroup(gwOcts, splitIp(ipv4.gateway));
       fillGroup(dnsOcts, splitIp((ipv4.dns || [])[0] || ''));
       maskInp.value = Number.isFinite(Number(ipv4.prefix)) ? String(ipv4.prefix) : '24';
-    }
-
-    function showPending(pending) {
-      clearCountdown();
-
-      if (!pending || pending.state !== 'pending') {
-        activePendingId = '';
-        pendingControls.classList.remove('active');
-        pendingTimer.textContent = 'Pending confirmation';
-        return;
-      }
-
-      activePendingId = pending.pending_id || '';
-      pendingControls.classList.add('active');
-
-      const updateTimer = () => {
-        const now = Math.floor(Date.now() / 1000);
-        const left = Math.max(0, Number(pending.expires_at || 0) - now);
-        pendingTimer.textContent = `Pending confirmation: ${left}s`;
-        if (left <= 0) {
-          clearCountdown();
-          pendingTimer.textContent = 'Pending window expired; state will be reloaded.';
-          loadState();
-        }
-      };
-
-      updateTimer();
-      countdownHandle = setInterval(updateTimer, 1000);
     }
 
     function validateStaticAddress(address, currentIp, operatorIp) {
@@ -173,9 +212,7 @@
     function buildPayloadFromForm() {
       const mode = modeSel.value === 'DHCP' ? 'dhcp' : 'static';
       const hostname = hostInp.value.trim();
-      if (!hostname) {
-        throw new Error('Hostname is required.');
-      }
+      if (!hostname) throw new Error('Hostname is required.');
 
       const payload = {
         hostname,
@@ -219,7 +256,7 @@
     function loadLastPayload() {
       const raw = localStorage.getItem(STORAGE_LAST);
       if (!raw) {
-        setStatus('No previously confirmed payload saved on this browser.');
+        alert('No previously confirmed payload saved on this browser.');
         return;
       }
 
@@ -227,7 +264,7 @@
       try {
         payload = JSON.parse(raw);
       } catch (_) {
-        setStatus('Saved payload is invalid JSON.', true);
+        alert('Saved payload is invalid JSON.');
         return;
       }
 
@@ -241,125 +278,97 @@
       fillGroup(gwOcts, splitIp(ipv4.gateway));
       fillGroup(dnsOcts, splitIp((ipv4.dns || [])[0] || ''));
       maskInp.value = Number.isFinite(Number(ipv4.prefix)) ? String(ipv4.prefix) : '24';
+    }
 
-      setStatus('Loaded last confirmed payload from browser storage.');
+    async function confirmPending(pendingId) {
+      const res = await apiFacade.confirm(pendingId);
+      if (!res?.ok) throw new Error(res?.error || 'Confirm failed');
+      notify('Pending apply confirmed.');
+      localStorage.setItem(STORAGE_LAST, JSON.stringify(buildPayloadFromForm()));
+      return res;
+    }
+
+    async function rollbackPending(pendingId) {
+      const res = await apiFacade.rollback(pendingId);
+      if (!res?.ok) throw new Error(res?.error || 'Rollback failed');
+      notify('Pending apply rolled back.');
+      return res;
+    }
+
+    async function maybePromptPending(pending) {
+      if (!pending || pending.state !== 'pending' || !pending.pending_id) return;
+      if (pending.pending_id === promptedPendingId) return;
+
+      promptedPendingId = pending.pending_id;
+      const remaining = Number(pending.remaining_sec || 0);
+
+      const wantConfirm = window.confirm(
+        `Pending network apply detected (${remaining}s left).\nClick OK to confirm now.\nClick Cancel to keep pending (auto-rollback on timeout).`
+      );
+      if (wantConfirm) {
+        try {
+          await confirmPending(pending.pending_id);
+          await loadState();
+          return;
+        } catch (err) {
+          alert(`Confirm failed: ${err.message || err}`);
+          return;
+        }
+      }
+
+      const wantRollback = window.confirm('Do you want to rollback this pending apply now?');
+      if (!wantRollback) return;
+
+      try {
+        await rollbackPending(pending.pending_id);
+        await loadState();
+      } catch (err) {
+        alert(`Rollback failed: ${err.message || err}`);
+      }
     }
 
     async function loadState() {
-      if (!api) {
-        setStatus('Network API unavailable. Make sure assets/config.js and assets/api/networkConfig.js are loaded.', true);
-        return;
-      }
-
       try {
-        const res = await api.fetchState();
-        if (!res?.ok) {
-          throw new Error(res?.error || 'State query failed');
-        }
+        const res = await apiFacade.fetchState();
+        if (!res?.ok) throw new Error(res?.error || 'State query failed');
 
         applyStateToForm(res.data);
-        showPending(res.data?.pending || null);
-
-        const mode = (res.data?.eth?.mode || '').toUpperCase();
-        const ip = res.data?.eth?.ipv4?.address || 'n/a';
-        const pendingState = res.data?.pending?.state;
-        const pendingText = pendingState === 'pending' ? ' (pending confirmation)' : '';
-        setStatus(`Loaded: ${mode || 'N/A'} / ${ip}${pendingText}`);
+        notify(`Loaded network state: ${res.data?.eth?.mode || 'N/A'} ${res.data?.eth?.ipv4?.address || ''}`);
+        await maybePromptPending(res.data?.pending || null);
       } catch (err) {
-        setStatus(`Failed to load network state: ${err.message || err}`, true);
+        alert(`Failed to load network state: ${err.message || err}`);
       }
     }
 
-    async function handleApply() {
-      if (!api) {
-        setStatus('Network API unavailable.', true);
-        return;
-      }
-
+    async function applyConfig() {
       let payload;
       try {
         payload = buildPayloadFromForm();
       } catch (err) {
-        setStatus(err.message || String(err), true);
+        alert(err.message || String(err));
         return;
       }
 
       commitBtn.disabled = true;
-      setStatus('Applying configuration... waiting for backend response.');
-
       try {
-        const res = await api.apply(payload, 90);
-        if (!res?.ok) {
-          throw new Error(res?.error || 'Apply failed');
-        }
+        const res = await apiFacade.apply(payload, 90);
+        if (!res?.ok) throw new Error(res?.error || 'Apply failed');
 
-        const pending = res?.data?.pending || null;
-        showPending(pending);
-        localStorage.setItem(STORAGE_LAST, JSON.stringify(payload));
-
+        const pending = res?.data?.pending;
         if (pending?.state === 'pending') {
-          setStatus(`Apply succeeded. Confirm within ${pending.timeout_sec || 90}s or auto-rollback will trigger.`);
-        } else {
-          setStatus('Apply response received. Reloading state...');
+          const wantConfirm = window.confirm(
+            `Apply succeeded. Confirm within ${pending.timeout_sec || 90}s to keep changes.\nClick OK to confirm now.\nClick Cancel to leave pending (auto-rollback on timeout).`
+          );
+          if (wantConfirm) {
+            await confirmPending(pending.pending_id);
+          }
         }
 
         await loadState();
       } catch (err) {
-        setStatus(`Apply failed: ${err.message || err}`, true);
+        alert(`Apply failed: ${err.message || err}`);
       } finally {
         commitBtn.disabled = false;
-      }
-    }
-
-    async function handleConfirm() {
-      if (!api || !activePendingId) {
-        setStatus('No active pending operation to confirm.', true);
-        return;
-      }
-
-      confirmBtn.disabled = true;
-      rollbackBtn.disabled = true;
-      setStatus('Confirming pending network apply...');
-
-      try {
-        const res = await api.confirm(activePendingId);
-        if (!res?.ok) {
-          throw new Error(res?.error || 'Confirm failed');
-        }
-        showPending(res?.data?.pending || null);
-        setStatus('Pending apply confirmed.');
-        await loadState();
-      } catch (err) {
-        setStatus(`Confirm failed: ${err.message || err}`, true);
-      } finally {
-        confirmBtn.disabled = false;
-        rollbackBtn.disabled = false;
-      }
-    }
-
-    async function handleRollback() {
-      if (!api) {
-        setStatus('Network API unavailable.', true);
-        return;
-      }
-
-      confirmBtn.disabled = true;
-      rollbackBtn.disabled = true;
-      setStatus('Rolling back pending network apply...');
-
-      try {
-        const res = await api.rollback(activePendingId || undefined);
-        if (!res?.ok) {
-          throw new Error(res?.error || 'Rollback failed');
-        }
-        showPending(res?.data?.pending || null);
-        setStatus('Rollback completed.');
-        await loadState();
-      } catch (err) {
-        setStatus(`Rollback failed: ${err.message || err}`, true);
-      } finally {
-        confirmBtn.disabled = false;
-        rollbackBtn.disabled = false;
       }
     }
 
@@ -367,10 +376,15 @@
       setStaticEnabled(modeSel.value === 'Static');
     });
 
+    $$('[data-preset]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.preset;
+        if (PRESETS[key]) applyPreset(PRESETS[key], key);
+      });
+    });
+
     loadLastBtn.addEventListener('click', loadLastPayload);
-    commitBtn.addEventListener('click', handleApply);
-    confirmBtn.addEventListener('click', handleConfirm);
-    rollbackBtn.addEventListener('click', handleRollback);
+    commitBtn.addEventListener('click', applyConfig);
     closeBtn.addEventListener('click', () => window.close());
 
     setStaticEnabled(true);
