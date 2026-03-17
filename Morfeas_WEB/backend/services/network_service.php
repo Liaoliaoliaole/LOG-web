@@ -710,10 +710,38 @@ function network_update_can_interfaces_file(string $iface, int $bitrate): void
             throw new RuntimeException("Unable to read $path");
         }
 
-        if (preg_match('/\bbitrate\s+\d+\b/', $raw) === 1) {
-            $updated = preg_replace('/\bbitrate\s+\d+\b/', 'bitrate ' . $bitrate, $raw, 1) ?? $raw;
+        $updated = $raw;
+
+        // Handle legacy ifupdown CAN format: "iface canX can static".
+        if (preg_match('/^\s*iface\s+' . preg_quote($iface, '/') . '\s+can\s+static\s*$/mi', $raw) === 1) {
+            if (preg_match('/^\s*bitrate\s+\d+\s*$/mi', $updated) === 1) {
+                $updated = preg_replace('/^\s*bitrate\s+\d+\s*$/mi', "\tbitrate $bitrate", $updated, 1) ?? $updated;
+            } else {
+                $updated = preg_replace(
+                    '/^\s*iface\s+' . preg_quote($iface, '/') . '\s+can\s+static\s*$/mi',
+                    "iface $iface can static\n\tbitrate $bitrate",
+                    $updated,
+                    1
+                ) ?? $updated;
+            }
+
+            // Keep pre-up line in sync when it exists.
+            if (preg_match('/^\s*pre-up\s+\/sbin\/ip\s+link\s+set\s+\\$IFACE\s+type\s+can\s+bitrate\s+\d+/mi', $updated) === 1) {
+                $updated = preg_replace(
+                    '/(^\s*pre-up\s+\/sbin\/ip\s+link\s+set\s+\\$IFACE\s+type\s+can\s+bitrate\s+)\d+/mi',
+                    '$1' . $bitrate,
+                    $updated,
+                    1
+                ) ?? $updated;
+            }
         } else {
-            $updated = rtrim($raw, "\n") . "\n\tpre-up /sbin/ip link set \$IFACE type can bitrate $bitrate\n";
+            // Fallback to canonical legacy style that worked in old deployments.
+            $updated = "auto $iface\n"
+                . "allow-hotplug $iface\n"
+                . "iface $iface inet manual\n"
+                . "\tpre-up /sbin/ip link set $iface type can bitrate $bitrate triple-sampling on restart-ms 100\n"
+                . "\tup /sbin/ifconfig $iface up\n"
+                . "\tdown /sbin/ifconfig $iface down\n";
         }
 
         if ($updated !== $raw) {
@@ -725,7 +753,7 @@ function network_update_can_interfaces_file(string $iface, int $bitrate): void
     $template = "auto $iface\n"
         . "allow-hotplug $iface\n"
         . "iface $iface can static\n"
-        . "\tpre-up /sbin/ip link set \$IFACE type can bitrate $bitrate\n"
+        . "\tbitrate $bitrate\n"
         . "\tup /sbin/ip link set \$IFACE up\n"
         . "\tdown /sbin/ip link set \$IFACE down\n";
 
