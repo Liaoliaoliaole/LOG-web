@@ -227,6 +227,27 @@
       return enabled.length ? enabled.join(', ') : 'none';
     }
 
+    async function probeTargetHost(ip, timeoutMs = 3500) {
+      if (!ip) return false;
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const base = `${window.location.protocol}//${ip}/`;
+      try {
+        await fetch(base, {
+          method: 'GET',
+          mode: 'no-cors',
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        return true;
+      } catch (_) {
+        return false;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
     function validateStaticAddress(address, currentIp, operatorIp) {
       const m = /^192\.168\.137\.(\d{1,3})$/.exec(address || '');
       if (!m) throw new Error('Static IP must be in 192.168.137.0/24.');
@@ -341,8 +362,10 @@
 
     async function applyConfig() {
       let payload;
+      let requestedIp = '';
       try {
         payload = buildPayloadFromForm();
+        requestedIp = payload?.eth?.mode === 'static' ? (payload?.eth?.ipv4?.address || '') : '';
       } catch (err) {
         setStatus(err.message || String(err), 'error');
         return;
@@ -353,7 +376,7 @@
 
       try {
         const prevIp = latestState?.eth?.current_ip || latestState?.eth?.ipv4?.address || '';
-        const res = await apiFacade.apply(payload, { autoConfirm: true, timeoutSec: 0 });
+        const res = await apiFacade.apply(payload, { autoConfirm: true, timeoutSec: 0, requestTimeoutMs: 15000 });
         if (!res?.ok) throw new Error(res?.error || 'Apply failed');
         if (!res?.data?.state || typeof res.data.state !== 'object') {
           throw new Error('Apply response missing effective state.');
@@ -388,7 +411,24 @@
         // Refresh displayed values to match effective state.
         await loadState();
       } catch (err) {
-        setStatus(`Apply failed: ${err.message || err}`, 'error');
+        const msg = err?.message || String(err);
+        const prevIp = latestState?.eth?.current_ip || latestState?.eth?.ipv4?.address || '';
+        const staticIpSwitch = payload?.eth?.mode === 'static'
+          && requestedIp
+          && prevIp
+          && requestedIp !== prevIp;
+
+        if (staticIpSwitch && /timeout|failed to fetch|networkerror|network error/i.test(msg)) {
+          setStatus(`Apply request channel interrupted. Checking new IP ${requestedIp}...`, 'progress');
+          const reachable = await probeTargetHost(requestedIp);
+          if (reachable) {
+            setStatus(`Network likely applied. Device is reachable at ${requestedIp}. Reconnect web at https://${requestedIp}/`, 'success');
+          } else {
+            setStatus(`Apply response interrupted during IP switch. Try https://${requestedIp}/ first; if unreachable, reconnect old IP ${prevIp} and retry.`, 'error');
+          }
+        } else {
+          setStatus(`Apply failed: ${msg}`, 'error');
+        }
       } finally {
         commitBtn.disabled = false;
       }

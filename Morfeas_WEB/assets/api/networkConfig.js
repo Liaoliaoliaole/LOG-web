@@ -11,10 +11,32 @@
     || new URL(`/backend/${endpoint}`, window.location.origin).toString();
 
   const fetchJson = async (params, options = {}) => {
-    const res = await fetch(buildUrl(params), {
-      cache: 'no-store',
-      ...options,
-    });
+    const {
+      timeoutMs = 20000,
+      ...fetchOptions
+    } = options || {};
+
+    const controller = new AbortController();
+    const timeout = Number.isFinite(timeoutMs) && timeoutMs > 0
+      ? setTimeout(() => controller.abort(), Number(timeoutMs))
+      : null;
+
+    let res;
+    try {
+      res = await fetch(buildUrl(params), {
+        cache: 'no-store',
+        signal: controller.signal,
+        ...fetchOptions,
+      });
+    } catch (err) {
+      if (err?.name === 'AbortError') {
+        throw new Error('Request timeout');
+      }
+      throw err;
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
+
     if (!res.ok) {
       let details = '';
       try {
@@ -28,10 +50,11 @@
     return res.json();
   };
 
-  const postAction = (action, payload = {}) => fetchJson(undefined, {
+  const postAction = (action, payload = {}, requestOptions = {}) => fetchJson(undefined, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({ action, ...payload }),
+    ...requestOptions,
   });
 
   const networkConfigApi = {
@@ -42,6 +65,7 @@
     apply: (payload, options = {}) => {
       let timeoutSec = 90;
       let autoConfirm = true;
+      let requestTimeoutMs = 20000;
 
       if (typeof options === 'number') {
         timeoutSec = options;
@@ -53,12 +77,17 @@
         if (typeof options.autoConfirm === 'boolean') {
           autoConfirm = options.autoConfirm;
         }
+        if (Number.isFinite(options.requestTimeoutMs)) {
+          requestTimeoutMs = Number(options.requestTimeoutMs);
+        }
       }
 
       return postAction('apply', {
         payload,
         timeout_sec: timeoutSec,
         auto_confirm: autoConfirm,
+      }, {
+        timeoutMs: requestTimeoutMs,
       });
     },
     confirm: (pendingId) => postAction('confirm', { pending_id: pendingId }),
