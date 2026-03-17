@@ -230,6 +230,96 @@ function network_nm_eth_mode(): ?string
     return null;
 }
 
+function network_nm_can_supported(): bool
+{
+    static $cached = null;
+    if ($cached !== null) {
+        return $cached;
+    }
+
+    $ret = network_exec('nmcli connection add type __probe__ ifname __probe__ con-name __probe__');
+    if ($ret['code'] === 0) {
+        // Highly unlikely, but if it somehow succeeded, cleanup and return true.
+        network_exec('nmcli connection delete ' . escapeshellarg('__probe__'), true);
+        $cached = true;
+        return $cached;
+    }
+
+    // nmcli prints allowed connection types in this error path.
+    $text = strtolower((string) $ret['output']);
+    $cached = preg_match('/\bcan\b/', $text) === 1;
+    return $cached;
+}
+
+function network_write_system_file_via_sudo_cp(string $path, string $contents, string $context): void
+{
+    $tmp = '/tmp/morfeas_net_' . basename($path) . '_' . network_uuid();
+    if (@file_put_contents($tmp, $contents) === false) {
+        throw new RuntimeException("$context: unable to create temp file");
+    }
+
+    try {
+        network_exec_ok('cp ' . escapeshellarg($tmp) . ' ' . escapeshellarg($path), true, $context);
+    } finally {
+        @unlink($tmp);
+    }
+}
+
+function network_ensure_nm_ifupdown_managed_true(string $backupDir): bool
+{
+    $nmConf = '/etc/NetworkManager/NetworkManager.conf';
+    if (!is_file($nmConf)) {
+        return false;
+    }
+
+    network_exec_ok('cp -a ' . escapeshellarg($nmConf) . ' ' . escapeshellarg($backupDir . '/NetworkManager.conf'), true, 'Unable to backup NetworkManager.conf');
+
+    $raw = @file_get_contents($nmConf);
+    if (!is_string($raw)) {
+        throw new RuntimeException('Unable to read NetworkManager.conf');
+    }
+
+    $updated = $raw;
+    if (preg_match('/^\[ifupdown\]\s*$/mi', $updated) === 1) {
+        if (preg_match('/^\s*managed\s*=.*$/mi', $updated) === 1) {
+            $updated = preg_replace('/^\s*managed\s*=.*$/mi', 'managed=true', $updated) ?? $updated;
+        } else {
+            $updated = preg_replace('/^\[ifupdown\]\s*$/mi', "[ifupdown]\nmanaged=true", $updated, 1) ?? $updated;
+        }
+    } else {
+        $updated = rtrim($updated, "\n") . "\n\n[ifupdown]\nmanaged=true\n";
+    }
+
+    if ($updated === $raw) {
+        return false;
+    }
+
+    network_write_system_file_via_sudo_cp($nmConf, $updated, 'Unable to enable NM ifupdown managed=true');
+    return true;
+}
+
+function network_update_hosts_hostname_map(string $hostname): void
+{
+    $hostsPath = '/etc/hosts';
+    $raw = @file_get_contents($hostsPath);
+    if (!is_string($raw)) {
+        throw new RuntimeException('Unable to read /etc/hosts');
+    }
+
+    $line = "127.0.1.1\t$hostname";
+    if (preg_match('/^127\.0\.1\.1\s+.+$/mi', $raw) === 1) {
+        $updated = preg_replace('/^127\.0\.1\.1\s+.+$/mi', $line, $raw, 1) ?? $raw;
+    } else {
+        $updated = rtrim($raw, "\n") . "\n$line\n";
+    }
+
+    if ($updated === $raw) {
+        return;
+    }
+
+    network_write_system_file_via_sudo_cp($hostsPath, $updated, 'Unable to update /etc/hosts');
+}
+
 function network_get_can_bitrate_bps(string $iface): ?int
 {
     $sysfs = sprintf('/sys/class/net/%s/can_bittiming/bitrate', $iface);
@@ -294,6 +384,7 @@ function network_get_state(): array
             'operator_ip' => network_get_operator_ip(),
         ],
         'can' => $can,
+        'can_backend' => network_nm_can_supported() ? 'nm' : 'legacy',
         'ntp' => [
             'server' => read_timesyncd_ntp_server() ?? '—',
             'readonly' => true,
@@ -506,38 +597,35 @@ function network_backup_dir(string $pendingId): string
 
 function network_prepare_cutover(string $backupDir): void
 {
-    network_exec_ok('mkdir -p ' . escapeshellarg($backupDir), true, 'Unable to create network backup dir');
+    if (!is_dir($backupDir) && !@mkdir($backupDir, 0700, true) && !is_dir($backupDir)) {
+        throw new RuntimeException('Unable to create network backup dir');
+    }
 
-    foreach ([NETWORK_ETH_IFACE, 'can0', 'can1'] as $iface) {
+    $nmCan = network_nm_can_supported();
+    $ifacesForCutover = [NETWORK_ETH_IFACE];
+    if ($nmCan) {
+        $ifacesForCutover = array_merge($ifacesForCutover, NETWORK_CAN_IFACES);
+    }
+
+    $cutoverTouched = false;
+    foreach ($ifacesForCutover as $iface) {
         $path = '/etc/network/interfaces.d/' . $iface;
         $disabledPath = $path . '.disabled_by_morfeas_nm';
 
         if (is_file($path)) {
             network_exec_ok('cp -a ' . escapeshellarg($path) . ' ' . escapeshellarg($backupDir . '/' . $iface), true, "Unable to backup $path");
             network_exec_ok('mv ' . escapeshellarg($path) . ' ' . escapeshellarg($disabledPath), true, "Unable to disable $path");
+            $cutoverTouched = true;
         }
     }
 
-    $nmConf = '/etc/NetworkManager/NetworkManager.conf';
-    if (is_file($nmConf)) {
-        network_exec_ok('cp -a ' . escapeshellarg($nmConf) . ' ' . escapeshellarg($backupDir . '/NetworkManager.conf'), true, 'Unable to backup NetworkManager.conf');
+    $nmConfChanged = network_ensure_nm_ifupdown_managed_true($backupDir);
 
-        $script = <<<'BASH'
-if grep -q '^\s*managed=' /etc/NetworkManager/NetworkManager.conf; then
-  sed -i 's/^\s*managed=.*/managed=true/' /etc/NetworkManager/NetworkManager.conf
-else
-  if ! grep -q '^\[ifupdown\]' /etc/NetworkManager/NetworkManager.conf; then
-    printf '\n[ifupdown]\nmanaged=true\n' >> /etc/NetworkManager/NetworkManager.conf
-  else
-    awk 'BEGIN{printed=0} {print $0} /^\[ifupdown\]$/ && !printed {print "managed=true"; printed=1}' /etc/NetworkManager/NetworkManager.conf > /tmp/nm_conf.$$ && mv /tmp/nm_conf.$$ /etc/NetworkManager/NetworkManager.conf
-  fi
-fi
-BASH;
-        network_exec_ok('sh -c ' . escapeshellarg($script), true, 'Unable to enable NM ifupdown managed=true');
+    if ($cutoverTouched || $nmConfChanged) {
+        network_exec_ok('systemctl restart NetworkManager', true, 'Unable to restart NetworkManager');
     }
 
-    network_exec_ok('systemctl restart NetworkManager', true, 'Unable to restart NetworkManager');
-    foreach ([NETWORK_ETH_IFACE, 'can0', 'can1'] as $iface) {
+    foreach ($ifacesForCutover as $iface) {
         network_exec('nmcli device set ' . escapeshellarg($iface) . ' managed yes', true);
     }
 }
@@ -612,7 +700,58 @@ function network_ensure_can_connection(string $iface, string $connName): void
     network_exec_ok('nmcli connection modify ' . escapeshellarg($connName) . ' connection.autoconnect yes', true, "Unable to set autoconnect for $iface");
 }
 
-function network_apply_can(array $can): void
+function network_update_can_interfaces_file(string $iface, int $bitrate): void
+{
+    $path = '/etc/network/interfaces.d/' . $iface;
+
+    if (is_file($path)) {
+        $raw = @file_get_contents($path);
+        if (!is_string($raw)) {
+            throw new RuntimeException("Unable to read $path");
+        }
+
+        if (preg_match('/\bbitrate\s+\d+\b/', $raw) === 1) {
+            $updated = preg_replace('/\bbitrate\s+\d+\b/', 'bitrate ' . $bitrate, $raw, 1) ?? $raw;
+        } else {
+            $updated = rtrim($raw, "\n") . "\n\tpre-up /sbin/ip link set \$IFACE type can bitrate $bitrate\n";
+        }
+
+        if ($updated !== $raw) {
+            network_write_system_file_via_sudo_cp($path, $updated, "Unable to persist CAN bitrate for $iface");
+        }
+        return;
+    }
+
+    $template = "auto $iface\n"
+        . "allow-hotplug $iface\n"
+        . "iface $iface can static\n"
+        . "\tpre-up /sbin/ip link set \$IFACE type can bitrate $bitrate\n"
+        . "\tup /sbin/ip link set \$IFACE up\n"
+        . "\tdown /sbin/ip link set \$IFACE down\n";
+
+    network_write_system_file_via_sudo_cp($path, $template, "Unable to create CAN interface config for $iface");
+}
+
+function network_apply_can_legacy(array $can): void
+{
+    foreach (NETWORK_CAN_IFACES as $iface) {
+        $bitrate = (int) ($can[$iface]['bitrate'] ?? 0);
+        if ($bitrate <= 0) {
+            continue;
+        }
+
+        network_update_can_interfaces_file($iface, $bitrate);
+        network_exec('ip link set ' . escapeshellarg($iface) . ' down', true);
+        network_exec_ok(
+            'ip link set ' . escapeshellarg($iface)
+            . ' up type can bitrate ' . escapeshellarg((string) $bitrate),
+            true,
+            "Unable to bring up CAN interface $iface with bitrate $bitrate"
+        );
+    }
+}
+
+function network_apply_can_nm(array $can): void
 {
     foreach (NETWORK_CAN_IFACES as $iface) {
         $bitrate = (int) ($can[$iface]['bitrate'] ?? 0);
@@ -633,8 +772,19 @@ function network_apply_can(array $can): void
     }
 }
 
+function network_apply_can(array $can): void
+{
+    if (network_nm_can_supported()) {
+        network_apply_can_nm($can);
+        return;
+    }
+
+    network_apply_can_legacy($can);
+}
+
 function network_apply_hostname(string $hostname): void
 {
+    network_update_hosts_hostname_map($hostname);
     network_exec_ok('hostnamectl set-hostname ' . escapeshellarg($hostname), true, 'Unable to apply hostname');
 }
 
