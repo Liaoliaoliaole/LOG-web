@@ -93,16 +93,16 @@
     return `${value.toFixed(dp)}%`;
   }
 
-  function formatShuntTempF(value) {
+  function formatShuntTempC(value) {
     if (typeof value !== 'number' || Number.isNaN(value)) return value;
     const c = (value - 32) * 5 / 9;
-    return `${c.toFixed(1)}°C (${value.toFixed(1)}°F)`;
+    return `${c.toFixed(1)}°C`;
   }
 
-  function formatCpuTempF(value) {
+  function formatCpuTempC(value) {
     if (typeof value !== 'number' || Number.isNaN(value)) return value;
     const c = (value - 32) * 5 / 9;
-    return `${c.toFixed(1)}°C (${value.toFixed(1)}°F)`;
+    return `${c.toFixed(1)}°C`;
   }
 
   function fallbackFormatRow(row) {
@@ -130,11 +130,11 @@
     }
 
     if (row.name === 'CPU_temp') {
-      return { label, value: formatCpuTempF(row.value) };
+      return { label, value: formatCpuTempC(row.value) };
     }
 
     if (/^SDAQnet_\(.+\)_ShuntTemp$/i.test(row.name)) {
-      return { label, value: formatShuntTempF(row.value) };
+      return { label, value: formatShuntTempC(row.value) };
     }
 
     if (row.name === 'Up_time' && typeof row.value === 'number') {

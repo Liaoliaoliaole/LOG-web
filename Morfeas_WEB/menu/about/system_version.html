@@ -71,10 +71,6 @@
                 <td class="value" id="webCommitDateValue">Loading...</td>
               </tr>
               <tr>
-                <td class="label">Web Files Updated</td>
-                <td class="value" id="webFilesUpdatedValue">Loading...</td>
-              </tr>
-              <tr>
                 <td class="label">Core Version</td>
                 <td class="value" id="coreVersionValue">Loading...</td>
               </tr>
@@ -92,7 +88,6 @@
     (function () {
       const webVersionEl = document.getElementById('webVersionValue');
       const webCommitDateEl = document.getElementById('webCommitDateValue');
-      const webFilesUpdatedEl = document.getElementById('webFilesUpdatedValue');
       const coreVersionEl = document.getElementById('coreVersionValue');
       const coreCommitDateEl = document.getElementById('coreCommitDateValue');
 
@@ -105,14 +100,12 @@
           }
           webVersionEl.textContent = data.web && data.web.label ? data.web.label : 'unknown @ unknown';
           webCommitDateEl.textContent = data.web && data.web.commit_date ? data.web.commit_date : 'unknown';
-          webFilesUpdatedEl.textContent = data.web && data.web.files_last_updated ? data.web.files_last_updated : 'unknown';
 
           coreVersionEl.textContent = data.core && data.core.label ? data.core.label : 'unknown @ unknown';
           coreCommitDateEl.textContent = data.core && data.core.commit_date ? data.core.commit_date : 'unknown';
         } catch (err) {
           webVersionEl.textContent = 'unknown @ unknown';
           webCommitDateEl.textContent = 'unknown';
-          webFilesUpdatedEl.textContent = 'unknown';
           coreVersionEl.textContent = 'unknown @ unknown';
           coreCommitDateEl.textContent = 'unknown';
         }
