@@ -1,40 +1,83 @@
 <!doctype html>
-<html lang='en'>
+<html lang="en">
 
 <head>
-    <meta charset='utf-8'>
-    <meta name='viewport' content='width=device-width,initial-scale=1'>
-    <title>System Reboot · Morfeas WEB</title>
-    <link rel='stylesheet' href='../assets/app.css'>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>System Reboot · Morfeas WEB</title>
+  <link rel="stylesheet" href="../../assets/app.css">
+  <style>
+    .panel {
+      max-width: 760px;
+      margin: 24px auto;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 20px;
+    }
+
+    .status {
+      margin-top: 14px;
+      border-radius: 10px;
+      border: 1px solid #d9dde3;
+      background: #f7f9fb;
+      padding: 12px;
+      font-weight: 700;
+    }
+
+    .status.progress {
+      background: #e6f4ff;
+      border-color: #91caff;
+      color: #003a8c;
+    }
+
+    .status.success {
+      background: #f6ffed;
+      border-color: #b7eb8f;
+      color: #135200;
+    }
+
+    .status.error {
+      background: #fff1f0;
+      border-color: #ffccc7;
+      color: #a8071a;
+    }
+  </style>
 </head>
 
-<body>
-    <div class='topbar'>
-        <div class='top-inner'>
-            <div class='brand'><img src='../assets/logo-placeholder3.png' alt='Logo'>
-                <div class='page-title'>System Reboot</div>
-            </div>
-            <div class='info'>
-                <div class='chip'>FTP backup dir: /ftp/backup/</div>
-                <div class='chip'>
-                    <div class='ticker'>
-                        <div class='track'></div>
-                    </div>
-                </div>
-            </div>
-            <div class='menu-wrap'><button id='menuBtn' class='menu-btn'><span class='burger'></span> Menu</button>
-                <div id='mainMenu' class='dropdown'>
-                    <div class='group'>Back</div><a class='menu-item' href='../index.html'>ISO Channels Linker</a>
-                </div>
-            </div>
+<body data-action="reboot">
+  <div class="topbar">
+    <div class="top-inner">
+      <div class="brand"><img src="../../assets/logo.png" alt="Logo">
+        <div class="page-title">System Reboot</div>
+      </div>
+      <div class="info">
+        <div class="chip">System Control</div>
+      </div>
+      <div class="menu-wrap"><button id="menuBtn" class="menu-btn"><span class="burger"></span> Menu</button>
+        <div id="mainMenu" class="dropdown">
+          <div class="group">Back</div><a class="menu-item" href="../../index.html">ISO Channels Linker</a>
         </div>
+      </div>
     </div>
-    <div class='toolbar'><strong>System Reboot (placeholder)</strong></div>
-    <div class='footer'>Static placeholder.</div>
-    <script src='../assets/config.js'></script>
-    <script src='../assets/api/systemStatus.js'></script>
-    <script src='../assets/ui/systemStatusFormatter.js'></script>
-    <script src='../assets/index.js'></script>
+  </div>
+
+  <div class="panel">
+    <h2>Reboot Device</h2>
+    <p>This action will reboot the Pi and disconnect current browser/SSH sessions.</p>
+    <button id="runBtn" class="btn primary">Reboot Now</button>
+    <div id="statusBox" class="status">Ready. Click "Reboot Now" to continue.</div>
+  </div>
+
+  <script src="../../assets/config.js"></script>
+  <script src="../../assets/api/systemPower.js"></script>
+  <script src="../../assets/index.js"></script>
+  <script src="./system_power.js"></script>
 </body>
 
 </html>
