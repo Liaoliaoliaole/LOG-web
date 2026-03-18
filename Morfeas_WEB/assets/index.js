@@ -1358,12 +1358,28 @@
       const h = Number(opts.height) || 820;
       const resizable = opts.resizable !== false;
       const scrollbars = opts.scrollbars !== false;
+      const forceReload = opts.forceReload === true;
+
+      const withCacheBust = (rawUrl) => {
+        if (!rawUrl) return rawUrl;
+        try {
+          const u = new URL(rawUrl, window.location.href);
+          u.searchParams.set('_popup_reload', String(Date.now()));
+          return u.toString();
+        } catch (_) {
+          const sep = rawUrl.includes('?') ? '&' : '?';
+          return `${rawUrl}${sep}_popup_reload=${Date.now()}`;
+        }
+      };
 
       const existing = popupRegistry.get(name);
       if (existing && !existing.closed) {
         try {
-          if (existing.location && url && existing.location.href !== url) {
-            existing.location.href = url;
+          if (existing.location && url) {
+            const targetUrl = forceReload ? withCacheBust(url) : url;
+            if (forceReload || existing.location.href !== targetUrl) {
+              existing.location.href = targetUrl;
+            }
           }
           existing.focus();
           return existing;
@@ -1412,8 +1428,15 @@
       const h = parseInt(a.dataset.height || a.dataset.h || '820', 10);
       const res = a.dataset.resizable !== 'false';
       const scr = a.dataset.scrollbars !== 'false';
+      const forceReload = a.dataset.forceReload === 'true';
 
-      openCenteredPopup(url, name, { width: w, height: h, resizable: res, scrollbars: scr });
+      openCenteredPopup(url, name, {
+        width: w,
+        height: h,
+        resizable: res,
+        scrollbars: scr,
+        forceReload,
+      });
     });
 
     /* =======================================================================
