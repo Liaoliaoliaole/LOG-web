@@ -1,172 +1,176 @@
-# LOG Web (Morfeas) - Installation and Deploy Guide
+# LOG Web (Morfeas) - Deployment and Runtime Guide
 
-## Prerequisite
+## 1) Current Baseline (Post-Upgrade)
 
-### Install Required Dependencies
+This repository is maintained for upgraded LOG devices with the following runtime baseline:
 
-``` bash
-sudo apt install -y apache2 php libapache2-mod-php php-dev php-xml php-mbstring
+- OS: Debian 12 (Bookworm) / Raspberry Pi OS Bookworm
+- Web server: Apache2
+- PHP: 8.2.x
+- OpenSSL: 3.x
+- Deployment path on device: `/var/www/html/morfeas_web`
+
+Notes:
+
+- This baseline reflects the current upgraded Pi environment.
+- Older OS baselines (for example Bullseye) are not the primary target anymore.
+
+## 2) Required Packages
+
+Install required runtime/build tools on the target Pi:
+
+```bash
+sudo apt update
+sudo apt install -y \
+  apache2 \
+  php \
+  libapache2-mod-php \
+  php-dev \
+  php-xml \
+  php-mbstring \
+  git \
+  jq \
+  curl
 ```
 
-### Create Required Directories
+## 3) Optional Dependency: `pecl-dbus`
 
-``` bash
-sudo mkdir -p /mnt/ramdisk/Morfeas_Loggers/
-sudo chmod -R 775 /mnt/ramdisk
-sudo usermod -aG morfeas www-data
-sudo chmod 775 /mnt/ramdisk/Morfeas_Loggers
+`pecl-dbus` is only needed for legacy DBus-dependent flows (for example legacy MTI/NOX pages).
+
+To build it when needed:
+
+```bash
+./build_submodule.sh
 ```
 
-### Clone the Source Code
+## 4) Deploy Application
 
-Fetch the latest version of the LOG Web application along with its submodules:
+Clone and pull submodules:
 
-``` bash
+```bash
 git clone https://git.devops.wartsila.com/scm/log/log_web.git
 cd log_web
 git submodule update --init --recursive --remote --merge
 ```
 
-### Compile and Install the pecl-dbus Submodule
+Copy to device web root:
 
-Compilation must be in LOG device.
-
-``` bash
-./build_submodule.sh
+```bash
+sudo cp -r . /var/www/html/morfeas_web
+sudo chown -R morfeas:morfeas /var/www/html/morfeas_web
+sudo chmod -R 755 /var/www/html/morfeas_web
 ```
 
-## Deploy the Application on LOG Device
+Create environment file:
 
-### Copy the Web Application to Apache’s Standard Directory
-
-``` bash
-cp -r log_web /var/www/html/
+```bash
+sudo cp /var/www/html/morfeas_web/Morfeas_WEB/Morfeas_env.php.template \
+        /var/www/html/morfeas_web/Morfeas_WEB/Morfeas_env.php
+sudo nano /var/www/html/morfeas_web/Morfeas_WEB/Morfeas_env.php
 ```
 
-Set the Correct Ownership and Permissions.
-Replace `<user in LOG device>` with **`<LOG_USER>`**
+## 5) Apache Setup
 
-``` bash
-sudo chown -R <LOG_USER>:<LOG_USER> /var/www/html
-sudo chmod -R 755 /var/www/html
+Install and enable the site config:
+
+```bash
+sudo cp /var/www/html/morfeas_web/apache_site_conf/Morfeas_web.conf /etc/apache2/sites-available/Morfeas_web.conf
+sudo a2dissite 000-default.conf
+sudo a2ensite Morfeas_web.conf
+sudo systemctl reload apache2
+sudo systemctl restart apache2
 ```
 
-## Configure the Environment File
+Open:
 
-The application requires an environment configuration file. Copy and edit it as needed:
+- `http://localhost`
+- `http://<LOG_DEVICE_IP>`
 
-``` bash
-sudo cp /var/www/html/log_web/Morfeas_WEB/Morfeas_env.php.template /var/www/html/log_web/Morfeas_WEB/Morfeas_env.php
-sudo nano /var/www/html/log_web/Morfeas_WEB/Morfeas_env.php
-```
+## 6) Sudoers Setup for Web Actions
 
-Modify the file with appropriate values.
+### 6.1 General web operations
 
-### Configure Apache Virtual Host
+Apply the project sudoers template for `Morfeas_web_allow`:
 
-Copy the provided Apache configuration file:
-
-``` bash
-sudo cp log_web/apache_site_conf/Morfeas_web.conf /etc/apache2/sites-available/Morfeas_web.conf
-```
-
-Edit the configuration if needed:
-
-``` bash
-sudo nano /etc/apache2/sites-available/Morfeas_web.conf
-```
-
-### Setup passwordless operation for web server using scripts in sudoers directory
-
-``` bash
-sudo visudo -f /etc/sudoers.d/Morfeas_web_update_allow
-```
-
-``` bash
+```bash
 sudo visudo -f /etc/sudoers.d/Morfeas_web_allow
 ```
 
-### Enable and Restart Apache
+### 6.2 System Update feature (web-only)
 
-Disable the default Apache site and Enable the new site configuration.
+Apply/update:
 
-``` bash
-sudo a2dissite 000-default.conf
-sudo a2ensite Morfeas_web.conf
+```bash
+sudo visudo -f /etc/sudoers.d/Morfeas_update_allow
 ```
 
-Reload and restart the Apache service:
+Current expected scope is web-only update:
 
-``` bash
-sudo systemctl reload apache2
-sudo systemctl restart apache2
-sudo systemctl status apache2
+- `/var/www/html/morfeas_web/update.sh`
+- `/bin/systemctl restart apache2`
+- `/bin/rm`
+
+## 7) System Update Behavior
+
+`update.sh` is now intentionally **web-only**:
+
+- `--check-only`: checks updates for web repository only
+- `--update`: updates web repository only
+- no core repository check/update
+- no core build/install
+- restart target: `apache2` only
+
+Exit codes:
+
+- `0`: up-to-date / success
+- `100`: update available (check-only mode)
+- `2`: git/network unreachable for web repo
+- others: failure
+
+Update flag:
+
+- `/tmp/update_needed` is used by UI indicator and status API.
+
+## 8) Cron / Flag Workflow
+
+Ensure wrapper exists and is executable:
+
+```bash
+sudo chmod +x /var/www/html/morfeas_web/cron/update_cron_wrapper.sh
 ```
 
-### Access the Web Application
+Root crontab should include daily update check:
 
-Once the setup is complete, open a browser and go to:
-
-```text
-http://localhost
+```bash
+sudo crontab -l
 ```
 
- or, if accessing remotely:
+## 9) Apache `PrivateTmp` Requirement
 
-```text
-http://<LOG_DEVICE_IP>
+The web process must see real `/tmp` so `/tmp/update_needed` is shared correctly.
+
+Verify:
+
+```bash
+systemctl show apache2 -p PrivateTmp
 ```
 
----
-## **Original README from Morfeas Web Repository**
-> *This section contains the original documentation from the Morfeas Web repository, kept for reference.*
----
+Expected:
 
+- `PrivateTmp=no`
 
-<div align="center"> <img src="./Morfeas_WEB/art/Morfeas_logo_yellow.png" width="150"> </div>
+If needed, use drop-in override with `PrivateTmp=false`, then restart apache.
 
-# Morfeas Web
-This is the Repository for the Morfeas Web, sub-project of the Morfeas Project.
+## 10) Quick Health Verification
 
-### Requirements
-For compilation and usage of this project the following dependencies required.
-* [Morfeas_core](https://gitlab.com/fantomsam/morfeas_project) - The core of the Morfeas project.
-* [Apache2](https://www.apache.org/) - The Apache WEB server.
-* [PHP](https://www.php.net/) - The PHP scripting language.
-* [libapache2-mod-php](https://packages.debian.org/stretch/libapache2-mod-php) - The PHP module for the Apache 2 webserver.
-* [php-dev](https://packages.debian.org/sid/php/php-dev) - Collection of Headers and other PHP needed for compiling additional modules.
-* [php-xml](https://sourceforge.net/projects/xmlphp) -  A class written in php to create, edit, modify and read XML documents.
-* [php-mbstring](https://packages.debian.org/stretch/php-mbstring) - PHP module for manipulation of Multibyte String (UNICODE, etc).
-
-The Morfeas_core must spit the logstats at the `/mnt/ramdisk`. Where is mounted a dedicated `tmpfs`.
-
-### Get the Source
+```bash
+cat /etc/os-release | egrep 'PRETTY_NAME|VERSION_CODENAME'
+php -v | head -n1
+openssl version
+systemctl is-active apache2 ssh
+curl -s "http://127.0.0.1/backend/api_system_update.php?action=status"
 ```
-$ # Clone the project's source code
-$ git clone https://gitlab.com/fantomsam/morfeas_web Morfeas_web
-$ cd Morfeas_web
-$ # Get Source of the submodules
-$ git submodule update --init --recursive --remote --merge
-```
-### Compilation and installation of the submodules
-#### pecl-dbus
-```
-$ cd pecl-dbus
-$ phpize
-$ ./configure
-$ make -j$(nproc)
-$ sudo make install
-```
-To enable php-dbus:
-Add `extension=dbus` at the extensions section of php.ini file for apache. Usually located at `/etc/php/X.XX/apache2/`
 
-<!-- ### Installation of the Morfeas-Web Project
-```
-$ sudo chmod +x ./install.sh
-$ ./install.sh
-``` -->
-## Documentation
-The documentation of the project located at [Morfeas_WEB_Docs](./Docs/Morfeas_WEB_Docs).
+## 11) Legacy Reference
 
-# License
-The subproject license under [AGPLv3](./Morfeas_WEB/LICENSE) or later
+Older original upstream README content has been replaced by this device-oriented guide to match current upgraded architecture and operational policy.
