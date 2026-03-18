@@ -84,9 +84,14 @@
 
             <div class="menu-sep"></div>
             <div class="group">System</div>
-            <!-- TODO: System actions open in a new tab (placeholder destinations) -->
-            <a class="menu-item" href="menu/system-control/update.html"
-              target="_blank">System Update</a>
+            <a id="menuSystemUpdate" class="menu-item menu-item-with-indicator"
+              href="menu/system-control/update.html"
+              data-popup data-name="sysupdate"
+              data-width="920" data-height="760"
+              data-force-reload="true">
+              <span>System Update</span>
+              <span id="systemUpdateIndicator" class="menu-indicator-dot" hidden></span>
+            </a>
             <a class="menu-item" href="menu/system-control/reboot.html"
               data-popup data-name="sysreboot"
               data-width="900" data-height="680"
@@ -208,6 +213,7 @@
     <script src="assets/config.js"></script>
     <script src="assets/api/channels.js"></script>
     <script src="assets/api/systemStatus.js"></script>
+    <script src="assets/api/systemUpdate.js"></script>
     <script src="assets/ui/systemStatusFormatter.js"></script>
 
     <!-- Index bootstrap -->

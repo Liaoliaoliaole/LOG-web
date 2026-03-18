@@ -12,6 +12,7 @@
     const config = window.LOG_WEB?.config;
     const channelsApi = window.LOG_WEB?.api?.channels;
     const systemStatusApi = window.LOG_WEB?.api?.systemStatus;
+    const systemUpdateApi = window.LOG_WEB?.api?.systemUpdate;
     const statusFormatter = window.LOG_WEB?.ui?.systemStatusFormatter;
     const ORIG_BASE_PATH = config?.basePath || window.ORIG_BASE_PATH || '';
 
@@ -24,6 +25,7 @@
 
     const menuBtn = $('#menuBtn');
     const dropdown = $('#mainMenu');
+    const systemUpdateIndicator = $('#systemUpdateIndicator');
 
     const ticker = $('.ticker');
     const track = ticker ? ticker.querySelector('.track') : null;
@@ -286,6 +288,51 @@
         closeFilterMenu();
       }
     });
+
+    /* =======================================================================
+     * 3B) SYSTEM UPDATE INDICATOR
+     * ======================================================================= */
+
+    const setSystemUpdateIndicator = (visible) => {
+      if (!systemUpdateIndicator) return;
+      if (visible) {
+        systemUpdateIndicator.removeAttribute('hidden');
+      } else {
+        systemUpdateIndicator.setAttribute('hidden', 'hidden');
+      }
+    };
+
+    const refreshSystemUpdateIndicator = async () => {
+      if (!systemUpdateIndicator || !systemUpdateApi?.status) return;
+      try {
+        const payload = await systemUpdateApi.status();
+        const updateNeeded = Boolean(payload?.data?.update_needed);
+        setSystemUpdateIndicator(updateNeeded);
+      } catch (err) {
+        console.warn('Failed to refresh system update indicator:', err);
+      }
+    };
+
+    const startSystemUpdateIndicatorPolling = () => {
+      if (!systemUpdateIndicator || !systemUpdateApi?.status) return;
+
+      refreshSystemUpdateIndicator();
+
+      const now = Date.now();
+      const untilNextMinute = 60000 - (now % 60000);
+      setTimeout(() => {
+        refreshSystemUpdateIndicator();
+        setInterval(refreshSystemUpdateIndicator, 60000);
+      }, untilNextMinute);
+
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          refreshSystemUpdateIndicator();
+        }
+      });
+    };
+
+    startSystemUpdateIndicatorPolling();
 
     /* =======================================================================
      * 4) TICKER (SYSTEM STATUS)
@@ -1374,18 +1421,35 @@
 
       const existing = popupRegistry.get(name);
       if (existing && !existing.closed) {
-        try {
-          if (existing.location && url) {
-            const targetUrl = forceReload ? withCacheBust(url) : url;
-            if (forceReload || existing.location.href !== targetUrl) {
-              existing.location.href = targetUrl;
+        if (forceReload) {
+          try { existing.close(); } catch (_) { }
+          popupRegistry.delete(name);
+        } else {
+          try {
+            if (existing.location && url && existing.location.href !== url) {
+              existing.location.href = url;
             }
+            existing.focus();
+            return existing;
+          } catch (_) {
+            try { existing.focus(); } catch (_) { }
+            return existing;
           }
-          existing.focus();
-          return existing;
+        }
+      }
+
+      const targetUrl = forceReload ? withCacheBust(url) : url;
+      const existingAfterClose = popupRegistry.get(name);
+      if (existingAfterClose && !existingAfterClose.closed) {
+        try {
+          if (existingAfterClose.location && targetUrl && existingAfterClose.location.href !== targetUrl) {
+            existingAfterClose.location.href = targetUrl;
+          }
+          existingAfterClose.focus();
+          return existingAfterClose;
         } catch (_) {
-          try { existing.focus(); } catch (_) { }
-          return existing;
+          try { existingAfterClose.focus(); } catch (_) { }
+          popupRegistry.delete(name);
         }
       }
 
@@ -1406,7 +1470,7 @@
         'toolbar=no', 'location=no', 'status=no', 'menubar=no'
       ].join(',');
 
-      const win = window.open(url, name || 'popup', features);
+      const win = window.open(targetUrl, name || 'popup', features);
       if (win) {
         popupRegistry.set(name, win);
         try { win.focus(); } catch (_) { }
