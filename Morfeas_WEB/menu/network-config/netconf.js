@@ -270,6 +270,15 @@
       }
     }
 
+    function buildReconnectUrl(ip) {
+      if (!ip) return '';
+      const protocol = (window.location.protocol === 'https:' || window.location.protocol === 'http:')
+        ? window.location.protocol
+        : 'http:';
+      const port = window.location.port ? `:${window.location.port}` : '';
+      return `${protocol}//${ip}${port}/`;
+    }
+
     function isValidIpv4(value) {
       if (typeof value !== 'string') return false;
       const parts = value.split('.');
@@ -418,7 +427,11 @@
           && prevIp
           && prevIp !== newIp;
         if (ipChanged) {
-          setStatus(`Apply completed. IP changed from ${prevIp} to ${newIp}. Reconnect web at https://${newIp}/`, 'success');
+          setStatus(
+            `Apply completed. IP changed from ${prevIp} to ${newIp}. `
+            + `Current page may disconnect by design. Open ${buildReconnectUrl(newIp)}.`,
+            'success'
+          );
           return;
         }
 
@@ -433,12 +446,25 @@
           && requestedIp !== prevIp;
 
         if (staticIpSwitch && /timeout|failed to fetch|networkerror|network error/i.test(msg)) {
-          setStatus(`Apply request channel interrupted. Checking new IP ${requestedIp}...`, 'progress');
+          setStatus(
+            `Network apply is in progress. Connection to old IP (${prevIp}) may drop by design during IP switch. `
+            + `Checking new IP ${requestedIp}...`,
+            'progress'
+          );
           const reachable = await probeTargetHost(requestedIp);
           if (reachable) {
-            setStatus(`Network likely applied. Device is reachable at ${requestedIp}. Reconnect web at https://${requestedIp}/`, 'success');
+            setStatus(
+              `IP switch appears successful. Device is reachable at ${requestedIp}. `
+              + `Open ${buildReconnectUrl(requestedIp)}.`,
+              'success'
+            );
           } else {
-            setStatus(`Apply response interrupted during IP switch. Try https://${requestedIp}/ first; if unreachable, reconnect old IP ${prevIp} and retry.`, 'error');
+            setStatus(
+              `IP switch result is not confirmed yet because the old connection was interrupted. `
+              + `Try ${buildReconnectUrl(requestedIp)} first. `
+              + `If still unreachable, wait 20-30 seconds and try ${buildReconnectUrl(requestedIp)} again.`,
+              'error'
+            );
           }
         } else {
           setStatus(`Apply failed: ${msg}`, 'error');
