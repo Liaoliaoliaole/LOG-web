@@ -11,6 +11,8 @@
 
   const params = new URLSearchParams(window.location.search);
   const type = (params.get('type') || '').toUpperCase();
+  const flow = (params.get('flow') || '').toLowerCase();
+  const isAddChannelFlow = flow === 'add_channel';
   typeLabel.textContent = type ? `Type: ${type}` : 'Type not set';
 
   function setStatus(msg, tone = 'muted') {
@@ -94,6 +96,9 @@
     return pool.filter((item) => {
       if (item.linked_in_xml) return false;
       if (item.link_state && item.link_state.toLowerCase() !== 'unlinked') return false;
+      if (type === 'IOBOX' && isAddChannelFlow) {
+        if (!item.anchor || !/\.RX\d+\.CH\d+$/i.test(item.anchor)) return false;
+      }
       if (type === 'SDAQ') {
         // Legacy behavior: list unlinked SDAQ channels regardless of No_Sensor.
         // Only filter out channels already linked in XML (handled above).

@@ -318,7 +318,7 @@
       setStatus('Select a Type first', 'error');
       return;
     }
-    const url = `device_search.html?type=${encodeURIComponent(typeSel.value)}`;
+    const url = `device_search.html?type=${encodeURIComponent(typeSel.value)}&flow=add_channel`;
     const features = 'width=780,height=720,resizable=yes,scrollbars=yes';
     if (state.searchWin && !state.searchWin.closed) {
       try { state.searchWin.focus(); return; } catch (_) { }

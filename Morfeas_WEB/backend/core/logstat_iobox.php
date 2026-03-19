@@ -21,13 +21,22 @@ function iobox_load_anchor_map(array $paths): array
             continue;
         }
 
-        $identifier = $data['Identifier'] ?? null;
-        if (!is_numeric($identifier)) {
-            continue;
+        $identifierRaw = $data['Identifier'] ?? null;
+        if (is_string($identifierRaw)) {
+            $identifierRaw = trim($identifierRaw);
+        } elseif (is_int($identifierRaw) || is_float($identifierRaw)) {
+            $identifierRaw = (string)$identifierRaw;
+        } else {
+            $identifierRaw = null;
         }
 
+        if ($identifierRaw === null || $identifierRaw === '') {
+            continue;
+        }
+        $identifier = (string)$identifierRaw;
+
         if (!empty($data['IPv4_address']) && is_string($data['IPv4_address'])) {
-            $ipv4ById[(string)$identifier] = $data['IPv4_address'];
+            $ipv4ById[$identifier] = $data['IPv4_address'];
         }
 
         $connections[$identifier] = $data['Connection_status'] ?? null;
