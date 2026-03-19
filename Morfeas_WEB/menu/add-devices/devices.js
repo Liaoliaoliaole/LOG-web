@@ -214,8 +214,22 @@
   function startDevicesPoll() {
     stopDevicesPoll();
     devicesPollTimer = setInterval(() => {
-      loadDevices(true);
+      loadDevices(true, true);
     }, DEVICES_POLL_INTERVAL_MS);
+  }
+
+  async function refreshDevicesAfterConfigChange() {
+    const maxAttempts = 15;
+    const retryDelayMs = 1000;
+
+    for (let i = 0; i < maxAttempts; i++) {
+      const ok = await loadDevices(true, false);
+      if (ok) return true;
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+    }
+
+    // Final visible attempt if backend is still unavailable.
+    return loadDevices(false, false);
   }
 
   function applyTypeRules() {
@@ -267,7 +281,7 @@
         throw new Error(json.error || 'HTTP error');
       }
       propCard.style.display = 'none';
-      await loadDevices(true);
+      await refreshDevicesAfterConfigChange();
     } catch (err) {
       alert('Failed to save: ' + err.message);
     } finally {
@@ -336,7 +350,7 @@
         }
       }
 
-      await loadDevices(true);
+      await refreshDevicesAfterConfigChange();
     } catch (err) {
       alert('Failed to delete: ' + err.message);
     }
@@ -362,14 +376,14 @@
   // --------------------------------------------------------------------------
   // 8) REFRESH & INITIAL LOAD
   // --------------------------------------------------------------------------
-  async function loadDevices(silent = false) {
+  async function loadDevices(silent = false, sdaqOnlyPoll = silent) {
     try {
       if (!devicesApi) throw new Error('Devices API unavailable');
       const json = await devicesApi.fetchDevices();
       if (json.ok === false) throw new Error(json.error || 'Load failed');
       const incoming = json.data || [];
 
-      if (silent) {
+      if (sdaqOnlyPoll) {
         // Polling mode: update only auto-detected SDAQ rows.
         // Keep manual IOBOX/MTI/NOX rows stable so user interactions are not interrupted.
         const polledAuto = incoming.filter((d) => (d.origin || '') === 'auto');
@@ -392,8 +406,8 @@
     }
   }
 
-  refreshBtn.addEventListener('click', () => loadDevices(false));
-  loadDevices(false);
+  refreshBtn.addEventListener('click', () => loadDevices(false, false));
+  loadDevices(false, false);
   startDevicesPoll();
   window.addEventListener('beforeunload', stopDevicesPoll);
 })();
