@@ -270,27 +270,21 @@
       }
     }
 
-    function validateStaticAddress(address, currentIp, operatorIp) {
-      const m = /^192\.168\.137\.(\d{1,3})$/.exec(address || '');
-      if (!m) throw new Error('Static IP must be in 192.168.137.0/24.');
-      const host = Number(m[1]);
-      if (!(host >= 2 && host <= 254) || host === 1) {
-        throw new Error('Static IP host must be 2-254 and not reserved.');
-      }
-      if (currentIp && address === currentIp) {
-        throw new Error('Static IP cannot equal current Pi IP.');
-      }
-      if (operatorIp && address === operatorIp) {
-        throw new Error('Static IP cannot equal current operator IP.');
-      }
+    function isValidIpv4(value) {
+      if (typeof value !== 'string') return false;
+      const parts = value.split('.');
+      if (parts.length !== 4) return false;
+      return parts.every((part) => {
+        if (part === '') return false;
+        if (!/^\d+$/.test(part)) return false;
+        const n = Number(part);
+        return Number.isInteger(n) && n >= 0 && n <= 255;
+      });
     }
 
-    function validateGateway(gateway) {
-      const m = /^192\.168\.137\.(\d{1,3})$/.exec(gateway || '');
-      if (!m) throw new Error('Gateway must be in 192.168.137.0/24.');
-      const host = Number(m[1]);
-      if (host === 0 || host === 255) {
-        throw new Error('Gateway cannot use reserved host address.');
+    function validateIpv4Field(label, value) {
+      if (!isValidIpv4(value || '')) {
+        throw new Error(`${label} must be a valid IPv4 address.`);
       }
     }
 
@@ -320,15 +314,13 @@
       };
 
       if (mode === 'static') {
-        validateStaticAddress(
-          payload.eth.ipv4.address,
-          latestState?.eth?.current_ip || '',
-          latestState?.eth?.operator_ip || ''
-        );
-        if (payload.eth.ipv4.prefix !== 24) {
-          throw new Error('Only /24 prefix is allowed in this test phase.');
+        validateIpv4Field('Static IP', payload.eth.ipv4.address);
+        if (!Number.isInteger(payload.eth.ipv4.prefix) || payload.eth.ipv4.prefix < 0 || payload.eth.ipv4.prefix > 32) {
+          throw new Error('Mask prefix must be in range 0-32.');
         }
-        validateGateway(payload.eth.ipv4.gateway);
+        validateIpv4Field('Gateway', payload.eth.ipv4.gateway);
+        const dnsVal = payload.eth.ipv4.dns?.[0] || '';
+        if (dnsVal) validateIpv4Field('DNS', dnsVal);
       }
 
       if (payload.can.can0.bitrate <= 0 || payload.can.can1.bitrate <= 0) {

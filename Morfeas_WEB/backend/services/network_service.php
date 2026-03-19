@@ -4,8 +4,7 @@ require_once __DIR__ . '/../core/system_info.php';
 
 const NETWORK_ETH_IFACE = 'eth0';
 const NETWORK_CAN_IFACES = ['can0', 'can1'];
-const NETWORK_SUBNET_PREFIX = '192.168.137';
-const NETWORK_SUBNET_CIDR = 24;
+const NETWORK_DEFAULT_IPV4_PREFIX = 24;
 const NETWORK_PENDING_FILE = '/tmp/morfeas_network_pending.json';
 const NETWORK_LOCK_FILE = '/tmp/morfeas_network_apply.lock';
 const NETWORK_DEFAULT_TIMEOUT_SEC = 90;
@@ -389,11 +388,6 @@ function network_get_state(): array
             'server' => read_timesyncd_ntp_server() ?? '—',
             'readonly' => true,
         ],
-        'guard' => [
-            'subnet' => NETWORK_SUBNET_PREFIX . '.0/' . NETWORK_SUBNET_CIDR,
-            'allowed_host_range' => '2-254',
-            'blocked_hosts' => ['0', '1', '255'],
-        ],
         'pending' => $pending,
     ];
 }
@@ -417,37 +411,6 @@ function network_require_ipv4_field(array $arr, string $field): string
         throw new InvalidArgumentException($field . ' must be a valid IPv4 address');
     }
     return $val;
-}
-
-function network_is_in_guard_subnet(string $ip): bool
-{
-    return preg_match('/^192\.168\.137\.(\d{1,3})$/', $ip) === 1;
-}
-
-function network_ipv4_host_octet(string $ip): int
-{
-    $parts = explode('.', $ip);
-    return (int) end($parts);
-}
-
-function network_validate_test_ip_guard(string $candidateIp, string $currentPiIp, ?string $operatorIp): void
-{
-    if (!network_is_in_guard_subnet($candidateIp)) {
-        throw new InvalidArgumentException('Static IP must be in 192.168.137.0/24');
-    }
-
-    $host = network_ipv4_host_octet($candidateIp);
-    if ($host < 2 || $host > 254 || in_array($host, [0, 1, 255], true)) {
-        throw new InvalidArgumentException('Static IP host must be 2-254 and not reserved');
-    }
-
-    if ($currentPiIp !== '' && $candidateIp === $currentPiIp) {
-        throw new InvalidArgumentException('Static IP cannot equal current Pi IP');
-    }
-
-    if ($operatorIp && network_is_in_guard_subnet($operatorIp) && $candidateIp === $operatorIp) {
-        throw new InvalidArgumentException('Static IP cannot equal current operator IP');
-    }
 }
 
 function network_normalize_dns($dnsRaw): array
@@ -498,9 +461,6 @@ function network_normalize_payload(array $payload, array $state): array
         throw new InvalidArgumentException('eth.mode must be static or dhcp');
     }
 
-    $currentPiIp = (string) ($state['eth']['current_ip'] ?? '');
-    $operatorIp = $state['eth']['operator_ip'] ?? null;
-
     $ipv4 = [
         'address' => null,
         'prefix' => null,
@@ -515,20 +475,16 @@ function network_normalize_payload(array $payload, array $state): array
         }
 
         $address = network_require_ipv4_field($ipv4Raw, 'address');
-        $prefix = (int) ($ipv4Raw['prefix'] ?? -1);
-        if ($prefix !== NETWORK_SUBNET_CIDR) {
-            throw new InvalidArgumentException('Only /24 is allowed in test phase');
+        $prefixRaw = $ipv4Raw['prefix'] ?? null;
+        if (!is_numeric($prefixRaw)) {
+            throw new InvalidArgumentException('prefix must be a number between 0 and 32');
         }
-        network_validate_test_ip_guard($address, $currentPiIp, $operatorIp);
+        $prefix = (int) $prefixRaw;
+        if ($prefix < 0 || $prefix > 32) {
+            throw new InvalidArgumentException('prefix must be in range 0..32');
+        }
 
         $gateway = network_require_ipv4_field($ipv4Raw, 'gateway');
-        if (!network_is_in_guard_subnet($gateway)) {
-            throw new InvalidArgumentException('Gateway must be in 192.168.137.0/24');
-        }
-        $gwHost = network_ipv4_host_octet($gateway);
-        if ($gwHost === 0 || $gwHost === 255) {
-            throw new InvalidArgumentException('Gateway cannot use reserved host address');
-        }
 
         $dns = network_normalize_dns($ipv4Raw['dns'] ?? []);
 
@@ -578,7 +534,7 @@ function network_restore_payload_from_state(array $state): array
             'mode' => (string) ($state['eth']['mode'] ?? 'dhcp'),
             'ipv4' => [
                 'address' => $state['eth']['ipv4']['address'] ?? null,
-                'prefix' => $state['eth']['ipv4']['prefix'] ?? NETWORK_SUBNET_CIDR,
+                'prefix' => $state['eth']['ipv4']['prefix'] ?? NETWORK_DEFAULT_IPV4_PREFIX,
                 'gateway' => $state['eth']['ipv4']['gateway'] ?? null,
                 'dns' => is_array($state['eth']['ipv4']['dns'] ?? null) ? $state['eth']['ipv4']['dns'] : [],
             ],
