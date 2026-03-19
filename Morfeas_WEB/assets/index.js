@@ -1178,9 +1178,22 @@
 
     function showCtx(x, y) {
       if (!ctx) return;
-      ctx.style.left = x + 'px';
-      ctx.style.top = y + 'px';
+      const pad = 8;
+
+      // Measure menu size first, then clamp to viewport so it stays visible.
+      ctx.style.visibility = 'hidden';
       ctx.style.display = 'block';
+      const menuW = ctx.offsetWidth || 0;
+      const menuH = ctx.offsetHeight || 0;
+
+      const maxX = Math.max(pad, window.innerWidth - menuW - pad);
+      const maxY = Math.max(pad, window.innerHeight - menuH - pad);
+      const left = Math.min(Math.max(x, pad), maxX);
+      const top = Math.min(Math.max(y, pad), maxY);
+
+      ctx.style.left = left + 'px';
+      ctx.style.top = top + 'px';
+      ctx.style.visibility = '';
     }
 
     function hideCtx() {
