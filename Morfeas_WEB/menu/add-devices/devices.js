@@ -50,6 +50,8 @@
   let devices = [];
   let componentTotal = 0;
   let componentMax = MAX_COMPONENTS;
+  const DEVICES_POLL_INTERVAL_MS = 1000; // legacy-like continuous detection cadence
+  let devicesPollTimer = null;
 
   // --------------------------------------------------------------------------
   // 3.1) VALIDATION HELPERS (legacy-compatible)
@@ -192,6 +194,20 @@
     );
   }
 
+  function stopDevicesPoll() {
+    if (devicesPollTimer) {
+      clearInterval(devicesPollTimer);
+      devicesPollTimer = null;
+    }
+  }
+
+  function startDevicesPoll() {
+    stopDevicesPoll();
+    devicesPollTimer = setInterval(() => {
+      loadDevices(true);
+    }, DEVICES_POLL_INTERVAL_MS);
+  }
+
   function applyTypeRules() {
     const t = devType.value;
     const canOnly = (t === 'NOX');
@@ -241,7 +257,7 @@
         throw new Error(json.error || 'HTTP error');
       }
       propCard.style.display = 'none';
-      await loadDevices();
+      await loadDevices(true);
     } catch (err) {
       alert('Failed to save: ' + err.message);
     } finally {
@@ -310,9 +326,7 @@
         }
       }
 
-      // Immediate refresh so the user sees currently detected devices.
-      // SDAQ auto rows will be reloaded from the latest logstats.
-      await loadDevices();
+      await loadDevices(true);
     } catch (err) {
       alert('Failed to delete: ' + err.message);
     }
@@ -338,7 +352,7 @@
   // --------------------------------------------------------------------------
   // 8) REFRESH & INITIAL LOAD
   // --------------------------------------------------------------------------
-  async function loadDevices() {
+  async function loadDevices(silent = false) {
     try {
       if (!devicesApi) throw new Error('Devices API unavailable');
       const json = await devicesApi.fetchDevices();
@@ -348,11 +362,17 @@
       componentTotal = typeof meta.total === 'number' ? meta.total : devices.length;
       componentMax = typeof meta.max === 'number' ? meta.max : MAX_COMPONENTS;
       render();
+      return true;
     } catch (err) {
-      alert('Failed to load devices: ' + err.message);
+      if (!silent) {
+        alert('Failed to load devices: ' + err.message);
+      }
+      return false;
     }
   }
 
-  refreshBtn.addEventListener('click', loadDevices);
-  loadDevices();
+  refreshBtn.addEventListener('click', () => loadDevices(false));
+  loadDevices(false);
+  startDevicesPoll();
+  window.addEventListener('beforeunload', stopDevicesPoll);
 })();
