@@ -32,6 +32,8 @@
   const addBtn = $('#addBtn');
   const cancelBtn = $('#cancelBtn');
   const saveBtn = $('#saveBtn');
+  const processNotice = $('#processNotice');
+  const formStatus = $('#formStatus');
 
   const devType = $('#devType');
   const canIf = $('#canIf');
@@ -186,6 +188,30 @@
     el.style.background = disabled ? 'var(--bg-weak)' : '';
   }
 
+  function setFormStatus(msg, tone = 'muted') {
+    if (!formStatus) return;
+    formStatus.textContent = msg || '';
+    formStatus.classList.remove('success', 'error', 'progress');
+    if (tone === 'success' || tone === 'error' || tone === 'progress') {
+      formStatus.classList.add(tone);
+    }
+  }
+
+  function updateProcessNotice(type) {
+    if (!processNotice) return;
+
+    if (type === 'IO-BOX') {
+      processNotice.classList.remove('hidden');
+      processNotice.classList.add('warn');
+      processNotice.textContent = 'IO-BOX add process: after Save, Morfeas core service restarts automatically to apply the new handler. During restart there may be a short interruption. Expected result: IOBOX logstat files should appear within about 10-60 seconds.';
+      return;
+    }
+
+    processNotice.classList.add('hidden');
+    processNotice.classList.remove('warn');
+    processNotice.textContent = '';
+  }
+
   function applyTypeRules() {
     const t = devType.value;
     const canOnly = (t === 'NOX');
@@ -199,6 +225,8 @@
       devName.value = '';
       devIp.value = '';
     }
+
+    updateProcessNotice(t);
   }
   devType.addEventListener('change', applyTypeRules);
 
@@ -218,12 +246,27 @@
     if (!validateRequired(type)) return;
     if (isDuplicate(type, name, ip)) return;
 
+    if (type === 'IO-BOX') {
+      const approved = window.confirm(
+        'Adding IO-BOX will automatically restart Morfeas core service to apply the new configuration.\n\nProcess:\n1) Save IO-BOX handler in config\n2) Restart Morfeas core service\n3) Wait for new IOBOX logstat (usually 10-60 seconds)\n\nContinue?'
+      );
+      if (!approved) return;
+    }
+
     const payload = {
       type,
       bus: canIf.value,
       name,
       ip,
     };
+
+    saveBtn.disabled = true;
+    setFormStatus(
+      type === 'IO-BOX'
+        ? 'Saving IO-BOX and restarting Morfeas core service...'
+        : 'Saving device configuration...',
+      'progress'
+    );
 
     try {
       if (!devicesApi) throw new Error('Devices API unavailable');
@@ -233,8 +276,19 @@
       }
       propCard.style.display = 'none';
       await loadDevices();
+      if (type === 'IO-BOX') {
+        setFormStatus('IO-BOX added. Core service restart requested. Waiting for IOBOX logstat...', 'success');
+        alert(
+          'IO-BOX was added successfully.\n\nAutomatic process started:\n1) Configuration saved\n2) Morfeas core service restarted\n3) IOBOX measurements should become available after restart\n\nExpected result: device search should show IOBOX channels once logstat_IOBOX*.json is generated (typically within 10-60 seconds).'
+        );
+      } else {
+        setFormStatus('Device added successfully.', 'success');
+      }
     } catch (err) {
+      setFormStatus('Failed to save device: ' + err.message, 'error');
       alert('Failed to save: ' + err.message);
+    } finally {
+      saveBtn.disabled = false;
     }
   }
 
@@ -245,12 +299,14 @@
     devName.value = '';
     devIp.value = '';
     applyTypeRules();
+    setFormStatus('');
   });
 
   saveBtn.addEventListener('click', saveDevice);
 
   cancelBtn.addEventListener('click', () => {
     propCard.style.display = 'none';
+    setFormStatus('');
   });
 
   // --------------------------------------------------------------------------

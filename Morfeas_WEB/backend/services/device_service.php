@@ -1,6 +1,21 @@
 <?php
 
 require_once __DIR__ . '/../repositories/log_config_repository.php';
+§
+function device_restart_morfeas_core(): void
+{
+    $output = [];
+    $code = 0;
+    exec('sudo -n /bin/systemctl restart Morfeas_system.service 2>&1', $output, $code);
+
+    if ($code !== 0) {
+        $details = trim(implode("\n", $output));
+        if ($details === '') {
+            $details = 'unknown error';
+        }
+        throw new RuntimeException('Failed to restart Morfeas_system.service: ' . $details);
+    }
+}
 
 function device_collect_sdaq_devices(string $ramdisk): array
 {
@@ -81,10 +96,13 @@ function device_list(string $ramdisk, string $logConfig, int $maxComponents): ar
 
 function device_add(string $logConfig, array $payload): array
 {
-    return log_config_append_device($logConfig, $payload);
+    $device = log_config_append_device($logConfig, $payload);
+    device_restart_morfeas_core();
+    return $device;
 }
 
 function device_delete(string $logConfig, array $ids): void
 {
     log_config_delete_devices($logConfig, $ids);
+    device_restart_morfeas_core();
 }
