@@ -129,6 +129,13 @@
   // 4) RENDERING
   // --------------------------------------------------------------------------
   function render() {
+    const selectedIds = new Set(
+      $$('#devBody tr')
+        .filter((r) => r.querySelector('input[type="checkbox"]')?.checked)
+        .map((r) => r.dataset.id)
+        .filter(Boolean)
+    );
+
     devBody.innerHTML = '';
     devices.forEach((d, i) => {
       const tr = document.createElement('tr');
@@ -141,6 +148,9 @@
       const cb = document.createElement('input');
       cb.type = 'checkbox';
       cb.setAttribute('aria-label', `Select row ${i + 1}`);
+      if (tr.dataset.id && selectedIds.has(tr.dataset.id)) {
+        cb.checked = true;
+      }
       tdCheck.appendChild(cb);
 
       const tdIdx = document.createElement('td');
@@ -357,7 +367,18 @@
       if (!devicesApi) throw new Error('Devices API unavailable');
       const json = await devicesApi.fetchDevices();
       if (json.ok === false) throw new Error(json.error || 'Load failed');
-      devices = json.data || [];
+      const incoming = json.data || [];
+
+      if (silent) {
+        // Polling mode: update only auto-detected SDAQ rows.
+        // Keep manual IOBOX/MTI/NOX rows stable so user interactions are not interrupted.
+        const polledAuto = incoming.filter((d) => (d.origin || '') === 'auto');
+        const currentManual = devices.filter((d) => (d.origin || '') !== 'auto');
+        devices = [...currentManual, ...polledAuto];
+      } else {
+        devices = incoming;
+      }
+
       const meta = json.components || {};
       componentTotal = typeof meta.total === 'number' ? meta.total : devices.length;
       componentMax = typeof meta.max === 'number' ? meta.max : MAX_COMPONENTS;
