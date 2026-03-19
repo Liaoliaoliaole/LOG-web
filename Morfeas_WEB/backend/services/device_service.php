@@ -1,7 +1,6 @@
 <?php
 
 require_once __DIR__ . '/../repositories/log_config_repository.php';
-§
 function device_restart_morfeas_core(): void
 {
     $output = [];
