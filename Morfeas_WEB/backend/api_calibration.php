@@ -575,6 +575,16 @@ try {
     if ($statusCode < 400 || $statusCode > 599) {
         $statusCode = 500;
     }
+    if ($statusCode >= 500) {
+        api_fail_response(
+            'Calibration operation failed',
+            $statusCode,
+            'api_calibration',
+            $e,
+            ['status_code' => $statusCode]
+        );
+    }
+
     cal_json([
         'ok' => false,
         'error' => $e->getMessage(),

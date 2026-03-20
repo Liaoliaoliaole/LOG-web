@@ -2,6 +2,8 @@
 // backend/api_system_version.php
 // Returns live system version info for About -> System Version page.
 
+require __DIR__ . '/core/request.php';
+
 header('Content-Type: application/json');
 
 function sv_find_git_root(string $start): ?string
@@ -138,9 +140,5 @@ try {
         'core' => $coreInfo,
     ], JSON_PRETTY_PRINT);
 } catch (Throwable $e) {
-    http_response_code(500);
-    echo json_encode([
-        'ok' => false,
-        'error' => $e->getMessage(),
-    ], JSON_PRETTY_PRINT);
+    api_fail_response('Failed to read system version', 500, 'api_system_version', $e);
 }

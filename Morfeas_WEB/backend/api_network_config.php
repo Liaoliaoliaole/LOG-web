@@ -68,9 +68,7 @@ try {
     header('Allow: GET, POST');
     echo json_encode(['ok' => false, 'error' => 'Method not allowed'], JSON_PRETTY_PRINT);
 } catch (InvalidArgumentException $e) {
-    http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_PRETTY_PRINT);
+    api_fail_response($e->getMessage(), 400, 'api_network_config.validation', $e);
 } catch (Throwable $e) {
-    http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_PRETTY_PRINT);
+    api_fail_response('Failed to process network configuration', 500, 'api_network_config', $e);
 }

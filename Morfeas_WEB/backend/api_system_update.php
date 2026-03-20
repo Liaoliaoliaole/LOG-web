@@ -12,17 +12,25 @@ function update_respond(
     ?array $data = null,
     ?string $error = null,
     ?string $message = null,
-    $debug = null,
-    int $status = 200
+    int $status = 200,
+    ?string $requestId = null,
+    ?array $debug = null
 ): void {
-    http_response_code($status);
-    echo json_encode([
+    $payload = [
         'ok' => $ok,
         'data' => $data,
         'error' => $error,
         'message' => $message,
-        'debug' => $debug,
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    ];
+    if ($requestId !== null && $requestId !== '') {
+        $payload['request_id'] = $requestId;
+    }
+    if (api_is_debug_mode() && is_array($debug) && !empty($debug)) {
+        $payload['debug'] = $debug;
+    }
+
+    http_response_code($status);
+    echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     exit;
 }
 
@@ -61,6 +69,7 @@ function update_exec(string $mode): array
 
     $output = trim(implode("\n", $out));
     $status = update_read_status();
+    $permissionDenied = stripos($output, 'a password is required') !== false;
 
     $result = 'unknown_failure';
     $ok = false;
@@ -95,6 +104,10 @@ function update_exec(string $mode): array
             $message = 'Update command failed';
         }
     }
+    if (!$ok && $permissionDenied) {
+        $result = 'permission_denied';
+        $message = 'Permission denied for update script execution';
+    }
 
     $data = [
         'action' => $mode,
@@ -105,29 +118,20 @@ function update_exec(string $mode): array
         'status' => $status,
     ];
 
-    $debug = [
-        'command' => $command,
-        'stdout_stderr' => $output,
-    ];
-
-    $error = null;
-    if (!$ok) {
-        if ($output !== '') {
-            $error = $output;
-        } else {
-            $error = $message;
-        }
-        if (stripos($error, 'a password is required') !== false) {
-            $error .= '. Add NOPASSWD for www-data in /etc/sudoers.d/Morfeas_update_allow';
-        }
-    }
+    $error = $ok ? null : $message;
 
     return [
         'ok' => $ok,
         'data' => $data,
         'message' => $message,
         'error' => $error,
-        'debug' => $debug,
+        'internal' => [
+            'action' => $mode,
+            'command' => $command,
+            'stdout_stderr' => $output,
+            'exit_code' => $exitCode,
+            'duration_ms' => $durationMs,
+        ],
     ];
 }
 
@@ -137,7 +141,7 @@ try {
     if ($method === 'GET') {
         $action = strtolower(trim((string) ($_GET['action'] ?? 'status')));
         if ($action !== 'status') {
-            update_respond(false, null, 'action must be status for GET', 'Invalid action', null, 400);
+            update_respond(false, null, 'action must be status for GET', 'Invalid action', 400);
         }
 
         update_respond(true, update_read_status(), null, 'Status read');
@@ -147,25 +151,45 @@ try {
         $body = read_json_body();
         $action = strtolower(trim((string) ($body['action'] ?? '')));
         if ($action !== 'check' && $action !== 'update') {
-            update_respond(false, null, 'action must be check or update', 'Invalid action', null, 400);
+            update_respond(false, null, 'action must be check or update', 'Invalid action', 400);
         }
 
         $result = update_exec($action);
-        $status = $result['ok'] ? 200 : 500;
-        update_respond(
-            $result['ok'],
-            $result['data'],
-            $result['error'],
-            $result['message'],
-            $result['debug'],
-            $status
-        );
+        if (!$result['ok']) {
+            $requestId = api_make_request_id();
+            $details = (string) ($result['internal']['stdout_stderr'] ?? '');
+            if ($details === '') {
+                $details = 'update.sh exited with non-zero status';
+            }
+            api_log_internal_error(
+                $requestId,
+                'api_system_update.exec',
+                $details,
+                [
+                    'action' => $action,
+                    'exit_code' => (int) ($result['internal']['exit_code'] ?? -1),
+                    'command' => (string) ($result['internal']['command'] ?? ''),
+                ]
+            );
+
+            update_respond(
+                false,
+                $result['data'],
+                $result['error'],
+                $result['message'],
+                500,
+                $requestId,
+                $result['internal']
+            );
+        }
+
+        update_respond(true, $result['data'], null, $result['message']);
     }
 
     header('Allow: GET, POST');
-    update_respond(false, null, 'Method not allowed', 'Method not allowed', null, 405);
+    update_respond(false, null, 'Method not allowed', 'Method not allowed', 405);
 } catch (InvalidArgumentException $e) {
-    update_respond(false, null, $e->getMessage(), 'Invalid request', null, 400);
+    update_respond(false, null, $e->getMessage(), 'Invalid request', 400);
 } catch (Throwable $e) {
-    update_respond(false, null, $e->getMessage(), 'Unhandled server error', null, 500);
+    api_fail_response('Failed to process system update request', 500, 'api_system_update', $e);
 }

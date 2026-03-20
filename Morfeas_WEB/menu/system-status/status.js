@@ -2,7 +2,7 @@
  * System Status (popup)
  * ----------------------------------------------------------------------------
  * Purpose : Render system details + logs.
- * Tabs    : Details (tables) / Logs (legacy-compatible polling viewer).
+ * Tabs    : Details / System logs / System Journal.
  * ========================================================================== */
 
 (function () {
@@ -31,11 +31,16 @@
    * ------------------------------------------ */
   const panels = {
     details: $('#panel-details'),
-    logs: $('#panel-logs')
+    logs: $('#panel-logs'),
+    journal: $('#panel-journal'),
   };
   const loggerSelect = $('#loggerSelect');
   const logTerminal = $('#logTerminal');
   const reloadLoggersBtn = $('#reloadLoggers');
+  const journalScope = $('#journalScope');
+  const journalLines = $('#journalLines');
+  const journalTerminal = $('#journalTerminal');
+  const reloadJournalBtn = $('#reloadJournal');
 
   let detailsCache = null;
   let detailsError = null;
@@ -47,17 +52,42 @@
     primed: false,
   };
 
+  const journalState = {
+    active: false,
+    timer: null,
+  };
+
   async function showTab(key) {
-    Object.values(panels).forEach(p => p.classList.remove('show'));
-    panels[key].classList.add('show');
+    Object.values(panels).forEach((p) => p && p.classList.remove('show'));
+    if (panels[key]) {
+      panels[key].classList.add('show');
+    }
 
     logsState.active = key === 'logs';
+    journalState.active = key === 'journal';
     if (key === 'details') await renderDetails();
     if (key === 'logs') {
       renderLogs();
-      await refreshLoggerNames(true);
-      await pollLogger(false);
+      try {
+        await refreshLoggerNames(true);
+        await pollLogger(false);
+      } catch (err) {
+        if (logTerminal) {
+          logTerminal.textContent = `Log load failed: ${err.message || err}`;
+        }
+      }
       ensureLogTimer();
+    }
+    if (key === 'journal') {
+      renderJournal();
+      try {
+        await pollJournal(false);
+      } catch (err) {
+        if (journalTerminal) {
+          journalTerminal.textContent = `Journal load failed: ${err.message || err}`;
+        }
+      }
+      ensureJournalTimer();
     }
   }
 
@@ -321,6 +351,70 @@
     }, 1000);
   }
 
+  function resolveJournalUnits() {
+    const scope = (journalScope?.value || 'all').trim().toLowerCase();
+    switch (scope) {
+      case 'morfeas':
+        return 'Morfeas_system.service';
+      case 'apache2':
+        return 'apache2.service';
+      case 'ssh':
+        return 'ssh.service';
+      default:
+        return '';
+    }
+  }
+
+  function resolveJournalLines() {
+    const fallback = 500;
+    const raw = Number.parseInt(journalLines?.value || `${fallback}`, 10);
+    if (!Number.isFinite(raw)) return fallback;
+    if (raw < 50) return 50;
+    if (raw > 3000) return 3000;
+    return raw;
+  }
+
+  function renderJournal() {
+    if (!journalTerminal) return;
+    if ((journalTerminal.textContent || '').trim() === '') {
+      journalTerminal.textContent = 'Loading journal...';
+    }
+  }
+
+  async function pollJournal(scrollToBottom = true) {
+    if (!journalState.active || !systemStatusApi?.fetchJournal || !journalTerminal) {
+      return;
+    }
+
+    const payload = await systemStatusApi.fetchJournal({
+      units: resolveJournalUnits(),
+      lines: resolveJournalLines(),
+    });
+
+    if (!payload?.ok) throw new Error(payload?.error || 'Failed to load system journal');
+
+    journalTerminal.innerHTML = ansiColorizeToHtml(payload.content || '');
+    if (scrollToBottom) {
+      journalTerminal.scrollTop = journalTerminal.scrollHeight;
+    } else {
+      journalTerminal.scrollTop = 0;
+    }
+  }
+
+  function ensureJournalTimer() {
+    if (journalState.timer) return;
+    journalState.timer = window.setInterval(async () => {
+      if (!journalState.active) return;
+      try {
+        await pollJournal(false);
+      } catch (err) {
+        if (journalTerminal) {
+          journalTerminal.textContent = `Journal update failed: ${err.message || err}`;
+        }
+      }
+    }, 5000);
+  }
+
   async function fetchDetails() {
     if (detailsCache || detailsError) return;
 
@@ -362,6 +456,30 @@
       await pollLogger(false);
     } catch (err) {
       if (logTerminal) logTerminal.textContent = `Log load failed: ${err.message || err}`;
+    }
+  });
+
+  reloadJournalBtn?.addEventListener('click', async () => {
+    try {
+      await pollJournal(true);
+    } catch (err) {
+      if (journalTerminal) journalTerminal.textContent = `Journal reload failed: ${err.message || err}`;
+    }
+  });
+
+  journalScope?.addEventListener('change', async () => {
+    try {
+      await pollJournal(false);
+    } catch (err) {
+      if (journalTerminal) journalTerminal.textContent = `Journal load failed: ${err.message || err}`;
+    }
+  });
+
+  journalLines?.addEventListener('change', async () => {
+    try {
+      await pollJournal(false);
+    } catch (err) {
+      if (journalTerminal) journalTerminal.textContent = `Journal load failed: ${err.message || err}`;
     }
   });
 

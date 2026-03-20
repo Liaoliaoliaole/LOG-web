@@ -1,5 +1,6 @@
 Cmnd_Alias ALLOW_PASSWORDLESS = /sbin/ip,\
                                 /usr/bin/hostnamectl,\
+                                /usr/bin/journalctl,\
                                 /bin/systemctl restart networking.service,\
                                 /bin/systemctl restart systemd-timesyncd.service,\
                                 /bin/systemctl restart Morfeas_system.service,\

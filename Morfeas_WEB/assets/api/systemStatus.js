@@ -29,6 +29,14 @@
       if (Number.isFinite(options.mtime)) params.mtime = String(options.mtime);
       return fetchJson(params);
     },
+    fetchJournal: (options = {}) => {
+      const params = { action: 'journal' };
+      if (Number.isFinite(options.lines)) params.lines = String(options.lines);
+      if (typeof options.units === 'string' && options.units.trim() !== '') {
+        params.units = options.units.trim();
+      }
+      return fetchJson(params);
+    },
   };
 
   root.api = root.api || {};

@@ -3,6 +3,7 @@
 // Provides System Status (Details) and System Loggers data.
 
 require __DIR__ . '/core/paths.php';
+require __DIR__ . '/core/request.php';
 require __DIR__ . '/services/system_status_service.php';
 
 header('Content-Type: application/json');
@@ -46,6 +47,130 @@ function system_status_collect_loggers(string $dir): array
 
     sort($list, SORT_NATURAL | SORT_FLAG_CASE);
     return $list;
+}
+
+function system_status_parse_journal_lines($raw): int
+{
+    $value = (int) $raw;
+    if ($value <= 0) {
+        $value = 500;
+    }
+    if ($value < 50) {
+        $value = 50;
+    }
+    if ($value > 3000) {
+        $value = 3000;
+    }
+    return $value;
+}
+
+function system_status_parse_journal_units($raw): array
+{
+    if (is_array($raw)) {
+        $parts = $raw;
+    } else {
+        $parts = preg_split('/[,\s]+/', (string) $raw) ?: [];
+    }
+
+    $units = [];
+    foreach ($parts as $part) {
+        $unit = trim((string) $part);
+        if ($unit === '') {
+            continue;
+        }
+        // Allow systemd unit-safe characters only.
+        if (preg_match('/^[A-Za-z0-9@_.:-]+$/', $unit) !== 1) {
+            continue;
+        }
+        if (!str_contains($unit, '.')) {
+            $unit .= '.service';
+        }
+        if (!in_array($unit, $units, true)) {
+            $units[] = $unit;
+        }
+    }
+
+    if (count($units) > 8) {
+        $units = array_slice($units, 0, 8);
+    }
+
+    return $units;
+}
+
+function system_status_build_journal_command(int $lines, array $units, bool $useSudo): string
+{
+    $parts = [];
+    if ($useSudo) {
+        $parts[] = 'sudo';
+        $parts[] = '-n';
+    }
+    $parts[] = '/usr/bin/journalctl';
+    $parts[] = '--no-pager';
+    $parts[] = '-o';
+    $parts[] = 'short-iso';
+    $parts[] = '-n';
+    $parts[] = (string) $lines;
+    foreach ($units as $unit) {
+        $parts[] = '-u';
+        $parts[] = $unit;
+    }
+
+    return implode(' ', array_map(static fn($p) => escapeshellarg($p), $parts));
+}
+
+function system_status_run_command(string $command): array
+{
+    $out = [];
+    $code = 0;
+    exec($command . ' 2>&1', $out, $code);
+    return [
+        'code' => (int) $code,
+        'output' => trim(implode("\n", $out)),
+    ];
+}
+
+function system_status_is_permission_issue(string $output): bool
+{
+    $text = strtolower($output);
+    return str_contains($text, 'permission denied')
+        || str_contains($text, 'not in the')
+        || str_contains($text, 'insufficient')
+        || str_contains($text, 'a password is required');
+}
+
+function system_status_read_journal(int $lines, array $units): array
+{
+    $normalCmd = system_status_build_journal_command($lines, $units, false);
+    $normal = system_status_run_command($normalCmd);
+    if ($normal['code'] === 0) {
+        return [
+            'content' => $normal['output'],
+            'units' => $units,
+            'lines' => $lines,
+            'used_sudo' => false,
+        ];
+    }
+
+    if (!system_status_is_permission_issue($normal['output'])) {
+        throw new RuntimeException('journalctl failed');
+    }
+
+    $sudoCmd = system_status_build_journal_command($lines, $units, true);
+    $sudo = system_status_run_command($sudoCmd);
+    if ($sudo['code'] === 0) {
+        return [
+            'content' => $sudo['output'],
+            'units' => $units,
+            'lines' => $lines,
+            'used_sudo' => true,
+        ];
+    }
+
+    if (str_contains(strtolower($sudo['output']), 'a password is required')) {
+        throw new RuntimeException('journal permission denied; configure sudoers for /usr/bin/journalctl');
+    }
+
+    throw new RuntimeException('journalctl failed');
 }
 
 try {
@@ -114,12 +239,34 @@ try {
             ], JSON_PRETTY_PRINT);
             exit;
 
+        case 'journal':
+            $lines = system_status_parse_journal_lines($_GET['lines'] ?? null);
+            $units = system_status_parse_journal_units($_GET['units'] ?? ($_GET['unit'] ?? ''));
+            try {
+                $journal = system_status_read_journal($lines, $units);
+            } catch (RuntimeException $e) {
+                http_response_code(500);
+                echo json_encode([
+                    'ok' => false,
+                    'error' => $e->getMessage(),
+                ], JSON_PRETTY_PRINT);
+                exit;
+            }
+            echo json_encode([
+                'ok' => true,
+                'content' => $journal['content'],
+                'lines' => $journal['lines'],
+                'units' => $journal['units'],
+                'used_sudo' => $journal['used_sudo'],
+                'read_at_unix' => time(),
+            ], JSON_PRETTY_PRINT);
+            exit;
+
         default:
             http_response_code(400);
             echo json_encode(['ok' => false, 'error' => 'Unknown action'], JSON_PRETTY_PRINT);
             exit;
     }
 } catch (Throwable $e) {
-    http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_PRETTY_PRINT);
+    api_fail_response('Failed to read system status', 500, 'api_system_status', $e);
 }

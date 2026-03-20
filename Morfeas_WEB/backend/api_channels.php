@@ -29,18 +29,14 @@ if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_upload') {
     try {
         iso_ensure_upload_dir($targetDir);
     } catch (Throwable $e) {
-        http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_PRETTY_PRINT);
-        exit;
+        api_fail_response('Failed to prepare upload directory', 500, 'api_channels.upload_dir', $e);
     }
 
     $originalName = iso_sanitize_filename($_FILES['file']['name'] ?? 'ISOstandard.xml');
     try {
         $filename = iso_unique_filename($targetDir, $originalName);
     } catch (Throwable $e) {
-        http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_PRETTY_PRINT);
-        exit;
+        api_fail_response('Failed to allocate upload file name', 500, 'api_channels.upload_name', $e);
     }
 
     $dest = $targetDir . $filename;
@@ -118,9 +114,9 @@ try {
     if (!is_file($xmlPath)) {
         echo json_encode([
             'ok'    => false,
-            'error' => "OPC UA config not found: $xmlPath"
+            'error' => 'OPC UA config not found'
         ], JSON_PRETTY_PRINT);
-        return;
+        exit;
     }
     switch ($method) {
         case 'GET':
@@ -205,8 +201,5 @@ try {
             echo json_encode(['ok' => false, 'error' => 'Method not allowed'], JSON_PRETTY_PRINT);
     }
 } catch (Throwable $e) {
-    echo json_encode([
-        'ok'    => false,
-        'error' => $e->getMessage()
-    ], JSON_PRETTY_PRINT);
+    api_fail_response('Failed to process channel request', 500, 'api_channels', $e);
 }

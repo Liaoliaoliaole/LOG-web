@@ -57,17 +57,24 @@ MAX_LOGS=2
 UPDATE_LOGS_DIR="/mnt/ramdisk/Morfeas_Loggers"  
 MORFEAS_WEB_DIR="/var/www/html/morfeas_web"
 FLAG_FILE="/tmp/update_needed"
+POST_DEPLOY_SCRIPT="$MORFEAS_WEB_DIR/deploy/post_update_deploy.sh"
 
 # Create logs dir if needed
 mkdir -p "$UPDATE_LOGS_DIR"
 
-# Clean old logs
-old_logs=$(find "$UPDATE_LOGS_DIR" -maxdepth 1 -name "LOG_update_*.log" -printf '%T@ %p\n' | \
-    sort -nr | tail -n +$((MAX_LOGS + 1)) | cut -d' ' -f2-)
+# Keep strict total count = MAX_LOGS (including the new file created below).
+# So we keep at most MAX_LOGS-1 old files before creating the next one.
+MAX_OLD_LOGS=$((MAX_LOGS - 1))
+if [ "$MAX_OLD_LOGS" -lt 0 ]; then
+    MAX_OLD_LOGS=0
+fi
 
-for log_file in $old_logs; do
-    sudo rm -f "$log_file"
-done
+find "$UPDATE_LOGS_DIR" -maxdepth 1 -type f -name "LOG_update_*.log*" -printf '%T@ %p\n' | \
+    sort -nr | awk -v keep="$MAX_OLD_LOGS" 'NR>keep { $1=""; sub(/^ /, ""); print }' | \
+    while IFS= read -r log_file; do
+        [ -n "$log_file" ] || continue
+        sudo rm -f "$log_file"
+    done
 
 # Log setup
 date=$(date +"%Y-%m-%d_%H-%M-%S")
@@ -123,6 +130,13 @@ perform_update() {
             web_updated=1
             echo "Web updated"
         fi
+    fi
+
+    print_status "Running post-update deployment..."
+    if [ -x "$POST_DEPLOY_SCRIPT" ]; then
+        "$POST_DEPLOY_SCRIPT"
+    else
+        echo "Warning: post-update deploy script not found or not executable: $POST_DEPLOY_SCRIPT"
     fi
 
     if [ $web_updated -eq 1 ]; then

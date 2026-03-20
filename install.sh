@@ -3,6 +3,13 @@ mode_install()
 {
 
 	sudo usermod -a -G root,sudo www-data &&
+	sudo cp "$(dirname "$0")/sudoers/Morfeas_update_allow" /etc/sudoers.d/Morfeas_update_allow &&
+	sudo cp "$(dirname "$0")/sudoers/Morfeas_web_journal_allow" /etc/sudoers.d/Morfeas_web_journal_allow &&
+	sudo chmod 440 /etc/sudoers.d/Morfeas_update_allow /etc/sudoers.d/Morfeas_web_journal_allow &&
+	sudo visudo -cf /etc/sudoers.d/Morfeas_update_allow &&
+	sudo visudo -cf /etc/sudoers.d/Morfeas_web_journal_allow &&
+	sudo cp "$(dirname "$0")/logrotate/morfeas-loggers" /etc/logrotate.d/morfeas-loggers &&
+	sudo chmod 644 /etc/logrotate.d/morfeas-loggers &&
 	sudo chmod g+w /etc/network/interfaces.d \
 	               /etc/network/interfaces.d/*\
 		       /etc/systemd/timesyncd.conf \
@@ -22,6 +29,8 @@ mode_uninstall()
 		sudo gpasswd -d www-data morfeas
 		echo "Remove assdasd"
 	fi
+	sudo rm -f /etc/sudoers.d/Morfeas_update_allow /etc/sudoers.d/Morfeas_web_journal_allow
+	sudo rm -f /etc/logrotate.d/morfeas-loggers
 	sudo chmod g-w /etc/network/interfaces.d \
 		       /etc/network/interfaces.d/*\
 	               /etc/systemd/timesyncd.conf \

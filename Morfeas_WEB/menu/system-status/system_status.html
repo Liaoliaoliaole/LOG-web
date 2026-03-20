@@ -139,6 +139,8 @@
               aria-selected="true">Details</button>
             <button class="tab btn" data-tab="logs" role="tab"
               aria-selected="false">System logs</button>
+            <button class="tab btn" data-tab="journal" role="tab"
+              aria-selected="false">System Journal</button>
           </div>
 
           <!-- Details (BUS-related metrics are merged into the table) -->
@@ -158,6 +160,27 @@
               <button id="reloadLoggers" class="btn">Reload</button>
             </div>
             <pre id="logTerminal" class="terminal"></pre>
+          </section>
+
+          <section id="panel-journal" class="panel" role="tabpanel"
+            aria-labelledby="journal" aria-live="polite">
+            <div class="logs-bar">
+              <label class="label" for="journalScope">Scope</label>
+              <select id="journalScope" class="input" aria-label="Journal scope">
+                <option value="all">All Services</option>
+                <option value="morfeas">Morfeas System</option>
+                <option value="apache2">Apache2</option>
+                <option value="ssh">SSH</option>
+              </select>
+              <label class="label" for="journalLines">Lines</label>
+              <select id="journalLines" class="input" aria-label="Journal lines">
+                <option value="200">200</option>
+                <option value="500" selected>500</option>
+                <option value="1000">1000</option>
+              </select>
+              <button id="reloadJournal" class="btn">Reload</button>
+            </div>
+            <pre id="journalTerminal" class="terminal"></pre>
           </section>
         </div>
       </div>

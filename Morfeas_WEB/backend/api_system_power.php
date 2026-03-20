@@ -33,11 +33,17 @@ try {
 
     if ($code !== 0) {
         $raw = trim(implode("\n", $out));
-        $error = $raw !== '' ? $raw : 'Command failed';
-        if (stripos($error, 'a password is required') !== false) {
-            $error .= '. Add NOPASSWD for www-data in /etc/sudoers.d/Morfeas_web_allow';
+        $publicError = 'System power command failed';
+        if (stripos($raw, 'a password is required') !== false) {
+            $publicError = 'Permission denied for system power command';
         }
-        throw new RuntimeException($error);
+        api_fail_response(
+            $publicError,
+            500,
+            'api_system_power.command',
+            new RuntimeException($raw !== '' ? $raw : 'Command failed'),
+            ['action' => $action, 'exit_code' => $code]
+        );
     }
 
     echo json_encode([
@@ -48,9 +54,7 @@ try {
         ],
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 } catch (InvalidArgumentException $e) {
-    http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_PRETTY_PRINT);
+    api_fail_response($e->getMessage(), 400, 'api_system_power.validation', $e);
 } catch (Throwable $e) {
-    http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_PRETTY_PRINT);
+    api_fail_response('Failed to execute system power action', 500, 'api_system_power', $e);
 }

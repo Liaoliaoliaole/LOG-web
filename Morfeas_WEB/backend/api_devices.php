@@ -77,6 +77,5 @@ try {
             echo json_encode(['ok' => false, 'error' => 'Method not allowed'], JSON_PRETTY_PRINT);
     }
 } catch (Throwable $e) {
-    http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_PRETTY_PRINT);
+    api_fail_response('Failed to process device request', 500, 'api_devices', $e);
 }

@@ -96,6 +96,12 @@ Apply the project sudoers template for `Morfeas_web_allow`:
 sudo visudo -f /etc/sudoers.d/Morfeas_web_allow
 ```
 
+For **System Status -> System Journal**:
+
+- include `/usr/bin/journalctl` in `Morfeas_web_allow`
+- API will first try direct read, then fallback to `sudo -n /usr/bin/journalctl`
+- or install the dedicated snippet `sudoers/Morfeas_web_journal_allow`
+
 ### 6.2 System Update feature (web-only)
 
 Apply/update:
@@ -119,6 +125,16 @@ Current expected scope is web-only update:
 - no core repository check/update
 - no core build/install
 - restart target: `apache2` only
+- post-update auto-deploy hook: `deploy/post_update_deploy.sh` (runs on every `--update`)
+
+Post-update deploy hook (`deploy/post_update_deploy.sh`) does:
+
+- install `/etc/logrotate.d/morfeas-loggers`
+- install `/etc/sudoers.d/Morfeas_update_allow`
+- install `/etc/sudoers.d/Morfeas_web_journal_allow` (for System Journal fallback)
+- ensure execute bits for `update.sh`, `cron/update_cron_wrapper.sh`, `backup.sh`
+- ensure root cron entries for update check + backup
+- ensure Apache `PrivateTmp=false` drop-in
 
 Exit codes:
 
@@ -145,7 +161,34 @@ Root crontab should include daily update check:
 sudo crontab -l
 ```
 
-## 9) Apache `PrivateTmp` Requirement
+Daily wrapper log visibility:
+
+- `cron/update_cron_wrapper.sh` writes `/tmp/daily_update_check.log`
+- and mirrors it to `/mnt/ramdisk/Morfeas_Loggers/LOG_daily_update_check.log`
+- therefore it is visible in **System Status -> System Log**
+
+## 9) Morfeas Logger Rotation (`Morfeas_Loggers/*.log`)
+
+Install project logrotate rule:
+
+```bash
+sudo cp /var/www/html/morfeas_web/logrotate/morfeas-loggers /etc/logrotate.d/morfeas-loggers
+sudo chmod 644 /etc/logrotate.d/morfeas-loggers
+sudo logrotate -d /etc/logrotate.conf
+```
+
+Rule target:
+
+- `/mnt/ramdisk/Morfeas_Loggers/*.log`
+- `daily`, `rotate 7`, `compress`, `copytruncate`
+
+System Status visibility:
+
+- files under `/mnt/ramdisk/Morfeas_Loggers/` are listed in **System Log** page.
+- includes `morfeas_web_api.log`, `LOG_daily_update_check.log`, `LOG_update_*.log`, and runtime logs.
+- systemd journal is shown in dedicated **System Journal** tab (separate from file-based logs).
+
+## 10) Apache `PrivateTmp` Requirement
 
 The web process must see real `/tmp` so `/tmp/update_needed` is shared correctly.
 
@@ -161,7 +204,7 @@ Expected:
 
 If needed, use drop-in override with `PrivateTmp=false`, then restart apache.
 
-## 10) Quick Health Verification
+## 11) Quick Health Verification
 
 ```bash
 cat /etc/os-release | egrep 'PRETTY_NAME|VERSION_CODENAME'
@@ -171,6 +214,6 @@ systemctl is-active apache2 ssh
 curl -s "http://127.0.0.1/backend/api_system_update.php?action=status"
 ```
 
-## 11) Legacy Reference
+## 12) Legacy Reference
 
 Older original upstream README content has been replaced by this device-oriented guide to match current upgraded architecture and operational policy.
