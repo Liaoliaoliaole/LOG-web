@@ -135,6 +135,16 @@ function update_exec(string $mode): array
     ];
 }
 
+function update_failure_http_status(array $result): int
+{
+    $kind = (string) (($result['data']['result'] ?? ''));
+    return match ($kind) {
+        'permission_denied' => 403,
+        'network_unreachable' => 503,
+        default => 500,
+    };
+}
+
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 try {
@@ -177,7 +187,7 @@ try {
                 $result['data'],
                 $result['error'],
                 $result['message'],
-                500,
+                update_failure_http_status($result),
                 $requestId,
                 $result['internal']
             );

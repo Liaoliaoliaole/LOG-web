@@ -214,6 +214,7 @@
   function startDevicesPoll() {
     stopDevicesPoll();
     devicesPollTimer = setInterval(() => {
+      if (document.hidden) return;
       loadDevices(true, true);
     }, DEVICES_POLL_INTERVAL_MS);
   }
@@ -407,6 +408,11 @@
   }
 
   refreshBtn.addEventListener('click', () => loadDevices(false, false));
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      loadDevices(true, true);
+    }
+  });
   loadDevices(false, false);
   startDevicesPoll();
   window.addEventListener('beforeunload', stopDevicesPoll);

@@ -12,17 +12,20 @@ $isoStandardDir = backend_iso_standard_dir();
 $ramdisk = backend_ramdisk_dir();
 $xmlPath = backend_opcua_config_path();
 
+function channels_fail(string $error, int $status = 400): void
+{
+    http_response_code($status);
+    echo json_encode(['ok' => false, 'error' => $error], JSON_PRETTY_PRINT);
+    exit;
+}
+
 if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_upload') {
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-        http_response_code(405);
-        echo json_encode(['ok' => false, 'error' => 'Method not allowed'], JSON_PRETTY_PRINT);
-        exit;
+        channels_fail('Method not allowed', 405);
     }
 
     if (empty($_FILES['file']) || !is_uploaded_file($_FILES['file']['tmp_name'])) {
-        http_response_code(400);
-        echo json_encode(['ok' => false, 'error' => 'Missing upload file'], JSON_PRETTY_PRINT);
-        exit;
+        channels_fail('Missing upload file', 400);
     }
 
     $targetDir = iso_resolve_upload_dir($isoStandardDir);
@@ -42,9 +45,7 @@ if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_upload') {
     $dest = $targetDir . $filename;
 
     if (!move_uploaded_file($_FILES['file']['tmp_name'], $dest)) {
-        http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => 'Failed to save uploaded XML'], JSON_PRETTY_PRINT);
-        exit;
+        channels_fail('Failed to save uploaded XML', 500);
     }
 
     echo json_encode([
@@ -60,7 +61,7 @@ if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_upload') {
 if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_list') {
     $items = iso_collect_files($isoStandardDir);
 
-    echo json_encode(['files' => $items], JSON_PRETTY_PRINT);
+    echo json_encode(['ok' => true, 'files' => $items], JSON_PRETTY_PRINT);
     exit;
 }
 
@@ -81,9 +82,7 @@ if (isset($_GET['include']) && $_GET['include'] === 'iso_standard') {
         }
     }
 
-    http_response_code(404);
-    echo json_encode(['ok' => false, 'error' => 'ISOstandard.xml not found'], JSON_PRETTY_PRINT);
-    exit;
+    channels_fail('ISOstandard.xml not found', 404);
 }
 
 if (isset($_GET['include']) && $_GET['include'] === 'machine_info') {
@@ -91,14 +90,17 @@ if (isset($_GET['include']) && $_GET['include'] === 'machine_info') {
     $canMap = system_can_bitrates();
     $ntp    = read_timesyncd_ntp_server() ?? '—';
 
-    echo json_encode([
+    $payload = [
         'mac'  => $mac,
         'can'  => $canMap,
         'ntp'  => [
             'server' => $ntp,
             'readonly' => true,
         ],
-    ], JSON_PRETTY_PRINT);
+    ];
+
+    // Keep backward-compatible top-level fields and add standardized status.
+    echo json_encode(['ok' => true, 'data' => $payload] + $payload, JSON_PRETTY_PRINT);
     exit;
 }
 
@@ -112,6 +114,7 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 try {
     if (!is_file($xmlPath)) {
+        http_response_code(500);
         echo json_encode([
             'ok'    => false,
             'error' => 'OPC UA config not found'
@@ -147,8 +150,7 @@ try {
             $found = channel_find_by_iso($rows, $iso);
 
             if ($found === null) {
-                http_response_code(404);
-                echo json_encode(['ok' => false, 'error' => "ISO_CHANNEL not found: $iso"], JSON_PRETTY_PRINT);
+                channels_fail("ISO_CHANNEL not found: $iso", 404);
             } else {
                 echo json_encode(['ok' => true, 'data' => $found], JSON_PRETTY_PRINT);
             }
@@ -158,9 +160,7 @@ try {
             $data = read_json_body();
             foreach (['iso_channel', 'interface_type', 'anchor'] as $field) {
                 if (empty($data[$field])) {
-                    http_response_code(400);
-                    echo json_encode(['ok' => false, 'error' => "Missing field: $field"], JSON_PRETTY_PRINT);
-                    exit;
+                    channels_fail("Missing field: $field", 400);
                 }
             }
             iso_add_channel($xmlPath, $data);
@@ -170,15 +170,11 @@ try {
         case 'PATCH':
             $iso = $_GET['iso'] ?? null;
             if ($iso === null || $iso === '') {
-                http_response_code(400);
-                echo json_encode(['ok' => false, 'error' => 'Missing ?iso=... in query'], JSON_PRETTY_PRINT);
-                exit;
+                channels_fail('Missing ?iso=... in query', 400);
             }
             $data = read_json_body();
             if (!$data) {
-                http_response_code(400);
-                echo json_encode(['ok' => false, 'error' => 'Empty PATCH body'], JSON_PRETTY_PRINT);
-                exit;
+                channels_fail('Empty PATCH body', 400);
             }
             iso_update_channel($xmlPath, $iso, $data);
             echo json_encode(['ok' => true], JSON_PRETTY_PRINT);
@@ -187,18 +183,15 @@ try {
         case 'DELETE':
             $iso = $_GET['iso'] ?? null;
             if ($iso === null || $iso === '') {
-                http_response_code(400);
-                echo json_encode(['ok' => false, 'error' => 'Missing ?iso=... in query'], JSON_PRETTY_PRINT);
-                exit;
+                channels_fail('Missing ?iso=... in query', 400);
             }
             iso_delete_channel($xmlPath, $iso);
             echo json_encode(['ok' => true], JSON_PRETTY_PRINT);
             break;
 
         default:
-            http_response_code(405);
             header('Allow: GET, POST, PATCH, DELETE');
-            echo json_encode(['ok' => false, 'error' => 'Method not allowed'], JSON_PRETTY_PRINT);
+            channels_fail('Method not allowed', 405);
     }
 } catch (Throwable $e) {
     api_fail_response('Failed to process channel request', 500, 'api_channels', $e);

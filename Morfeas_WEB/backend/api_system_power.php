@@ -34,12 +34,14 @@ try {
     if ($code !== 0) {
         $raw = trim(implode("\n", $out));
         $publicError = 'System power command failed';
+        $httpStatus = 500;
         if (stripos($raw, 'a password is required') !== false) {
             $publicError = 'Permission denied for system power command';
+            $httpStatus = 403;
         }
         api_fail_response(
             $publicError,
-            500,
+            $httpStatus,
             'api_system_power.command',
             new RuntimeException($raw !== '' ? $raw : 'Command failed'),
             ['action' => $action, 'exit_code' => $code]

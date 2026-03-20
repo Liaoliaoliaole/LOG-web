@@ -343,6 +343,7 @@
     if (logsState.timer) return;
     logsState.timer = window.setInterval(async () => {
       if (!logsState.active) return;
+      if (document.hidden) return;
       try {
         await pollLogger(true);
       } catch (err) {
@@ -405,6 +406,7 @@
     if (journalState.timer) return;
     journalState.timer = window.setInterval(async () => {
       if (!journalState.active) return;
+      if (document.hidden) return;
       try {
         await pollJournal(false);
       } catch (err) {
@@ -480,6 +482,19 @@
       await pollJournal(false);
     } catch (err) {
       if (journalTerminal) journalTerminal.textContent = `Journal load failed: ${err.message || err}`;
+    }
+  });
+
+  document.addEventListener('visibilitychange', async () => {
+    if (document.hidden) return;
+    try {
+      if (logsState.active) {
+        await pollLogger(false);
+      } else if (journalState.active) {
+        await pollJournal(false);
+      }
+    } catch (err) {
+      // Silent resume guard: tab visibility toggle should not break page state.
     }
   });
 

@@ -6,12 +6,19 @@ require __DIR__ . '/core/paths.php';
 require __DIR__ . '/core/request.php';
 require __DIR__ . '/services/system_status_service.php';
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 $ramdisk = backend_ramdisk_dir();
 $logCfg = backend_log_config_path();
 
 $action = $_GET['action'] ?? 'details';
+
+function system_status_fail(string $error, int $status = 400): void
+{
+    http_response_code($status);
+    echo json_encode(['ok' => false, 'error' => $error], JSON_PRETTY_PRINT);
+    exit;
+}
 
 function system_status_resolve_loggers_dir(string $logCfgPath, string $ramdisk): string
 {
@@ -174,6 +181,12 @@ function system_status_read_journal(int $lines, array $units): array
 }
 
 try {
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    if ($method !== 'GET') {
+        header('Allow: GET');
+        system_status_fail('Method not allowed', 405);
+    }
+
     switch ($action) {
         case 'details':
             $entries = system_status_entries($ramdisk);
@@ -197,18 +210,14 @@ try {
             $mtimeClient = isset($_GET['mtime']) ? (int)$_GET['mtime'] : 0;
 
             if ($name === '') {
-                http_response_code(400);
-                echo json_encode(['ok' => false, 'error' => 'Missing logger name'], JSON_PRETTY_PRINT);
-                exit;
+                system_status_fail('Missing logger name', 400);
             }
 
             // Prevent path traversal and enforce known logger list.
             $name = basename($name);
             $known = system_status_collect_loggers($dir);
             if (!in_array($name, $known, true)) {
-                http_response_code(404);
-                echo json_encode(['ok' => false, 'error' => "Logger not found: {$name}"], JSON_PRETTY_PRINT);
-                exit;
+                system_status_fail("Logger not found: {$name}", 404);
             }
 
             $path = $dir . $name;
@@ -225,9 +234,7 @@ try {
 
             $content = @file_get_contents($path);
             if ($content === false) {
-                http_response_code(500);
-                echo json_encode(['ok' => false, 'error' => 'Failed to read logger file'], JSON_PRETTY_PRINT);
-                exit;
+                system_status_fail('Failed to read logger file', 500);
             }
 
             echo json_encode([
@@ -245,12 +252,9 @@ try {
             try {
                 $journal = system_status_read_journal($lines, $units);
             } catch (RuntimeException $e) {
-                http_response_code(500);
-                echo json_encode([
-                    'ok' => false,
-                    'error' => $e->getMessage(),
-                ], JSON_PRETTY_PRINT);
-                exit;
+                $msg = $e->getMessage();
+                $status = str_contains(strtolower($msg), 'permission denied') ? 403 : 500;
+                system_status_fail($msg, $status);
             }
             echo json_encode([
                 'ok' => true,
@@ -263,9 +267,7 @@ try {
             exit;
 
         default:
-            http_response_code(400);
-            echo json_encode(['ok' => false, 'error' => 'Unknown action'], JSON_PRETTY_PRINT);
-            exit;
+            system_status_fail('Unknown action', 400);
     }
 } catch (Throwable $e) {
     api_fail_response('Failed to read system status', 500, 'api_system_status', $e);
