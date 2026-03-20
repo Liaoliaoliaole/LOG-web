@@ -80,7 +80,7 @@ function devices_find_conflict(
             continue;
         }
 
-        if (!in_array($existingType, ['IOBOX', 'MDAQ', 'MTI'], true)) {
+        if (!in_array($existingType, ['IOBOX', 'MTI'], true)) {
             continue;
         }
         if (strcasecmp($existingName, $name) === 0) {
@@ -125,7 +125,7 @@ try {
                 devices_fail('SDAQ is auto-discovered from logstat', 400);
             }
 
-            if (!in_array($type, ['IOBOX', 'MDAQ', 'MTI', 'NOX'], true)) {
+            if (!in_array($type, ['IOBOX', 'MTI', 'NOX'], true)) {
                 devices_fail("unsupported type: $type", 400);
             }
 

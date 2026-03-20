@@ -191,7 +191,14 @@
             <div class="rows">
               <div class="row">
                 <label>NTP Server</label>
-                <div id="ntpServer" class="value readonly">—</div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <input id="ntpServerInput" class="input" style="min-width:180px" placeholder="e.g. 192.168.1.10" />
+                  <button id="ntpApplyBtn" class="btn" type="button">Apply</button>
+                </div>
+              </div>
+              <div class="row">
+                <label></label>
+                <div id="ntpStatus" class="muted">—</div>
               </div>
             </div>
           </div>
@@ -250,6 +257,7 @@
     <!-- <script src="../../isoSTD_xml_file_validation.js"></script> -->
     <script src="../../assets/config.js"></script>
     <script src="../../assets/api/channels.js"></script>
+    <script src="../../assets/api/networkConfig.js"></script>
     <script src="../../assets/services/isoCatalog.js"></script>
     <script src="./advanced.js"></script>
     <script>document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });</script>

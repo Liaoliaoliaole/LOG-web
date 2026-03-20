@@ -4,16 +4,20 @@
   const byId = (id) => document.getElementById(id);
 
   const channelsApi = window.LOG_WEB?.api?.channels;
+  const networkConfigApi = window.LOG_WEB?.api?.networkConfig;
   const isoCatalogService = window.LOG_WEB?.services?.isoCatalog;
 
   const macText = byId('macText');
   const can0El = byId('can0');
   const can1El = byId('can1');
-  const ntpServerEl = byId('ntpServer');
+  const ntpServerInput = byId('ntpServerInput');
+  const ntpApplyBtn = byId('ntpApplyBtn');
+  const ntpStatusEl = byId('ntpStatus');
   macText.textContent = '—';
   can0El.textContent = '—';
   can1El.textContent = '—';
-  ntpServerEl.textContent = '—';
+  ntpServerInput.value = '';
+  ntpStatusEl.textContent = '—';
 
   async function loadMachineInfo() {
     if (!channelsApi) throw new Error('Channels API unavailable');
@@ -23,15 +27,75 @@
     const can = data.can || {};
     can0El.textContent = can.can0 || '—';
     can1El.textContent = can.can1 || '—';
-    ntpServerEl.textContent = data?.ntp?.server || '—';
+    ntpServerInput.value = data?.ntp?.server || '';
+    ntpStatusEl.textContent = 'Loaded current NTP server from system.';
   }
 
   loadMachineInfo().catch(() => {
     macText.textContent = macText.textContent || '—';
     can0El.textContent = can0El.textContent || '—';
     can1El.textContent = can1El.textContent || '—';
-    ntpServerEl.textContent = ntpServerEl.textContent || '—';
+    ntpServerInput.value = ntpServerInput.value || '';
+    ntpStatusEl.textContent = 'Unable to load current NTP server.';
   });
+
+  function isValidIpv4(v) {
+    return /^(25[0-5]|2[0-4]\d|1?\d?\d)\.(25[0-5]|2[0-4]\d|1?\d?\d)\.(25[0-5]|2[0-4]\d|1?\d?\d)\.(25[0-5]|2[0-4]\d|1?\d?\d)$/.test(v);
+  }
+
+  async function applyNtpServer() {
+    if (!networkConfigApi) {
+      ntpStatusEl.textContent = 'Network API unavailable.';
+      return;
+    }
+
+    const ntpServer = ntpServerInput.value.trim();
+    if (!isValidIpv4(ntpServer)) {
+      ntpStatusEl.textContent = 'NTP server must be a valid IPv4 address.';
+      return;
+    }
+
+    ntpApplyBtn.disabled = true;
+    ntpStatusEl.textContent = 'Applying NTP server...';
+
+    try {
+      const statePayload = await networkConfigApi.fetchState();
+      const state = statePayload?.data || {};
+
+      const ethMode = (state?.eth?.mode || 'dhcp').toLowerCase();
+      const ethPayload = { mode: ethMode };
+      if (ethMode === 'static') {
+        ethPayload.ipv4 = {
+          address: state?.eth?.ipv4?.address || '',
+          prefix: Number(state?.eth?.ipv4?.prefix ?? 24),
+          gateway: state?.eth?.ipv4?.gateway || '',
+          dns: Array.isArray(state?.eth?.ipv4?.dns) ? state.eth.ipv4.dns : [],
+        };
+      }
+
+      const payload = {
+        hostname: state?.hostname || window.location.hostname || 'LOGDemo',
+        eth: ethPayload,
+        can: {
+          can0: { bitrate: Number(state?.can?.can0?.bitrate || 250000) },
+          can1: { bitrate: Number(state?.can?.can1?.bitrate || 250000) },
+        },
+        ntp: {
+          servers: [ntpServer],
+        },
+      };
+
+      await networkConfigApi.apply(payload, { autoConfirm: true, requestTimeoutMs: 30000 });
+      ntpStatusEl.textContent = `Applied NTP server: ${ntpServer}`;
+      await loadMachineInfo();
+    } catch (err) {
+      ntpStatusEl.textContent = `Failed to apply NTP server: ${err?.message || err}`;
+    } finally {
+      ntpApplyBtn.disabled = false;
+    }
+  }
+
+  ntpApplyBtn?.addEventListener('click', applyNtpServer);
 
   /* ----------------------------------------------------
    *  B) ISO XML loader

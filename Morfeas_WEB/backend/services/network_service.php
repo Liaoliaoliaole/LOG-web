@@ -386,7 +386,7 @@ function network_get_state(): array
         'can_backend' => network_nm_can_supported() ? 'nm' : 'legacy',
         'ntp' => [
             'server' => read_timesyncd_ntp_server() ?? '—',
-            'readonly' => true,
+            'readonly' => false,
         ],
         'pending' => $pending,
     ];
@@ -516,6 +516,31 @@ function network_normalize_payload(array $payload, array $state): array
         $can[$iface] = ['bitrate' => (int) $fallback];
     }
 
+    $ntpServer = null;
+    $ntpPayload = $payload['ntp'] ?? null;
+    if (is_array($ntpPayload)) {
+        $servers = $ntpPayload['servers'] ?? [];
+        if (!is_array($servers)) {
+            throw new InvalidArgumentException('ntp.servers must be an array');
+        }
+        foreach ($servers as $serverRaw) {
+            $server = trim((string) $serverRaw);
+            if ($server === '') {
+                continue;
+            }
+            if (!network_valid_ipv4($server)) {
+                throw new InvalidArgumentException('NTP server must be a valid IPv4 address');
+            }
+            $ntpServer = $server;
+            break;
+        }
+    } else {
+        $stateNtp = trim((string) ($state['ntp']['server'] ?? ''));
+        if (network_valid_ipv4($stateNtp)) {
+            $ntpServer = $stateNtp;
+        }
+    }
+
     return [
         'hostname' => $hostname,
         'eth' => [
@@ -523,11 +548,19 @@ function network_normalize_payload(array $payload, array $state): array
             'ipv4' => $ipv4,
         ],
         'can' => $can,
+        'ntp' => [
+            'server' => $ntpServer,
+        ],
     ];
 }
 
 function network_restore_payload_from_state(array $state): array
 {
+    $stateNtp = trim((string) ($state['ntp']['server'] ?? ''));
+    if (!network_valid_ipv4($stateNtp)) {
+        $stateNtp = null;
+    }
+
     return [
         'hostname' => (string) ($state['hostname'] ?? network_get_hostname()),
         'eth' => [
@@ -542,6 +575,9 @@ function network_restore_payload_from_state(array $state): array
         'can' => [
             'can0' => ['bitrate' => (int) ($state['can']['can0']['bitrate'] ?? 250000)],
             'can1' => ['bitrate' => (int) ($state['can']['can1']['bitrate'] ?? 250000)],
+        ],
+        'ntp' => [
+            'server' => $stateNtp,
         ],
     ];
 }
@@ -772,11 +808,42 @@ function network_apply_hostname(string $hostname): void
     network_exec_ok('hostnamectl set-hostname ' . escapeshellarg($hostname), true, 'Unable to apply hostname');
 }
 
+function network_apply_ntp_server(?string $server): void
+{
+    if (!is_string($server) || !network_valid_ipv4($server)) {
+        return;
+    }
+
+    $confPath = '/etc/systemd/timesyncd.conf';
+    $raw = @file_get_contents($confPath);
+    if (!is_string($raw)) {
+        throw new RuntimeException('Unable to read timesyncd configuration');
+    }
+
+    $line = 'NTP=' . $server;
+    $updated = $raw;
+
+    if (preg_match('/^\s*#?\s*NTP\s*=.*$/mi', $updated) === 1) {
+        $updated = preg_replace('/^\s*#?\s*NTP\s*=.*$/mi', $line, $updated, 1) ?? $updated;
+    } elseif (preg_match('/^\s*\[Time\]\s*$/mi', $updated) === 1) {
+        $updated = preg_replace('/^\s*\[Time\]\s*$/mi', "[Time]\n$line", $updated, 1) ?? $updated;
+    } else {
+        $updated = rtrim($updated, "\n") . "\n\n[Time]\n$line\n";
+    }
+
+    if ($updated !== $raw) {
+        network_write_system_file_via_sudo_cp($confPath, $updated, 'Unable to update NTP server in timesyncd.conf');
+    }
+
+    network_exec_ok('systemctl restart systemd-timesyncd', true, 'Unable to restart systemd-timesyncd');
+}
+
 function network_apply_payload(array $normalized): void
 {
     network_apply_hostname($normalized['hostname']);
     network_apply_eth($normalized['eth']);
     network_apply_can($normalized['can']);
+    network_apply_ntp_server($normalized['ntp']['server'] ?? null);
 }
 
 function network_apply_payload_no_rollback(array $normalized): array
@@ -790,6 +857,12 @@ function network_apply_payload_no_rollback(array $normalized): array
         network_apply_can($normalized['can']);
     } catch (Throwable $e) {
         $warnings[] = 'CAN apply warning: ' . $e->getMessage();
+    }
+
+    try {
+        network_apply_ntp_server($normalized['ntp']['server'] ?? null);
+    } catch (Throwable $e) {
+        $warnings[] = 'NTP apply warning: ' . $e->getMessage();
     }
 
     return $warnings;

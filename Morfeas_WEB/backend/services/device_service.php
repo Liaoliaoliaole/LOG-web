@@ -80,7 +80,13 @@ function device_collect_sdaq_devices(string $ramdisk): array
 function device_list(string $ramdisk, string $logConfig, int $maxComponents): array
 {
     $auto   = device_collect_sdaq_devices($ramdisk);
-    $manual = log_config_load_manual_devices($logConfig);
+    $manual = array_values(array_filter(
+        log_config_load_manual_devices($logConfig),
+        static function (array $dev): bool {
+            $type = strtoupper(str_replace(['-', '_', ' '], '', trim((string) ($dev['type'] ?? ''))));
+            return $type !== 'MDAQ';
+        }
+    ));
     $all    = array_merge($manual, $auto);
 
     return [
