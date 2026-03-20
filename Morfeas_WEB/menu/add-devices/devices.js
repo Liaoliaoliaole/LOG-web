@@ -52,6 +52,7 @@
   let componentMax = MAX_COMPONENTS;
   const DEVICES_POLL_INTERVAL_MS = 1000; // legacy-like continuous detection cadence
   let devicesPollTimer = null;
+  let removeInProgress = false;
 
   // --------------------------------------------------------------------------
   // 3.1) VALIDATION HELPERS (legacy-compatible)
@@ -329,6 +330,8 @@
   });
 
   async function deleteDevices() {
+    if (removeInProgress) return;
+
     const rows = $$('#devBody tr').filter(r => r.querySelector('input[type="checkbox"]').checked);
     if (!rows.length) {
       alert('Please select devices to delete.');
@@ -338,9 +341,19 @@
       .filter(r => (r.dataset.origin || 'xml') !== 'auto')
       .map(r => r.dataset.id)
       .filter(Boolean);
+
+    if (manualIds.length === 0) {
+      alert('SDAQ device cannot be removed.');
+      return;
+    }
+
     if (manualIds.length && !confirmServiceRestart('Removing selected device(s)')) {
       return;
     }
+
+    removeInProgress = true;
+    stopDevicesPoll();
+    removeBtn.disabled = true;
 
     try {
       if (manualIds.length) {
@@ -354,6 +367,10 @@
       await refreshDevicesAfterConfigChange();
     } catch (err) {
       alert('Failed to delete: ' + err.message);
+    } finally {
+      removeInProgress = false;
+      startDevicesPoll();
+      syncState();
     }
   }
 
