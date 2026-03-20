@@ -572,12 +572,22 @@
     hydrateFromIso(e.target.value.trim());
   });
 
-  isoInput.addEventListener('input', (e) => {
+  const handleIsoInputSearch = (value) => {
     state.suppressIsoSuggestions = false;
-    if (!e.target.value.trim()) {
+    if (!value.trim()) {
       clearIsoDefaults();
     }
-    renderIsoSuggestions(e.target.value);
+    renderIsoSuggestions(value);
+  };
+
+  isoInput.addEventListener('input', (e) => {
+    handleIsoInputSearch(e.target.value || '');
+  });
+
+  // Extra fallback for some environments/IMEs where only keyup is observed reliably.
+  isoInput.addEventListener('keyup', (e) => {
+    if (e.key === 'Enter') return;
+    handleIsoInputSearch(e.target?.value || '');
   });
 
   isoInput.addEventListener('keydown', (e) => {
@@ -701,5 +711,6 @@
     onRangeChange();
     syncAlarmInputs();
     updateDescriptionWithPostfix();
+    renderIsoSuggestions(isoInput.value || '');
   })();
 })();

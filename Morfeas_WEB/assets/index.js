@@ -609,9 +609,7 @@
 
     searchInput?.addEventListener('input', (e) => {
       const value = e.target?.value || '';
-      if (!value.trim()) {
-        filterTable('');
-      }
+      filterTable(value);
     });
 
     function buildFilterMenu(th, key) {
