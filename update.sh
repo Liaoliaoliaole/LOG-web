@@ -80,10 +80,16 @@ find "$UPDATE_LOGS_DIR" -maxdepth 1 -type f -name "LOG_update_*.log*" -printf '%
 date=$(date +"%Y-%m-%d_%H-%M-%S")
 log_file="$UPDATE_LOGS_DIR/LOG_update_$date.log"
 
+log_line() {
+    local level="$1"
+    shift
+    local ts
+    ts=$(date +"%Y-%m-%dT%H:%M:%S%z")
+    printf '[%s] [UPDATE] [%s] %s\n' "$ts" "$level" "$*"
+}
+
 print_status() {
-    echo -e "\n======================================"
-    echo " $1"
-    echo "======================================"
+    log_line "INFO" "===== $1 ====="
 }
 
 check_updates() {
@@ -93,10 +99,11 @@ check_updates() {
     if [ -d "$MORFEAS_WEB_DIR" ]; then
         cd "$MORFEAS_WEB_DIR"
         if ! git fetch origin; then
-            echo "Error: Network issue or cannot reach WEB git server."
+            log_line "ERROR" "Network issue or cannot reach WEB git server during check-only."
             exit 2
         fi
         local_branch=$(git rev-parse --abbrev-ref HEAD)
+        log_line "INFO" "Checking branch=$local_branch for remote changes."
         if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/$local_branch)" ]; then
             web_update_needed=1
         fi
@@ -105,10 +112,12 @@ check_updates() {
     if [ $web_update_needed -eq 1 ]; then
         print_status "Update Available"
         touch "$FLAG_FILE"
+        log_line "INFO" "Update available. flag_file=$FLAG_FILE created. exit_code=100"
         exit 100
     else
         print_status "System is UP-TO-DATE"
         sudo rm -f "$FLAG_FILE"
+        log_line "INFO" "No update. flag_file=$FLAG_FILE removed if present. exit_code=0"
         exit 0
     fi
 }
@@ -119,38 +128,43 @@ perform_update() {
 
     if [ -d "$MORFEAS_WEB_DIR" ]; then
         cd "$MORFEAS_WEB_DIR"
-        git fetch origin
-        if [ $? -ne 0 ]; then
-            echo "Error: Network issue or cannot reach WEB git server."
+        if ! git fetch origin; then
+            log_line "ERROR" "Network issue or cannot reach WEB git server during update."
             exit 2
         fi
         web_branch=$(git rev-parse --abbrev-ref HEAD)
+        log_line "INFO" "Update mode on branch=$web_branch."
         if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/$web_branch)" ]; then
             git pull
             web_updated=1
-            echo "Web updated"
+            log_line "INFO" "Web repository updated via git pull."
         fi
     fi
 
     print_status "Running post-update deployment..."
     if [ -x "$POST_DEPLOY_SCRIPT" ]; then
+        log_line "INFO" "Executing post-deploy script: $POST_DEPLOY_SCRIPT"
         "$POST_DEPLOY_SCRIPT"
     else
-        echo "Warning: post-update deploy script not found or not executable: $POST_DEPLOY_SCRIPT"
+        log_line "WARN" "post-update deploy script not found or not executable: $POST_DEPLOY_SCRIPT"
     fi
 
     if [ $web_updated -eq 1 ]; then
         sudo rm -f "$FLAG_FILE"
+        log_line "INFO" "flag_file=$FLAG_FILE removed after successful web update."
         print_status "Restarting Apache..."
         sleep 3
         sudo systemctl restart apache2
+        log_line "INFO" "Apache restarted."
     else
         print_status "No updates applied"
+        log_line "INFO" "No repository updates were applied."
     fi
 }
 
 main() {
-    print_status "Morfeas Update Script STARTED - $(date)"
+    print_status "Morfeas Update Script STARTED"
+    log_line "INFO" "mode=${1:---update(default)} log_file=$log_file"
 
     case "$1" in
         --check-only)
@@ -160,12 +174,12 @@ main() {
             perform_update
             ;;
         *)
-            echo "Usage: $0 [--check-only | --update]"
+            log_line "ERROR" "Usage: $0 [--check-only | --update]"
             exit 1
             ;;
     esac
 
-    print_status "Morfeas Update Script COMPLETED - $(date)"
+    print_status "Morfeas Update Script COMPLETED"
 }
 
 main "$@" &> "$log_file"

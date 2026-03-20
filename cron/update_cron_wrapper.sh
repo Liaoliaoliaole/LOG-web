@@ -6,24 +6,32 @@ FLAG_FILE="/tmp/update_needed"
 LOGGER_DIR="/mnt/ramdisk/Morfeas_Loggers"
 LOGGER_FILE="$LOGGER_DIR/LOG_daily_update_check.log"
 
+log_line() {
+    local level="$1"
+    shift
+    local ts
+    ts=$(date +"%Y-%m-%dT%H:%M:%S%z")
+    printf '[%s] [UPDATE_CRON] [%s] %s\n' "$ts" "$level" "$*" >> "$LOG_FILE"
+}
+
 # Run update check and overwrite log
 /var/www/html/morfeas_web/update.sh --check-only > "$LOG_FILE" 2>&1
 exit_code=$?
 
-{
-    echo "Update.sh exited with $exit_code"
-    if [ $exit_code -eq 100 ]; then
-        echo "Update available. Creating flag file."
-        [ -f "$FLAG_FILE" ] || {
-            touch "$FLAG_FILE"
-        }
-    elif [ $exit_code -eq 0 ]; then
-        echo "No update. Removing flag if exists."
-        rm -f "$FLAG_FILE"
+log_line "INFO" "update.sh finished with exit_code=$exit_code"
+if [ $exit_code -eq 100 ]; then
+    if [ -f "$FLAG_FILE" ]; then
+        log_line "INFO" "Update available. flag_file=$FLAG_FILE already exists."
     else
-        echo "Check failed. Leaving flag status unchanged."
+        touch "$FLAG_FILE"
+        log_line "INFO" "Update available. flag_file=$FLAG_FILE created."
     fi
-} >> "$LOG_FILE"
+elif [ $exit_code -eq 0 ]; then
+    rm -f "$FLAG_FILE"
+    log_line "INFO" "No update. flag_file=$FLAG_FILE removed if present."
+else
+    log_line "WARN" "Check failed. flag_file status unchanged."
+fi
 
 # Mirror daily check log into System Status logger directory.
 mkdir -p "$LOGGER_DIR"
