@@ -11,6 +11,7 @@
 
     const config = window.LOG_WEB?.config;
     const channelsApi = window.LOG_WEB?.api?.channels;
+    const ftpBackupApi = window.LOG_WEB?.api?.ftpBackup;
     const systemStatusApi = window.LOG_WEB?.api?.systemStatus;
     const systemUpdateApi = window.LOG_WEB?.api?.systemUpdate;
     const statusFormatter = window.LOG_WEB?.ui?.systemStatusFormatter;
@@ -26,6 +27,7 @@
     const menuBtn = $('#menuBtn');
     const dropdown = $('#mainMenu');
     const systemUpdateIndicator = $('#systemUpdateIndicator');
+    const ftpDirChip = $('#ftpDirChip');
 
     const ticker = $('.ticker');
     const track = ticker ? ticker.querySelector('.track') : null;
@@ -333,6 +335,47 @@
     };
 
     startSystemUpdateIndicatorPolling();
+
+    /* =======================================================================
+     * 3C) FTP BACKUP DIR CHIP (LIVE CONFIG)
+     * ======================================================================= */
+
+    const setFtpDirChipState = (connected, dirName = '---') => {
+      if (!ftpDirChip) return;
+      const safeDir = (dirName || '---').toString().trim() || '---';
+      ftpDirChip.textContent = `FTP backup dir: ${safeDir}`;
+      ftpDirChip.classList.toggle('chip-connected', connected);
+      ftpDirChip.classList.toggle('chip-disconnected', !connected);
+    };
+
+    const refreshFtpDirChip = async () => {
+      if (!ftpDirChip) return;
+      if (!ftpBackupApi?.configIfUpdated) {
+        setFtpDirChipState(false, '---');
+        return;
+      }
+
+      try {
+        const payload = await ftpBackupApi.configIfUpdated(6000);
+        const data = payload?.data || {};
+        const dir = (data?.config?.dir || '').toString().trim();
+        const connected = Boolean(data?.connected && dir);
+        setFtpDirChipState(connected, connected ? dir : '---');
+      } catch (err) {
+        setFtpDirChipState(false, '---');
+      }
+    };
+
+    const startFtpDirChipPolling = () => {
+      if (!ftpDirChip) return;
+      refreshFtpDirChip();
+      setInterval(refreshFtpDirChip, 2000);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) refreshFtpDirChip();
+      });
+    };
+
+    startFtpDirChipPolling();
 
     /* =======================================================================
      * 4) TICKER (SYSTEM STATUS)

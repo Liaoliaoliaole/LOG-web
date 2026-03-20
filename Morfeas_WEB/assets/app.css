@@ -121,6 +121,14 @@ body {
   overflow: hidden;
 }
 
+.chip.chip-connected {
+  color: var(--color-status-okay);
+}
+
+.chip.chip-disconnected {
+  color: var(--color-status-error);
+}
+
 /* == 4) MENU BUTTON & DROPDOWN ============================================ */
 .menu-wrap {
   margin-left: 0;

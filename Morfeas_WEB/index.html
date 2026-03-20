@@ -24,7 +24,7 @@
 
         <!-- Info chips (FTP dir + rolling status summary) -->
         <div class="info">
-          <div class="chip">FTP backup dir: engine number</div>
+          <div id="ftpDirChip" class="chip chip-disconnected">FTP backup dir: ---</div>
           <div class="chip">
             <div class="ticker"><!-- filled by JS -->
               <div class="track"></div>
@@ -212,6 +212,7 @@
     <!-- Shared config + APIs -->
     <script src="assets/config.js"></script>
     <script src="assets/api/channels.js"></script>
+    <script src="assets/api/ftpBackup.js"></script>
     <script src="assets/api/systemStatus.js"></script>
     <script src="assets/api/systemUpdate.js"></script>
     <script src="assets/ui/systemStatusFormatter.js"></script>
