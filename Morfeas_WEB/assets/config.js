@@ -32,6 +32,7 @@
       channels: 'api_channels.php',
       devices: 'api_devices.php',
       systemStatus: 'api_system_status.php',
+      ftpBackup: 'api_ftp_backup.php',
       networkConfig: 'api_network_config.php',
       systemPower: 'api_system_power.php',
       systemUpdate: 'api_system_update.php',
