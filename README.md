@@ -132,6 +132,9 @@ Post-update deploy hook (`deploy/post_update_deploy.sh`) does:
 - install `/etc/logrotate.d/morfeas-loggers`
 - install `/etc/sudoers.d/Morfeas_update_allow`
 - install `/etc/sudoers.d/Morfeas_web_journal_allow` (for System Journal fallback)
+- ensure `/mnt/ramdisk/Morfeas_Loggers` shared write access (`morfeas` group, setgid)
+- ensure `morfeas_web_api.log` writable by `www-data`
+- ensure `www-data` is member of `morfeas` group
 - ensure execute bits for `update.sh`, `cron/update_cron_wrapper.sh`, `backup.sh`
 - ensure root cron entries for update check + backup
 - ensure Apache `PrivateTmp=false` drop-in

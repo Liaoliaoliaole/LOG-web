@@ -2,7 +2,13 @@
 mode_install()
 {
 
-	sudo usermod -a -G root,sudo www-data &&
+	sudo usermod -a -G root,sudo,morfeas www-data &&
+	sudo mkdir -p /mnt/ramdisk/Morfeas_Loggers &&
+	sudo chgrp morfeas /mnt/ramdisk/Morfeas_Loggers &&
+	sudo chmod 2775 /mnt/ramdisk/Morfeas_Loggers &&
+	sudo touch /mnt/ramdisk/Morfeas_Loggers/morfeas_web_api.log &&
+	sudo chown www-data:morfeas /mnt/ramdisk/Morfeas_Loggers/morfeas_web_api.log &&
+	sudo chmod 664 /mnt/ramdisk/Morfeas_Loggers/morfeas_web_api.log &&
 	sudo cp "$(dirname "$0")/sudoers/Morfeas_update_allow" /etc/sudoers.d/Morfeas_update_allow &&
 	sudo cp "$(dirname "$0")/sudoers/Morfeas_web_journal_allow" /etc/sudoers.d/Morfeas_web_journal_allow &&
 	sudo chmod 440 /etc/sudoers.d/Morfeas_update_allow /etc/sudoers.d/Morfeas_web_journal_allow &&

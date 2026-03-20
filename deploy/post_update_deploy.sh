@@ -110,12 +110,34 @@ SystemMaxUse=100M
     fi
 }
 
+ensure_logger_dir_access() {
+    local dir="/mnt/ramdisk/Morfeas_Loggers"
+    local api_log="$dir/morfeas_web_api.log"
+
+    mkdir -p "$dir"
+
+    # Allow shared write access between morfeas services and www-data.
+    chgrp morfeas "$dir"
+    chmod 2775 "$dir"
+
+    # Ensure web API internal log is always writable by apache worker.
+    touch "$api_log"
+    chown www-data:morfeas "$api_log"
+    chmod 664 "$api_log"
+
+    if ! id -nG www-data | tr ' ' '\n' | grep -qx 'morfeas'; then
+        usermod -a -G morfeas www-data
+        APACHE_RESTART_REQUIRED=1
+        log_info "added www-data to morfeas group"
+    fi
+}
+
 main() {
     require_root
 
     log_info "start"
 
-    mkdir -p /mnt/ramdisk/Morfeas_Loggers
+    ensure_logger_dir_access
 
     install_regular_file \
         "$REPO_ROOT/logrotate/morfeas-loggers" \
