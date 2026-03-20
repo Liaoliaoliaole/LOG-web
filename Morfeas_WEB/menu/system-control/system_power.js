@@ -18,7 +18,7 @@
 
   const getReconnectUrl = () => {
     const host = window.location.hostname || 'device-ip';
-    return `https://${host}/`;
+    return `http://${host}/`;
   };
 
   const successMessage = () => {
