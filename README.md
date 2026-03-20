@@ -135,6 +135,7 @@ Post-update deploy hook (`deploy/post_update_deploy.sh`) does:
 - ensure execute bits for `update.sh`, `cron/update_cron_wrapper.sh`, `backup.sh`
 - ensure root cron entries for update check + backup
 - ensure Apache `PrivateTmp=false` drop-in
+- ensure `systemd-journald` persistent storage (for System Journal tab)
 
 Exit codes:
 

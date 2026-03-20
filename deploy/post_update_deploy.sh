@@ -8,6 +8,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 LOG_TAG="[morfeas-post-deploy]"
 APACHE_RESTART_REQUIRED=0
+JOURNALD_RESTART_REQUIRED=0
 
 log_info() {
     echo "$LOG_TAG $*"
@@ -90,6 +91,25 @@ PrivateTmp=false
     fi
 }
 
+ensure_journald_persistent() {
+    local dir="/etc/systemd/journald.conf.d"
+    local file="$dir/10-morfeas-journal.conf"
+    local desired="[Journal]
+Storage=persistent
+SystemMaxUse=100M
+"
+
+    mkdir -p "$dir"
+    mkdir -p /var/log/journal
+
+    if [ ! -f "$file" ] || [ "$(cat "$file")" != "$desired" ]; then
+        printf "%s" "$desired" >"$file"
+        chmod 644 "$file"
+        JOURNALD_RESTART_REQUIRED=1
+        log_info "updated journald persistent storage override"
+    fi
+}
+
 main() {
     require_root
 
@@ -125,10 +145,15 @@ main() {
     ensure_root_cron_line "0 0 * * * /var/www/html/morfeas_web/backup.sh"
 
     ensure_apache_private_tmp
+    ensure_journald_persistent
 
     if [ "$APACHE_RESTART_REQUIRED" -eq 1 ]; then
         systemctl restart apache2
         log_info "restarted apache2 for updated systemd override"
+    fi
+    if [ "$JOURNALD_RESTART_REQUIRED" -eq 1 ]; then
+        systemctl restart systemd-journald
+        log_info "restarted systemd-journald for persistent logging"
     fi
 
     log_info "done"
