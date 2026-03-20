@@ -13,6 +13,10 @@ $logCfg = backend_log_config_path();
 
 $action = $_GET['action'] ?? 'details';
 
+const SYSTEM_STATUS_HIDDEN_LOGGER_FILES = [
+    'LOG_daily_update_check.log',
+];
+
 function system_status_fail(string $error, int $status = 400): void
 {
     http_response_code($status);
@@ -43,6 +47,9 @@ function system_status_collect_loggers(string $dir): array
 
     foreach (scandir($dir) ?: [] as $name) {
         if ($name === '.' || $name === '..') {
+            continue;
+        }
+        if (in_array($name, SYSTEM_STATUS_HIDDEN_LOGGER_FILES, true)) {
             continue;
         }
         $path = $dir . $name;
