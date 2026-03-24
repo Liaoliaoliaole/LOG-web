@@ -23,7 +23,7 @@
     const base = new URL(buildUrl({ action: 'loggers_export' }), window.location.origin);
     names.forEach((name) => {
       const n = String(name || '').trim();
-      if (n) base.searchParams.append('name', n);
+      if (n) base.searchParams.append('name[]', n);
     });
     return base.toString();
   };
