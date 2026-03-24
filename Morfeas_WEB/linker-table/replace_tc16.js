@@ -194,7 +194,10 @@
       }
 
       setStatus(`Replace TC16 complete: ${count} channels updated.`, 'ok');
-      try { window.opener?.postMessage({ type: 'channel-updated' }, '*'); } catch (_) {}
+      try {
+        const targetOrigin = window.location.origin || '*';
+        window.opener?.postMessage({ type: 'channel-updated' }, targetOrigin);
+      } catch (_) {}
       setTimeout(() => window.close(), 500);
     } catch (err) {
       console.error(err);

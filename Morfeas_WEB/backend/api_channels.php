@@ -878,7 +878,7 @@ if (isset($_GET['include']) && $_GET['include'] === 'tc16_replace') {
         $devices = channel_collect_sdaq_capabilities($sdaqLogFiles);
 
         if (!isset($devices[$targetKey])) {
-            throw new ChannelRuleException('Target device not found', 409, 'tc16_target_not_full');
+            throw new ChannelRuleException('Target device not found', 409, 'tc16_target_not_found');
         }
 
         $targetDevice = $devices[$targetKey];

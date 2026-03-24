@@ -58,11 +58,20 @@ function sdaq_type_cache_write(array $types): void
         'types' => $types,
     ];
 
-    @file_put_contents(
+    $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if (!is_string($json)) {
+        error_log('[morfeas][sdaq_type_cache] Failed to encode payload to JSON');
+        return;
+    }
+
+    $bytes = @file_put_contents(
         $path,
-        json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL,
+        $json . PHP_EOL,
         LOCK_EX
     );
+    if ($bytes === false) {
+        error_log('[morfeas][sdaq_type_cache] Failed to write cache file: ' . $path);
+    }
 }
 
 function sdaq_cache_key_from_anchor(?string $anchor): ?string

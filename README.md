@@ -221,3 +221,24 @@ curl -s "http://127.0.0.1/backend/api_system_update.php?action=status"
 ## 12) Legacy Reference
 
 Older original upstream README content has been replaced by this device-oriented guide to match current upgraded architecture and operational policy.
+
+## 13) TC16 API Regression Smoke
+
+Run contract checks for new TC16 endpoints:
+
+```bash
+cd /var/www/html/morfeas_web
+./deploy/tc16_api_regression.sh http://127.0.0.1
+```
+
+Optional atomicity check (verifies failed replace does not modify XML):
+
+```bash
+TC16_SOURCE_ISO=_T7001 ./deploy/tc16_api_regression.sh http://127.0.0.1
+```
+
+Notes:
+
+- `TC16_SOURCE_ISO` should be an existing channel ISO on the device.
+- Expected failures are validated by HTTP status + API `code`.
+- Script exits non-zero if any assertion fails.
