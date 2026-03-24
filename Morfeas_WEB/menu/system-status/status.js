@@ -318,7 +318,7 @@
   }
 
   async function exportSelectedLogs() {
-    if (!loggerExportSelect || !systemStatusApi?.buildLoggersZipUrl) {
+    if (!loggerExportSelect || !systemStatusApi?.buildLoggersExportUrl) {
       if (logTerminal) logTerminal.textContent = 'Log export API unavailable.';
       return;
     }
@@ -331,7 +331,7 @@
       return;
     }
 
-    const url = systemStatusApi.buildLoggersZipUrl(selected);
+    const url = systemStatusApi.buildLoggersExportUrl(selected);
     const a = document.createElement('a');
     a.href = url;
     a.rel = 'noopener';
@@ -341,7 +341,7 @@
     a.remove();
 
     if (logTerminal) {
-      logTerminal.textContent = `Export started for ${selected.length} log file(s) as zip.`;
+      logTerminal.textContent = `Export started for ${selected.length} log file(s) as one txt file.`;
     }
   }
 
