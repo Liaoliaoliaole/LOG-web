@@ -10,13 +10,29 @@
   const buildUrl = (params) => config?.resolveApi?.(endpoint, params)
     || new URL(`/backend/${endpoint}`, window.location.origin).toString();
 
+  const readJsonSafe = async (res) => {
+    try {
+      return await res.json();
+    } catch (_) {
+      return null;
+    }
+  };
+
   const fetchJson = async (params, options = {}) => {
     const res = await fetch(buildUrl(params), {
       cache: 'no-store',
       ...options,
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
+
+    const payload = await readJsonSafe(res);
+    if (!res.ok) {
+      const err = new Error((payload && payload.error) || `HTTP ${res.status}`);
+      err.status = res.status;
+      err.payload = payload;
+      throw err;
+    }
+
+    return payload;
   };
 
   const fetchText = async (params, options = {}) => {

@@ -43,6 +43,9 @@
     selectedDevice: null,
     searchWin: null,
     originalIso: '',
+    sourceFamily: '',
+    sourceDevType: '',
+    sourceSubtypeKnown: false,
   };
 
   function fillPostfix() {
@@ -71,6 +74,52 @@
     } catch (_) {
       return false;
     }
+  }
+
+  function normFamily(raw) {
+    return (raw || '').toString().trim().toUpperCase();
+  }
+
+  function normSubtype(raw) {
+    return (raw || '').toString().trim().toUpperCase();
+  }
+
+  function evaluateReplaceCandidate(candidate) {
+    if (!isReplaceMode()) {
+      return { allow: true };
+    }
+
+    const sourceFamily = normFamily(state.sourceFamily || typeSel.value);
+    const sourceSubtype = normSubtype(state.sourceDevType);
+    const sourceKnown = !!state.sourceSubtypeKnown;
+
+    const targetFamily = normFamily(candidate?.interface_type || candidate?.type);
+    const targetSubtype = normSubtype(candidate?.device_type || targetFamily);
+
+    if (sourceFamily && targetFamily && sourceFamily !== targetFamily) {
+      return {
+        allow: false,
+        message: "Type mismatch: expected " + sourceFamily + ", got " + targetFamily + ".",
+      };
+    }
+
+    if (sourceFamily === "SDAQ" && sourceKnown) {
+      if (!targetSubtype || targetSubtype !== sourceSubtype) {
+        return {
+          allow: false,
+          message: "Subtype mismatch: expected " + (state.sourceDevType || sourceSubtype) + ", got " + (candidate?.device_type || targetSubtype || "unknown") + ".",
+        };
+      }
+    }
+
+    if (sourceFamily === "SDAQ" && !sourceKnown) {
+      return {
+        allow: true,
+        warning: "Subtype unknown, make sure replace within same type.",
+      };
+    }
+
+    return { allow: true };
   }
 
   function setStatus(msg, tone = 'info') {
@@ -275,6 +324,9 @@
 
     typeSel.value = type || '-';
     state.originalIso = iso || '';
+    state.sourceFamily = normFamily(type || payload.interface_type || payload.IF_type || payload.Type || '');
+    state.sourceDevType = (payload.dev_type || type || '').toString().trim();
+    state.sourceSubtypeKnown = !!payload.dev_type_known;
     pathInput.value = payload.display_anchor || payload.anchor || payload.Connection || '';
     const isoClean = iso.replace(/^_/, '');
     let baseIso = isoClean;
@@ -302,16 +354,27 @@
   // ----- SEARCH POPUP -----
   function openSearchPopup() {
     const type = typeSel.value;
-    if (!type || type === '-') {
-      setStatus('Type is locked but required to search');
+    if (!type || type === "-") {
+      setStatus("Type is locked but required to search");
       return;
     }
-    const url = `../tool-bar/device_search.html?type=${encodeURIComponent(type)}`;
-    const features = 'width=780,height=720,resizable=yes,scrollbars=yes';
+
+    const params = new URLSearchParams();
+    if (isReplaceMode()) {
+      params.set("flow", "replace");
+      params.set("source_type", state.sourceFamily || normFamily(type));
+      params.set("source_dev_type", state.sourceDevType || type);
+      params.set("source_known", state.sourceSubtypeKnown ? "1" : "0");
+    } else {
+      params.set("type", type);
+    }
+
+    const url = "../tool-bar/device_search.html?" + params.toString();
+    const features = "width=780,height=720,resizable=yes,scrollbars=yes";
     if (state.searchWin && !state.searchWin.closed) {
       try { state.searchWin.focus(); return; } catch (_) {}
     }
-    state.searchWin = window.open(url, 'device_search', features);
+    state.searchWin = window.open(url, "device_search", features);
   }
 
   // ----- SAVE -----
@@ -362,6 +425,22 @@
       }
     }
 
+    if (isReplaceMode()) {
+      body.replace_mode = true;
+      if (state.selectedDevice) {
+        const decision = evaluateReplaceCandidate(state.selectedDevice);
+        if (!decision.allow) {
+          setStatus(decision.message || 'Selected device is not compatible for replace.', 'error');
+          return;
+        }
+        if (decision.warning) {
+          setStatus(decision.warning);
+        }
+      } else if (state.sourceFamily === 'SDAQ' && !state.sourceSubtypeKnown) {
+        setStatus('Subtype unknown, make sure replace within same type.');
+      }
+    }
+
     btnSave.disabled = true;
     try {
       if (!channelsApi) throw new Error('Channels API unavailable');
@@ -374,7 +453,10 @@
       setTimeout(() => window.close(), 400);
     } catch (err) {
       console.error(err);
-      setStatus(err.message || 'Failed to save changes', 'error');
+      const backendMsg = err?.payload?.error;
+      const backendCode = err?.payload?.code;
+      const finalMsg = backendMsg || err.message || 'Failed to save changes';
+      setStatus(backendCode ? (finalMsg + ' [' + backendCode + ']') : finalMsg, 'error');
       btnSave.disabled = false;
     }
   }
@@ -428,14 +510,27 @@
   window.addEventListener('message', (e) => {
     const data = e.data;
     if (!data || data.type !== 'device-selected') return;
-    state.selectedDevice = data.payload || null;
-    if (state.selectedDevice) {
-      pathInput.value = state.selectedDevice.display_anchor || state.selectedDevice.anchor || '';
-      if (!unitInput.dataset.userEdited && state.selectedDevice.unit) {
-        unitInput.value = state.selectedDevice.unit;
-      }
-      renderIsoSuggestions(isoInput.value);
-      setStatus(`Selected ${pathInput.value}`);
+
+    const candidate = data.payload || null;
+    if (!candidate) return;
+
+    const decision = evaluateReplaceCandidate(candidate);
+    if (!decision.allow) {
+      setStatus(decision.message || 'Selected device is not compatible for replace.', 'error');
+      return;
+    }
+
+    state.selectedDevice = candidate;
+    pathInput.value = candidate.display_anchor || candidate.anchor || '';
+    if (!unitInput.dataset.userEdited && candidate.unit) {
+      unitInput.value = candidate.unit;
+    }
+    renderIsoSuggestions(isoInput.value);
+
+    if (decision.warning) {
+      setStatus(decision.warning);
+    } else {
+      setStatus('Selected ' + pathInput.value);
     }
   });
 
@@ -452,7 +547,17 @@
     if (replaceMode) {
       document.title = 'Replace Link';
       if (titleEl) titleEl.textContent = 'Replace Link';
-      statusBar.textContent = 'Select a new sensor path, then Save.';
+
+      let sourceInfo = '';
+      if (state.sourceFamily === 'SDAQ') {
+        if (state.sourceSubtypeKnown) {
+          const staleText = payload?.dev_type_stale ? ' (last known, offline)' : '';
+          sourceInfo = 'Source: ' + (state.sourceDevType || 'SDAQ') + staleText + '. ';
+        } else {
+          sourceInfo = 'Source: SDAQ (offline, subtype unknown). ';
+        }
+      }
+      statusBar.textContent = sourceInfo + 'Select a new sensor path, then Save.';
     }
     setDisabled(typeSel, true);
     setDisabled(isoInput, true);

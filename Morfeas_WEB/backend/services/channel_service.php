@@ -5,6 +5,43 @@ require_once __DIR__ . '/../core/logstat_sdaq.php';
 require_once __DIR__ . '/../core/logstat_iobox.php';
 require_once __DIR__ . '/../core/logstat_mti.php';
 require_once __DIR__ . '/../core/logstat_nox.php';
+require_once __DIR__ . '/../core/sdaq_type_cache.php';
+
+function channel_status_is_offline(string $status): bool
+{
+    $s = strtolower(trim($status));
+    return in_array($s, ['off-line', 'offline', 'disconnected'], true);
+}
+
+function channel_pick_runtime_sdaq_type(?string $fromMap, ?string $fromEntry): ?string
+{
+    $candidates = [$fromEntry, $fromMap];
+    foreach ($candidates as $candidate) {
+        $type = trim((string)$candidate);
+        if ($type === '') {
+            continue;
+        }
+        return $type;
+    }
+    return null;
+}
+
+function channel_apply_default_type_fields(array &$row): void
+{
+    if (!isset($row['dev_type'])) {
+        $row['dev_type'] = strtoupper((string)($row['interface_type'] ?? ''));
+    }
+
+    if (!array_key_exists('dev_type_known', $row)) {
+        $row['dev_type_known'] = true;
+    }
+    if (!array_key_exists('dev_type_stale', $row)) {
+        $row['dev_type_stale'] = false;
+    }
+    if (!array_key_exists('dev_type_display', $row)) {
+        $row['dev_type_display'] = (string)$row['dev_type'];
+    }
+}
 
 function channel_build_rows_with_logstat(
     string $xmlPath,
@@ -16,6 +53,8 @@ function channel_build_rows_with_logstat(
     ?array &$extras = null
 ): array {
     $channels = iso_load_channels($xmlPath);
+    $typeCache = sdaq_type_cache_read();
+    $typeCacheDirty = false;
 
     $formatSdaqDisplayAnchor = static function (?string $anchor): string {
         $anchor = trim((string)$anchor);
@@ -116,18 +155,17 @@ function channel_build_rows_with_logstat(
 
             if (preg_match('/^(CAN\w+\.ADDR:\d{2})/i', $anchorUc, $m)) {
                 $busAddrKey = strtoupper($m[1]);
-            } elseif (preg_match('/^(CAN\w+)\.?(\d{1,2})\.CH/',$anchorUc,$m)) {
+            } elseif (preg_match('/^(CAN\w+)\.?(\d{1,2})\.CH/', $anchorUc, $m)) {
                 $busAddrKey = sprintf('%s.ADDR:%02d', $m[1], (int)$m[2]);
-            }
-
-            if ($busAddrKey && isset($sdaqDeviceTypes[$busAddrKey])) {
-                $row['dev_type'] = $sdaqDeviceTypes[$busAddrKey];
             }
         }
 
         $status = 'OFF-Line';
         $meas   = '—';
         $measUnit = null;
+
+        $runtimeSdaqType = null;
+        $sdaqAddressAnchor = null;
 
         if ($type === 'SDAQ') {
             $row['display_anchor'] = $formatSdaqDisplayAnchor($anchor);
@@ -139,9 +177,10 @@ function channel_build_rows_with_logstat(
                     $status = 'Unknown';
                 }
 
-                if (!empty($ls['device_user_identifier'])) {
-                    $row['dev_type'] = $ls['device_user_identifier'];
-                }
+                $runtimeSdaqType = channel_pick_runtime_sdaq_type(
+                    $busAddrKey ? ($sdaqDeviceTypes[$busAddrKey] ?? null) : null,
+                    $ls['device_user_identifier'] ?? null
+                );
 
                 if (!empty($ls['cal_date'])) {
                     $row['cal_date'] = $ls['cal_date'];
@@ -152,6 +191,7 @@ function channel_build_rows_with_logstat(
 
                 if (!empty($ls['address_anchor'])) {
                     $row['display_anchor'] = $ls['address_anchor'];
+                    $sdaqAddressAnchor = (string)$ls['address_anchor'];
                 }
 
                 if (!empty($ls['is_meas_valid']) && $ls['meas_value'] !== null) {
@@ -162,8 +202,10 @@ function channel_build_rows_with_logstat(
                         $measUnit = $ls['meas_unit'];
                     }
                 }
-            } elseif ($busAddrKey && isset($sdaqDeviceTypes[$busAddrKey])) {
-                $row['dev_type'] = $sdaqDeviceTypes[$busAddrKey];
+            }
+
+            if ($runtimeSdaqType === null && $busAddrKey && isset($sdaqDeviceTypes[$busAddrKey])) {
+                $runtimeSdaqType = (string)$sdaqDeviceTypes[$busAddrKey];
             }
 
             // For SDAQ channels, keep edit popup in sync with the device's latest runtime unit.
@@ -172,6 +214,40 @@ function channel_build_rows_with_logstat(
                 $row['unit'] = $measUnit;
             }
 
+            $cacheKey = $busAddrKey
+                ?: sdaq_cache_key_from_anchor($sdaqAddressAnchor)
+                ?: sdaq_cache_key_from_anchor($anchor);
+            $cachedSdaqType = $cacheKey ? ($typeCache[$cacheKey] ?? null) : null;
+            $isOffline = channel_status_is_offline($status);
+
+            if (is_string($runtimeSdaqType) && trim($runtimeSdaqType) !== '') {
+                $runtimeSdaqType = trim($runtimeSdaqType);
+                $row['dev_type'] = $runtimeSdaqType;
+                $row['dev_type_display'] = $runtimeSdaqType;
+                $row['dev_type_known'] = true;
+                $row['dev_type_stale'] = false;
+
+                if ($cacheKey !== null && (!isset($typeCache[$cacheKey]) || $typeCache[$cacheKey] !== $runtimeSdaqType)) {
+                    $typeCache[$cacheKey] = $runtimeSdaqType;
+                    $typeCacheDirty = true;
+                }
+            } elseif (is_string($cachedSdaqType) && trim($cachedSdaqType) !== '' && $isOffline) {
+                $cachedSdaqType = trim($cachedSdaqType);
+                $row['dev_type'] = $cachedSdaqType;
+                $row['dev_type_display'] = $cachedSdaqType . ' (last known, offline)';
+                $row['dev_type_known'] = true;
+                $row['dev_type_stale'] = true;
+            } elseif ($isOffline) {
+                $row['dev_type'] = 'SDAQ';
+                $row['dev_type_display'] = 'SDAQ (offline, subtype unknown)';
+                $row['dev_type_known'] = false;
+                $row['dev_type_stale'] = true;
+            } else {
+                $row['dev_type'] = 'SDAQ';
+                $row['dev_type_display'] = 'SDAQ';
+                $row['dev_type_known'] = false;
+                $row['dev_type_stale'] = false;
+            }
         } elseif ($type === 'IOBOX') {
             $row['display_anchor'] = $formatNetworkAnchor($anchor, $ioboxIPv4);
 
@@ -242,6 +318,7 @@ function channel_build_rows_with_logstat(
         $row['status'] = $status;
         $row['meas']   = $meas;
         $row['meas_unit'] = $measUnit;
+        channel_apply_default_type_fields($row);
 
         $rows[] = $row;
         if ($anchor) {
@@ -259,26 +336,30 @@ function channel_build_rows_with_logstat(
 
         $upper = strtoupper($anchor);
         $searchPool['SDAQ'][] = [
-            'anchor'          => $anchor,
-            'display_anchor'  => $formatSdaqDisplayAnchor($display),
-            'serial_anchor'   => $chMeta['serial_anchor'] ?? null,
-            'address_anchor'  => $chMeta['address_anchor'] ?? null,
-            'link_state'      => $chMeta['link_state'] ?? 'Linked',
-            'has_sensor'      => !empty($chMeta['has_sensor']),
-            'registration'    => $chMeta['registration'] ?? null,
-            'unit'            => $chMeta['entry']['meas_unit'] ?? null,
-            'meas_unit'       => $chMeta['entry']['meas_unit'] ?? null,
-            'device_type'     => $chMeta['entry']['device_user_identifier'] ?? null,
-            'status'          => $chMeta['entry']['status'] ?? null,
-            'is_meas_valid'   => $chMeta['entry']['is_meas_valid'] ?? null,
-            'meas_value'      => $chMeta['entry']['meas_value'] ?? null,
-            'linked_in_xml'   => isset($anchorsInXmlUpper[$upper]),
+            'interface_type'   => 'SDAQ',
+            'anchor'           => $anchor,
+            'display_anchor'   => $formatSdaqDisplayAnchor($display),
+            'serial_anchor'    => $chMeta['serial_anchor'] ?? null,
+            'address_anchor'   => $chMeta['address_anchor'] ?? null,
+            'aliases'          => $chMeta['aliases'] ?? [],
+            'link_state'       => $chMeta['link_state'] ?? 'Linked',
+            'has_sensor'       => !empty($chMeta['has_sensor']),
+            'registration'     => $chMeta['registration'] ?? null,
+            'unit'             => $chMeta['entry']['meas_unit'] ?? null,
+            'meas_unit'        => $chMeta['entry']['meas_unit'] ?? null,
+            'device_type'      => $chMeta['entry']['device_user_identifier'] ?? null,
+            'device_type_known'=> !empty($chMeta['entry']['device_user_identifier']),
+            'status'           => $chMeta['entry']['status'] ?? null,
+            'is_meas_valid'    => $chMeta['entry']['is_meas_valid'] ?? null,
+            'meas_value'       => $chMeta['entry']['meas_value'] ?? null,
+            'linked_in_xml'    => isset($anchorsInXmlUpper[$upper]),
         ];
     }
 
     foreach ($ioboxMap as $anchor => $entry) {
         $upper = strtoupper($anchor);
         $searchPool['IOBOX'][] = [
+            'interface_type' => 'IOBOX',
             'anchor'         => $anchor,
             'display_anchor' => $formatNetworkAnchor($anchor, $ioboxIPv4),
             'link_state'     => 'Unlinked',
@@ -293,6 +374,7 @@ function channel_build_rows_with_logstat(
     foreach ($mtiMap as $anchor => $entry) {
         $upper = strtoupper($anchor);
         $searchPool['MTI'][] = [
+            'interface_type' => 'MTI',
             'anchor'         => $anchor,
             'display_anchor' => $formatNetworkAnchor($anchor, $mtiIPv4),
             'status'         => $entry['status'] ?? null,
@@ -306,6 +388,7 @@ function channel_build_rows_with_logstat(
     foreach ($noxMap as $anchor => $entry) {
         $upper = strtoupper($anchor);
         $searchPool['NOX'][] = [
+            'interface_type' => 'NOX',
             'anchor'         => $anchor,
             'display_anchor' => $anchor,
             'status'         => $entry['status'] ?? null,
@@ -336,6 +419,11 @@ function channel_build_rows_with_logstat(
 
     foreach ($rows as &$r) {
         unset($r['_order']);
+    }
+    unset($r);
+
+    if ($typeCacheDirty) {
+        sdaq_type_cache_write($typeCache);
     }
 
     if (is_array($extras)) {

@@ -643,7 +643,7 @@
       const values = new Set((isoChannelCache || []).map((ch) => {
         if (!ch) return null;
         if (key === 'status') return ch.status || ch.Status || null;
-        if (key === 'type') return ch.dev_type || ch.interface_type || null;
+        if (key === 'type') return ch.dev_type_display || ch.dev_type || ch.interface_type || null;
         return null;
       }).filter(Boolean));
 
@@ -815,6 +815,8 @@
 
       const rowIndex = index + 1;
       const type = ch.dev_type || ch.interface_type || '';
+      const interfaceType = ch.interface_type || '';
+      const typeDisplay = ch.dev_type_display || type;
       const rawAnchor = (ch.anchor || '').toString();
       const displayAnchor = (ch.display_anchor || ch.anchor || '').toString().toUpperCase();
       const desc = ch.description || '';
@@ -823,7 +825,11 @@
       const isoName  = ch.iso_channel || '';
       const isoKey   = isoName.toString().toUpperCase();
       tr.dataset.iso = isoName;
-      tr.dataset.type = type;
+      tr.dataset.type = interfaceType || type;
+      tr.dataset.devType = type;
+      tr.dataset.devTypeDisplay = typeDisplay;
+      tr.dataset.devTypeKnown = ch.dev_type_known ? '1' : '0';
+      tr.dataset.devTypeStale = ch.dev_type_stale ? '1' : '0';
       tr.dataset.anchor = rawAnchor;
       tr.dataset.description = desc;
       tr.dataset.min = min;
@@ -875,7 +881,7 @@
       const tdType = document.createElement('td');
       tdIso.setAttribute('data-col', 'iso');
       tdType.setAttribute('data-col', 'type');
-      tdType.textContent = type;
+      tdType.textContent = typeDisplay;
       tr.appendChild(tdType);
 
       // 7 Connection
@@ -1078,6 +1084,10 @@
       return {
         iso_channel: iso,
         interface_type: tr.dataset.type || readByDataCol('type'),
+        dev_type: tr.dataset.devType || readByDataCol('type'),
+        dev_type_display: tr.dataset.devTypeDisplay || readByDataCol('type'),
+        dev_type_known: tr.dataset.devTypeKnown === '1',
+        dev_type_stale: tr.dataset.devTypeStale === '1',
         anchor: tr.dataset.anchor || readByDataCol('anchor'),
         description: tr.dataset.description || readByDataCol('description'),
         min: tr.dataset.min || readByDataCol('min'),
@@ -1119,13 +1129,14 @@
       clearCtx();
       if (count === 1) {
         const status = row ? getCellText(row, 'status') : '';
+        const statusNorm = (status || '').toString().trim().toLowerCase();
         const type = (row?.dataset.type || getCellText(row, 'type') || '').toString().trim().toUpperCase();
         const iso = (row?.dataset.iso || row?.querySelector('td[data-col="iso"]')?.textContent || '').trim();
         const cached = findChannelByIso(iso);
-        const devType = (cached?.dev_type || type || '').toString().trim().toUpperCase();
+        const devType = (cached?.dev_type || row?.dataset.devType || type || '').toString().trim().toUpperCase();
         const isSdaq = devType === 'SDAQ' || devType.startsWith('SDAQ');
         const isSdaqIU = devType === 'SDAQ-I' || devType === 'SDAQ-U';
-        if (status === 'off-line' || status === 'offline') {
+        if (statusNorm === 'off-line' || statusNorm === 'offline') {
           addCtxItem('Replace', 'replace');
         }
         addCtxItem('Edit', 'edit');
