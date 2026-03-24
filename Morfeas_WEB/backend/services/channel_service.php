@@ -26,6 +26,43 @@ function channel_pick_runtime_sdaq_type(?string $fromMap, ?string $fromEntry): ?
     return null;
 }
 
+function channel_sdaq_cache_keys(?string $busAddrKey, ?string $runtimeAddressAnchor, ?string $xmlAnchor): array
+{
+    $keys = [];
+    $seen = [];
+
+    $push = static function (?string $raw) use (&$keys, &$seen): void {
+        $value = strtoupper(trim((string)$raw));
+        if ($value === '' || isset($seen[$value])) {
+            return;
+        }
+        $seen[$value] = true;
+        $keys[] = $value;
+    };
+
+    $push($busAddrKey);
+    $push(sdaq_cache_key_from_anchor($runtimeAddressAnchor));
+    $push(sdaq_cache_key_from_anchor($xmlAnchor));
+
+    // Fallback: keep raw anchors as cache keys so serial-style anchors
+    // (e.g. SN.CHn) can still resolve subtype when runtime address is missing.
+    $push($runtimeAddressAnchor);
+    $push($xmlAnchor);
+
+    return $keys;
+}
+
+function channel_pick_cached_sdaq_type(array $typeCache, array $cacheKeys): ?string
+{
+    foreach ($cacheKeys as $key) {
+        $value = trim((string)($typeCache[$key] ?? ''));
+        if ($value !== '') {
+            return $value;
+        }
+    }
+    return null;
+}
+
 function channel_apply_default_type_fields(array &$row): void
 {
     if (!isset($row['dev_type'])) {
@@ -214,10 +251,8 @@ function channel_build_rows_with_logstat(
                 $row['unit'] = $measUnit;
             }
 
-            $cacheKey = $busAddrKey
-                ?: sdaq_cache_key_from_anchor($sdaqAddressAnchor)
-                ?: sdaq_cache_key_from_anchor($anchor);
-            $cachedSdaqType = $cacheKey ? ($typeCache[$cacheKey] ?? null) : null;
+            $cacheKeys = channel_sdaq_cache_keys($busAddrKey, $sdaqAddressAnchor, $anchor);
+            $cachedSdaqType = channel_pick_cached_sdaq_type($typeCache, $cacheKeys);
             $isOffline = channel_status_is_offline($status);
 
             if (is_string($runtimeSdaqType) && trim($runtimeSdaqType) !== '') {
@@ -227,9 +262,11 @@ function channel_build_rows_with_logstat(
                 $row['dev_type_known'] = true;
                 $row['dev_type_stale'] = false;
 
-                if ($cacheKey !== null && (!isset($typeCache[$cacheKey]) || $typeCache[$cacheKey] !== $runtimeSdaqType)) {
-                    $typeCache[$cacheKey] = $runtimeSdaqType;
-                    $typeCacheDirty = true;
+                foreach ($cacheKeys as $cacheKey) {
+                    if (!isset($typeCache[$cacheKey]) || $typeCache[$cacheKey] !== $runtimeSdaqType) {
+                        $typeCache[$cacheKey] = $runtimeSdaqType;
+                        $typeCacheDirty = true;
+                    }
                 }
             } elseif (is_string($cachedSdaqType) && trim($cachedSdaqType) !== '' && $isOffline) {
                 $cachedSdaqType = trim($cachedSdaqType);
