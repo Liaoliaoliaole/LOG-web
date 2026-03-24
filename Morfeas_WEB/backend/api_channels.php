@@ -2,7 +2,6 @@
 require __DIR__ . '/core/paths.php';
 require __DIR__ . '/core/request.php';
 require __DIR__ . '/core/system_info.php';
-require __DIR__ . '/core/channel_fixture.php';
 require __DIR__ . '/repositories/iso_repository.php';
 require __DIR__ . '/repositories/logstat_repository.php';
 require __DIR__ . '/services/channel_service.php';
@@ -70,7 +69,6 @@ function channel_collect_rows_and_extras(
         $extras = [];
     }
 
-    channel_fixture_apply($rows, $extras);
 
     return [$rows, $extras];
 }
@@ -252,41 +250,6 @@ function channel_enforce_replace_rules(array $rows, array $extras, string $iso, 
             );
         }
     }
-}
-
-if (isset($_GET['include']) && $_GET['include'] === 'fixture') {
-    if (!channel_fixture_enabled()) {
-        channels_fail('Fixture mode disabled', 404, 'fixture_disabled');
-    }
-
-    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-    if ($method === 'GET') {
-        echo json_encode(['ok' => true, 'data' => channel_fixture_load()], JSON_PRETTY_PRINT);
-        exit;
-    }
-
-    if ($method === 'POST') {
-        $payload = read_json_body();
-        $action = strtolower(trim((string)($payload['action'] ?? 'set')));
-
-        if ($action === 'clear' || $action === 'reset') {
-            channel_fixture_clear();
-            echo json_encode(['ok' => true, 'data' => channel_fixture_load()], JSON_PRETTY_PRINT);
-            exit;
-        }
-
-        $saved = channel_fixture_save($payload);
-        echo json_encode(['ok' => true, 'data' => $saved], JSON_PRETTY_PRINT);
-        exit;
-    }
-
-    if ($method === 'DELETE') {
-        channel_fixture_clear();
-        echo json_encode(['ok' => true, 'data' => channel_fixture_load()], JSON_PRETTY_PRINT);
-        exit;
-    }
-
-    channels_fail('Method not allowed', 405, 'fixture_method_not_allowed');
 }
 
 if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_upload') {

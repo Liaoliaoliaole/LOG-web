@@ -124,7 +124,7 @@
 
   function setStatus(msg, tone = 'info') {
     statusBar.textContent = msg;
-    statusBar.style.color = tone === 'error' ? '#e11d48' : (tone === 'ok' ? '#16a34a' : 'inherit');
+    statusBar.style.color = tone === 'error' ? '#e11d48' : (tone === 'ok' ? '#16a34a' : (tone === 'warn' ? '#d97706' : 'inherit'));
   }
 
   // ----- LOADERS -----
@@ -434,10 +434,10 @@
           return;
         }
         if (decision.warning) {
-          setStatus(decision.warning);
+          setStatus(decision.warning, 'warn');
         }
       } else if (state.sourceFamily === 'SDAQ' && !state.sourceSubtypeKnown) {
-        setStatus('Subtype unknown, make sure replace within same type.');
+        setStatus('Subtype unknown, make sure replace within same type.', 'warn');
       }
     }
 
@@ -528,7 +528,7 @@
     renderIsoSuggestions(isoInput.value);
 
     if (decision.warning) {
-      setStatus(decision.warning);
+      setStatus(decision.warning, 'warn');
     } else {
       setStatus('Selected ' + pathInput.value);
     }
