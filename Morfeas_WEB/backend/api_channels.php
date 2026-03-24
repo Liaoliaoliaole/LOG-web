@@ -798,94 +798,106 @@ $mtiLogFiles       = logstat_collect_paths('logstat_MTI*.json', $ramdisk);
 $sdaqDeviceTypes   = sdaq_collect_device_types($sdaqLogFiles);
 
 if (isset($_GET['include']) && $_GET['include'] === 'tc16_candidates') {
-    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
-        channels_fail('Method not allowed', 405, 'tc16_method_not_allowed');
-    }
+    try {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
+            channels_fail('Method not allowed', 405, 'tc16_method_not_allowed');
+        }
 
-    $sourceIso = trim((string)($_GET['source_iso'] ?? ''));
-    if ($sourceIso === '') {
-        channels_fail('Missing source_iso', 400, 'missing_source_iso');
-    }
+        $sourceIso = trim((string)($_GET['source_iso'] ?? ''));
+        if ($sourceIso === '') {
+            channels_fail('Missing source_iso', 400, 'missing_source_iso');
+        }
 
-    [$rows, $extras] = channel_collect_rows_and_extras(
-        $xmlPath,
-        $sdaqLogFiles,
-        $ioboxLogFiles,
-        $mtiLogFiles,
-        $noxLogFiles,
-        $sdaqDeviceTypes
-    );
+        [$rows, $extras] = channel_collect_rows_and_extras(
+            $xmlPath,
+            $sdaqLogFiles,
+            $ioboxLogFiles,
+            $mtiLogFiles,
+            $noxLogFiles,
+            $sdaqDeviceTypes
+        );
 
-    $sourceGroup = channel_resolve_tc16_source_group($rows, $sourceIso);
-    $devices = channel_collect_sdaq_capabilities($sdaqLogFiles);
-    $targets = channel_collect_tc16_target_candidates($rows, $devices, $sourceGroup);
+        $sourceGroup = channel_resolve_tc16_source_group($rows, $sourceIso);
+        $devices = channel_collect_sdaq_capabilities($sdaqLogFiles);
+        $targets = channel_collect_tc16_target_candidates($rows, $devices, $sourceGroup);
 
-    echo json_encode([
-        'ok' => true,
-        'data' => [
-            'source' => [
-                'iso_channel' => (string)($sourceGroup['source']['iso_channel'] ?? ''),
-                'mode' => (string)$sourceGroup['mode'],
-                'source_key' => (string)$sourceGroup['source_key'],
-                'channels' => channel_group_to_source_map($sourceGroup['channels'], (string)$sourceGroup['mode'], (string)$sourceGroup['source_key']),
+        echo json_encode([
+            'ok' => true,
+            'data' => [
+                'source' => [
+                    'iso_channel' => (string)($sourceGroup['source']['iso_channel'] ?? ''),
+                    'mode' => (string)$sourceGroup['mode'],
+                    'source_key' => (string)$sourceGroup['source_key'],
+                    'channels' => channel_group_to_source_map($sourceGroup['channels'], (string)$sourceGroup['mode'], (string)$sourceGroup['source_key']),
+                ],
+                'targets' => $targets,
             ],
-            'targets' => $targets,
-        ],
-    ], JSON_PRETTY_PRINT);
-    exit;
+        ], JSON_PRETTY_PRINT);
+        exit;
+    } catch (ChannelRuleException $e) {
+        channels_fail($e->getMessage(), $e->status(), $e->apiCode());
+    } catch (Throwable $e) {
+        api_fail_response('Failed to process channel request', 500, 'api_channels.tc16_candidates', $e);
+    }
 }
 
 if (isset($_GET['include']) && $_GET['include'] === 'tc16_replace') {
-    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-        channels_fail('Method not allowed', 405, 'tc16_method_not_allowed');
+    try {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            channels_fail('Method not allowed', 405, 'tc16_method_not_allowed');
+        }
+
+        $data = read_json_body();
+        $sourceIso = trim((string)($data['source_iso'] ?? ''));
+        $targetKey = strtoupper(trim((string)($data['target_key'] ?? '')));
+
+        if ($sourceIso === '') {
+            channels_fail('Missing source_iso', 400, 'missing_source_iso');
+        }
+        if ($targetKey === '') {
+            channels_fail('Missing target_key', 400, 'missing_target_key');
+        }
+
+        [$rows, $extras] = channel_collect_rows_and_extras(
+            $xmlPath,
+            $sdaqLogFiles,
+            $ioboxLogFiles,
+            $mtiLogFiles,
+            $noxLogFiles,
+            $sdaqDeviceTypes
+        );
+
+        $sourceGroup = channel_resolve_tc16_source_group($rows, $sourceIso);
+        $devices = channel_collect_sdaq_capabilities($sdaqLogFiles);
+
+        if (!isset($devices[$targetKey])) {
+            throw new ChannelRuleException('Target device not found', 409, 'tc16_target_not_full');
+        }
+
+        $targetDevice = $devices[$targetKey];
+        channel_validate_tc16_target($rows, $targetDevice, $sourceGroup);
+
+        $updates = channel_build_tc16_anchor_updates($sourceGroup, $targetDevice);
+        if (count($updates) !== 16) {
+            throw new ChannelRuleException('TC16 replace payload must contain 16 channels', 409, 'tc16_apply_conflict');
+        }
+
+        iso_batch_update_anchors($xmlPath, $updates);
+
+        echo json_encode([
+            'ok' => true,
+            'data' => [
+                'replaced_count' => count($updates),
+                'source_key' => (string)$sourceGroup['source_key'],
+                'target_key' => (string)$targetDevice['device_key'],
+            ],
+        ], JSON_PRETTY_PRINT);
+        exit;
+    } catch (ChannelRuleException $e) {
+        channels_fail($e->getMessage(), $e->status(), $e->apiCode());
+    } catch (Throwable $e) {
+        api_fail_response('Failed to process channel request', 500, 'api_channels.tc16_replace', $e);
     }
-
-    $data = read_json_body();
-    $sourceIso = trim((string)($data['source_iso'] ?? ''));
-    $targetKey = strtoupper(trim((string)($data['target_key'] ?? '')));
-
-    if ($sourceIso === '') {
-        channels_fail('Missing source_iso', 400, 'missing_source_iso');
-    }
-    if ($targetKey === '') {
-        channels_fail('Missing target_key', 400, 'missing_target_key');
-    }
-
-    [$rows, $extras] = channel_collect_rows_and_extras(
-        $xmlPath,
-        $sdaqLogFiles,
-        $ioboxLogFiles,
-        $mtiLogFiles,
-        $noxLogFiles,
-        $sdaqDeviceTypes
-    );
-
-    $sourceGroup = channel_resolve_tc16_source_group($rows, $sourceIso);
-    $devices = channel_collect_sdaq_capabilities($sdaqLogFiles);
-
-    if (!isset($devices[$targetKey])) {
-        throw new ChannelRuleException('Target device not found', 409, 'tc16_target_not_full');
-    }
-
-    $targetDevice = $devices[$targetKey];
-    channel_validate_tc16_target($rows, $targetDevice, $sourceGroup);
-
-    $updates = channel_build_tc16_anchor_updates($sourceGroup, $targetDevice);
-    if (count($updates) !== 16) {
-        throw new ChannelRuleException('TC16 replace payload must contain 16 channels', 409, 'tc16_apply_conflict');
-    }
-
-    iso_batch_update_anchors($xmlPath, $updates);
-
-    echo json_encode([
-        'ok' => true,
-        'data' => [
-            'replaced_count' => count($updates),
-            'source_key' => (string)$sourceGroup['source_key'],
-            'target_key' => (string)$targetDevice['device_key'],
-        ],
-    ], JSON_PRETTY_PRINT);
-    exit;
 }
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
