@@ -99,14 +99,20 @@
     /* Logs */
     .logs-bar {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 10px;
       margin-bottom: 8px;
+      flex-wrap: wrap;
     }
 
     .label {
       width: 120px;
       font-weight: 800;
+      padding-top: 8px;
+    }
+
+    .input[multiple] {
+      min-height: 110px;
     }
 
     .terminal {
@@ -153,11 +159,16 @@
           <section id="panel-logs" class="panel" role="tabpanel"
             aria-labelledby="logs" aria-live="polite">
             <div class="logs-bar">
-              <label class="label" for="loggerSelect">Logger</label>
-              <select id="loggerSelect" class="input" aria-label="Log file">
+              <label class="label" for="loggerSelect">Preview Logger</label>
+              <select id="loggerSelect" class="input" aria-label="Preview log file">
                 <option value>Select logger…</option>
               </select>
               <button id="reloadLoggers" class="btn">Reload</button>
+            </div>
+            <div class="logs-bar">
+              <label class="label" for="loggerExportSelect">Export Logs</label>
+              <select id="loggerExportSelect" class="input" multiple size="6" aria-label="Select logs to export"></select>
+              <button id="exportLogs" class="btn">Export Selected</button>
             </div>
             <pre id="logTerminal" class="terminal"></pre>
           </section>
@@ -166,8 +177,8 @@
             aria-labelledby="journal" aria-live="polite">
             <div class="logs-bar">
               <label class="label" for="journalScope">Scope</label>
-              <select id="journalScope" class="input" aria-label="Journal scope">
-                <option value="all">All Services</option>
+              <select id="journalScope" class="input" multiple size="4" aria-label="Journal scope">
+                <option value="all" selected>All Services</option>
                 <option value="morfeas">Morfeas System</option>
                 <option value="apache2">Apache2</option>
                 <option value="ssh">SSH</option>
@@ -179,6 +190,7 @@
                 <option value="1000">1000</option>
               </select>
               <button id="reloadJournal" class="btn">Reload</button>
+              <button id="exportJournal" class="btn">Export Journal</button>
             </div>
             <pre id="journalTerminal" class="terminal"></pre>
           </section>

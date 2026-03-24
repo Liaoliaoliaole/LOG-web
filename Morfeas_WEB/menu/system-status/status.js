@@ -35,12 +35,15 @@
     journal: $('#panel-journal'),
   };
   const loggerSelect = $('#loggerSelect');
+  const loggerExportSelect = $('#loggerExportSelect');
   const logTerminal = $('#logTerminal');
   const reloadLoggersBtn = $('#reloadLoggers');
+  const exportLogsBtn = $('#exportLogs');
   const journalScope = $('#journalScope');
   const journalLines = $('#journalLines');
   const journalTerminal = $('#journalTerminal');
   const reloadJournalBtn = $('#reloadJournal');
+  const exportJournalBtn = $('#exportJournal');
 
   let detailsCache = null;
   let detailsError = null;
@@ -48,6 +51,7 @@
     active: false,
     timer: null,
     selected: '',
+    exportSelected: [],
     mtime: 0,
     primed: false,
   };
@@ -55,6 +59,7 @@
   const journalState = {
     active: false,
     timer: null,
+    lastContent: '',
   };
 
   async function showTab(key) {
@@ -276,6 +281,86 @@
     }
   }
 
+
+  function fileTimestampNow() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  }
+
+  function downloadTextFile(filename, content) {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function normalizeJournalScopeSelection() {
+    if (!journalScope) return;
+    const values = readMultiSelectValues(journalScope);
+    if (values.length === 0) {
+      const allOpt = journalScope.querySelector('option[value="all"]');
+      if (allOpt) allOpt.selected = true;
+      return;
+    }
+    if (values.includes('all') && values.length > 1) {
+      Array.from(journalScope.options || []).forEach((opt) => {
+        if (String(opt.value).toLowerCase() === 'all') {
+          opt.selected = false;
+        }
+      });
+    }
+  }
+
+  async function exportSelectedLogs() {
+    if (!loggerExportSelect || !systemStatusApi?.buildLoggersZipUrl) {
+      if (logTerminal) logTerminal.textContent = 'Log export API unavailable.';
+      return;
+    }
+
+    const selected = readMultiSelectValues(loggerExportSelect);
+    logsState.exportSelected = selected;
+
+    if (!selected.length) {
+      if (logTerminal) logTerminal.textContent = 'Select one or more log files to export.';
+      return;
+    }
+
+    const url = systemStatusApi.buildLoggersZipUrl(selected);
+    const a = document.createElement('a');
+    a.href = url;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    if (logTerminal) {
+      logTerminal.textContent = `Export started for ${selected.length} log file(s) as zip.`;
+    }
+  }
+
+  async function exportJournalContent() {
+    if (!journalState.lastContent || !journalState.lastContent.trim()) {
+      await pollJournal(false);
+    }
+    const content = (journalState.lastContent || '').trim();
+    if (!content) {
+      if (journalTerminal) journalTerminal.textContent = 'No journal content available for export.';
+      return;
+    }
+
+    downloadTextFile(`system_journal_${fileTimestampNow()}.txt`, `${journalState.lastContent}\n`);
+    if (journalTerminal) {
+      journalTerminal.scrollTop = journalTerminal.scrollHeight;
+    }
+  }
+
   async function refreshLoggerNames(forceKeepCurrent = false) {
     if (!systemStatusApi?.fetchLoggers || !loggerSelect) return;
     const payload = await systemStatusApi.fetchLoggers();
@@ -283,6 +368,12 @@
 
     const names = Array.isArray(payload.logger_names) ? payload.logger_names : [];
     const prev = forceKeepCurrent ? logsState.selected : (loggerSelect.value || logsState.selected || '');
+    const prevExport = new Set(
+      (logsState.exportSelected && logsState.exportSelected.length)
+        ? logsState.exportSelected
+        : readMultiSelectValues(loggerExportSelect)
+    );
+
     loggerSelect.innerHTML = '';
 
     const baseOpt = document.createElement('option');
@@ -296,6 +387,18 @@
       opt.textContent = name;
       loggerSelect.appendChild(opt);
     });
+
+    if (loggerExportSelect) {
+      loggerExportSelect.innerHTML = '';
+      names.forEach((name) => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        if (prevExport.has(name)) opt.selected = true;
+        loggerExportSelect.appendChild(opt);
+      });
+      logsState.exportSelected = readMultiSelectValues(loggerExportSelect);
+    }
 
     if (prev && names.includes(prev)) {
       loggerSelect.value = prev;
@@ -352,18 +455,27 @@
     }, 1000);
   }
 
+  function readMultiSelectValues(selectEl) {
+    if (!selectEl) return [];
+    return Array.from(selectEl.selectedOptions || [])
+      .map((opt) => String(opt.value || '').trim())
+      .filter(Boolean);
+  }
+
   function resolveJournalUnits() {
-    const scope = (journalScope?.value || 'all').trim().toLowerCase();
-    switch (scope) {
-      case 'morfeas':
-        return 'Morfeas_system.service';
-      case 'apache2':
-        return 'apache2.service';
-      case 'ssh':
-        return 'ssh.service';
-      default:
-        return '';
+    const selected = readMultiSelectValues(journalScope)
+      .map((v) => v.toLowerCase());
+
+    if (!selected.length || selected.includes('all')) {
+      return '';
     }
+
+    const units = [];
+    if (selected.includes('morfeas')) units.push('Morfeas_system.service');
+    if (selected.includes('apache2')) units.push('apache2.service');
+    if (selected.includes('ssh')) units.push('ssh.service');
+
+    return units.join(',');
   }
 
   function resolveJournalLines() {
@@ -394,7 +506,8 @@
 
     if (!payload?.ok) throw new Error(payload?.error || 'Failed to load system journal');
 
-    journalTerminal.innerHTML = ansiColorizeToHtml(payload.content || '');
+    journalState.lastContent = payload.content || '';
+    journalTerminal.innerHTML = ansiColorizeToHtml(journalState.lastContent);
     if (scrollToBottom) {
       journalTerminal.scrollTop = journalTerminal.scrollHeight;
     } else {
@@ -461,6 +574,18 @@
     }
   });
 
+  loggerExportSelect?.addEventListener('change', () => {
+    logsState.exportSelected = readMultiSelectValues(loggerExportSelect);
+  });
+
+  exportLogsBtn?.addEventListener('click', async () => {
+    try {
+      await exportSelectedLogs();
+    } catch (err) {
+      if (logTerminal) logTerminal.textContent = `Log export failed: ${err.message || err}`;
+    }
+  });
+
   reloadJournalBtn?.addEventListener('click', async () => {
     try {
       await pollJournal(true);
@@ -469,7 +594,16 @@
     }
   });
 
+  exportJournalBtn?.addEventListener('click', async () => {
+    try {
+      await exportJournalContent();
+    } catch (err) {
+      if (journalTerminal) journalTerminal.textContent = `Journal export failed: ${err.message || err}`;
+    }
+  });
+
   journalScope?.addEventListener('change', async () => {
+    normalizeJournalScopeSelection();
     try {
       await pollJournal(false);
     } catch (err) {
@@ -498,6 +632,7 @@
     }
   });
 
+  normalizeJournalScopeSelection();
   fetchDetails();
   renderDetails();
 })();

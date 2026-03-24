@@ -63,6 +63,95 @@ function system_status_collect_loggers(string $dir): array
     return $list;
 }
 
+
+function system_status_parse_logger_name_list($raw): array
+{
+    $parts = [];
+    if (is_array($raw)) {
+        $parts = $raw;
+    } else {
+        $parts = preg_split('/[\s,]+/', (string)$raw) ?: [];
+    }
+
+    $out = [];
+    foreach ($parts as $part) {
+        $name = basename(trim((string)$part));
+        if ($name === '') {
+            continue;
+        }
+        $out[$name] = true;
+    }
+
+    $names = array_keys($out);
+    if (count($names) > 200) {
+        $names = array_slice($names, 0, 200);
+    }
+
+    return $names;
+}
+
+function system_status_send_zip(string $dir, array $selectedNames, array $knownNames): void
+{
+    if (!class_exists('ZipArchive')) {
+        system_status_fail('ZIP export is unavailable (ZipArchive missing)', 500);
+    }
+
+    $knownSet = array_fill_keys($knownNames, true);
+    $names = [];
+    foreach ($selectedNames as $name) {
+        if (isset($knownSet[$name])) {
+            $names[] = $name;
+        }
+    }
+
+    if (!$names) {
+        system_status_fail('No valid logger files selected', 404);
+    }
+
+    $tmp = tempnam(sys_get_temp_dir(), 'morfeas_logs_');
+    if ($tmp === false) {
+        system_status_fail('Failed to prepare export archive', 500);
+    }
+
+    $zip = new ZipArchive();
+    $ok = $zip->open($tmp, ZipArchive::OVERWRITE);
+    if ($ok !== true) {
+        @unlink($tmp);
+        system_status_fail('Failed to create export archive', 500);
+    }
+
+    $added = 0;
+    foreach ($names as $name) {
+        $path = $dir . $name;
+        if (!is_file($path)) {
+            continue;
+        }
+        if ($zip->addFile($path, $name)) {
+            $added++;
+        }
+    }
+    $zip->close();
+
+    if ($added === 0) {
+        @unlink($tmp);
+        system_status_fail('No readable logger files to export', 404);
+    }
+
+    $downloadName = 'system_logs_' . date('Ymd_His') . '.zip';
+
+    header_remove('Content-Type');
+    header('Content-Type: application/zip');
+    header('Content-Disposition: attachment; filename="' . $downloadName . '"');
+    header('Content-Length: ' . (string)filesize($tmp));
+    header('Cache-Control: no-store, no-cache, must-revalidate');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    readfile($tmp);
+    @unlink($tmp);
+    exit;
+}
+
 function system_status_parse_journal_lines($raw): int
 {
     $value = (int) $raw;
@@ -251,6 +340,16 @@ try {
                 'name' => $name,
                 'content' => $content,
             ], JSON_PRETTY_PRINT);
+            exit;
+
+        case 'loggers_zip':
+            $dir = system_status_resolve_loggers_dir($logCfg, $ramdisk);
+            $known = system_status_collect_loggers($dir);
+            $selected = system_status_parse_logger_name_list($_GET['name'] ?? ($_GET['names'] ?? []));
+            if (!$selected) {
+                system_status_fail('Missing logger names', 400);
+            }
+            system_status_send_zip($dir, $selected, $known);
             exit;
 
         case 'journal':

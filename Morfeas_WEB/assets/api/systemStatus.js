@@ -19,8 +19,18 @@
     return res.json();
   };
 
+  const buildLoggersZipUrl = (names = []) => {
+    const base = new URL(buildUrl({ action: 'loggers_zip' }), window.location.origin);
+    names.forEach((name) => {
+      const n = String(name || '').trim();
+      if (n) base.searchParams.append('name', n);
+    });
+    return base.toString();
+  };
+
   const systemStatusApi = {
     buildUrl,
+    buildLoggersZipUrl,
     fetchDetails: () => fetchJson({ action: 'details' }),
     fetchLoggers: () => fetchJson({ action: 'loggers' }),
     fetchLogger: (name, options = {}) => {
