@@ -241,6 +241,13 @@ function channel_build_rows_with_logstat(
                 }
             }
 
+            if ($runtimeSdaqType === null && $sdaqAddressAnchor) {
+                $addrKeyFromRuntime = sdaq_cache_key_from_anchor($sdaqAddressAnchor);
+                if ($addrKeyFromRuntime !== null && isset($sdaqDeviceTypes[$addrKeyFromRuntime])) {
+                    $runtimeSdaqType = (string)$sdaqDeviceTypes[$addrKeyFromRuntime];
+                }
+            }
+
             if ($runtimeSdaqType === null && $busAddrKey && isset($sdaqDeviceTypes[$busAddrKey])) {
                 $runtimeSdaqType = (string)$sdaqDeviceTypes[$busAddrKey];
             }
