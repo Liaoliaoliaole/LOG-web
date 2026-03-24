@@ -286,3 +286,60 @@ function iso_delete_channel(string $xmlPath, string $isoChannel): void
 
     iso_save_xml($xml, $xmlPath);
 }
+
+function iso_batch_update_anchors(string $xmlPath, array $updates): void
+{
+    if (!file_exists($xmlPath)) {
+        throw new RuntimeException("XML not found: $xmlPath");
+    }
+    $xml = simplexml_load_file($xmlPath);
+    if ($xml === false) {
+        throw new RuntimeException("Failed to parse XML");
+    }
+
+    $normalized = [];
+    foreach ($updates as $iso => $anchor) {
+        $isoNorm = iso_normalize_iso_channel((string)$iso);
+        $anchorNorm = trim((string)$anchor);
+        if ($isoNorm === '' || $anchorNorm === '') {
+            throw new RuntimeException('Invalid batch anchor update payload');
+        }
+        $normalized[$isoNorm] = $anchorNorm;
+    }
+    if (!$normalized) {
+        return;
+    }
+
+    $indexByIso = [];
+    foreach ($xml->CHANNEL as $idx => $ch) {
+        $existingIso = iso_normalize_iso_channel((string)$ch->ISO_CHANNEL);
+        if ($existingIso !== '') {
+            $indexByIso[$existingIso] = $idx;
+        }
+    }
+
+    foreach ($normalized as $iso => $_anchor) {
+        if (!array_key_exists($iso, $indexByIso)) {
+            throw new RuntimeException("ISO_CHANNEL not found: " . $iso);
+        }
+    }
+
+    $now = (string)time();
+    foreach ($normalized as $iso => $anchor) {
+        $idx = $indexByIso[$iso];
+        $target = $xml->CHANNEL[$idx];
+        if (isset($target->ANCHOR)) {
+            $target->ANCHOR = $anchor;
+        } else {
+            $target->addChild('ANCHOR', $anchor);
+        }
+
+        if (isset($target->MOD_DATE)) {
+            $target->MOD_DATE = $now;
+        } else {
+            $target->addChild('MOD_DATE', $now);
+        }
+    }
+
+    iso_save_xml($xml, $xmlPath);
+}

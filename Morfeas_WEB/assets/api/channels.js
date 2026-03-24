@@ -85,6 +85,14 @@
         body: formData,
       });
     },
+    fetchTc16Candidates: (sourceIso) => fetchJson({ include: 'tc16_candidates', source_iso: sourceIso }, {
+      headers: { Accept: 'application/json' },
+    }),
+    applyTc16Replace: (payload) => fetchJson({ include: 'tc16_replace' }, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    }),
   };
 
   root.api = root.api || {};

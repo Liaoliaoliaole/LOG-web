@@ -97,6 +97,194 @@
       return isoChannelMap.get(iso.toString().toUpperCase()) || null;
     }
 
+    function normalizeTcSubtype(raw) {
+      const text = String(raw || '').trim().toUpperCase();
+      return text.replace(/\s*\(.*$/, '').trim();
+    }
+
+    function isTc16Subtype(raw) {
+      return normalizeTcSubtype(raw) === 'SDAQ-TC16';
+    }
+
+    function isOfflineStatusValue(status) {
+      const s = String(status || '').trim().toLowerCase();
+      return s === 'off-line' || s === 'offline' || s === 'disconnected';
+    }
+
+    function parseAddrAnchor(raw) {
+      const text = String(raw || '').trim().toUpperCase();
+      if (!text) return null;
+
+      let m = text.match(/^(CAN\w+)\.ADDR:(\d{1,3})\.CH:?(\d{1,3})$/i);
+      if (!m) {
+        m = text.match(/^(CAN\w+)\.(\d{1,3})\.CH:?(\d{1,3})$/i);
+      }
+      if (!m) return null;
+
+      const bus = m[1].toUpperCase();
+      const addr = Number.parseInt(m[2], 10);
+      const ch = Number.parseInt(m[3], 10);
+      if (!Number.isFinite(addr) || !Number.isFinite(ch)) return null;
+
+      return {
+        key: `${bus}.ADDR:${String(addr).padStart(2, '0')}`,
+        bus,
+        addr,
+        ch,
+      };
+    }
+
+    function parseSnAnchor(raw) {
+      const text = String(raw || '').trim();
+      if (!text) return null;
+      const m = text.match(/^(\d+)\.CH:?(\d{1,3})$/i);
+      if (!m) return null;
+
+      const ch = Number.parseInt(m[2], 10);
+      if (!Number.isFinite(ch)) return null;
+      return {
+        sn: m[1],
+        ch,
+      };
+    }
+
+    function isSdaqRowLike(row) {
+      const family = String(row?.interface_type || row?.type || row?.dev_type || '').trim().toUpperCase();
+      if (family === 'SDAQ') return true;
+      return String(row?.dev_type || '').trim().toUpperCase().startsWith('SDAQ');
+    }
+
+    function mapIsFull16(map) {
+      for (let ch = 1; ch <= 16; ch += 1) {
+        if (!map.has(ch)) return false;
+      }
+      return true;
+    }
+
+    function buildTc16GroupByAddr(rows, addrKey, requireTc16Compat = false) {
+      const map = new Map();
+      rows.forEach((row) => {
+        if (!isSdaqRowLike(row)) return;
+        const addrInfo = parseAddrAnchor(row?.display_anchor || row?.anchor || '');
+        if (!addrInfo || addrInfo.key !== addrKey) return;
+        if (addrInfo.ch < 1 || addrInfo.ch > 16) return;
+        if (requireTc16Compat && !isTc16Subtype(row?.dev_type_display || row?.dev_type)) return;
+        if (!map.has(addrInfo.ch)) {
+          map.set(addrInfo.ch, row);
+        }
+      });
+      return map;
+    }
+
+    function buildTc16GroupBySn(rows, sn, requireTc16Compat = false) {
+      const map = new Map();
+      rows.forEach((row) => {
+        if (!isSdaqRowLike(row)) return;
+        const snInfo = parseSnAnchor(row?.anchor || row?.display_anchor || '');
+        if (!snInfo || snInfo.sn !== sn) return;
+        if (snInfo.ch < 1 || snInfo.ch > 16) return;
+        if (requireTc16Compat && !isTc16Subtype(row?.dev_type_display || row?.dev_type)) return;
+        if (!map.has(snInfo.ch)) {
+          map.set(snInfo.ch, row);
+        }
+      });
+      return map;
+    }
+
+    function resolveTc16SourceGroup(sourceRow) {
+      if (!sourceRow) {
+        return { ok: false, reason: 'No source row data available.' };
+      }
+
+      if (!isOfflineStatusValue(sourceRow.status)) {
+        return { ok: false, reason: 'Replace TC16 requires source channel to be offline.' };
+      }
+
+      if (!isTc16Subtype(sourceRow.dev_type_display || sourceRow.dev_type)) {
+        return { ok: false, reason: 'Replace TC16 requires source subtype SDAQ-TC16.' };
+      }
+
+      const sdaqRows = (isoChannelCache || []).filter((row) => isSdaqRowLike(row));
+
+      const addrInfo = parseAddrAnchor(sourceRow.display_anchor || sourceRow.anchor || '');
+      if (addrInfo) {
+        const addrGroup = buildTc16GroupByAddr(sdaqRows, addrInfo.key, false);
+        if (mapIsFull16(addrGroup)) {
+          return {
+            ok: true,
+            mode: 'addr',
+            sourceKey: addrInfo.key,
+            channels: addrGroup,
+          };
+        }
+      }
+
+      const snInfo = parseSnAnchor(sourceRow.anchor || sourceRow.display_anchor || '');
+      if (snInfo) {
+        const snGroup = buildTc16GroupBySn(sdaqRows, snInfo.sn, true);
+        if (mapIsFull16(snGroup)) {
+          return {
+            ok: true,
+            mode: 'sn',
+            sourceKey: `SN:${snInfo.sn}`,
+            channels: snGroup,
+          };
+        }
+      }
+
+      return { ok: false, reason: 'TC16 source group is not full CH1..CH16.' };
+    }
+
+    function setSelectionByIsoSet(isoSet) {
+      $$('tbody tr.row').forEach((tr) => {
+        const cb = tr.querySelector('input[type="checkbox"]');
+        if (!cb) return;
+        const iso = String(tr.dataset.iso || '').trim().toUpperCase();
+        cb.checked = isoSet.has(iso);
+      });
+      updateMasterCheckbox();
+    }
+
+    function sourceGroupToPayload(group) {
+      const entries = [];
+      const keys = Array.from(group.channels.keys()).sort((a, b) => a - b);
+      keys.forEach((ch) => {
+        const row = group.channels.get(ch);
+        if (!row) return;
+        entries.push({
+          ch_no: ch,
+          iso_channel: row.iso_channel,
+          anchor: row.anchor || '',
+          display_anchor: row.display_anchor || row.anchor || '',
+          source_mode: group.mode,
+          source_key: group.sourceKey,
+        });
+      });
+      return entries;
+    }
+
+    function openTc16ReplacePopup(sourceRow, group) {
+      const sourceIso = String(sourceRow?.iso_channel || '').trim();
+      if (!sourceIso) {
+        alert('Unable to start Replace TC16: source ISO is missing.');
+        return;
+      }
+
+      const payload = {
+        source_iso: sourceIso,
+        source_mode: group.mode,
+        source_key: group.sourceKey,
+        channels: sourceGroupToPayload(group),
+      };
+
+      try {
+        sessionStorage.setItem('replace_tc16_payload', JSON.stringify(payload));
+      } catch (_) { }
+
+      openCenteredPopup('linker-table/replace_tc16.html', 'replace_tc16_popup', { width: 960, height: 860 });
+    }
+
+
     function pushMeasurement(isoKey, measValue) {
       if (!isoKey) return;
       const arr = measurementHistory.get(isoKey) || [];
@@ -1089,6 +1277,8 @@
         dev_type_known: tr.dataset.devTypeKnown === '1',
         dev_type_stale: tr.dataset.devTypeStale === '1',
         anchor: tr.dataset.anchor || readByDataCol('anchor'),
+        display_anchor: readByDataCol('anchor') || tr.dataset.anchor || '',
+        status: readByDataCol('status'),
         description: tr.dataset.description || readByDataCol('description'),
         min: tr.dataset.min || readByDataCol('min'),
         max: tr.dataset.max || readByDataCol('max'),
@@ -1133,12 +1323,24 @@
         const type = (row?.dataset.type || getCellText(row, 'type') || '').toString().trim().toUpperCase();
         const iso = (row?.dataset.iso || row?.querySelector('td[data-col="iso"]')?.textContent || '').trim();
         const cached = findChannelByIso(iso);
-        const devType = (cached?.dev_type || row?.dataset.devType || type || '').toString().trim().toUpperCase();
+        const rowData = cached || buildRowDataFromDom(row);
+        if (rowData && !rowData.status) rowData.status = status;
+        const devType = (rowData?.dev_type || row?.dataset.devType || type || '').toString().trim().toUpperCase();
         const isSdaq = devType === 'SDAQ' || devType.startsWith('SDAQ');
         const isSdaqIU = devType === 'SDAQ-I' || devType === 'SDAQ-U';
-        if (statusNorm === 'off-line' || statusNorm === 'offline') {
+        const isOffline = statusNorm === 'off-line' || statusNorm === 'offline' || statusNorm === 'disconnected';
+
+        if (isOffline) {
           addCtxItem('Replace', 'replace');
         }
+
+        if (isOffline && rowData) {
+          const tc16Group = resolveTc16SourceGroup(rowData);
+          if (tc16Group.ok) {
+            addCtxItem('Replace TC16', 'replace_tc16');
+          }
+        }
+
         addCtxItem('Edit', 'edit');
         addCtxItem('Delete', 'delete');
         if (isSdaq) {
@@ -1146,6 +1348,7 @@
           addCtxItem('Calibration', 'calibration');
         }
         addCtxItem('Export', 'export');
+
       } else if (count >= 2) {
         addCtxItem('Delete', 'delete');
         addCtxItem('Export', 'export');
@@ -1404,6 +1607,30 @@
           openCenteredPopup('linker-table/edit_channel.html?mode=replace', 'replace_channel_popup', { width: 880, height: 820 });
           try { window.__EDIT_LINK_DATA = rowDataReplace; } catch (_) { }
           break;
+        case 'replace_tc16':
+          const trReplaceTc16 = selectedRows()[0];
+          const isoReplaceTc16 = (trReplaceTc16?.dataset.iso || trReplaceTc16?.querySelector('td[data-col="iso"]')?.textContent || '').trim();
+          const latestReplaceTc16 = await fetchLatestChannelByIso(isoReplaceTc16);
+          const cachedReplaceTc16 = findChannelByIso(isoReplaceTc16);
+          const rowDataReplaceTc16 = latestReplaceTc16 || cachedReplaceTc16 || buildRowDataFromDom(trReplaceTc16);
+          if (!rowDataReplaceTc16) {
+            alert('No channel data available for Replace TC16');
+            break;
+          }
+
+          const tc16Group = resolveTc16SourceGroup(rowDataReplaceTc16);
+          if (!tc16Group.ok) {
+            alert(tc16Group.reason || 'TC16 source group is not eligible for Replace TC16.');
+            break;
+          }
+
+          const isoSet = new Set(Array.from(tc16Group.channels.values())
+            .map((ch) => String(ch?.iso_channel || '').trim().toUpperCase())
+            .filter(Boolean));
+          setSelectionByIsoSet(isoSet);
+          openTc16ReplacePopup(rowDataReplaceTc16, tc16Group);
+          break;
+
         case 'scale':
           openSdaqScalePopup();
           break;
