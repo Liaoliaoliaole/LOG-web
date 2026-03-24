@@ -575,6 +575,13 @@ function channel_resolve_tc16_source_group(array $rows, string $sourceIso): arra
     if ($addrInfo !== null) {
         $addrGroup = channel_group_by_addr($rows, (string)$addrInfo['key']);
         if (channel_group_is_full16($addrGroup)) {
+            foreach ($addrGroup as $row) {
+                $subtype = (string)($row['dev_type_display'] ?? ($row['dev_type'] ?? ''));
+                if (!channel_is_tc16_compatible($subtype)) {
+                    throw new ChannelRuleException('ADDR group contains non TC16-compatible channels', 409, 'tc16_subtype_mismatch');
+                }
+            }
+
             return [
                 'source' => $source,
                 'mode' => 'addr',
