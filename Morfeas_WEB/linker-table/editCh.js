@@ -551,10 +551,10 @@
       let sourceInfo = '';
       if (state.sourceFamily === 'SDAQ') {
         if (state.sourceSubtypeKnown) {
-          const staleText = payload?.dev_type_stale ? ' (last known, offline)' : '';
+          const staleText = payload?.dev_type_stale ? ' (last known)' : '';
           sourceInfo = 'Source: ' + (state.sourceDevType || 'SDAQ') + staleText + '. ';
         } else {
-          sourceInfo = 'Source: SDAQ (offline, subtype unknown). ';
+          sourceInfo = 'Source: SDAQ (unknown). ';
         }
       }
       statusBar.textContent = sourceInfo + 'Select a new sensor path, then Save.';

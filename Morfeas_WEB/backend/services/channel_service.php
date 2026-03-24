@@ -278,12 +278,12 @@ function channel_build_rows_with_logstat(
             } elseif (is_string($cachedSdaqType) && trim($cachedSdaqType) !== '' && $isOffline) {
                 $cachedSdaqType = trim($cachedSdaqType);
                 $row['dev_type'] = $cachedSdaqType;
-                $row['dev_type_display'] = $cachedSdaqType . ' (last known, offline)';
+                $row['dev_type_display'] = $cachedSdaqType . ' (last known)';
                 $row['dev_type_known'] = true;
                 $row['dev_type_stale'] = true;
             } elseif ($isOffline) {
                 $row['dev_type'] = 'SDAQ';
-                $row['dev_type_display'] = 'SDAQ (offline, subtype unknown)';
+                $row['dev_type_display'] = 'SDAQ (unknown)';
                 $row['dev_type_known'] = false;
                 $row['dev_type_stale'] = true;
             } else {
