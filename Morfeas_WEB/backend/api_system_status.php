@@ -13,253 +13,11 @@ $logCfg = backend_log_config_path();
 
 $action = $_GET['action'] ?? 'details';
 
-const SYSTEM_STATUS_HIDDEN_LOGGER_FILES = [
-    'LOG_daily_update_check.log',
-];
-
 function system_status_fail(string $error, int $status = 400): void
 {
     http_response_code($status);
     echo json_encode(['ok' => false, 'error' => $error], JSON_PRETTY_PRINT);
     exit;
-}
-
-function system_status_resolve_loggers_dir(string $logCfgPath, string $ramdisk): string
-{
-    if (is_file($logCfgPath)) {
-        $xml = @simplexml_load_file($logCfgPath);
-        if ($xml !== false) {
-            $candidate = trim((string)($xml->LOGGERS_DIR ?? ''));
-            if ($candidate !== '') {
-                return rtrim($candidate, '/') . '/';
-            }
-        }
-    }
-    return rtrim($ramdisk, '/') . '/Morfeas_Loggers/';
-}
-
-function system_status_collect_loggers(string $dir): array
-{
-    $list = [];
-    if (!is_dir($dir)) {
-        return $list;
-    }
-
-    foreach (scandir($dir) ?: [] as $name) {
-        if ($name === '.' || $name === '..') {
-            continue;
-        }
-        if (in_array($name, SYSTEM_STATUS_HIDDEN_LOGGER_FILES, true)) {
-            continue;
-        }
-        $path = $dir . $name;
-        if (!is_file($path)) {
-            continue;
-        }
-        $list[] = $name;
-    }
-
-    sort($list, SORT_NATURAL | SORT_FLAG_CASE);
-    return $list;
-}
-
-
-function system_status_parse_logger_name_list($raw): array
-{
-    $parts = [];
-    if (is_array($raw)) {
-        $parts = $raw;
-    } else {
-        $parts = preg_split('/[\s,]+/', (string)$raw) ?: [];
-    }
-
-    $out = [];
-    foreach ($parts as $part) {
-        $name = basename(trim((string)$part));
-        if ($name === '') {
-            continue;
-        }
-        $out[$name] = true;
-    }
-
-    $names = array_keys($out);
-    if (count($names) > 200) {
-        $names = array_slice($names, 0, 200);
-    }
-
-    return $names;
-}
-
-function system_status_send_combined_txt(string $dir, array $selectedNames, array $knownNames): void
-{
-    $knownSet = array_fill_keys($knownNames, true);
-    $names = [];
-    foreach ($selectedNames as $name) {
-        if (isset($knownSet[$name])) {
-            $names[] = $name;
-        }
-    }
-
-    if (!$names) {
-        system_status_fail('No valid logger files selected', 404);
-    }
-
-    $parts = [];
-    $added = 0;
-    foreach ($names as $name) {
-        $path = $dir . $name;
-        if (!is_file($path) || !is_readable($path)) {
-            continue;
-        }
-        $content = @file_get_contents($path);
-        if ($content === false) {
-            continue;
-        }
-        $parts[] = "===== BEGIN {$name} =====\n" . $content . "\n===== END {$name} =====";
-        $added++;
-    }
-
-    if ($added === 0) {
-        system_status_fail('No readable logger files to export', 404);
-    }
-
-    $downloadName = 'system_logs_' . date('Ymd_His') . '.txt';
-    $payload = implode("\n\n", $parts) . "\n";
-
-    header_remove('Content-Type');
-    header('Content-Type: text/plain; charset=utf-8');
-    header('Content-Disposition: attachment; filename="' . $downloadName . '"');
-    header('Content-Length: ' . (string)strlen($payload));
-    header('Cache-Control: no-store, no-cache, must-revalidate');
-    header('Pragma: no-cache');
-    header('Expires: 0');
-
-    echo $payload;
-    exit;
-}
-
-function system_status_parse_journal_lines($raw): int
-{
-    $value = (int) $raw;
-    if ($value <= 0) {
-        $value = 500;
-    }
-    if ($value < 50) {
-        $value = 50;
-    }
-    if ($value > 3000) {
-        $value = 3000;
-    }
-    return $value;
-}
-
-function system_status_parse_journal_units($raw): array
-{
-    if (is_array($raw)) {
-        $parts = $raw;
-    } else {
-        $parts = preg_split('/[,\s]+/', (string) $raw) ?: [];
-    }
-
-    $units = [];
-    foreach ($parts as $part) {
-        $unit = trim((string) $part);
-        if ($unit === '') {
-            continue;
-        }
-        // Allow systemd unit-safe characters only.
-        if (preg_match('/^[A-Za-z0-9@_.:-]+$/', $unit) !== 1) {
-            continue;
-        }
-        if (!str_contains($unit, '.')) {
-            $unit .= '.service';
-        }
-        if (!in_array($unit, $units, true)) {
-            $units[] = $unit;
-        }
-    }
-
-    if (count($units) > 8) {
-        $units = array_slice($units, 0, 8);
-    }
-
-    return $units;
-}
-
-function system_status_build_journal_command(int $lines, array $units, bool $useSudo): string
-{
-    $parts = [];
-    if ($useSudo) {
-        $parts[] = 'sudo';
-        $parts[] = '-n';
-    }
-    $parts[] = '/usr/bin/journalctl';
-    $parts[] = '--no-pager';
-    $parts[] = '-o';
-    $parts[] = 'short-iso';
-    $parts[] = '-n';
-    $parts[] = (string) $lines;
-    foreach ($units as $unit) {
-        $parts[] = '-u';
-        $parts[] = $unit;
-    }
-
-    return implode(' ', array_map(static fn($p) => escapeshellarg($p), $parts));
-}
-
-function system_status_run_command(string $command): array
-{
-    $out = [];
-    $code = 0;
-    exec($command . ' 2>&1', $out, $code);
-    return [
-        'code' => (int) $code,
-        'output' => trim(implode("\n", $out)),
-    ];
-}
-
-function system_status_is_permission_issue(string $output): bool
-{
-    $text = strtolower($output);
-    return str_contains($text, 'permission denied')
-        || str_contains($text, 'not in the')
-        || str_contains($text, 'insufficient')
-        || str_contains($text, 'a password is required');
-}
-
-function system_status_read_journal(int $lines, array $units): array
-{
-    $normalCmd = system_status_build_journal_command($lines, $units, false);
-    $normal = system_status_run_command($normalCmd);
-    if ($normal['code'] === 0) {
-        return [
-            'content' => $normal['output'],
-            'units' => $units,
-            'lines' => $lines,
-            'used_sudo' => false,
-        ];
-    }
-
-    if (!system_status_is_permission_issue($normal['output'])) {
-        throw new RuntimeException('journalctl failed');
-    }
-
-    $sudoCmd = system_status_build_journal_command($lines, $units, true);
-    $sudo = system_status_run_command($sudoCmd);
-    if ($sudo['code'] === 0) {
-        return [
-            'content' => $sudo['output'],
-            'units' => $units,
-            'lines' => $lines,
-            'used_sudo' => true,
-        ];
-    }
-
-    if (str_contains(strtolower($sudo['output']), 'a password is required')) {
-        throw new RuntimeException('journal permission denied; configure sudoers for /usr/bin/journalctl');
-    }
-
-    throw new RuntimeException('journalctl failed');
 }
 
 try {
@@ -295,7 +53,6 @@ try {
                 system_status_fail('Missing logger name', 400);
             }
 
-            // Prevent path traversal and enforce known logger list.
             $name = basename($name);
             $known = system_status_collect_loggers($dir);
             if (!in_array($name, $known, true)) {
@@ -336,7 +93,21 @@ try {
             if (!$selected) {
                 system_status_fail('Missing logger names', 400);
             }
-            system_status_send_combined_txt($dir, $selected, $known);
+
+            try {
+                $export = system_status_build_combined_logger_export($dir, $selected, $known);
+            } catch (InvalidArgumentException $e) {
+                system_status_fail($e->getMessage(), $e->getCode() ?: 400);
+            }
+
+            header_remove('Content-Type');
+            header('Content-Type: text/plain; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $export['filename'] . '"');
+            header('Content-Length: ' . (string)strlen($export['content']));
+            header('Cache-Control: no-store, no-cache, must-revalidate');
+            header('Pragma: no-cache');
+            header('Expires: 0');
+            echo $export['content'];
             exit;
 
         case 'journal':

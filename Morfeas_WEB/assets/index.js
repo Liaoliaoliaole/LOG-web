@@ -38,7 +38,28 @@
     const master = $('#masterCheck');
     const tbody = $('#isoTableBody');
 
-    const API_ISO = channelsApi?.buildUrl?.() || '/backend/api_channels.php';
+    const resolveApiUrl = (endpoint, params) => {
+      if (config?.resolveApi) {
+        return config.resolveApi(endpoint, params);
+      }
+
+      const url = new URL(`backend/${endpoint}`, window.location.href);
+      Object.entries(params || {}).forEach(([key, value]) => {
+        if (value === undefined || value === null || value === '') return;
+        if (Array.isArray(value)) {
+          value.forEach((item) => {
+            if (item !== undefined && item !== null && item !== '') {
+              url.searchParams.append(key, String(item));
+            }
+          });
+          return;
+        }
+        url.searchParams.set(key, String(value));
+      });
+      return url.toString();
+    };
+
+    const API_ISO = channelsApi?.buildUrl?.() || resolveApiUrl('api_channels.php');
 
     const AUTO_REFRESH_MS = 1000; // poll JSON every second
 
@@ -397,27 +418,39 @@
       const ok = confirm(`Delete ${label}?`);
       if (!ok) return;
 
+      const failures = [];
+
       try {
         for (const iso of isoList) {
-          const json = channelsApi
-            ? await channelsApi.deleteChannel(iso)
-            : await (async () => {
-              const res = await fetch(`${API_ISO}?iso=${encodeURIComponent(iso)}`, {
-                method: 'DELETE',
-                headers: { Accept: 'application/json' }
-              });
-              if (!res.ok) {
-                throw new Error('HTTP ' + res.status);
-              }
-              return res.json();
-            })();
-          if (json && json.ok === false) {
-            throw new Error(json.error || 'Delete failed');
+          try {
+            const json = channelsApi
+              ? await channelsApi.deleteChannel(iso)
+              : await (async () => {
+                const res = await fetch(`${API_ISO}?iso=${encodeURIComponent(iso)}`, {
+                  method: 'DELETE',
+                  headers: { Accept: 'application/json' }
+                });
+                if (!res.ok) {
+                  throw new Error('HTTP ' + res.status);
+                }
+                return res.json();
+              })();
+
+            if (json && json.ok === false) {
+              throw new Error(json.error || 'Delete failed');
+            }
+          } catch (err) {
+            failures.push(`${iso}: ${err?.message || err}`);
           }
         }
+
         loadIsoTable(true);
-      } catch (err) {
-        alert('Failed to delete channel(s): ' + (err?.message || err));
+
+        if (failures.length === isoList.length) {
+          alert('Failed to delete channel(s):\n' + failures.join('\n'));
+        } else if (failures.length) {
+          alert('Some channels could not be deleted:\n' + failures.join('\n'));
+        }
       } finally {
         hideCtx && hideCtx();
       }
@@ -450,10 +483,20 @@
       openFilterMenu = null;
     }
 
-    menuBtn?.addEventListener('click', (e) => {
+    let systemUpdateIndicatorRefreshInFlight = false;
+
+    menuBtn?.addEventListener('click', async (e) => {
       e.stopPropagation();
       if (!dropdown) return;
-      dropdown.classList.contains('open') ? closeMenu() : openMenu();
+
+      const willOpen = !dropdown.classList.contains('open');
+      if (willOpen) {
+        openMenu();
+        await refreshSystemUpdateIndicator();
+        return;
+      }
+
+      closeMenu();
     });
 
     // Close dropdown once a menu item is chosen (matches legacy UX)
@@ -494,35 +537,19 @@
 
     const refreshSystemUpdateIndicator = async () => {
       if (!systemUpdateIndicator || !systemUpdateApi?.status) return;
+      if (systemUpdateIndicatorRefreshInFlight) return;
+
+      systemUpdateIndicatorRefreshInFlight = true;
       try {
         const payload = await systemUpdateApi.status();
         const updateNeeded = Boolean(payload?.data?.update_needed);
         setSystemUpdateIndicator(updateNeeded);
       } catch (err) {
         console.warn('Failed to refresh system update indicator:', err);
+      } finally {
+        systemUpdateIndicatorRefreshInFlight = false;
       }
     };
-
-    const startSystemUpdateIndicatorPolling = () => {
-      if (!systemUpdateIndicator || !systemUpdateApi?.status) return;
-
-      refreshSystemUpdateIndicator();
-
-      const now = Date.now();
-      const untilNextMinute = 60000 - (now % 60000);
-      setTimeout(() => {
-        refreshSystemUpdateIndicator();
-        setInterval(refreshSystemUpdateIndicator, 60000);
-      }, untilNextMinute);
-
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
-          refreshSystemUpdateIndicator();
-        }
-      });
-    };
-
-    startSystemUpdateIndicatorPolling();
 
     /* =======================================================================
      * 3C) FTP BACKUP DIR CHIP (LIVE CONFIG)
@@ -554,16 +581,52 @@
       }
     };
 
-    const startFtpDirChipPolling = () => {
-      if (!ftpDirChip) return;
-      refreshFtpDirChip();
-      setInterval(refreshFtpDirChip, 2000);
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) refreshFtpDirChip();
-      });
+    let ftpDirChipPollTimer = null;
+    let windowHasFocus = document.hasFocus();
+
+    const shouldPollFtpDirChip = () => !document.hidden && windowHasFocus;
+
+    const stopFtpDirChipPolling = () => {
+      if (ftpDirChipPollTimer) {
+        clearInterval(ftpDirChipPollTimer);
+        ftpDirChipPollTimer = null;
+      }
     };
 
-    startFtpDirChipPolling();
+    const startFtpDirChipPolling = () => {
+      if (!ftpDirChip) return;
+      if (ftpDirChipPollTimer || !shouldPollFtpDirChip()) return;
+
+      refreshFtpDirChip();
+      ftpDirChipPollTimer = setInterval(() => {
+        if (!shouldPollFtpDirChip()) return;
+        refreshFtpDirChip();
+      }, 5000);
+    };
+
+    const syncFtpDirChipPolling = () => {
+      if (shouldPollFtpDirChip()) {
+        startFtpDirChipPolling();
+      } else {
+        stopFtpDirChipPolling();
+      }
+    };
+
+    window.addEventListener('focus', () => {
+      windowHasFocus = true;
+      syncFtpDirChipPolling();
+    });
+
+    window.addEventListener('blur', () => {
+      windowHasFocus = false;
+      syncFtpDirChipPolling();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      syncFtpDirChipPolling();
+    });
+
+    syncFtpDirChipPolling();
 
     /* =======================================================================
      * 4) TICKER (SYSTEM STATUS)
@@ -627,7 +690,7 @@
         const payload = systemStatusApi
           ? await systemStatusApi.fetchDetails()
           : await (async () => {
-            const res = await fetch('backend/api_system_status.php?action=details', { cache: 'no-store' });
+            const res = await fetch(resolveApiUrl('api_system_status.php', { action: 'details' }), { cache: 'no-store' });
             if (!res.ok) throw new Error('HTTP ' + res.status);
             return res.json();
           })();

@@ -150,6 +150,15 @@ main() {
         "/etc/sudoers.d/Morfeas_update_allow"
     log_info "installed /etc/sudoers.d/Morfeas_update_allow"
 
+    if [ -f "$REPO_ROOT/sudoers/Morfeas_web_allow" ]; then
+        install_sudoers_file \
+            "$REPO_ROOT/sudoers/Morfeas_web_allow" \
+            "/etc/sudoers.d/Morfeas_web_allow"
+        log_info "installed /etc/sudoers.d/Morfeas_web_allow"
+    else
+        log_warn "optional sudoers file missing: Morfeas_web_allow"
+    fi
+
     if [ -f "$REPO_ROOT/sudoers/Morfeas_web_journal_allow" ]; then
         install_sudoers_file \
             "$REPO_ROOT/sudoers/Morfeas_web_journal_allow" \

@@ -53,6 +53,7 @@
   const DEVICES_POLL_INTERVAL_MS = 1000; // legacy-like continuous detection cadence
   let devicesPollTimer = null;
   let removeInProgress = false;
+  let popupWindowHasFocus = document.hasFocus();
 
   // --------------------------------------------------------------------------
   // 3.1) VALIDATION HELPERS (legacy-compatible)
@@ -205,6 +206,10 @@
     );
   }
 
+  function shouldPollDevices() {
+    return !document.hidden && popupWindowHasFocus && !removeInProgress;
+  }
+
   function stopDevicesPoll() {
     if (devicesPollTimer) {
       clearInterval(devicesPollTimer);
@@ -213,11 +218,20 @@
   }
 
   function startDevicesPoll() {
+    if (!shouldPollDevices()) return;
     stopDevicesPoll();
     devicesPollTimer = setInterval(() => {
-      if (document.hidden) return;
+      if (!shouldPollDevices()) return;
       loadDevices(true, true);
     }, DEVICES_POLL_INTERVAL_MS);
+  }
+
+  function syncDevicesPoll() {
+    if (shouldPollDevices()) {
+      startDevicesPoll();
+    } else {
+      stopDevicesPoll();
+    }
   }
 
   async function refreshDevicesAfterConfigChange() {
@@ -425,12 +439,26 @@
   }
 
   refreshBtn.addEventListener('click', () => loadDevices(false, false));
+
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
+    if (!document.hidden && popupWindowHasFocus) {
       loadDevices(true, true);
     }
+    syncDevicesPoll();
   });
+
+  window.addEventListener('focus', () => {
+    popupWindowHasFocus = true;
+    loadDevices(true, true);
+    syncDevicesPoll();
+  });
+
+  window.addEventListener('blur', () => {
+    popupWindowHasFocus = false;
+    syncDevicesPoll();
+  });
+
   loadDevices(false, false);
-  startDevicesPoll();
+  syncDevicesPoll();
   window.addEventListener('beforeunload', stopDevicesPoll);
 })();
