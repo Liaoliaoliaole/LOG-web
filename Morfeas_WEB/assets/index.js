@@ -89,6 +89,8 @@
     let tableFetchInFlight = false;
     let pendingTableReload = false;
     let lastTableSignature = null;
+    let lastDeleteUndo = null;
+    let lastDeleteUndoInFlight = false;
 
     /* =======================================================================
      * 2) GENERIC UTILITIES (SELECTION, POPUPS, ETC.)
@@ -405,6 +407,10 @@
       );
     }
 
+    function normalizeIsoKey(value) {
+      return (value || '').toString().trim().toUpperCase();
+    }
+
     async function deleteSelectedRows() {
       const rows = selectedRows();
       if (!rows.length) return;
@@ -419,6 +425,9 @@
       if (!ok) return;
 
       const failures = [];
+      const undoCandidates = await collectDeleteUndoEntries(rows, isoList);
+      const undoCandidateMap = new Map(undoCandidates.map((entry) => [normalizeIsoKey(entry.iso), entry]));
+      const successfulUndoEntries = [];
 
       try {
         for (const iso of isoList) {
@@ -439,9 +448,21 @@
             if (json && json.ok === false) {
               throw new Error(json.error || 'Delete failed');
             }
+
+            const undoEntry = undoCandidateMap.get(normalizeIsoKey(iso));
+            if (undoEntry) {
+              successfulUndoEntries.push(undoEntry);
+            }
           } catch (err) {
             failures.push(`${iso}: ${err?.message || err}`);
           }
+        }
+
+        if (successfulUndoEntries.length) {
+          lastDeleteUndo = {
+            createdAt: Date.now(),
+            entries: successfulUndoEntries,
+          };
         }
 
         loadIsoTable(true);
@@ -449,7 +470,9 @@
         if (failures.length === isoList.length) {
           alert('Failed to delete channel(s):\n' + failures.join('\n'));
         } else if (failures.length) {
-          alert('Some channels could not be deleted:\n' + failures.join('\n'));
+          alert('Some channels could not be deleted:\n' + failures.join('\n') + '\n\nPress Ctrl+Z to undo the deleted channel(s).');
+        } else if (successfulUndoEntries.length) {
+          alert(`Deleted ${successfulUndoEntries.length} channel(s). Press Ctrl+Z to undo the last delete.`);
         }
       } finally {
         hideCtx && hideCtx();
@@ -1557,6 +1580,98 @@
       return entry;
     }
 
+    function buildCreatePayloadFromChannel(channel) {
+      const entry = buildExportEntry(channel);
+      if (!entry) return null;
+      return mapImportEntry(entry);
+    }
+
+    async function createChannelFromPayload(payload) {
+      if (!payload) throw new Error('Channel restore payload is empty');
+
+      if (channelsApi?.createChannel) {
+        const json = await channelsApi.createChannel(payload);
+        if (json && json.ok === false) {
+          throw new Error(json.error || 'Create failed');
+        }
+        return json;
+      }
+
+      const res = await fetch(API_ISO, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        throw new Error('HTTP ' + res.status);
+      }
+      const json = await res.json();
+      if (json && json.ok === false) {
+        throw new Error(json.error || 'Create failed');
+      }
+      return json;
+    }
+
+    async function collectDeleteUndoEntries(rows, isoList) {
+      const rowMap = new Map();
+      rows.forEach((tr) => {
+        const iso = normalizeIsoKey(tr.dataset.iso || tr.querySelector('td[data-col="iso"]')?.textContent || '');
+        if (iso && !rowMap.has(iso)) {
+          rowMap.set(iso, tr);
+        }
+      });
+
+      const entries = [];
+      for (const iso of isoList) {
+        const key = normalizeIsoKey(iso);
+        if (!key) continue;
+
+        const latest = await fetchLatestChannelByIso(key);
+        const cached = latest ? null : findChannelByIso(key);
+        const fallbackRow = rowMap.get(key) || null;
+        const fallback = latest || cached || !fallbackRow ? null : buildRowDataFromDom(fallbackRow);
+        const payload = buildCreatePayloadFromChannel(latest || cached || fallback);
+        if (!payload) continue;
+
+        entries.push({ iso: key, payload });
+      }
+
+      return entries;
+    }
+
+    async function undoLastDelete() {
+      const undoState = lastDeleteUndo;
+      if (!undoState?.entries?.length || lastDeleteUndoInFlight) return;
+
+      lastDeleteUndoInFlight = true;
+      const failures = [];
+      let restored = 0;
+
+      try {
+        for (const entry of undoState.entries) {
+          try {
+            await createChannelFromPayload(entry.payload);
+            restored += 1;
+          } catch (err) {
+            failures.push(`${entry.iso}: ${err?.message || err}`);
+          }
+        }
+
+        loadIsoTable(true);
+        lastDeleteUndo = null;
+
+        if (!failures.length) {
+          alert(`Restored ${restored} channel(s).`);
+        } else if (!restored) {
+          alert('Failed to undo last delete:\n' + failures.join('\n'));
+        } else {
+          alert(`Undo restored ${restored} channel(s), but some could not be restored:\n${failures.join('\n')}`);
+        }
+      } finally {
+        lastDeleteUndoInFlight = false;
+      }
+    }
+
     function downloadJson(filename, data) {
       const payload = JSON.stringify(data, null, '\t');
       const blob = new Blob([payload], { type: 'application/json;charset=utf-8' });
@@ -1993,6 +2108,14 @@
         if (anySelected) {
           e.preventDefault();
           deleteSelectedRows();
+        }
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key).toLowerCase() === 'z') {
+        if (lastDeleteUndo?.entries?.length) {
+          e.preventDefault();
+          undoLastDelete();
         }
         return;
       }
