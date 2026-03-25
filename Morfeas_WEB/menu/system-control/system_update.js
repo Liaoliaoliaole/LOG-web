@@ -79,6 +79,16 @@
     return false;
   };
 
+  const notifyShellUpdateStatusChanged = () => {
+    try {
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({ type: 'system-update-status-changed' }, '*');
+      }
+    } catch (_) {
+      // ignore cross-window notification failures
+    }
+  };
+
   const applyCheckResult = (payload) => {
     const result = payload?.data?.result;
     const updateNeeded = Boolean(payload?.data?.update_needed);
@@ -102,6 +112,7 @@
     try {
       const payload = await api.check(120000);
       applyCheckResult(payload);
+      notifyShellUpdateStatusChanged();
     } catch (err) {
       setStatus(`Update check failed: ${extractErrorMessage(err, 'Unknown error')}`, 'error');
     } finally {
@@ -153,6 +164,7 @@
     try {
       const statusPayload = await api.status(10000);
       const updateNeeded = Boolean(statusPayload?.data?.update_needed);
+      notifyShellUpdateStatusChanged();
       if (updateNeeded) {
         setStatus(
           'Device is reachable again, but update flag is still present.\nPlease run "Check Again" before final confirmation.',

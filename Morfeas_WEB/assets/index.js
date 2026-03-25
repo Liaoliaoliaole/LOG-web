@@ -2090,6 +2090,13 @@
       if (data.type === 'channel-added' || data.type === 'channel-updated') {
         loadIsoTable(true);
       }
+      if (data.type === 'system-update-status-changed') {
+        refreshSystemUpdateIndicator();
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      refreshSystemUpdateIndicator();
     });
 
     /* =======================================================================
@@ -2101,6 +2108,14 @@
     loadIsoTable(true);
 
     document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key).toLowerCase() === 'z') {
+        if (lastDeleteUndo?.entries?.length) {
+          e.preventDefault();
+          undoLastDelete();
+        }
+        return;
+      }
+
       if (!canUseGlobalDelete(e)) return;
 
       if (e.key === 'Delete') {
@@ -2108,14 +2123,6 @@
         if (anySelected) {
           e.preventDefault();
           deleteSelectedRows();
-        }
-        return;
-      }
-
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key).toLowerCase() === 'z') {
-        if (lastDeleteUndo?.entries?.length) {
-          e.preventDefault();
-          undoLastDelete();
         }
         return;
       }
