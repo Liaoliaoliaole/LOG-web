@@ -2,7 +2,8 @@
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 LOG_FILE="/tmp/daily_update_check.log"
-FLAG_FILE="/tmp/update_needed"
+FLAG_DIR="/var/lib/morfeas"
+FLAG_FILE="$FLAG_DIR/update_needed"
 LOGGER_DIR="/mnt/ramdisk/Morfeas_Loggers"
 LOGGER_FILE="$LOGGER_DIR/LOG_daily_update_check.log"
 
@@ -13,6 +14,8 @@ log_line() {
     ts=$(date +"%Y-%m-%dT%H:%M:%S%z")
     printf '[%s] [UPDATE_CRON] [%s] %s\n' "$ts" "$level" "$*" >> "$LOG_FILE"
 }
+
+mkdir -p "$FLAG_DIR"
 
 # Run update check and overwrite log
 /var/www/html/morfeas_web/update.sh --check-only > "$LOG_FILE" 2>&1

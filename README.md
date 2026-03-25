@@ -137,7 +137,6 @@ Post-update deploy hook (`deploy/post_update_deploy.sh`) does:
 - ensure `www-data` is member of `morfeas` group
 - ensure execute bits for `update.sh`, `cron/update_cron_wrapper.sh`, `backup.sh`
 - ensure root cron entries for update check + backup
-- ensure Apache `PrivateTmp=false` drop-in
 - ensure `systemd-journald` persistent storage (for System Journal tab)
 
 Exit codes:
@@ -149,7 +148,7 @@ Exit codes:
 
 Update flag:
 
-- `/tmp/update_needed` is used by UI indicator and status API.
+- `/var/lib/morfeas/update_needed` is used by the UI indicator and status API.
 
 ## 8) Cron / Flag Workflow
 
@@ -192,21 +191,17 @@ System Status visibility:
 - includes `morfeas_web_api.log`, `LOG_daily_update_check.log`, `LOG_update_*.log`, and runtime logs.
 - systemd journal is shown in dedicated **System Journal** tab (separate from file-based logs).
 
-## 10) Apache `PrivateTmp` Requirement
+## 10) Update Flag Persistence
 
-The web process must see real `/tmp` so `/tmp/update_needed` is shared correctly.
+The update reminder flag now lives at `/var/lib/morfeas/update_needed`.
+This is persistent application state, so it survives reboot and does not depend on shared `/tmp`.
 
-Verify:
+Backend refresh model:
 
-```bash
-systemctl show apache2 -p PrivateTmp
-```
-
-Expected:
-
-- `PrivateTmp=no`
-
-If needed, use drop-in override with `PrivateTmp=false`, then restart apache.
+- refreshed at boot by `@reboot /var/www/html/morfeas_web/cron/update_cron_wrapper.sh`
+- refreshed daily by root cron
+- read lightly by the UI indicator and status API
+- real remote update checks happen only in the **System Update** flow
 
 ## 11) Quick Health Verification
 

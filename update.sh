@@ -56,11 +56,13 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 MAX_LOGS=2
 UPDATE_LOGS_DIR="/mnt/ramdisk/Morfeas_Loggers"  
 MORFEAS_WEB_DIR="/var/www/html/morfeas_web"
-FLAG_FILE="/tmp/update_needed"
+FLAG_DIR="/var/lib/morfeas"
+FLAG_FILE="$FLAG_DIR/update_needed"
 POST_DEPLOY_SCRIPT="$MORFEAS_WEB_DIR/deploy/post_update_deploy.sh"
 
-# Create logs dir if needed
+# Create state and logs dirs if needed
 mkdir -p "$UPDATE_LOGS_DIR"
+mkdir -p "$FLAG_DIR"
 
 # Keep strict total count = MAX_LOGS (including the new file created below).
 # So we keep at most MAX_LOGS-1 old files before creating the next one.

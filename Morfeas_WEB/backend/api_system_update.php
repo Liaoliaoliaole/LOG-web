@@ -5,7 +5,7 @@ require __DIR__ . '/core/request.php';
 header('Content-Type: application/json; charset=utf-8');
 
 const UPDATE_SCRIPT = '/var/www/html/morfeas_web/update.sh';
-const UPDATE_FLAG_FILE = '/tmp/update_needed';
+const UPDATE_FLAG_FILE = '/var/lib/morfeas/update_needed';
 
 function update_respond(
     bool $ok,

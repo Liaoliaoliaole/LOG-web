@@ -1,5 +1,4 @@
 Cmnd_Alias ALLOW_UPDATE_MORFEAS_WEB = /bin/systemctl restart apache2, \
-                                      /bin/rm -f /tmp/update_needed, \
                                       /var/www/html/morfeas_web/update.sh
 
 www-data ALL = (ALL) NOPASSWD: ALLOW_UPDATE_MORFEAS_WEB

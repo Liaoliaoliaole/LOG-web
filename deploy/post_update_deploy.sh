@@ -113,6 +113,7 @@ SystemMaxUse=100M
 ensure_logger_dir_access() {
     local dir="/mnt/ramdisk/Morfeas_Loggers"
     local api_log="$dir/morfeas_web_api.log"
+    local state_dir="/var/lib/morfeas"
 
     mkdir -p "$dir"
 
@@ -130,6 +131,9 @@ ensure_logger_dir_access() {
         APACHE_RESTART_REQUIRED=1
         log_info "added www-data to morfeas group"
     fi
+
+    mkdir -p "$state_dir"
+    chmod 755 "$state_dir"
 }
 
 main() {
@@ -172,6 +176,7 @@ main() {
     ensure_executable "$REPO_ROOT/cron/update_cron_wrapper.sh"
     ensure_executable "$REPO_ROOT/backup.sh"
 
+    ensure_root_cron_line "@reboot /var/www/html/morfeas_web/cron/update_cron_wrapper.sh"
     ensure_root_cron_line "0 0 * * * /var/www/html/morfeas_web/cron/update_cron_wrapper.sh"
     ensure_root_cron_line "0 0 * * * /var/www/html/morfeas_web/backup.sh"
 

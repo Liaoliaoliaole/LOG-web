@@ -6,6 +6,8 @@ mode_install()
 	sudo mkdir -p /mnt/ramdisk/Morfeas_Loggers &&
 	sudo chgrp morfeas /mnt/ramdisk/Morfeas_Loggers &&
 	sudo chmod 2775 /mnt/ramdisk/Morfeas_Loggers &&
+	sudo mkdir -p /var/lib/morfeas &&
+	sudo chmod 755 /var/lib/morfeas &&
 	sudo touch /mnt/ramdisk/Morfeas_Loggers/morfeas_web_api.log &&
 	sudo chown www-data:morfeas /mnt/ramdisk/Morfeas_Loggers/morfeas_web_api.log &&
 	sudo chmod 664 /mnt/ramdisk/Morfeas_Loggers/morfeas_web_api.log &&
