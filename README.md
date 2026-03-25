@@ -114,7 +114,6 @@ Current expected scope is web-only update:
 
 - `/var/www/html/morfeas_web/update.sh`
 - `/bin/systemctl restart apache2`
-- `/bin/rm`
 
 ## 7) System Update Behavior
 
@@ -237,3 +236,27 @@ Notes:
 - `TC16_SOURCE_ISO` should be an existing channel ISO on the device.
 - Expected failures are validated by HTTP status + API `code`.
 - Script exits non-zero if any assertion fails.
+
+## 14) Help Manual PDF
+
+The active user manual for the new Morfeas web UI is maintained in:
+
+- `Morfeas_WEB/docs/manual/`
+
+The generated PDF delivered by the Help menu is:
+
+- `Morfeas_WEB/docs/help_manual.pdf`
+
+Build or rebuild the PDF locally with:
+
+```bash
+make -C Morfeas_WEB/docs/manual
+```
+
+Clean intermediate files:
+
+```bash
+make -C Morfeas_WEB/docs/manual clean
+```
+
+The legacy LaTeX tree under `Docs/Morfeas_WEB_Docs/` is archived reference only and should not be used as the active operator manual.

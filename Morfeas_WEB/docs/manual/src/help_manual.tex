@@ -1,0 +1,568 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{parskip}
+\usepackage{tabularx}
+\usepackage{booktabs}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=blue,
+  pdftitle={Morfeas WEB Help Manual},
+  pdfauthor={Morfeas Project}
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Morfeas WEB}
+\chead{Help Manual}
+\rhead{\thepage}
+\setlength{\headheight}{14pt}
+\setlist[itemize]{leftmargin=1.4em}
+\setlist[enumerate]{leftmargin=1.6em}
+
+\titleformat{\section}{\large\bfseries}{}{0pt}{}
+\titleformat{\subsection}{\normalsize\bfseries}{}{0pt}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{}{0pt}{}
+
+\newcommand{\screenshotplaceholder}[2]{%
+\begin{center}%
+\fbox{\parbox{0.9\textwidth}{\textbf{Screenshot Placeholder: #1}\\#2}}%
+\end{center}%
+}
+
+\newcommand{\messageexample}[2]{%
+\noindent\textbf{Example Message (#1):}\\%
+\begin{quote}\raggedright #2\end{quote}%
+}
+
+\title{Morfeas WEB\\Help Manual}
+\author{}
+\date{Current New Web UI}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+\tableofcontents
+\newpage
+
+\section{Introduction}
+Morfeas WEB is the browser user interface for daily operation and configuration of the Morfeas system.
+This manual describes the current \textbf{new} Morfeas web interface and is intended for operators and service users.
+
+Unless a site-specific deployment says otherwise, open the system in a browser with:
+
+\begin{itemize}
+\item \texttt{http://<device-ip>/}
+\end{itemize}
+
+This manual does not describe the retired legacy web layout.
+
+\screenshotplaceholder{Main Landing Page}{Insert a current screenshot of the ISO Channels Linker landing page, showing the top bar, menu button, search bar, and the main channel table.}
+
+\section{Main Page}
+The landing page is \textbf{ISO Channels Linker}. It is the main operational screen.
+
+\subsection{What You See}
+The page contains:
+
+\begin{itemize}
+\item a top bar with the FTP backup directory chip and rolling system summary,
+\item a search bar,
+\item action buttons for importing and adding channels,
+\item the main ISO channel table,
+\item a right-click context menu for channel actions,
+\item a menu button that opens all secondary pages.
+\end{itemize}
+
+\subsection{Main Table}
+The table shows the configured ISO channels and related runtime information.
+Typical columns include:
+
+\begin{itemize}
+\item status,
+\item ISO channel name,
+\item device type,
+\item connection anchor,
+\item current value,
+\item history,
+\item next calibration,
+\item minimum and maximum values,
+\item description.
+\end{itemize}
+
+The page refreshes automatically while it is visible, so operators normally do not need to reload manually.
+
+\subsection{Search}
+Use \textbf{Search Input} to filter channels in the current table.
+
+\subsection{Context Menu}
+Right-click a row to access actions such as:
+
+\begin{itemize}
+\item Edit,
+\item Delete,
+\item Scale,
+\item Calibration,
+\item Export,
+\item device-specific actions such as Replace or Replace TC16 when the selected channel supports them.
+\end{itemize}
+
+\section{Menu Overview}
+The main menu is grouped as follows.
+
+\begin{longtable}{|p{0.28\textwidth}|p{0.62\textwidth}|}
+\hline
+\textbf{Menu Item} & \textbf{Purpose} \\
+\hline
+Network Configuration & Edit hostname and Ethernet IPv4 settings. \\
+\hline
+Add Devices & View current devices and add or remove supported devices. \\
+\hline
+Backup \& Restore Channels & Configure FTP backup target, create backups, and restore saved bundles. \\
+\hline
+Check System Status & View live runtime details, log files, and system journal output. \\
+\hline
+Advanced Settings & View MAC/CAN information, configure NTP server, and manage ISOstandard XML. \\
+\hline
+System Update & Check for available Morfeas web updates and apply them when desired. \\
+\hline
+System Reboot & Reboot the device. \\
+\hline
+System Shutdown & Power off the device. \\
+\hline
+Version & Show current web and core version information. \\
+\hline
+Help & Download this manual as PDF. \\
+\hline
+\end{longtable}
+
+\section{Network Configuration}
+Open \textbf{Network Configuration} from the menu to edit hostname and Ethernet settings.
+
+\subsection{Fields}
+The page contains:
+
+\begin{itemize}
+\item \textbf{Hostname}
+\item \textbf{Mode}: Static or DHCP
+\item \textbf{Network IP}
+\item \textbf{Gateway}
+\item \textbf{DNS addr}
+\end{itemize}
+
+Preset buttons are available at the top of the page for quick loading of predefined values.
+
+\subsection{Buttons}
+\begin{itemize}
+\item \textbf{Load Last}: reload the last confirmed configuration into the form.
+\item \textbf{Set}: apply the current values.
+\item \textbf{Close}: close the popup window.
+\end{itemize}
+
+\subsection{Operator Notes}
+\begin{itemize}
+\item If you change the device IP address, reconnect the browser to the new HTTP address after the change is applied.
+\item DHCP mode disables manual IPv4 entry.
+\item Presets are convenience values only. Review them before applying.
+\end{itemize}
+
+\screenshotplaceholder{Network Configuration Page}{Insert a screenshot showing Hostname, Mode, Network IP, Gateway, DNS addr, and the Load Last / Set / Close buttons.}
+
+\messageexample{Progress}{Applying configuration: validating and writing system network settings...}
+\messageexample{Success}{Configuration applied. If the IP changed, reconnect to the new device address in your browser.}
+\messageexample{Failure}{Apply failed: <error details>}
+
+\section{Add Devices}
+Open \textbf{Add Devices} to manage the current device inventory.
+
+\subsection{Devices Table}
+The upper table shows the current devices with columns such as:
+
+\begin{itemize}
+\item Bus,
+\item Device Type,
+\item Device Name or Address,
+\item IP Address.
+\end{itemize}
+
+\subsection{Toolbar}
+\begin{itemize}
+\item \textbf{Refresh}: reload the current device list.
+\item \textbf{Remove}: remove selected removable devices.
+\item \textbf{Add...}: open the add form.
+\end{itemize}
+
+\subsection{Add Form}
+The add form lets the user enter:
+
+\begin{itemize}
+\item device type,
+\item CAN interface,
+\item device name,
+\item additional device properties required by that device family.
+\end{itemize}
+
+\subsection{Operator Notes}
+\begin{itemize}
+\item Some devices, such as automatically detected SDAQ devices, may not be removable from this page.
+\item The popup refreshes while active, and pauses when the popup is no longer in focus.
+\item If the remove action is not available or shows a warning, review whether the selected device is auto-detected and protected from removal.
+\end{itemize}
+
+\section{Channel Replace Workflows}
+Morfeas WEB supports both single-channel replacement and grouped TC16 replacement.
+
+\subsection{Single-Channel Replace}
+Single-channel replace uses the standard Edit Link popup in replace mode.
+
+\subsubsection{Typical Flow}
+\begin{enumerate}
+\item In the main ISO channel table, right-click the channel you want to replace.
+\item Choose the standard replace action.
+\item The popup opens with the source type locked and the target path chosen through device search.
+\item Select the replacement device path.
+\item Review ISO code, description, min/max, alarms, unit, and calibration fields.
+\item Click \textbf{Save}.
+\end{enumerate}
+
+\subsubsection{Type Safety}
+The replace flow enforces compatibility rules.
+
+\screenshotplaceholder{Single-Channel Replace Popup}{Insert a screenshot of the replace popup showing the locked source type, search button, ISO code, limits, alarms, and Save button.}
+
+\begin{itemize}
+\item Family mismatch is blocked.
+\item If the source SDAQ subtype is known, subtype mismatch is blocked.
+\item If the source SDAQ subtype is unknown, replacement is still allowed, but the user is warned to replace within the same type.
+\end{itemize}
+
+\subsubsection{Offline Type Display}
+When an SDAQ channel has been identified before and later goes offline, the UI can display the last known type in a stale form such as:
+
+\begin{itemize}
+\item \texttt{SDAQ-TC1 (last known)}
+\end{itemize}
+
+If the subtype has never been identified, the type may be shown as unknown.
+
+\messageexample{Warning}{Subtype unknown, make sure replace within same type.}
+\messageexample{Blocked Replace}{Subtype mismatch: expected SDAQ-TC1, got SDAQ-AI8.}
+
+\subsection{TC16 Group Replace}
+The dedicated \textbf{Replace TC16} flow is separate from single-channel replace.
+It is intended for a full 16-channel SDAQ-TC16 source group.
+
+\subsubsection{When the Option Appears}
+Replace TC16 only appears when the selected source channel belongs to a resolvable offline TC16 group that is complete as channels CH1 through CH16.
+If the group is partial, the option is not shown and normal single-channel replace must be used.
+
+\subsubsection{How It Works}
+\begin{enumerate}
+\item Right-click any channel belonging to the full TC16 source group.
+\item Choose \textbf{Replace TC16}.
+\item The UI highlights and selects all 16 source channels.
+\item A dedicated Replace TC16 popup opens.
+\item The popup shows the source group summary and the source channel mapping.
+\item Choose one eligible unlinked TC16 target device.
+\item Confirm the operation.
+\item All 16 source channels are remapped to the target device in one atomic operation.
+\end{enumerate}
+
+\subsubsection{Important Notes}
+\begin{itemize}
+\item Replace TC16 is all-or-nothing.
+\item If any validation fails, no channel mapping is changed.
+\item Target selection is at device-group level, not one channel at a time.
+\item If no eligible target is listed, there is currently no fully free TC16 target device available.
+\end{itemize}
+
+\screenshotplaceholder{Replace TC16 Popup}{Insert a screenshot showing the source group summary, CH1..CH16 mapping chips, available target list, and the Apply Replace TC16 button.}
+
+\messageexample{Success}{Replace TC16 complete: 16 channels updated.}
+\messageexample{Failure}{Failed to apply TC16 replace. [tc16\_target\_not\_unlinked]}
+
+\section{Backup and Restore Channels}
+Open \textbf{Backup \& Restore Channels} for FTP-based backup and restore.
+
+\subsection{FTP Server Setup}
+The page contains:
+
+\begin{itemize}
+\item \textbf{Host IP}
+\item \textbf{Engine Number}
+\item \textbf{Connect \& Fetch}
+\item \textbf{Disconnect}
+\end{itemize}
+
+The default host value is prefilled for the expected FTP server. Credentials are stored server-side and are not edited in the UI.
+
+\subsection{Backup to FTP}
+Use \textbf{Backup Now} to create and upload a backup bundle for the current configuration.
+
+\subsection{Restore from FTP}
+Select a backup file from the list and click \textbf{Restore Selected}.
+
+\subsection{Step-by-Step Example}
+\subsubsection{Connect and Load Backup List}
+\begin{enumerate}
+\item Open \textbf{Backup \& Restore Channels}.
+\item Confirm or enter the FTP server IP.
+\item Enter the engine number.
+\item Click \textbf{Connect \& Fetch}.
+\item Wait for the connection result.
+\item If the connection succeeds, the backup list is loaded for that engine directory.
+\end{enumerate}
+
+\subsubsection{Create a Backup}
+\begin{enumerate}
+\item Make sure the FTP connection is active.
+\item Click \textbf{Backup Now}.
+\item Wait for the success message.
+\item Confirm that the new file appears in the backup list.
+\end{enumerate}
+
+\subsubsection{Restore a Backup}
+\begin{enumerate}
+\item Make sure the FTP connection is active.
+\item Select one file from the backup list.
+\item Click \textbf{Restore Selected}.
+\item Wait for the restore result message.
+\end{enumerate}
+
+\subsection{Operator Notes}
+\begin{itemize}
+\item Backup and restore both require a reachable FTP server.
+\item If the server is unavailable, the page shows an error and no system state is changed.
+\item The FTP directory chip on the main page shows the currently connected engine directory when configuration exists.
+\item If two sessions edit the FTP configuration, the page can detect configuration updates from the other session.
+\end{itemize}
+
+\screenshotplaceholder{FTP Backup and Restore Page}{Insert a screenshot showing the FTP Server Setup, Backup Now, Restore Selected, and the available backup list.}
+
+\messageexample{Connect Success}{Connected to FTP at 10.193.135.70. Configuration saved.}
+\messageexample{Connect Failure}{Connection failed: FTP connect failed}
+\messageexample{Backup Success}{Backup complete}
+\messageexample{Restore Failure}{Restore failed: <error details>}
+
+\section{Check System Status}
+Open \textbf{Check System Status} to inspect runtime data and logs.
+
+\subsection{Tabs}
+The page has three tabs.
+
+\subsubsection{Details}
+This tab shows live system and bus information in tables. Depending on the device and services, values may include:
+
+\begin{itemize}
+\item CPU temperature,
+\item uptime,
+\item bus utilization,
+\item bus error rate,
+\item detected SDAQ count,
+\item incomplete SDAQ count,
+\item bus voltage,
+\item bus amperage,
+\item shunt temperature,
+\item last calibration timestamps.
+\end{itemize}
+
+\subsubsection{System Logs}
+This tab is used for Morfeas application logger files.
+
+\begin{itemize}
+\item \textbf{Preview Logger}: choose one log file to preview.
+\item \textbf{Reload}: reload the logger list.
+\item \textbf{Export Logs}: select one or more log files and export them as one combined text file.
+\end{itemize}
+
+The preview area shows the selected file content in a terminal-style viewer.
+
+\subsubsection{System Journal}
+This tab is used for journal output from system services.
+
+\begin{itemize}
+\item \textbf{Scope}: choose all services, Morfeas system, Apache2, or SSH.
+\item \textbf{Lines}: choose how many lines to load.
+\item \textbf{Reload}: reload the journal view.
+\item \textbf{Export Journal}: export the currently requested journal text.
+\end{itemize}
+
+\screenshotplaceholder{System Status Tabs}{Insert a screenshot showing the Details, System logs, and System Journal tabs with one example content area visible.}
+
+\subsection{How to Use the Tabs}
+\subsubsection{Details Tab}
+Use this tab first when checking current runtime health.
+If a service is active but values look stale, compare with the Logs or Journal tabs.
+
+\subsubsection{System Logs Tab}
+Use this tab for Morfeas component logs when you want application-level detail such as handler messages, update logs, backup logs, or runtime component reports.
+
+\subsubsection{System Journal Tab}
+Use this tab when the problem looks system-level rather than application-level, for example:
+
+\begin{itemize}
+\item service startup failures,
+\item Apache problems,
+\item SSH availability,
+\item reboot or shutdown investigation.
+\end{itemize}
+
+\section{Advanced Settings}
+Open \textbf{Advanced Settings} for machine information, NTP, and ISOstandard management.
+
+\subsection{Machine Identifier}
+Displays the MAC address.
+
+\subsection{SDAQNet (CAN-IFs)}
+Displays the current CAN interface information for \texttt{can0} and \texttt{can1}. These values are informational and read-only on this page.
+
+\subsection{Time Synchronization}
+The page shows the current NTP server and allows entering a new IPv4 NTP server. Use \textbf{Apply} to store the new value.
+
+\messageexample{Apply Success}{Applied NTP server: 192.168.1.10}
+\messageexample{Validation Error}{NTP server must be a valid IPv4 address.}
+
+\subsection{ISOstandard}
+This section lets the user:
+
+\begin{itemize}
+\item view the currently selected ISOstandard source,
+\item select a different available ISOstandard file,
+\item upload a new ISOstandard XML file,
+\item review the loaded ISO point definitions in a table.
+\end{itemize}
+
+\section{System Update}
+Open \textbf{System Update} to manage Morfeas web software updates.
+
+\subsection{Current Behavior}
+The page supports:
+
+\begin{itemize}
+\item checking whether an update is available,
+\item applying the update,
+\item deferring the update,
+\item reloading the page after service recovery.
+\end{itemize}
+
+\subsection{Reminder Dot}
+A red dot on the menu item indicates that the system has recorded an available update. The reminder stays visible until a later check confirms that no update is pending, or until a successful update clears it.
+
+\subsection{Important Note}
+The current update flow is intended for the Morfeas web deployment path. Core update is handled separately.
+
+\screenshotplaceholder{System Update Page}{Insert a screenshot showing Check Again, Update Now, Update Later, Reload Page, and the status box.}
+
+\messageexample{Update Available}{Update available. Click "Update Now" to apply, or "Update Later" to postpone.}
+\messageexample{Update Success}{Update flow completed and web service is reachable. Refresh page (Ctrl+F5) to load latest files.}
+\messageexample{Update Failed}{System update failed: <error details>}
+
+\section{System Reboot and System Shutdown}
+The system control pages provide single-confirmation actions for reboot and shutdown.
+
+\subsection{System Reboot}
+Use \textbf{Reboot Now} when you want to restart the device and return to service after boot. The page shows post-action guidance so the operator knows when to reconnect and refresh the browser.
+
+\messageexample{Reboot Accepted}{Reboot command accepted. Wait about 60--90 seconds, then open the device URL again and refresh the browser.}
+
+\subsection{System Shutdown}
+Use \textbf{Shutdown Now} when you want to power off the device. After shutdown, the device must be powered on again manually before the web interface becomes available.
+
+\messageexample{Shutdown Accepted}{Shutdown command accepted. Device will go offline. Power it on manually when needed.}
+
+\section{Version}
+The \textbf{Version} page shows version and commit information for:
+
+\begin{itemize}
+\item the Morfeas web repository,
+\item the Morfeas core repository,
+\item the related commit dates.
+\end{itemize}
+
+Use this page when confirming what software is installed on a device.
+
+\section{Troubleshooting}
+This section gives quick operator guidance for common problems.
+
+\screenshotplaceholder{Troubleshooting Section Reference}{Optionally insert a screenshot collage of the key popups or status messages that operators most commonly use during troubleshooting.}
+
+\subsection{The Web Page Does Not Open}
+\begin{itemize}
+\item Confirm that you are using the current device IP address over HTTP.
+\item If the IP was recently changed, reconnect to the new address.
+\item If the device was rebooted or updated, wait for services to come back and refresh the browser.
+\item If still unavailable, check \textbf{System Journal} or use SSH to verify Apache and Morfeas services.
+\end{itemize}
+
+\subsection{FTP Backup Cannot Connect}
+\begin{itemize}
+\item Check that the FTP server IP is reachable from the device.
+\item Confirm that the engine number is correct.
+\item If the page says configuration was removed, reconnect first.
+\item If the internal FTP server is currently unavailable, backup and restore cannot be tested end-to-end.
+\end{itemize}
+
+\subsection{No Backup Files Are Listed}
+\begin{itemize}
+\item Verify that the selected engine directory contains backup files.
+\item Confirm that the FTP configuration belongs to the expected engine number.
+\item Reload after reconnecting to the FTP server.
+\end{itemize}
+
+\subsection{Replace or Replace TC16 Option Is Missing}
+\begin{itemize}
+\item Confirm that the selected row supports that replace mode.
+\item For Replace TC16, confirm that the source is a complete offline TC16 group with channels CH1 through CH16.
+\item If the source group is partial, use normal single-channel replace instead.
+\end{itemize}
+
+\subsection{No Eligible TC16 Target Is Listed}
+\begin{itemize}
+\item No full unlinked TC16 target device is currently available.
+\item If channels on the target are already linked, the target is blocked.
+\item Refresh the popup after any device or link changes.
+\end{itemize}
+
+\subsection{Logs or Journal Look Empty}
+\begin{itemize}
+\item Use \textbf{Reload} once to refresh the selected tab.
+\item Verify that the correct logger file or journal scope is selected.
+\item If the service has not produced messages yet, the view may be temporarily empty.
+\end{itemize}
+
+\subsection{Update Reminder Dot Is Still Visible}
+\begin{itemize}
+\item The reminder is based on the stored update flag.
+\item Run \textbf{Check Again} in the System Update page to refresh the latest status.
+\item After a successful update or a clean re-check, the reminder should clear.
+\end{itemize}
+
+\section{Help PDF Maintenance}
+The Help menu downloads a PDF file from:
+
+\begin{itemize}
+\item \texttt{docs/help\_manual.pdf}
+\end{itemize}
+
+The maintained source for this file is located under:
+
+\begin{itemize}
+\item \texttt{Morfeas\_WEB/docs/manual/}
+\end{itemize}
+
+This keeps the active user manual next to the current web code instead of inside the archived legacy documentation tree.
+
+\section{Legacy Documentation Status}
+The old documentation tree under \texttt{LOG-web/Docs/Morfeas\_WEB\_Docs} is retained only as historical reference. Its structure and API descriptions belong to the legacy implementation and should not be used as the active operator manual for the current web UI.
+
+\end{document}
