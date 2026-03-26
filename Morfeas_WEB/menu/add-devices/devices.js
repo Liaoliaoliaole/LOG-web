@@ -171,18 +171,7 @@
       tdIp.textContent = d.ip || '-';
 
       const tdStatus = document.createElement('td');
-      const runtimeStatus = d.runtime_status || d.status || 'Unknown';
-      const statusChip = document.createElement('span');
-      statusChip.className = 'status-chip';
-
-      const dot = document.createElement('span');
-      dot.className = `dot ${statusToDotClass(runtimeStatus)}`;
-
-      const label = document.createElement('span');
-      label.textContent = runtimeStatus;
-
-      statusChip.append(dot, label);
-      tdStatus.appendChild(statusChip);
+      tdStatus.textContent = d.runtime_status || d.status || 'Unknown';
 
       [tdCheck, tdIdx, tdBus, tdType, tdName, tdIp, tdStatus].forEach((td) =>
         tr.appendChild(td)
@@ -204,29 +193,6 @@
     const total = rows.length;
     mchk.checked = total > 0 && checked === total;
     mchk.indeterminate = checked > 0 && checked < total;
-  }
-
-  function statusToDotClass(status) {
-    const s = String(status || '').trim().toLowerCase();
-
-    if (s === 'connected' || s === 'okay' || s.includes('connected') || s.includes('okay')) return 'st-Connected';
-    if (s === 'not connected' || s === 'off-line' || s === 'offline' || s === 'disconnected') return 'st-NotConnected';
-    if (s === 'not detected' || s === 'unknown') return 'st-NotDetected';
-    if (s === 'disabled') return 'st-Disabled';
-    if (s.includes('operation in progress') || s.includes('connecting') || s.includes('in progress')) return 'st-Stall';
-    if (
-      s.includes('connection refused') ||
-      s.includes('timed out') ||
-      s.includes('timeout') ||
-      s.includes('host unreachable') ||
-      s.includes('network is unreachable') ||
-      s.includes('no route to host') ||
-      s.includes('refused')
-    ) return 'st-Error';
-    if (s === 'error' || s === 'open wire' || s === 'short circuit' || s === 'unclassified' || s === 'no sensor') return 'st-Error';
-    if (s === 'stall') return 'st-Stall';
-
-    return 'st-NotDetected';
   }
 
   // --------------------------------------------------------------------------
