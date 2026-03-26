@@ -411,6 +411,82 @@
       return (value || '').toString().trim().toUpperCase();
     }
 
+    function normalizeAnchorKey(value) {
+      const raw = (value || '').toString().trim().toUpperCase();
+      if (!raw) return '';
+
+      let m = raw.match(/^(CAN\w+)\.ADDR:(\d{1,3})\.CH:?(\d{1,3})$/i);
+      if (!m) {
+        m = raw.match(/^(CAN\w+)\.(\d{1,3})\.CH:?(\d{1,3})$/i);
+      }
+
+      if (m) {
+        return `${m[1].toUpperCase()}.ADDR:${String(Number.parseInt(m[2], 10)).padStart(2, '0')}.CH:${String(Number.parseInt(m[3], 10)).padStart(2, '0')}`;
+      }
+
+      return raw.replace(/\s+/g, '');
+    }
+
+    function findChannelByIsoInList(iso, channels) {
+      const key = normalizeIsoKey(iso);
+      if (!key || !Array.isArray(channels)) return null;
+      return channels.find((ch) => normalizeIsoKey(ch?.iso_channel) === key) || null;
+    }
+
+    function findChannelByAnchorInList(anchor, channels) {
+      const key = normalizeAnchorKey(anchor);
+      if (!key || !Array.isArray(channels)) return null;
+      return channels.find((ch) => normalizeAnchorKey(ch?.anchor) === key) || null;
+    }
+
+    function describePayloadConflict(payload, channels) {
+      if (!payload) return 'Channel payload is empty';
+
+      const isoConflict = findChannelByIsoInList(payload.iso_channel, channels);
+      if (isoConflict) {
+        return `ISO channel already exists: ${payload.iso_channel}`;
+      }
+
+      const anchorConflict = findChannelByAnchorInList(payload.anchor, channels);
+      if (anchorConflict) {
+        return `Device path already linked: ${payload.anchor} is already used by ${anchorConflict.iso_channel || '(unknown)'}`;
+      }
+
+      return null;
+    }
+
+    function buildSnapshotChannelFromPayload(payload) {
+      if (!payload) return null;
+      return {
+        iso_channel: payload.iso_channel,
+        interface_type: payload.interface_type,
+        anchor: payload.anchor,
+        description: payload.description || '',
+        min: payload.min ?? '',
+        max: payload.max ?? '',
+        unit: payload.unit || '',
+        alarm_high_val: payload.alarm_high_val,
+        alarm_low_val: payload.alarm_low_val,
+        alarm_high: payload.alarm_high,
+        alarm_low: payload.alarm_low,
+        cal_date: payload.cal_date,
+        cal_period: payload.cal_period,
+      };
+    }
+
+    async function fetchLiveChannelSnapshot() {
+      try {
+        const channels = await fetchIsoChannels();
+        if (Array.isArray(channels)) {
+          updateChannelCache(channels);
+          return channels.slice();
+        }
+      } catch (err) {
+        console.warn('Failed to refresh live channel snapshot:', err);
+      }
+      return Array.isArray(isoChannelCache) ? isoChannelCache.slice() : [];
+    }
+
     async function deleteSelectedRows() {
       const rows = selectedRows();
       if (!rows.length) return;
@@ -421,7 +497,7 @@
         .filter(Boolean);
 
       const label = isoList.length === 1 ? isoList[0] : `${isoList.length} selected channels`;
-      const ok = confirm(`Delete ${label}?`);
+      const ok = confirm(`Delete ${label}?\n\nYou can press Ctrl+Z once to undo the last delete.`);
       if (!ok) return;
 
       const failures = [];
@@ -470,9 +546,7 @@
         if (failures.length === isoList.length) {
           alert('Failed to delete channel(s):\n' + failures.join('\n'));
         } else if (failures.length) {
-          alert('Some channels could not be deleted:\n' + failures.join('\n') + '\n\nPress Ctrl+Z to undo the deleted channel(s).');
-        } else if (successfulUndoEntries.length) {
-          alert(`Deleted ${successfulUndoEntries.length} channel(s). Press Ctrl+Z to undo the last delete.`);
+          alert('Some channels could not be deleted:\n' + failures.join('\n'));
         }
       } finally {
         hideCtx && hideCtx();
@@ -1648,10 +1722,19 @@
       let restored = 0;
 
       try {
+        const liveChannels = await fetchLiveChannelSnapshot();
+
         for (const entry of undoState.entries) {
           try {
+            const conflict = describePayloadConflict(entry.payload, liveChannels);
+            if (conflict) {
+              throw new Error(conflict);
+            }
+
             await createChannelFromPayload(entry.payload);
             restored += 1;
+            const snapshot = buildSnapshotChannelFromPayload(entry.payload);
+            if (snapshot) liveChannels.push(snapshot);
           } catch (err) {
             failures.push(`${entry.iso}: ${err?.message || err}`);
           }
@@ -2022,6 +2105,20 @@
       return payload;
     }
 
+    function describeImportEntryValidationFailure(entry) {
+      if (!entry || typeof entry !== 'object') {
+        return 'Entry is not a JSON object';
+      }
+
+      const missing = [];
+      if (!entry.ISO_CHANNEL) missing.push('ISO_CHANNEL');
+      if (!entry.INTERFACE_TYPE) missing.push('INTERFACE_TYPE');
+      if (!entry.ANCHOR) missing.push('ANCHOR');
+
+      if (!missing.length) return null;
+      return `Missing field(s): ${missing.join(', ')}`;
+    }
+
     async function importChannelsFromFile(file) {
       if (!file) return;
       let data;
@@ -2038,35 +2135,82 @@
         return;
       }
 
-      const payloads = data.map(mapImportEntry).filter(Boolean);
+      const payloads = [];
+      const failures = [];
+
+      data.forEach((entry, index) => {
+        const invalidReason = describeImportEntryValidationFailure(entry);
+        if (invalidReason) {
+          failures.push(`Entry #${index + 1}: ${invalidReason}`);
+          return;
+        }
+
+        const payload = mapImportEntry(entry);
+        if (!payload) {
+          failures.push(`Entry #${index + 1}: failed to map JSON entry into channel payload`);
+          return;
+        }
+
+        payloads.push(payload);
+      });
+
       if (!payloads.length) {
-        alert('No valid ISO channels found in the JSON file.');
+        alert(failures.length ? `Import failed:\n${failures.join('\n')}` : 'No valid ISO channels found in the JSON file.');
         return;
       }
 
+      const liveChannels = await fetchLiveChannelSnapshot();
+      const pendingIso = new Set();
+      const pendingAnchor = new Set();
+      let imported = 0;
+
       for (const payload of payloads) {
+        const isoKey = normalizeIsoKey(payload.iso_channel);
+        const anchorKey = normalizeAnchorKey(payload.anchor);
+
+        if (pendingIso.has(isoKey)) {
+          failures.push(`${payload.iso_channel}: duplicate ISO channel in import file`);
+          continue;
+        }
+        if (pendingAnchor.has(anchorKey)) {
+          failures.push(`${payload.iso_channel}: duplicate device path in import file (${payload.anchor})`);
+          continue;
+        }
+
+        const conflict = describePayloadConflict(payload, liveChannels);
+        if (conflict) {
+          failures.push(`${payload.iso_channel}: ${conflict}`);
+          continue;
+        }
+
         try {
-          if (channelsApi?.createChannel) {
-            await channelsApi.createChannel(payload);
-          } else {
-            const res = await fetch(API_ISO, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-            });
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const json = await res.json();
-            if (json && json.ok === false) {
-              throw new Error(json.error || 'Import failed');
-            }
-          }
+          await createChannelFromPayload(payload);
+          imported += 1;
+          pendingIso.add(isoKey);
+          pendingAnchor.add(anchorKey);
+          const snapshot = buildSnapshotChannelFromPayload(payload);
+          if (snapshot) liveChannels.push(snapshot);
         } catch (err) {
-          alert('Failed to import channel ' + payload.iso_channel + ': ' + (err?.message || err));
-          return;
+          const reason = err?.payload?.error || err?.payload?.message || err?.message || err;
+          failures.push(`${payload.iso_channel}: ${reason}`);
         }
       }
 
-      loadIsoTable(true);
+      if (imported > 0) {
+        loadIsoTable(true);
+      }
+
+      if (!failures.length) {
+        alert(`Imported ${imported} channel(s).`);
+        return;
+      }
+
+      if (!imported) {
+        alert('Import failed:\n' + failures.join('\n'));
+        return;
+      }
+
+      alert(`Imported ${imported} channel(s), but some entries failed:\n${failures.join('\n')}`);
     }
 
     importInput.addEventListener('change', () => {
@@ -2132,7 +2276,7 @@
         e.preventDefault();
         openCenteredPopup('tool-bar/add_channel.html', 'add_channel_popup', { width: 880, height: 820 });
       }
-    });
+    }, true);
 
   });
 })();

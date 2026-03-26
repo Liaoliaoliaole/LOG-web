@@ -46,6 +46,22 @@ function channels_fail(string $error, int $status = 400, ?string $code = null): 
     exit;
 }
 
+function channels_fail_from_runtime(RuntimeException $e): void
+{
+    $message = $e->getMessage();
+    $lower = strtolower($message);
+
+    if (str_contains($lower, 'already exists')) {
+        channels_fail($message, 409, 'channel_conflict');
+    }
+
+    if (str_contains($lower, 'not found')) {
+        channels_fail($message, 404, 'channel_not_found');
+    }
+
+    channels_fail($message, 400, 'channel_config_error');
+}
+
 function channel_collect_rows_and_extras(
     string $xmlPath,
     array $sdaqLogFiles,
@@ -958,7 +974,11 @@ try {
                     channels_fail("Missing field: $field", 400, 'missing_field');
                 }
             }
-            iso_add_channel($xmlPath, $data);
+            try {
+                iso_add_channel($xmlPath, $data);
+            } catch (RuntimeException $e) {
+                channels_fail_from_runtime($e);
+            }
             echo json_encode(['ok' => true], JSON_PRETTY_PRINT);
             break;
 
@@ -984,7 +1004,11 @@ try {
                 channel_enforce_replace_rules($rows, $extras, $iso, $data);
             }
 
-            iso_update_channel($xmlPath, $iso, $data);
+            try {
+                iso_update_channel($xmlPath, $iso, $data);
+            } catch (RuntimeException $e) {
+                channels_fail_from_runtime($e);
+            }
             echo json_encode(['ok' => true], JSON_PRETTY_PRINT);
             break;
 
@@ -993,7 +1017,11 @@ try {
             if ($iso === null || $iso === '') {
                 channels_fail('Missing ?iso=... in query', 400, 'missing_iso');
             }
-            iso_delete_channel($xmlPath, $iso);
+            try {
+                iso_delete_channel($xmlPath, $iso);
+            } catch (RuntimeException $e) {
+                channels_fail_from_runtime($e);
+            }
             echo json_encode(['ok' => true], JSON_PRETTY_PRINT);
             break;
 

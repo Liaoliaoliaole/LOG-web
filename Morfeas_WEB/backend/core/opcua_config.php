@@ -99,6 +99,47 @@ function iso_decode_xml_value($value): ?string
     return html_entity_decode($value, ENT_QUOTES | ENT_XML1, 'UTF-8');
 }
 
+function iso_normalize_anchor_value($value): string
+{
+    $raw = strtoupper(trim((string)$value));
+    if ($raw === '') {
+        return '';
+    }
+
+    if (preg_match('/^(CAN\w+)\.ADDR:(\d{1,3})\.CH:?(\d{1,3})$/i', $raw, $m)) {
+        return sprintf('%s.ADDR:%02d.CH:%02d', strtoupper($m[1]), (int)$m[2], (int)$m[3]);
+    }
+
+    if (preg_match('/^(CAN\w+)\.(\d{1,3})\.CH:?(\d{1,3})$/i', $raw, $m)) {
+        return sprintf('%s.ADDR:%02d.CH:%02d', strtoupper($m[1]), (int)$m[2], (int)$m[3]);
+    }
+
+    return preg_replace('/\s+/', '', $raw) ?? $raw;
+}
+
+function iso_find_anchor_conflict(SimpleXMLElement $xml, string $anchor, ?string $ignoreIso = null): ?string
+{
+    $anchorNorm = iso_normalize_anchor_value($anchor);
+    if ($anchorNorm === '') {
+        return null;
+    }
+
+    $ignoreIsoNorm = $ignoreIso !== null ? iso_normalize_iso_channel($ignoreIso) : null;
+
+    foreach ($xml->CHANNEL as $ch) {
+        $existingIso = iso_normalize_iso_channel((string)$ch->ISO_CHANNEL);
+        if ($ignoreIsoNorm !== null && $existingIso === $ignoreIsoNorm) {
+            continue;
+        }
+
+        if (iso_normalize_anchor_value((string)$ch->ANCHOR) === $anchorNorm) {
+            return trim((string)$ch->ISO_CHANNEL);
+        }
+    }
+
+    return null;
+}
+
 function iso_set_channel_contents(SimpleXMLElement $ch, array $data): void
 {
     foreach ($ch->xpath('*') as $child) {
@@ -167,6 +208,11 @@ function iso_add_channel(string $xmlPath, array $data): void
         if ((string)$ch->ISO_CHANNEL === $isoChannel) {
             throw new RuntimeException("ISO_CHANNEL already exists: ".$isoChannel);
         }
+    }
+
+    $anchorConflictIso = iso_find_anchor_conflict($xml, (string)$data['anchor']);
+    if ($anchorConflictIso !== null) {
+        throw new RuntimeException("ANCHOR already exists: " . $data['anchor'] . " is already used by " . $anchorConflictIso);
     }
 
     $new = $xml->addChild('CHANNEL');
@@ -254,6 +300,11 @@ function iso_update_channel(string $xmlPath, string $isoChannel, array $data): v
         'alarm_high'     => array_key_exists('alarm_high', $data) ? $data['alarm_high'] : $existing['alarm_high'],
         'alarm_low'      => array_key_exists('alarm_low', $data) ? $data['alarm_low'] : $existing['alarm_low'],
     ];
+
+    $anchorConflictIso = iso_find_anchor_conflict($xml, (string)$payload['anchor'], $isoChannel);
+    if ($anchorConflictIso !== null) {
+        throw new RuntimeException("ANCHOR already exists: " . $payload['anchor'] . " is already used by " . $anchorConflictIso);
+    }
 
     iso_set_channel_contents($target, $payload);
     iso_save_xml($xml, $xmlPath);
