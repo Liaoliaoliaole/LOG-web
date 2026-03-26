@@ -702,6 +702,17 @@
     }
   });
 
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key).toLowerCase() === 's') {
+      e.preventDefault();
+      btnSave.click();
+      return;
+    }
+    if (e.key === 'Escape') {
+      window.close();
+    }
+  });
+
   // Init
   (async function init() {
     fillPostfix();

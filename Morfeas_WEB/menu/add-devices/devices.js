@@ -395,6 +395,14 @@
 
   // Delete key: remove selected rows (ignores focused inputs)
   document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key).toLowerCase() === 's') {
+      if (!saveBtn.disabled && propCard.style.display !== 'none') {
+        e.preventDefault();
+        saveDevice();
+      }
+      return;
+    }
+
     if (e.key !== 'Delete') return;
 
     const el = document.activeElement;
