@@ -170,7 +170,21 @@
       const tdIp = document.createElement('td');
       tdIp.textContent = d.ip || '-';
 
-      [tdCheck, tdIdx, tdBus, tdType, tdName, tdIp].forEach((td) =>
+      const tdStatus = document.createElement('td');
+      const runtimeStatus = d.runtime_status || d.status || 'Unknown';
+      const statusChip = document.createElement('span');
+      statusChip.className = 'status-chip';
+
+      const dot = document.createElement('span');
+      dot.className = `dot ${statusToDotClass(runtimeStatus)}`;
+
+      const label = document.createElement('span');
+      label.textContent = runtimeStatus;
+
+      statusChip.append(dot, label);
+      tdStatus.appendChild(statusChip);
+
+      [tdCheck, tdIdx, tdBus, tdType, tdName, tdIp, tdStatus].forEach((td) =>
         tr.appendChild(td)
       );
       devBody.appendChild(tr);
@@ -190,6 +204,19 @@
     const total = rows.length;
     mchk.checked = total > 0 && checked === total;
     mchk.indeterminate = checked > 0 && checked < total;
+  }
+
+  function statusToDotClass(status) {
+    const s = String(status || '').trim().toLowerCase();
+
+    if (s === 'connected' || s === 'okay') return 'st-Connected';
+    if (s === 'not connected' || s === 'off-line' || s === 'offline' || s === 'disconnected') return 'st-NotConnected';
+    if (s === 'not detected' || s === 'unknown') return 'st-NotDetected';
+    if (s === 'disabled') return 'st-Disabled';
+    if (s === 'error' || s === 'open wire' || s === 'short circuit' || s === 'unclassified' || s === 'no sensor') return 'st-Error';
+    if (s === 'stall') return 'st-Stall';
+
+    return 'st-NotDetected';
   }
 
   // --------------------------------------------------------------------------
