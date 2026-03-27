@@ -10,11 +10,6 @@ This repository is maintained for upgraded LOG devices with the following runtim
 - OpenSSL: 3.x
 - Deployment path on device: `/var/www/html/morfeas_web`
 
-Notes:
-
-- This baseline reflects the current upgraded Pi environment.
-- Older OS baselines (for example Bullseye) are not the primary target anymore.
-
 ## 2) Required Packages
 
 Install required runtime/build tools on the target Pi:
