@@ -130,18 +130,28 @@ The following keyboard shortcuts and key actions are currently implemented in th
 
 \subsubsection{Add Devices Popup}
 \begin{itemize}
+\item \textbf{Ctrl+S} or \textbf{Cmd+S}: save the device currently being added when the add form is open.
 \item \textbf{Delete}: remove the currently selected removable devices.
 \item \textbf{Escape}: close the popup window.
 \end{itemize}
 
 \subsubsection{Add Channel Popup}
 \begin{itemize}
+\item \textbf{Ctrl+S} or \textbf{Cmd+S}: save the current Add Channel form.
 \item \textbf{Enter} in the ISO field: accept the typed ISO code as a custom manual ISO value.
 \item \textbf{Enter} in the sensor path field: accept the typed device path or manual offline anchor.
+\item \textbf{Escape}: close the popup window.
 \end{itemize}
 
 \subsubsection{Edit Link / Replace Link Popup}
 \begin{itemize}
+\item \textbf{Ctrl+S} or \textbf{Cmd+S}: save the current Edit or Replace form.
+\item \textbf{Escape}: close the popup window.
+\end{itemize}
+
+\subsubsection{Calibration Popup}
+\begin{itemize}
+\item \textbf{Ctrl+S} or \textbf{Cmd+S}: save the current calibration data.
 \item \textbf{Escape}: close the popup window.
 \end{itemize}
 
@@ -231,8 +241,11 @@ The upper table shows the current devices with columns such as:
 \item Bus,
 \item Device Type,
 \item Device Name or Address,
-\item IP Address.
+\item IP Address,
+\item Status.
 \end{itemize}
+
+The \textbf{Status} column shows the current runtime status text reported by the system for that configured device. It is intended as a quick indication of whether the device has been detected and is responding at runtime.
 
 \subsection{Toolbar}
 \begin{itemize}
