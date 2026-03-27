@@ -91,6 +91,28 @@ PrivateTmp=false
     fi
 }
 
+ensure_apache_servername_conf() {
+    local src="$REPO_ROOT/apache_site_conf/morfeas-servername.conf"
+    local dst="/etc/apache2/conf-available/morfeas-servername.conf"
+
+    if [ ! -f "$src" ]; then
+        log_warn "apache ServerName snippet missing: $src"
+        return 1
+    fi
+
+    if [ ! -f "$dst" ] || ! cmp -s "$src" "$dst"; then
+        install_regular_file "$src" "$dst" 644 root root
+        APACHE_RESTART_REQUIRED=1
+        log_info "installed apache ServerName snippet"
+    fi
+
+    if [ ! -e "/etc/apache2/conf-enabled/morfeas-servername.conf" ]; then
+        a2enconf morfeas-servername >/dev/null
+        APACHE_RESTART_REQUIRED=1
+        log_info "enabled apache conf: morfeas-servername"
+    fi
+}
+
 ensure_journald_persistent() {
     local dir="/etc/systemd/journald.conf.d"
     local file="$dir/10-morfeas-journal.conf"
@@ -185,6 +207,7 @@ main() {
     ensure_root_cron_line "0 0 * * * /var/www/html/morfeas_web/backup.sh"
 
     ensure_apache_private_tmp
+    ensure_apache_servername_conf
     ensure_journald_persistent
 
     if [ "$APACHE_RESTART_REQUIRED" -eq 1 ]; then

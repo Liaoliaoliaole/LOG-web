@@ -70,8 +70,10 @@ Install and enable the site config:
 
 ```bash
 sudo cp /var/www/html/morfeas_web/apache_site_conf/Morfeas_web.conf /etc/apache2/sites-available/Morfeas_web.conf
+sudo cp /var/www/html/morfeas_web/apache_site_conf/morfeas-servername.conf /etc/apache2/conf-available/morfeas-servername.conf
 sudo a2dissite 000-default.conf
 sudo a2ensite Morfeas_web.conf
+sudo a2enconf morfeas-servername
 sudo systemctl reload apache2
 sudo systemctl restart apache2
 ```

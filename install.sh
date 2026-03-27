@@ -22,6 +22,9 @@ mode_install()
 	sudo visudo -cf /etc/sudoers.d/Morfeas_web_journal_allow &&
 	sudo cp "$(dirname "$0")/logrotate/morfeas-loggers" /etc/logrotate.d/morfeas-loggers &&
 	sudo chmod 644 /etc/logrotate.d/morfeas-loggers &&
+	sudo cp "$(dirname "$0")/apache_site_conf/morfeas-servername.conf" /etc/apache2/conf-available/morfeas-servername.conf &&
+	sudo chmod 644 /etc/apache2/conf-available/morfeas-servername.conf &&
+	sudo a2enconf morfeas-servername &&
 	sudo chmod g+w /etc/network/interfaces.d \
 	               /etc/network/interfaces.d/*\
 		       /etc/systemd/timesyncd.conf \
@@ -43,6 +46,8 @@ mode_uninstall()
 	fi
 	sudo rm -f /etc/sudoers.d/Morfeas_update_allow /etc/sudoers.d/Morfeas_web_allow /etc/sudoers.d/Morfeas_web_journal_allow
 	sudo rm -f /etc/logrotate.d/morfeas-loggers
+	sudo a2disconf -q morfeas-servername || true
+	sudo rm -f /etc/apache2/conf-available/morfeas-servername.conf
 	sudo chmod g-w /etc/network/interfaces.d \
 		       /etc/network/interfaces.d/*\
 	               /etc/systemd/timesyncd.conf \
