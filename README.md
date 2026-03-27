@@ -127,6 +127,7 @@ Post-update deploy hook (`deploy/post_update_deploy.sh`) does:
 - install `/etc/sudoers.d/Morfeas_update_allow`
 - install `/etc/sudoers.d/Morfeas_web_journal_allow` (for System Journal fallback)
 - ensure `/mnt/ramdisk/Morfeas_Loggers` shared write access (`morfeas` group, setgid)
+- normalize existing `Morfeas_Loggers/*.log` files to `group=morfeas`, mode `664`
 - ensure `morfeas_web_api.log` writable by `www-data`
 - ensure `www-data` is member of `morfeas` group
 - ensure execute bits for `update.sh`, `cron/update_cron_wrapper.sh`, `backup.sh`
@@ -162,6 +163,7 @@ Daily wrapper log visibility:
 
 - `cron/update_cron_wrapper.sh` writes `/tmp/daily_update_check.log`
 - and mirrors it to `/mnt/ramdisk/Morfeas_Loggers/LOG_daily_update_check.log`
+- mirrored logger file is normalized to `group=morfeas`, mode `664`
 - therefore it is visible in **System Status -> System Log**
 
 ## 9) Morfeas Logger Rotation (`Morfeas_Loggers/*.log`)
@@ -184,6 +186,13 @@ System Status visibility:
 - files under `/mnt/ramdisk/Morfeas_Loggers/` are listed in **System Log** page.
 - includes `morfeas_web_api.log`, `LOG_daily_update_check.log`, `LOG_update_*.log`, and runtime logs.
 - systemd journal is shown in dedicated **System Journal** tab (separate from file-based logs).
+
+Operational ownership model:
+
+- logger directory: `root:morfeas`, mode `2775`
+- runtime component logs: typically `morfeas:morfeas`
+- web API log: `www-data:morfeas`
+- root-created maintenance logs should still be normalized to `group=morfeas`, mode `664`
 
 ## 10) Update Flag Persistence
 

@@ -16,6 +16,9 @@ log_line() {
 }
 
 mkdir -p "$FLAG_DIR"
+mkdir -p "$LOGGER_DIR"
+chown root:morfeas "$LOGGER_DIR" 2>/dev/null || true
+chmod 2775 "$LOGGER_DIR" 2>/dev/null || true
 
 # Run update check and overwrite log
 /var/www/html/morfeas_web/update.sh --check-only > "$LOG_FILE" 2>&1
@@ -37,5 +40,6 @@ else
 fi
 
 # Mirror daily check log into System Status logger directory.
-mkdir -p "$LOGGER_DIR"
 cp -f "$LOG_FILE" "$LOGGER_FILE"
+chgrp morfeas "$LOGGER_FILE" 2>/dev/null || true
+chmod 664 "$LOGGER_FILE" 2>/dev/null || true

@@ -118,8 +118,12 @@ ensure_logger_dir_access() {
     mkdir -p "$dir"
 
     # Allow shared write access between morfeas services and www-data.
-    chgrp morfeas "$dir"
+    chown root:morfeas "$dir"
     chmod 2775 "$dir"
+
+    # Normalize existing logger files so morfeas/root/www-data can safely append later.
+    find "$dir" -maxdepth 1 -type f -name '*.log' -exec chgrp morfeas {} +
+    find "$dir" -maxdepth 1 -type f -name '*.log' -exec chmod 664 {} +
 
     # Ensure web API internal log is always writable by apache worker.
     touch "$api_log"

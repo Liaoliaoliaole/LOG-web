@@ -53,6 +53,8 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # ========================================
 # Morfeas Update Script
 # ========================================
+umask 0002
+
 MAX_LOGS=2
 UPDATE_LOGS_DIR="/mnt/ramdisk/Morfeas_Loggers"  
 MORFEAS_WEB_DIR="/var/www/html/morfeas_web"
@@ -81,6 +83,9 @@ find "$UPDATE_LOGS_DIR" -maxdepth 1 -type f -name "LOG_update_*.log*" -printf '%
 # Log setup
 date=$(date +"%Y-%m-%d_%H-%M-%S")
 log_file="$UPDATE_LOGS_DIR/LOG_update_$date.log"
+touch "$log_file"
+chgrp morfeas "$log_file" 2>/dev/null || true
+chmod 664 "$log_file" 2>/dev/null || true
 
 log_line() {
     local level="$1"

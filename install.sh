@@ -4,8 +4,10 @@ mode_install()
 
 	sudo usermod -a -G morfeas www-data &&
 	sudo mkdir -p /mnt/ramdisk/Morfeas_Loggers &&
-	sudo chgrp morfeas /mnt/ramdisk/Morfeas_Loggers &&
+	sudo chown root:morfeas /mnt/ramdisk/Morfeas_Loggers &&
 	sudo chmod 2775 /mnt/ramdisk/Morfeas_Loggers &&
+	sudo find /mnt/ramdisk/Morfeas_Loggers -maxdepth 1 -type f -name '*.log' -exec chgrp morfeas {} + &&
+	sudo find /mnt/ramdisk/Morfeas_Loggers -maxdepth 1 -type f -name '*.log' -exec chmod 664 {} + &&
 	sudo mkdir -p /var/lib/morfeas &&
 	sudo chmod 755 /var/lib/morfeas &&
 	sudo touch /mnt/ramdisk/Morfeas_Loggers/morfeas_web_api.log &&
