@@ -48,6 +48,10 @@ function channels_fail(string $error, int $status = 400, ?string $code = null): 
 
 function channels_fail_from_runtime(RuntimeException $e): void
 {
+    if ($e instanceof ChannelConfigException) {
+        channels_fail($e->getMessage(), $e->status(), $e->apiCode());
+    }
+
     $message = $e->getMessage();
     $lower = strtolower($message);
 
@@ -905,7 +909,11 @@ if (isset($_GET['include']) && $_GET['include'] === 'tc16_replace') {
             throw new ChannelRuleException('TC16 replace payload must contain 16 channels', 409, 'tc16_apply_conflict');
         }
 
-        iso_batch_update_anchors($xmlPath, $updates);
+        try {
+            iso_batch_update_anchors($xmlPath, $updates);
+        } catch (RuntimeException $e) {
+            channels_fail_from_runtime($e);
+        }
 
         echo json_encode([
             'ok' => true,

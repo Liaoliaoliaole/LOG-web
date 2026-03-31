@@ -62,6 +62,7 @@
     const API_ISO = channelsApi?.buildUrl?.() || resolveApiUrl('api_channels.php');
 
     const AUTO_REFRESH_MS = 1000; // poll JSON every second
+    const DELETE_UNDO_EXPIRY_MS = 30000;
 
     const ctx = $('#ctx');
 
@@ -405,6 +406,15 @@
         tag === 'TEXTAREA' ||
         tag === 'SELECT'
       );
+    }
+
+    function getActiveDeleteUndo() {
+      if (!lastDeleteUndo?.entries?.length) return null;
+      if ((Date.now() - (lastDeleteUndo.createdAt || 0)) > DELETE_UNDO_EXPIRY_MS) {
+        lastDeleteUndo = null;
+        return null;
+      }
+      return lastDeleteUndo;
     }
 
     function normalizeIsoKey(value) {
@@ -1700,11 +1710,11 @@
         const key = normalizeIsoKey(iso);
         if (!key) continue;
 
-        const latest = await fetchLatestChannelByIso(key);
-        const cached = latest ? null : findChannelByIso(key);
+        const cached = findChannelByIso(key);
         const fallbackRow = rowMap.get(key) || null;
-        const fallback = latest || cached || !fallbackRow ? null : buildRowDataFromDom(fallbackRow);
-        const payload = buildCreatePayloadFromChannel(latest || cached || fallback);
+        const latest = cached ? null : await fetchLatestChannelByIso(key);
+        const fallback = cached || latest || !fallbackRow ? null : buildRowDataFromDom(fallbackRow);
+        const payload = buildCreatePayloadFromChannel(cached || latest || fallback);
         if (!payload) continue;
 
         entries.push({ iso: key, payload });
@@ -1714,7 +1724,7 @@
     }
 
     async function undoLastDelete() {
-      const undoState = lastDeleteUndo;
+      const undoState = getActiveDeleteUndo();
       if (!undoState?.entries?.length || lastDeleteUndoInFlight) return;
 
       lastDeleteUndoInFlight = true;
@@ -2253,7 +2263,8 @@
 
     document.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key).toLowerCase() === 'z') {
-        if (lastDeleteUndo?.entries?.length) {
+        if (!canUseGlobalDelete(e)) return;
+        if (getActiveDeleteUndo()?.entries?.length) {
           e.preventDefault();
           undoLastDelete();
         }
@@ -2276,7 +2287,7 @@
         e.preventDefault();
         openCenteredPopup('tool-bar/add_channel.html', 'add_channel_popup', { width: 880, height: 820 });
       }
-    }, true);
+    });
 
   });
 })();

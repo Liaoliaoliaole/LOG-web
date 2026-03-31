@@ -59,7 +59,7 @@
   // 3.1) VALIDATION HELPERS (legacy-compatible)
   // --------------------------------------------------------------------------
   const IP_REGEX = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-  const DEV_NAME_REGEX = /^[0-9]+|[^[a-zA-Z0-9_-]]*/;
+  const DEV_NAME_REGEX = /^[A-Za-z0-9_-]{1,64}$/;
 
   function stripSpaces(el) {
     el.value = el.value.replace(/\s+/g, '');
@@ -78,11 +78,8 @@
   function validateDevName(el) {
     const val = el.value.trim();
     if (val && !DEV_NAME_REGEX.test(val)) {
-      return true;
-    }
-    if (val && DEV_NAME_REGEX.test(val)) {
       el.value = '';
-      alert('DEV_NAME contains illegal characters');
+      alert('DEV_NAME may contain only letters, numbers, "_" or "-"');
       return false;
     }
     return true;
