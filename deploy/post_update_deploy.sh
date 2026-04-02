@@ -202,7 +202,7 @@ main() {
     ensure_executable "$REPO_ROOT/cron/update_cron_wrapper.sh"
     ensure_executable "$REPO_ROOT/backup.sh"
 
-    ensure_root_cron_line "@reboot /var/www/html/morfeas_web/cron/update_cron_wrapper.sh"
+    ensure_root_cron_line "@reboot sleep 30 && /var/www/html/morfeas_web/cron/update_cron_wrapper.sh"
     ensure_root_cron_line "0 0 * * * /var/www/html/morfeas_web/cron/update_cron_wrapper.sh"
     ensure_root_cron_line "0 0 * * * /var/www/html/morfeas_web/backup.sh"
 

@@ -37,7 +37,7 @@ function devices_validate_name(string $name): bool
     if (strlen($name) > 64) {
         return false;
     }
-    return preg_match('/^[A-Za-z0-9_-]+$/', $name) === 1;
+    return preg_match('/^[A-Za-z0-9_-]{1,64}$/', $name) === 1;
 }
 
 function devices_validate_ipv4(string $ip): bool

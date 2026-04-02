@@ -1,14 +1,37 @@
 <?php
 
+class ChannelConfigException extends RuntimeException
+{
+    private int $status;
+    private string $apiCode;
+
+    public function __construct(string $message, int $status = 400, string $apiCode = 'channel_config_error')
+    {
+        parent::__construct($message);
+        $this->status = $status;
+        $this->apiCode = $apiCode;
+    }
+
+    public function status(): int
+    {
+        return $this->status;
+    }
+
+    public function apiCode(): string
+    {
+        return $this->apiCode;
+    }
+}
+
 function iso_load_channels(string $xmlPath): array
 {
     if (!is_file($xmlPath)) {
-        throw new RuntimeException("OPC_UA_Config not found: $xmlPath");
+        throw new ChannelConfigException("OPC_UA_Config not found: $xmlPath", 404, 'channel_config_missing');
     }
 
     $xml = simplexml_load_file($xmlPath);
     if ($xml === false) {
-        throw new RuntimeException("Failed to parse XML at $xmlPath");
+        throw new ChannelConfigException("Failed to parse XML at $xmlPath", 500, 'channel_config_parse_failed');
     }
 
     $out = [];
@@ -37,12 +60,12 @@ function iso_save_xml(SimpleXMLElement $xml, string $xmlPath): void
     $dom->formatOutput = true;
 
     if ($dom->loadXML($xml->asXML()) === false) {
-        throw new RuntimeException('Failed to format XML output');
+        throw new ChannelConfigException('Failed to format XML output', 500, 'channel_config_format_failed');
     }
 
     $xmlString = $dom->saveXML();
     if ($xmlString === false) {
-        throw new RuntimeException('Failed to serialize XML');
+        throw new ChannelConfigException('Failed to serialize XML', 500, 'channel_config_serialize_failed');
     }
 
     $xmlString = preg_replace_callback('/<UNIT>(.*?)<\\/UNIT>/s', static function ($matches) {
@@ -50,7 +73,7 @@ function iso_save_xml(SimpleXMLElement $xml, string $xmlPath): void
     }, $xmlString);
 
     if (file_put_contents($xmlPath, $xmlString) === false) {
-        throw new RuntimeException("Failed to save XML: $xmlPath");
+        throw new ChannelConfigException("Failed to save XML: $xmlPath", 500, 'channel_config_save_failed');
     }
 }
 
@@ -195,24 +218,28 @@ function iso_pick_value(array $data, array $keys)
 function iso_add_channel(string $xmlPath, array $data): void
 {
     if (!file_exists($xmlPath)) {
-        throw new RuntimeException("XML not found: $xmlPath");
+        throw new ChannelConfigException("XML not found: $xmlPath", 404, 'channel_config_missing');
     }
     $xml = simplexml_load_file($xmlPath);
     if ($xml === false) {
-        throw new RuntimeException("Failed to parse XML");
+        throw new ChannelConfigException("Failed to parse XML", 500, 'channel_config_parse_failed');
     }
 
     $isoChannel = iso_normalize_iso_channel($data['iso_channel']);
 
     foreach ($xml->CHANNEL as $ch) {
         if ((string)$ch->ISO_CHANNEL === $isoChannel) {
-            throw new RuntimeException("ISO_CHANNEL already exists: ".$isoChannel);
+            throw new ChannelConfigException("ISO_CHANNEL already exists: " . $isoChannel, 409, 'channel_conflict');
         }
     }
 
     $anchorConflictIso = iso_find_anchor_conflict($xml, (string)$data['anchor']);
     if ($anchorConflictIso !== null) {
-        throw new RuntimeException("ANCHOR already exists: " . $data['anchor'] . " is already used by " . $anchorConflictIso);
+        throw new ChannelConfigException(
+            "ANCHOR already exists: " . $data['anchor'] . " is already used by " . $anchorConflictIso,
+            409,
+            'channel_conflict'
+        );
     }
 
     $new = $xml->addChild('CHANNEL');
@@ -245,11 +272,11 @@ function iso_add_channel(string $xmlPath, array $data): void
 function iso_update_channel(string $xmlPath, string $isoChannel, array $data): void
 {
     if (!file_exists($xmlPath)) {
-        throw new RuntimeException("XML not found: $xmlPath");
+        throw new ChannelConfigException("XML not found: $xmlPath", 404, 'channel_config_missing');
     }
     $xml = simplexml_load_file($xmlPath);
     if ($xml === false) {
-        throw new RuntimeException("Failed to parse XML");
+        throw new ChannelConfigException("Failed to parse XML", 500, 'channel_config_parse_failed');
     }
 
     $isoChannel = iso_normalize_iso_channel($isoChannel);
@@ -261,7 +288,7 @@ function iso_update_channel(string $xmlPath, string $isoChannel, array $data): v
         }
     }
     if (!$target) {
-        throw new RuntimeException("ISO_CHANNEL not found: ".$isoChannel);
+        throw new ChannelConfigException("ISO_CHANNEL not found: " . $isoChannel, 404, 'channel_not_found');
     }
 
     $existing = iso_channel_snapshot($target);
@@ -271,7 +298,7 @@ function iso_update_channel(string $xmlPath, string $isoChannel, array $data): v
         if ($newIso !== $isoChannel) {
             foreach ($xml->CHANNEL as $ch) {
                 if ((string)$ch->ISO_CHANNEL === $newIso) {
-                    throw new RuntimeException("ISO_CHANNEL already exists: " . $newIso);
+                    throw new ChannelConfigException("ISO_CHANNEL already exists: " . $newIso, 409, 'channel_conflict');
                 }
             }
         }
@@ -303,7 +330,11 @@ function iso_update_channel(string $xmlPath, string $isoChannel, array $data): v
 
     $anchorConflictIso = iso_find_anchor_conflict($xml, (string)$payload['anchor'], $isoChannel);
     if ($anchorConflictIso !== null) {
-        throw new RuntimeException("ANCHOR already exists: " . $payload['anchor'] . " is already used by " . $anchorConflictIso);
+        throw new ChannelConfigException(
+            "ANCHOR already exists: " . $payload['anchor'] . " is already used by " . $anchorConflictIso,
+            409,
+            'channel_conflict'
+        );
     }
 
     iso_set_channel_contents($target, $payload);
@@ -313,11 +344,11 @@ function iso_update_channel(string $xmlPath, string $isoChannel, array $data): v
 function iso_delete_channel(string $xmlPath, string $isoChannel): void
 {
     if (!file_exists($xmlPath)) {
-        throw new RuntimeException("XML not found: $xmlPath");
+        throw new ChannelConfigException("XML not found: $xmlPath", 404, 'channel_config_missing');
     }
     $xml = simplexml_load_file($xmlPath);
     if ($xml === false) {
-        throw new RuntimeException("Failed to parse XML");
+        throw new ChannelConfigException("Failed to parse XML", 500, 'channel_config_parse_failed');
     }
 
     $isoChannel = iso_normalize_iso_channel($isoChannel);
@@ -332,7 +363,7 @@ function iso_delete_channel(string $xmlPath, string $isoChannel): void
         $index++;
     }
     if (!$found) {
-        throw new RuntimeException("ISO_CHANNEL not found: ".$isoChannel);
+        throw new ChannelConfigException("ISO_CHANNEL not found: " . $isoChannel, 404, 'channel_not_found');
     }
 
     iso_save_xml($xml, $xmlPath);
@@ -341,11 +372,11 @@ function iso_delete_channel(string $xmlPath, string $isoChannel): void
 function iso_batch_update_anchors(string $xmlPath, array $updates): void
 {
     if (!file_exists($xmlPath)) {
-        throw new RuntimeException("XML not found: $xmlPath");
+        throw new ChannelConfigException("XML not found: $xmlPath", 404, 'channel_config_missing');
     }
     $xml = simplexml_load_file($xmlPath);
     if ($xml === false) {
-        throw new RuntimeException("Failed to parse XML");
+        throw new ChannelConfigException("Failed to parse XML", 500, 'channel_config_parse_failed');
     }
 
     $normalized = [];
@@ -353,7 +384,7 @@ function iso_batch_update_anchors(string $xmlPath, array $updates): void
         $isoNorm = iso_normalize_iso_channel((string)$iso);
         $anchorNorm = trim((string)$anchor);
         if ($isoNorm === '' || $anchorNorm === '') {
-            throw new RuntimeException('Invalid batch anchor update payload');
+            throw new ChannelConfigException('Invalid batch anchor update payload', 400, 'channel_config_error');
         }
         $normalized[$isoNorm] = $anchorNorm;
     }
@@ -371,7 +402,7 @@ function iso_batch_update_anchors(string $xmlPath, array $updates): void
 
     foreach ($normalized as $iso => $_anchor) {
         if (!array_key_exists($iso, $indexByIso)) {
-            throw new RuntimeException("ISO_CHANNEL not found: " . $iso);
+            throw new ChannelConfigException("ISO_CHANNEL not found: " . $iso, 404, 'channel_not_found');
         }
     }
 
