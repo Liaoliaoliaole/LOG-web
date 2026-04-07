@@ -102,6 +102,42 @@ Typical columns include:
 
 The page refreshes automatically while it is visible, so operators normally do not need to reload manually.
 
+\subsection{Measurement Display Rules}
+The \textbf{Meas} column follows the runtime measurement semantics of the current system.
+
+\begin{itemize}
+\item Normal valid measurements are shown as numeric values with the unit when a unit is available.
+\item \textbf{Out of Range} and \textbf{Over Range} continue to show the actual runtime measurement value. They are not converted to an error code.
+\item Reserved runtime error codes are shown as \textbf{red integers} in the \textbf{Meas} column.
+\item Reserved error codes are shown without units and without decimal formatting.
+\item Reserved error codes are not collapsed to \texttt{---}.
+\end{itemize}
+
+\subsection{Reserved Measurement Error Codes}
+The following reserved values may appear in the \textbf{Meas} column, in OPC UA downstream consumers, and in connected tools that read the same measurement path.
+
+\begin{longtable}{|p{0.18\textwidth}|p{0.28\textwidth}|p{0.42\textwidth}|}
+\hline
+\textbf{Code} & \textbf{Meaning} & \textbf{Typical Situation} \\
+\hline
+\texttt{-901} & OFF-Line / Disconnected & The runtime source is missing, the device or channel is disconnected, or the linked measurement source is no longer available. \\
+\hline
+\texttt{-902} & No Sensor & The device reports that no sensor is present on that measurement channel. \\
+\hline
+\texttt{-903} & Stall & The device is still online, but that channel is no longer receiving fresh runtime samples. \\
+\hline
+\texttt{-904} & Unclassified & The SDAQ channel reports a non-zero status that is not mapped to No Sensor, Out of Range, or Over Range. \\
+\hline
+\end{longtable}
+
+\subsection{Reading Status Together with Meas}
+Operators should read the \textbf{Status} and \textbf{Meas} columns together:
+
+\begin{itemize}
+\item \textbf{Status = Out of Range} or \textbf{Over Range} with a numeric \textbf{Meas} value means the device still reports a measurement, but the channel is flagged as outside the expected calibrated or device range.
+\item \textbf{Status = No sensor}, \textbf{OFF-Line}, \textbf{Disconnected}, \textbf{Stall}, or \textbf{Unclassified} together with a red negative \textbf{Meas} value means the measurement is not valid and the code should be interpreted using the error-code table above.
+\end{itemize}
+
 \subsection{Search}
 Use \textbf{Search Input} to filter channels in the current table.
 
@@ -590,6 +626,15 @@ This section gives quick operator guidance for common problems.
 \item Use \textbf{Reload} once to refresh the selected tab.
 \item Verify that the correct logger file or journal scope is selected.
 \item If the service has not produced messages yet, the view may be temporarily empty.
+\end{itemize}
+
+\subsection{Red Negative Measurement Codes Are Shown}
+\begin{itemize}
+\item \texttt{-901} means the runtime source is offline or disconnected.
+\item \texttt{-902} means no sensor is present.
+\item \texttt{-903} means the channel is stalled and not receiving fresh samples.
+\item \texttt{-904} means the SDAQ channel reports an unclassified runtime status.
+\item When these codes are shown, the measurement should not be interpreted as a physical live value.
 \end{itemize}
 
 \subsection{Update Reminder Dot Is Still Visible}
