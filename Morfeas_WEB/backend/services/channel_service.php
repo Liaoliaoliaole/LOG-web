@@ -13,6 +13,37 @@ function channel_status_is_offline(string $status): bool
     return in_array($s, ['off-line', 'offline', 'disconnected'], true);
 }
 
+function channel_reserved_error_code(?float $value): ?int
+{
+    if ($value === null) {
+        return null;
+    }
+
+    $intValue = (int)round($value);
+    return in_array($intValue, [-901, -902, -903, -904], true) ? $intValue : null;
+}
+
+function channel_assign_error_code_display(array &$row, int $code, string &$meas, ?string &$measUnit): void
+{
+    $row['meas_error_code'] = $code;
+    $row['meas_is_error_code'] = true;
+    $meas = (string)$code;
+    $measUnit = null;
+}
+
+function channel_assign_numeric_display(array &$row, float $value, ?string $unit, string &$meas, ?string &$measUnit): void
+{
+    $row['meas_error_code'] = null;
+    $row['meas_is_error_code'] = false;
+    $meas = sprintf('%.3f', $value);
+    if (is_string($unit) && $unit !== '') {
+        $meas .= ' ' . $unit;
+        $measUnit = $unit;
+    } else {
+        $measUnit = null;
+    }
+}
+
 function channel_pick_runtime_sdaq_type(?string $fromMap, ?string $fromEntry): ?string
 {
     $candidates = [$fromEntry, $fromMap];
@@ -200,6 +231,8 @@ function channel_build_rows_with_logstat(
         $status = 'OFF-Line';
         $meas   = '—';
         $measUnit = null;
+        $row['meas_error_code'] = null;
+        $row['meas_is_error_code'] = false;
 
         $runtimeSdaqType = null;
         $sdaqAddressAnchor = null;
@@ -231,13 +264,12 @@ function channel_build_rows_with_logstat(
                     $sdaqAddressAnchor = (string)$ls['address_anchor'];
                 }
 
-                if (!empty($ls['is_meas_valid']) && $ls['meas_value'] !== null) {
-                    $value = $ls['meas_value'];
-                    $meas  = sprintf('%.3f', $value);
-                    if (!empty($ls['meas_unit'])) {
-                        $meas .= ' ' . $ls['meas_unit'];
-                        $measUnit = $ls['meas_unit'];
-                    }
+                $errorCode = channel_reserved_error_code(isset($ls['error_code']) ? (float)$ls['error_code'] : null);
+                if ($errorCode !== null) {
+                    channel_assign_error_code_display($row, $errorCode, $meas, $measUnit);
+                } elseif (!empty($ls['is_meas_valid']) && $ls['meas_value'] !== null) {
+                    $value = (float)$ls['meas_value'];
+                    channel_assign_numeric_display($row, $value, $ls['meas_unit'] ?? null, $meas, $measUnit);
                 }
             }
 
@@ -292,6 +324,10 @@ function channel_build_rows_with_logstat(
                 $row['dev_type_known'] = false;
                 $row['dev_type_stale'] = false;
             }
+
+            if ($row['meas_error_code'] === null && channel_status_is_offline($status)) {
+                channel_assign_error_code_display($row, -901, $meas, $measUnit);
+            }
         } elseif ($type === 'IOBOX') {
             $row['display_anchor'] = $formatNetworkAnchor($anchor, $ioboxIPv4);
 
@@ -299,13 +335,12 @@ function channel_build_rows_with_logstat(
                 $ls = $ioboxMap[$anchor];
                 $status = $ls['status'] ?? 'Unknown';
 
-                if (!empty($ls['is_meas_valid']) && $ls['meas_value'] !== null) {
-                    $value = $ls['meas_value'];
-                    $meas  = sprintf('%.3f', $value);
-                    if (!empty($ls['meas_unit'])) {
-                        $meas .= ' ' . $ls['meas_unit'];
-                        $measUnit = $ls['meas_unit'];
-                    }
+                $errorCode = channel_reserved_error_code(isset($ls['error_code']) ? (float)$ls['error_code'] : null);
+                if ($errorCode !== null) {
+                    channel_assign_error_code_display($row, $errorCode, $meas, $measUnit);
+                } elseif (!empty($ls['is_meas_valid']) && $ls['meas_value'] !== null) {
+                    $value = (float)$ls['meas_value'];
+                    channel_assign_numeric_display($row, $value, $ls['meas_unit'] ?? null, $meas, $measUnit);
                 }
             }
 
@@ -314,6 +349,10 @@ function channel_build_rows_with_logstat(
                 if ($deviceId !== null && isset($ioboxConn[$deviceId]) && strcasecmp($ioboxConn[$deviceId], 'Okay') === 0) {
                     $status = 'Disconnected';
                 }
+            }
+
+            if ($row['meas_error_code'] === null && channel_status_is_offline($status)) {
+                channel_assign_error_code_display($row, -901, $meas, $measUnit);
             }
 
         } elseif ($type === 'MTI') {
@@ -396,6 +435,8 @@ function channel_build_rows_with_logstat(
             'status'           => $chMeta['entry']['status'] ?? null,
             'is_meas_valid'    => $chMeta['entry']['is_meas_valid'] ?? null,
             'meas_value'       => $chMeta['entry']['meas_value'] ?? null,
+            'error_code'       => $chMeta['entry']['error_code'] ?? null,
+            'meas_is_error_code' => channel_reserved_error_code(isset($chMeta['entry']['error_code']) ? (float)$chMeta['entry']['error_code'] : null) !== null,
             'linked_in_xml'    => isset($anchorsInXmlUpper[$upper]),
         ];
     }
@@ -411,6 +452,8 @@ function channel_build_rows_with_logstat(
             'is_meas_valid'  => $entry['is_meas_valid'] ?? null,
             'meas_value'     => $entry['meas_value'] ?? null,
             'meas_unit'      => $entry['meas_unit'] ?? null,
+            'error_code'     => $entry['error_code'] ?? null,
+            'meas_is_error_code' => channel_reserved_error_code(isset($entry['error_code']) ? (float)$entry['error_code'] : null) !== null,
             'linked_in_xml'  => isset($anchorsInXmlUpper[$upper]),
         ];
     }

@@ -1,5 +1,10 @@
 <?php
 
+const SDAQ_WEB_MEAS_ERROR_OFFLINE = -901.0;
+const SDAQ_WEB_MEAS_ERROR_NO_SENSOR = -902.0;
+const SDAQ_WEB_MEAS_ERROR_STALL = -903.0;
+const SDAQ_WEB_MEAS_ERROR_UNCLASSIFIED = -904.0;
+
 function sdaq_detect_bus(array $data, string $jsonPath): string
 {
     if (!empty($data['CANBus_interface'])) {
@@ -149,6 +154,7 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
             $status  = 'Okay';
             $valid   = true;
             $explain = null;
+            $errorCode = null;
 
             $hasUnit      = is_string($unit) && $unit !== '';
             $hasValueInfo = $value !== null
@@ -179,21 +185,24 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
                     $status = 'Stall';
                     $valid  = false;
                     $value  = null;
+                    $errorCode = SDAQ_WEB_MEAS_ERROR_STALL;
                 } elseif ($noSens) {
                     $status = 'NO_Sensor';
                     $valid  = false;
                     $value  = null;
+                    $errorCode = SDAQ_WEB_MEAS_ERROR_NO_SENSOR;
                 } elseif ($over) {
                     $status = 'Over Range';
-                    $valid  = false;
-                    $value  = null;
+                    $valid  = true;
                 } elseif ($out) {
                     $status = 'Out of Range';
-                    $valid  = false;   // Treat as error.
+                    $valid  = true;
                 } elseif (!empty($stVal)) {
                     // Error flag without a specific category.
                     $status = 'Unclassified';
                     $valid  = false;
+                    $value  = null;
+                    $errorCode = SDAQ_WEB_MEAS_ERROR_UNCLASSIFIED;
                 }
             }
 
@@ -205,6 +214,7 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
                 'device_user_identifier' => is_string($deviceType) ? $deviceType : null,
                 'link_state'    => $linkedByConfig ? 'Linked' : 'Unlinked',
                 'address_anchor' => $canonical,
+                'error_code'    => $errorCode,
             ];
 
             if ($explain !== null) {

@@ -1140,6 +1140,11 @@
       return 'st-Unknown';
     }
 
+    function isReservedMeasErrorCode(value) {
+      const n = typeof value === 'number' ? value : Number(String(value || '').trim());
+      return Number.isInteger(n) && (n === -901 || n === -902 || n === -903 || n === -904);
+    }
+
     // Compute Next Calibration（YYYY-MM-DD）from cal_date + cal_period
     function computeNextCalibration(ch) {
       const calDate = ch.cal_date;
@@ -1202,6 +1207,7 @@
       })();
       const dotClass = statusToDotClass(statusText);
       const valueText = ch.meas != null && ch.meas !== '' ? ch.meas : '—';
+      const hasErrorCode = !!ch.meas_is_error_code || isReservedMeasErrorCode(ch.meas_error_code) || isReservedMeasErrorCode(valueText);
 
       const nextCal = computeNextCalibration(ch);
 
@@ -1253,6 +1259,10 @@
       // 8 Value
       const tdVal = document.createElement('td');
       tdVal.setAttribute('data-col', 'value');
+      if (hasErrorCode) {
+        tdVal.classList.add('meas-error');
+        tdVal.dataset.errorCode = String(ch.meas_error_code || valueText).trim();
+      }
       tdVal.textContent = valueText;
       tr.appendChild(tdVal);
 
@@ -1336,7 +1346,7 @@
             if (!isoKey) return;
             seenIsoKeys.add(isoKey);
             const meas = parseFloat(ch.meas);
-            const hasMeas = ch.meas !== null && ch.meas !== '' && Number.isFinite(meas);
+            const hasMeas = ch.meas !== null && ch.meas !== '' && Number.isFinite(meas) && !isReservedMeasErrorCode(ch.meas_error_code) && !isReservedMeasErrorCode(meas);
             pushMeasurement(isoKey, hasMeas ? meas : NaN);
           });
 
@@ -1560,6 +1570,7 @@
       const m = raw.match(/^-?\d+(?:\.\d+)?/);
       if (!m) return null;
       const n = Number(m[0]);
+      if (isReservedMeasErrorCode(n)) return null;
       return Number.isFinite(n) ? n : null;
     }
 

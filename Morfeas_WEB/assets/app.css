@@ -379,6 +379,11 @@ body {
   line-height: 1;
 }
 
+.table td.meas-error {
+  color: var(--color-status-error);
+  font-weight: 700;
+}
+
 /* Row states */
 .row:hover {
   background: var(--color-row-hover);

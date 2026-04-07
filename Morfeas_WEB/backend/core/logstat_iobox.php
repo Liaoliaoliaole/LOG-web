@@ -1,5 +1,8 @@
 <?php
 
+const IOBOX_WEB_MEAS_ERROR_OFFLINE = -901.0;
+const IOBOX_WEB_MEAS_ERROR_NO_SENSOR = -902.0;
+
 function iobox_load_anchor_map(array $paths): array
 {
     $anchors     = [];
@@ -66,11 +69,13 @@ function iobox_load_anchor_map(array $paths): array
                 $status = 'Okay';
                 $valid  = is_numeric($value);
                 $meas   = $valid ? (float)$value : null;
+                $errorCode = null;
 
                 if (is_string($value) && strcasecmp($value, 'No sensor') === 0) {
                     $status = 'No sensor';
                     $valid  = false;
                     $meas   = null;
+                    $errorCode = IOBOX_WEB_MEAS_ERROR_NO_SENSOR;
                 } elseif (!$valid) {
                     $status = 'Unclassified';
                 }
@@ -80,6 +85,7 @@ function iobox_load_anchor_map(array $paths): array
                     'is_meas_valid' => $valid,
                     'meas_value'    => $meas,
                     'meas_unit'     => null,
+                    'error_code'    => $errorCode,
                 ];
             }
         }
