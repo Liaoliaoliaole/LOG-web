@@ -96,8 +96,10 @@ load_progress_state() {
 }
 
 write_progress_state() {
+    local tmp_file
     mkdir -p "$RESTART_STATE_DIR"
-    cat > "$PROGRESS_FILE" <<EOF
+    tmp_file="$(mktemp "$RESTART_STATE_DIR/update_progress.env.XXXXXX")"
+    cat > "$tmp_file" <<EOF
 STATE=$PROGRESS_STATE
 MODE=$CURRENT_MODE
 PHASE=$PROGRESS_PHASE
@@ -107,8 +109,9 @@ WEB_STATUS=$WEB_STATUS
 CORE_STATUS=$CORE_STATUS
 UPDATED_AT_UNIX=$UPDATED_AT_UNIX
 EOF
-    chgrp morfeas "$PROGRESS_FILE" 2>/dev/null || true
-    chmod 664 "$PROGRESS_FILE" 2>/dev/null || true
+    chgrp morfeas "$tmp_file" 2>/dev/null || true
+    chmod 664 "$tmp_file" 2>/dev/null || true
+    mv -f "$tmp_file" "$PROGRESS_FILE"
 }
 
 set_progress() {
@@ -299,7 +302,7 @@ perform_update() {
         if [ "$web_behind" -gt 0 ] && [ "$web_ahead" -eq 0 ]; then
             WEB_STATUS="updating"
             set_progress "running" "web_update" "web" "18"
-            git pull
+            git pull --ff-only
             web_updated=1
             log_line "INFO" "Web repository updated via git pull."
         elif [ "$web_behind" -eq 0 ] && [ "$web_ahead" -gt 0 ]; then

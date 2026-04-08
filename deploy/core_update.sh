@@ -55,8 +55,10 @@ load_progress_state() {
 }
 
 write_progress_state() {
+  local tmp_file
   mkdir -p "$PROGRESS_STATE_DIR"
-  cat > "$PROGRESS_FILE" <<EOF
+  tmp_file="$(mktemp "$PROGRESS_STATE_DIR/update_progress.env.XXXXXX")"
+  cat > "$tmp_file" <<EOF
 STATE=$PROGRESS_STATE
 MODE=$CURRENT_MODE
 PHASE=$PROGRESS_PHASE
@@ -66,8 +68,9 @@ WEB_STATUS=$WEB_STATUS
 CORE_STATUS=$CORE_STATUS
 UPDATED_AT_UNIX=$UPDATED_AT_UNIX
 EOF
-  chgrp morfeas "$PROGRESS_FILE" 2>/dev/null || true
-  chmod 664 "$PROGRESS_FILE" 2>/dev/null || true
+  chgrp morfeas "$tmp_file" 2>/dev/null || true
+  chmod 664 "$tmp_file" 2>/dev/null || true
+  mv -f "$tmp_file" "$PROGRESS_FILE"
 }
 
 set_core_progress() {
@@ -232,7 +235,9 @@ core_health_check() {
   fi
   pgrep -f '[M]orfeas_daemon' >/dev/null || { log_line "ERROR" "Morfeas_daemon not running"; return 1; }
   pgrep -f '[M]orfeas_opc_ua' >/dev/null || { log_line "ERROR" "Morfeas_opc_ua not running"; return 1; }
-  pgrep -f '[M]orfeas_SDAQ_if' >/dev/null || { log_line "ERROR" "Morfeas_SDAQ_if not running"; return 1; }
+  if ! pgrep -f '[M]orfeas_SDAQ_if' >/dev/null; then
+    log_line "WARN" "Morfeas_SDAQ_if not running; this may be expected on systems without active SDAQ interfaces"
+  fi
   return 0
 }
 
