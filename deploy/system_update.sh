@@ -58,10 +58,33 @@ print_status() {
     log_line "INFO" "===== $1 ====="
 }
 
+repo_ahead_behind() {
+    local branch="$1"
+    local -n out_ahead="$2"
+    local -n out_behind="$3"
+    local remote_ref="origin/$branch"
+    local counts
+
+    if ! git rev-parse --verify "$remote_ref" >/dev/null 2>&1; then
+        log_line "ERROR" "Remote ref not found: $remote_ref"
+        return 1
+    fi
+
+    counts="$(git rev-list --left-right --count "HEAD...$remote_ref")" || return 1
+    read -r out_ahead out_behind <<<"$counts"
+    if ! [[ "$out_ahead" =~ ^[0-9]+$ && "$out_behind" =~ ^[0-9]+$ ]]; then
+        log_line "ERROR" "Invalid WEB ahead/behind output: '$counts'"
+        return 1
+    fi
+    return 0
+}
+
 check_updates() {
     print_status "Running CHECK-ONLY Mode"
     web_update_needed=0
     core_update_needed=0
+    web_ahead=0
+    web_behind=0
 
     if [ -d "$MORFEAS_WEB_DIR" ]; then
         cd "$MORFEAS_WEB_DIR"
@@ -71,8 +94,18 @@ check_updates() {
         fi
         local_branch=$(git rev-parse --abbrev-ref HEAD)
         log_line "INFO" "Checking branch=$local_branch for remote changes."
-        if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/$local_branch)" ]; then
+        if ! repo_ahead_behind "$local_branch" web_ahead web_behind; then
+            log_line "ERROR" "Cannot compute WEB ahead/behind."
+            exit 1
+        fi
+
+        if [ "$web_behind" -gt 0 ] && [ "$web_ahead" -eq 0 ]; then
             web_update_needed=1
+        elif [ "$web_behind" -eq 0 ] && [ "$web_ahead" -gt 0 ]; then
+            log_line "WARN" "WEB local branch is ahead of origin (ahead=$web_ahead behind=0); no remote update needed."
+        elif [ "$web_behind" -gt 0 ] && [ "$web_ahead" -gt 0 ]; then
+            log_line "ERROR" "WEB branch diverged from origin (ahead=$web_ahead behind=$web_behind); manual rebase/merge required."
+            exit 1
         fi
     fi
 
@@ -92,6 +125,10 @@ check_updates() {
             2)
                 log_line "ERROR" "Network issue or cannot reach CORE git server during check-only."
                 exit 2
+                ;;
+            3)
+                log_line "ERROR" "CORE branch diverged from origin. Manual rebase/merge required."
+                exit 1
                 ;;
             *)
                 log_line "ERROR" "Core check-only failed with exit_code=$core_check_ec"
@@ -120,6 +157,8 @@ perform_update() {
     print_status "Running FULL UPDATE Mode"
     web_updated=0
     core_updated=0
+    web_ahead=0
+    web_behind=0
 
     if [ -d "$MORFEAS_WEB_DIR" ]; then
         cd "$MORFEAS_WEB_DIR"
@@ -129,10 +168,20 @@ perform_update() {
         fi
         web_branch=$(git rev-parse --abbrev-ref HEAD)
         log_line "INFO" "Update mode on branch=$web_branch."
-        if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/$web_branch)" ]; then
+        if ! repo_ahead_behind "$web_branch" web_ahead web_behind; then
+            log_line "ERROR" "Cannot compute WEB ahead/behind."
+            exit 1
+        fi
+
+        if [ "$web_behind" -gt 0 ] && [ "$web_ahead" -eq 0 ]; then
             git pull
             web_updated=1
             log_line "INFO" "Web repository updated via git pull."
+        elif [ "$web_behind" -eq 0 ] && [ "$web_ahead" -gt 0 ]; then
+            log_line "WARN" "WEB local branch is ahead of origin (ahead=$web_ahead behind=0); skipping pull."
+        elif [ "$web_behind" -gt 0 ] && [ "$web_ahead" -gt 0 ]; then
+            log_line "ERROR" "WEB branch diverged from origin (ahead=$web_ahead behind=$web_behind); cannot fast-forward."
+            exit 1
         fi
     fi
 
@@ -156,6 +205,9 @@ perform_update() {
         elif [ "$core_update_ec" -eq 2 ]; then
             log_line "ERROR" "Network issue or cannot reach CORE git server during update."
             exit 2
+        elif [ "$core_update_ec" -eq 3 ]; then
+            log_line "ERROR" "CORE branch diverged from origin; cannot fast-forward."
+            exit 1
         else
             log_line "ERROR" "Core update script failed with exit_code=$core_update_ec"
             exit 1

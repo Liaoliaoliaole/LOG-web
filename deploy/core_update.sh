@@ -37,9 +37,32 @@ find_core_root() {
   return 1
 }
 
+core_ahead_behind() {
+  local branch="$1"
+  local -n out_ahead="$2"
+  local -n out_behind="$3"
+  local remote_ref="origin/$branch"
+  local counts
+
+  if ! git rev-parse --verify "$remote_ref" >/dev/null 2>&1; then
+    log_line "ERROR" "remote ref not found: $remote_ref"
+    return 1
+  fi
+
+  counts="$(git rev-list --left-right --count "HEAD...$remote_ref")" || return 1
+  read -r out_ahead out_behind <<<"$counts"
+  if ! [[ "$out_ahead" =~ ^[0-9]+$ && "$out_behind" =~ ^[0-9]+$ ]]; then
+    log_line "ERROR" "invalid ahead/behind output: '$counts'"
+    return 1
+  fi
+  return 0
+}
+
 core_check_updates() {
   local core_root="$1"
   local branch
+  local ahead=0
+  local behind=0
 
   cd "$core_root"
   if ! git fetch origin; then
@@ -47,11 +70,27 @@ core_check_updates() {
     exit 2
   fi
   branch="$(git rev-parse --abbrev-ref HEAD)"
-  if [ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/$branch")" ]; then
+  if ! core_ahead_behind "$branch" ahead behind; then
+    log_line "ERROR" "cannot compute ahead/behind for branch=$branch"
+    exit 1
+  fi
+
+  if [ "$behind" -gt 0 ] && [ "$ahead" -eq 0 ]; then
     log_line "INFO" "core update available on branch=$branch"
     exit 100
   fi
-  log_line "INFO" "core up to date on branch=$branch"
+
+  if [ "$behind" -eq 0 ] && [ "$ahead" -gt 0 ]; then
+    log_line "WARN" "core local branch is ahead of origin (ahead=$ahead behind=0); no remote update needed"
+    exit 0
+  fi
+
+  if [ "$behind" -gt 0 ] && [ "$ahead" -gt 0 ]; then
+    log_line "ERROR" "core branch diverged from origin (ahead=$ahead behind=$behind); manual rebase/merge required"
+    exit 3
+  fi
+
+  log_line "INFO" "core up to date on branch=$branch (ahead=0 behind=0)"
   exit 0
 }
 
@@ -70,6 +109,8 @@ core_apply_update() {
   local core_root="$1"
   local branch
   local core_updated=0
+  local ahead=0
+  local behind=0
 
   cd "$core_root"
   if ! git fetch origin; then
@@ -77,12 +118,22 @@ core_apply_update() {
     exit 2
   fi
   branch="$(git rev-parse --abbrev-ref HEAD)"
-  if [ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/$branch")" ]; then
+  if ! core_ahead_behind "$branch" ahead behind; then
+    log_line "ERROR" "cannot compute ahead/behind for branch=$branch"
+    exit 1
+  fi
+
+  if [ "$behind" -gt 0 ] && [ "$ahead" -eq 0 ]; then
     log_line "INFO" "core update detected on branch=$branch, pulling changes"
     git pull --ff-only
     core_updated=1
+  elif [ "$behind" -eq 0 ] && [ "$ahead" -gt 0 ]; then
+    log_line "WARN" "core local branch is ahead of origin (ahead=$ahead behind=0); skipping pull/build"
+  elif [ "$behind" -gt 0 ] && [ "$ahead" -gt 0 ]; then
+    log_line "ERROR" "core branch diverged from origin (ahead=$ahead behind=$behind); cannot fast-forward"
+    exit 3
   else
-    log_line "INFO" "core already up to date on branch=$branch"
+    log_line "INFO" "core already up to date on branch=$branch (ahead=0 behind=0)"
   fi
 
   if [ "$core_updated" -eq 1 ]; then

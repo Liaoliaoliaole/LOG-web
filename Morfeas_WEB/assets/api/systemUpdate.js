@@ -47,7 +47,7 @@
     buildUrl,
     status: (timeoutMs = 8000) => requestJson('GET', null, { action: 'status' }, timeoutMs),
     check: (timeoutMs = 120000) => requestJson('POST', { action: 'check' }, null, timeoutMs),
-    update: (timeoutMs = 300000) => requestJson('POST', { action: 'update' }, null, timeoutMs),
+    update: (timeoutMs = 900000) => requestJson('POST', { action: 'update' }, null, timeoutMs),
   };
 
   root.api = root.api || {};

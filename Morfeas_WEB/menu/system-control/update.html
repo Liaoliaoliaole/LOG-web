@@ -62,6 +62,33 @@
       color: #a8071a;
     }
 
+    .progress-wrap {
+      margin-top: 10px;
+    }
+
+    .progress-track {
+      height: 10px;
+      width: 100%;
+      border-radius: 999px;
+      background: #e5e7eb;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #1677ff, #13c2c2);
+      transition: width 0.35s ease;
+    }
+
+    .progress-meta {
+      margin-top: 6px;
+      color: #6b7280;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
     .actions {
       display: flex;
       flex-wrap: wrap;
@@ -104,6 +131,12 @@
       <button id="reloadBtn" class="btn" hidden>Reload Page</button>
     </div>
     <div id="statusBox" class="status">Checking for updates...</div>
+    <div id="progressWrap" class="progress-wrap" hidden>
+      <div class="progress-track">
+        <div id="progressFill" class="progress-fill"></div>
+      </div>
+      <div id="progressMeta" class="progress-meta">Elapsed: 0s</div>
+    </div>
     <div class="muted">If services restart during update, temporary disconnection is expected.</div>
   </div>
 
