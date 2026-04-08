@@ -1261,7 +1261,6 @@
       tdVal.setAttribute('data-col', 'value');
       if (hasErrorCode) {
         tdVal.classList.add('meas-error');
-        tdVal.dataset.errorCode = String(ch.meas_error_code || valueText).trim();
       }
       tdVal.textContent = valueText;
       tr.appendChild(tdVal);

@@ -1,7 +1,7 @@
 <?php
 
-const IOBOX_WEB_MEAS_ERROR_OFFLINE = -901.0;
 const IOBOX_WEB_MEAS_ERROR_NO_SENSOR = -902.0;
+const IOBOX_WEB_MEAS_ERROR_UNCLASSIFIED = -904.0;
 
 function iobox_load_anchor_map(array $paths): array
 {
@@ -78,6 +78,7 @@ function iobox_load_anchor_map(array $paths): array
                     $errorCode = IOBOX_WEB_MEAS_ERROR_NO_SENSOR;
                 } elseif (!$valid) {
                     $status = 'Unclassified';
+                    $errorCode = IOBOX_WEB_MEAS_ERROR_UNCLASSIFIED;
                 }
 
                 $anchors[$anchor] = [
