@@ -120,7 +120,7 @@ Current expected scope includes web + core update:
 - `--update`: updates web repo, runs web post-deploy, then runs core update script
 - core update script (canonical): `deploy/core_update.sh`
 - core flow uses lock file (`/var/lock/morfeas_core_update.lock`) to avoid concurrent runs
-- core flow enforces unified restart through `Morfeas_system.service` (via `build_core_code_only.sh`)
+- core flow enforces unified restart through `Morfeas_system.service` (via `build_core_only.sh`)
 - post-update auto-deploy hook (canonical): `deploy/post_deploy.sh` (runs on every `--update`)
 
 Post-update deploy hook (`deploy/post_deploy.sh`) does:

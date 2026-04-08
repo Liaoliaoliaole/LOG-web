@@ -29,7 +29,7 @@ require_root() {
 find_core_root() {
   local dir
   for dir in "${CORE_CANDIDATES[@]}"; do
-    if [ -x "$dir/build_core_code_only.sh" ] && [ -d "$dir/.git" ]; then
+    if [ -x "$dir/build_core_only.sh" ] && [ -d "$dir/.git" ]; then
       printf '%s\n' "$dir"
       return 0
     fi
@@ -137,8 +137,8 @@ core_apply_update() {
   fi
 
   if [ "$core_updated" -eq 1 ]; then
-    log_line "INFO" "running build_core_code_only.sh"
-    ./build_core_code_only.sh
+    log_line "INFO" "running build_core_only.sh"
+    ./build_core_only.sh
   fi
 
   if ! core_health_check; then
