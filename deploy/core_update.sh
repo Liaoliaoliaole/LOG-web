@@ -179,8 +179,8 @@ core_apply_update() {
   fi
 
   if [ "$behind" -gt 0 ] && [ "$ahead" -eq 0 ]; then
-    log_line "INFO" "core update detected on branch=$branch, pulling changes"
-    git pull --ff-only
+    log_line "INFO" "core update detected on branch=$branch, fast-forwarding from $remote_ref"
+    git merge --ff-only "$remote_ref"
     core_updated=1
   elif [ "$behind" -eq 0 ] && [ "$ahead" -gt 0 ]; then
     log_line "WARN" "core local branch is ahead of origin (ahead=$ahead behind=0); skipping pull/build"
