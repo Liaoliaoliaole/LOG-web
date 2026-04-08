@@ -109,9 +109,9 @@ check_updates() {
         fi
     fi
 
-    if [ -x "$CORE_UPDATE_SCRIPT" ]; then
+    if [ -f "$CORE_UPDATE_SCRIPT" ]; then
         set +e
-        "$CORE_UPDATE_SCRIPT" --check-only
+        bash "$CORE_UPDATE_SCRIPT" --check-only
         core_check_ec=$?
         set -e
 
@@ -136,7 +136,7 @@ check_updates() {
                 ;;
         esac
     else
-        log_line "ERROR" "Core update script missing or not executable: $CORE_UPDATE_SCRIPT"
+        log_line "ERROR" "Core update script missing: $CORE_UPDATE_SCRIPT"
         exit 1
     fi
 
@@ -194,9 +194,9 @@ perform_update() {
     fi
 
     print_status "Running CORE update..."
-    if [ -x "$CORE_UPDATE_SCRIPT" ]; then
+    if [ -f "$CORE_UPDATE_SCRIPT" ]; then
         set +e
-        "$CORE_UPDATE_SCRIPT" --update
+        bash "$CORE_UPDATE_SCRIPT" --update
         core_update_ec=$?
         set -e
         if [ "$core_update_ec" -eq 0 ]; then
@@ -213,7 +213,7 @@ perform_update() {
             exit 1
         fi
     else
-        log_line "ERROR" "Core update script missing or not executable: $CORE_UPDATE_SCRIPT"
+        log_line "ERROR" "Core update script missing: $CORE_UPDATE_SCRIPT"
         exit 1
     fi
 
