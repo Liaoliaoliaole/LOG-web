@@ -199,7 +199,7 @@ Operational ownership model:
 ## 10) Update Flag Persistence
 
 The update reminder flag now lives at `/var/lib/morfeas/update_needed`.
-This is persistent application state, so it survives reboot and does not depend on shared `/tmp`.
+This is persistent application state, so it survives reboot.
 
 Backend refresh model:
 
