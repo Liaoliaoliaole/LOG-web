@@ -4,7 +4,7 @@ require __DIR__ . '/core/request.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-const UPDATE_SCRIPT = '/var/www/html/morfeas_web/update.sh';
+const UPDATE_SCRIPT = '/var/www/html/morfeas_web/deploy/system_update.sh';
 const UPDATE_FLAG_FILE = '/var/lib/morfeas/update_needed';
 
 function update_respond(
@@ -73,7 +73,7 @@ function update_exec(string $mode): array
 
     $result = 'unknown_failure';
     $ok = false;
-    $message = 'Unknown failure while running update.sh';
+    $message = 'Unknown failure while running system_update.sh';
 
     if ($mode === 'check') {
         if ($exitCode === 0) {
@@ -169,7 +169,7 @@ try {
             $requestId = api_make_request_id();
             $details = (string) ($result['internal']['stdout_stderr'] ?? '');
             if ($details === '') {
-                $details = 'update.sh exited with non-zero status';
+                $details = 'system_update.sh exited with non-zero status';
             }
             api_log_internal_error(
                 $requestId,

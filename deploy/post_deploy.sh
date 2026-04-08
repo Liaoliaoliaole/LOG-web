@@ -74,6 +74,23 @@ ensure_root_cron_line() {
     rm -f "$tmp"
 }
 
+remove_root_cron_line() {
+    local line="$1"
+    local tmp
+    local filtered
+    tmp="$(mktemp /tmp/morfeas_cron.XXXXXX)"
+    filtered="$(mktemp /tmp/morfeas_cron_filtered.XXXXXX)"
+
+    crontab -l >"$tmp" 2>/dev/null || true
+    grep -Fvx "$line" "$tmp" >"$filtered" || true
+    if ! cmp -s "$tmp" "$filtered"; then
+        crontab "$filtered"
+        log_info "removed root cron: $line"
+    fi
+
+    rm -f "$tmp" "$filtered"
+}
+
 ensure_apache_private_tmp() {
     local dir="/etc/systemd/system/apache2.service.d"
     local file="$dir/no-private-tmp.conf"
@@ -198,13 +215,18 @@ main() {
         log_warn "optional sudoers file missing: Morfeas_web_journal_allow"
     fi
 
-    ensure_executable "$REPO_ROOT/update.sh"
-    ensure_executable "$REPO_ROOT/cron/update_cron_wrapper.sh"
-    ensure_executable "$REPO_ROOT/backup.sh"
+    ensure_executable "$REPO_ROOT/deploy/system_update.sh"
+    ensure_executable "$REPO_ROOT/deploy/core_update.sh"
+    ensure_executable "$REPO_ROOT/deploy/post_deploy.sh"
+    ensure_executable "$REPO_ROOT/deploy/backup.sh"
+    ensure_executable "$REPO_ROOT/cron/system_update_check.sh"
 
-    ensure_root_cron_line "@reboot sleep 30 && /var/www/html/morfeas_web/cron/update_cron_wrapper.sh"
-    ensure_root_cron_line "0 0 * * * /var/www/html/morfeas_web/cron/update_cron_wrapper.sh"
-    ensure_root_cron_line "0 0 * * * /var/www/html/morfeas_web/backup.sh"
+    ensure_root_cron_line "@reboot sleep 30 && /var/www/html/morfeas_web/cron/system_update_check.sh"
+    ensure_root_cron_line "0 0 * * * /var/www/html/morfeas_web/cron/system_update_check.sh"
+    ensure_root_cron_line "0 0 * * * /var/www/html/morfeas_web/deploy/backup.sh"
+    remove_root_cron_line "@reboot sleep 30 && /var/www/html/morfeas_web/cron/update_cron_wrapper.sh"
+    remove_root_cron_line "0 0 * * * /var/www/html/morfeas_web/cron/update_cron_wrapper.sh"
+    remove_root_cron_line "0 0 * * * /var/www/html/morfeas_web/backup.sh"
 
     ensure_apache_private_tmp
     ensure_apache_servername_conf

@@ -4,63 +4,22 @@ set -e
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # ========================================
-#LOG(Morfeas) Update Script
+# LOG(Morfeas) Update Script
 # ========================================
-# This script performs system update checks and applies updates
-# when triggered by the frontend web interface.
-#
-# It supports two modes:
-#   --check-only   : Checks if updates are available without applying them.
-#   --update(default)  : Applies updates, and restarts services if needed.
-#
-# Features:
-#   - Git-based version comparison
-#   - Log rotation (max 2 logs kept)
-#   - Update flag file creation/removal for frontend notification
-#   - Automatic apache restart if WEB updates are applied
-#
-# Exit Codes:
-#   0   - Success / No updates available
-#   1   - General failure (permissions, directory issues, etc.)
-#   2   - Network error / Cannot reach git server
-#   100 - Update available (when running in check-only mode)
-#
-# ==========================================
-#
-# NOTE ON SYSTEMD CONFIGURATION:
-# ------------------------------------------
-# For PHP or the update process to correctly access /tmp
-# (for flag file creation or any temp operation), the Apache2
-# systemd unit has been configured with:
-#
-#   sudo mkdir -p /etc/systemd/system/apache2.service.d/
-#   sudo nano /etc/systemd/system/apache2.service.d/no-private-tmp.conf
-#
-# Content:
-#   [Service]
-#   PrivateTmp=false
-#
-# Reload systemd and restart apache
-#   sudo systemctl daemon-reexec
-#   sudo systemctl restart apache2
-#
-# This disables the PrivateTmp sandboxing feature, allowing Apache2
-# and the update script to share the real /tmp directory.
-# ------------------------------------------
-#
-# ========================================
+# Canonical entrypoint for web+core update flow.
 
-# ========================================
-# Morfeas Update Script
-# ========================================
 umask 0002
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 MAX_LOGS=2
-UPDATE_LOGS_DIR="/mnt/ramdisk/Morfeas_Loggers"  
-MORFEAS_WEB_DIR="/var/www/html/morfeas_web"
+UPDATE_LOGS_DIR="/mnt/ramdisk/Morfeas_Loggers"
+MORFEAS_WEB_DIR="$REPO_ROOT"
 FLAG_DIR="/var/lib/morfeas"
 FLAG_FILE="$FLAG_DIR/update_needed"
-POST_DEPLOY_SCRIPT="$MORFEAS_WEB_DIR/deploy/post_update_deploy.sh"
+POST_DEPLOY_SCRIPT="$MORFEAS_WEB_DIR/deploy/post_deploy.sh"
+CORE_UPDATE_SCRIPT="$MORFEAS_WEB_DIR/deploy/core_update.sh"
 
 # Create state and logs dirs if needed
 mkdir -p "$UPDATE_LOGS_DIR"
@@ -102,6 +61,7 @@ print_status() {
 check_updates() {
     print_status "Running CHECK-ONLY Mode"
     web_update_needed=0
+    core_update_needed=0
 
     if [ -d "$MORFEAS_WEB_DIR" ]; then
         cd "$MORFEAS_WEB_DIR"
@@ -116,10 +76,37 @@ check_updates() {
         fi
     fi
 
-    if [ $web_update_needed -eq 1 ]; then
+    if [ -x "$CORE_UPDATE_SCRIPT" ]; then
+        set +e
+        "$CORE_UPDATE_SCRIPT" --check-only
+        core_check_ec=$?
+        set -e
+
+        case "$core_check_ec" in
+            0)
+                core_update_needed=0
+                ;;
+            100)
+                core_update_needed=1
+                ;;
+            2)
+                log_line "ERROR" "Network issue or cannot reach CORE git server during check-only."
+                exit 2
+                ;;
+            *)
+                log_line "ERROR" "Core check-only failed with exit_code=$core_check_ec"
+                exit 1
+                ;;
+        esac
+    else
+        log_line "ERROR" "Core update script missing or not executable: $CORE_UPDATE_SCRIPT"
+        exit 1
+    fi
+
+    if [ $web_update_needed -eq 1 ] || [ $core_update_needed -eq 1 ]; then
         print_status "Update Available"
         touch "$FLAG_FILE"
-        log_line "INFO" "Update available. flag_file=$FLAG_FILE created. exit_code=100"
+        log_line "INFO" "Update available (web=$web_update_needed core=$core_update_needed). flag_file=$FLAG_FILE created. exit_code=100"
         exit 100
     else
         print_status "System is UP-TO-DATE"
@@ -132,6 +119,7 @@ check_updates() {
 perform_update() {
     print_status "Running FULL UPDATE Mode"
     web_updated=0
+    core_updated=0
 
     if [ -d "$MORFEAS_WEB_DIR" ]; then
         cd "$MORFEAS_WEB_DIR"
@@ -156,6 +144,27 @@ perform_update() {
         log_line "WARN" "post-update deploy script not found or not executable: $POST_DEPLOY_SCRIPT"
     fi
 
+    print_status "Running CORE update..."
+    if [ -x "$CORE_UPDATE_SCRIPT" ]; then
+        set +e
+        "$CORE_UPDATE_SCRIPT" --update
+        core_update_ec=$?
+        set -e
+        if [ "$core_update_ec" -eq 0 ]; then
+            core_updated=1
+            log_line "INFO" "Core update script completed successfully."
+        elif [ "$core_update_ec" -eq 2 ]; then
+            log_line "ERROR" "Network issue or cannot reach CORE git server during update."
+            exit 2
+        else
+            log_line "ERROR" "Core update script failed with exit_code=$core_update_ec"
+            exit 1
+        fi
+    else
+        log_line "ERROR" "Core update script missing or not executable: $CORE_UPDATE_SCRIPT"
+        exit 1
+    fi
+
     if [ $web_updated -eq 1 ]; then
         sudo rm -f "$FLAG_FILE"
         log_line "INFO" "flag_file=$FLAG_FILE removed after successful web update."
@@ -164,9 +173,11 @@ perform_update() {
         sudo systemctl restart apache2
         log_line "INFO" "Apache restarted."
     else
-        print_status "No updates applied"
-        log_line "INFO" "No repository updates were applied."
+        print_status "No WEB updates applied"
+        log_line "INFO" "No WEB repository updates were applied."
     fi
+    log_line "INFO" "Update mode completed (web_updated=$web_updated core_flow_ok=$core_updated)."
+    sudo rm -f "$FLAG_FILE"
 }
 
 main() {

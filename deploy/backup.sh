@@ -1,4 +1,7 @@
 #!/bin/bash
+set -euo pipefail
+
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 CONFIG_DIR="/home/morfeas/configuration"
 FTP_BACKUP_CLI="/var/www/html/morfeas_web/Morfeas_WEB/backend/cli/ftp_backup_cli.php"
@@ -63,9 +66,7 @@ if [[ -z "$ENGINE_NUMBER" ]]; then
     exit 1
 fi
 
-php "$FTP_BACKUP_CLI" backup >> "$LOG_FILE" 2>&1
-
-if [[ $? -eq 0 ]]; then
+if php "$FTP_BACKUP_CLI" backup >> "$LOG_FILE" 2>&1; then
     log_cli "INFO" "Backup created successfully for engine number $ENGINE_NUMBER."
 else
     log_cli "ERROR" "Backup failed for engine number $ENGINE_NUMBER."

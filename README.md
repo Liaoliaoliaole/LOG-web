@@ -99,7 +99,7 @@ For **System Status -> System Journal**:
 - API will first try direct read, then fallback to `sudo -n /usr/bin/journalctl`
 - or install the dedicated snippet `sudoers/Morfeas_web_journal_allow`
 
-### 6.2 System Update feature (web-only)
+### 6.2 System Update feature (web + core)
 
 Apply/update:
 
@@ -107,23 +107,23 @@ Apply/update:
 sudo visudo -f /etc/sudoers.d/Morfeas_update_allow
 ```
 
-Current expected scope is web-only update:
+Current expected scope includes web + core update:
 
-- `/var/www/html/morfeas_web/update.sh`
+- `/var/www/html/morfeas_web/deploy/system_update.sh`
 - `/bin/systemctl restart apache2`
 
 ## 7) System Update Behavior
 
-`update.sh` is now intentionally **web-only**:
+`deploy/system_update.sh` now orchestrates **web + core** update:
 
-- `--check-only`: checks updates for web repository only
-- `--update`: updates web repository only
-- no core repository check/update
-- no core build/install
-- restart target: `apache2` only
-- post-update auto-deploy hook: `deploy/post_update_deploy.sh` (runs on every `--update`)
+- `--check-only`: checks updates for both web and core repositories
+- `--update`: updates web repo, runs web post-deploy, then runs core update script
+- core update script (canonical): `deploy/core_update.sh`
+- core flow uses lock file (`/var/lock/morfeas_core_update.lock`) to avoid concurrent runs
+- core flow enforces unified restart through `Morfeas_system.service` (via `build_core_code_only.sh`)
+- post-update auto-deploy hook (canonical): `deploy/post_deploy.sh` (runs on every `--update`)
 
-Post-update deploy hook (`deploy/post_update_deploy.sh`) does:
+Post-update deploy hook (`deploy/post_deploy.sh`) does:
 
 - install `/etc/logrotate.d/morfeas-loggers`
 - install `/etc/sudoers.d/Morfeas_update_allow`
@@ -132,15 +132,15 @@ Post-update deploy hook (`deploy/post_update_deploy.sh`) does:
 - normalize existing `Morfeas_Loggers/*.log` files to `group=morfeas`, mode `664`
 - ensure `morfeas_web_api.log` writable by `www-data`
 - ensure `www-data` is member of `morfeas` group
-- ensure execute bits for `update.sh`, `cron/update_cron_wrapper.sh`, `backup.sh`
+- ensure execute bits for `deploy/system_update.sh`, `deploy/core_update.sh`, `deploy/post_deploy.sh`, `cron/system_update_check.sh`, `deploy/backup.sh`
 - ensure root cron entries for update check + backup
 - ensure `systemd-journald` persistent storage (for System Journal tab)
 
 Exit codes:
 
 - `0`: up-to-date / success
-- `100`: update available (check-only mode)
-- `2`: git/network unreachable for web repo
+- `100`: update available (check-only mode, web or core)
+- `2`: git/network unreachable for web or core repo
 - others: failure
 
 Update flag:
@@ -149,10 +149,10 @@ Update flag:
 
 ## 8) Cron / Flag Workflow
 
-Ensure wrapper exists and is executable:
+Ensure daily check script exists and is executable:
 
 ```bash
-sudo chmod +x /var/www/html/morfeas_web/cron/update_cron_wrapper.sh
+sudo chmod +x /var/www/html/morfeas_web/cron/system_update_check.sh
 ```
 
 Root crontab should include daily update check:
@@ -163,7 +163,7 @@ sudo crontab -l
 
 Daily wrapper log visibility:
 
-- `cron/update_cron_wrapper.sh` writes `/tmp/daily_update_check.log`
+- `cron/system_update_check.sh` writes `/tmp/daily_update_check.log`
 - and mirrors it to `/mnt/ramdisk/Morfeas_Loggers/LOG_daily_update_check.log`
 - mirrored logger file is normalized to `group=morfeas`, mode `664`
 - therefore it is visible in **System Status -> System Log**
@@ -203,7 +203,7 @@ This is persistent application state, so it survives reboot and does not depend 
 
 Backend refresh model:
 
-- refreshed at boot by `@reboot /var/www/html/morfeas_web/cron/update_cron_wrapper.sh`
+- refreshed at boot by `@reboot /var/www/html/morfeas_web/cron/system_update_check.sh`
 - refreshed daily by root cron
 - read lightly by the UI indicator and status API
 - real remote update checks happen only in the **System Update** flow
