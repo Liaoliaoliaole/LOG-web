@@ -32,6 +32,7 @@
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   let progressTimer = null;
+  let backendProgressTimer = null;
   let progressStartAt = 0;
   let progressPercent = 0;
   let progressStageIndex = 0;
@@ -41,6 +42,37 @@
     { atSec: 25, label: 'Applying updates and running post-deploy steps...' },
     { atSec: 60, label: 'Building core / restarting services / health checks...' },
   ];
+  const phaseLabels = {
+    update_start: 'Preparing system update...',
+    web_check: 'Checking web repository...',
+    web_update: 'Updating web files...',
+    web_deploy: 'Applying web deployment steps...',
+    core_check: 'Checking core repository...',
+    core_pull: 'Downloading latest core code...',
+    core_build: 'Building and installing Morfeas core...',
+    core_health: 'Running core health checks...',
+    core_done: 'Core update finished.',
+    service_finalize: 'Finalizing update...',
+    service_restart: 'Restarting web services...',
+    check_done: 'Update check finished.',
+    completed: 'Update completed.',
+    failed: 'Update failed.',
+  };
+  const stateLabels = {
+    idle: 'Idle',
+    pending: 'Pending',
+    checking: 'Checking',
+    updating: 'Updating',
+    deploying: 'Deploying',
+    building: 'Building',
+    verifying: 'Verifying',
+    done: 'Done',
+    up_to_date: 'Up to date',
+    update_available: 'Update available',
+    skipped: 'Skipped',
+    ahead: 'Local ahead',
+    failed: 'Failed',
+  };
 
   const setStatus = (message, tone = 'info') => {
     statusBox.textContent = message;
@@ -58,6 +90,10 @@
     if (progressTimer) {
       clearInterval(progressTimer);
       progressTimer = null;
+    }
+    if (backendProgressTimer) {
+      clearInterval(backendProgressTimer);
+      backendProgressTimer = null;
     }
     if (!progressWrap || !progressFill || !progressMeta) return;
     if (Number.isFinite(finalPercent)) {
@@ -89,6 +125,44 @@
       if (target > progressPercent) progressPercent = target;
       updateProgressUI(progressPercent, elapsedSec, progressStages[progressStageIndex].label);
     }, 1000);
+  };
+
+  const formatStepState = (value, fallback = 'Pending') => stateLabels[value] || fallback;
+
+  const buildBackendProgressText = (progress) => {
+    if (!progress || typeof progress !== 'object') return null;
+    const phase = phaseLabels[progress.phase] || 'Processing update...';
+    const web = formatStepState(progress.web_status, 'Pending');
+    const core = formatStepState(progress.core_status, 'Pending');
+    return {
+      label: phase,
+      detail: `Web: ${web} | Core: ${core}`,
+      percent: Number.isFinite(progress.percent) ? progress.percent : null,
+      tone: progress.state === 'failed' ? 'error' : 'progress',
+    };
+  };
+
+  const applyBackendProgress = (payload) => {
+    const info = buildBackendProgressText(payload?.data?.progress);
+    if (!info) return;
+    const elapsedSec = Math.max(0, Math.floor((Date.now() - progressStartAt) / 1000));
+    if (Number.isFinite(info.percent) && info.percent > progressPercent) {
+      progressPercent = info.percent;
+    }
+    updateProgressUI(progressPercent, elapsedSec, `${info.label} · ${info.detail}`);
+    setStatus(`${info.label}\n${info.detail}`, info.tone);
+  };
+
+  const startBackendProgressPolling = () => {
+    if (backendProgressTimer) return;
+    backendProgressTimer = setInterval(async () => {
+      try {
+        const payload = await api.status(5000);
+        applyBackendProgress(payload);
+      } catch (_) {
+        // temporary disconnects are expected during update
+      }
+    }, 2000);
   };
 
   const setBusy = (busy) => {
@@ -128,13 +202,31 @@
     while (Date.now() < deadline) {
       await sleep(2000);
       try {
-        await api.status(5000);
+        const payload = await api.status(5000);
+        applyBackendProgress(payload);
         return true;
       } catch (_) {
         // keep waiting
       }
     }
     return false;
+  };
+
+  const waitForUpdateToSettle = async () => {
+    const deadline = Date.now() + 300000;
+    while (Date.now() < deadline) {
+      await sleep(3000);
+      try {
+        const statusPayload = await api.status(10000);
+        applyBackendProgress(statusPayload);
+        if (!statusPayload?.data?.update_needed) {
+          return { settled: true, statusPayload };
+        }
+      } catch (_) {
+        // keep waiting through short restart/network blips
+      }
+    }
+    return { settled: false, statusPayload: null };
   };
 
   const notifyShellUpdateStatusChanged = () => {
@@ -188,6 +280,7 @@
 
     setBusy(true);
     startProgress();
+    startBackendProgressPolling();
     setReloadVisible(false);
     setUpdateActionsVisible(false);
     setStatus('Applying update. Do not close this window.\nWaiting for update script response...', 'progress');
@@ -230,12 +323,27 @@
       const updateNeeded = Boolean(statusPayload?.data?.update_needed);
       notifyShellUpdateStatusChanged();
       if (updateNeeded) {
-        stopProgress(100, 'Completed with pending update flag');
         setStatus(
-          'Device is reachable again, but update flag is still present.\nPlease run "Check Again" before final confirmation.',
-          'warning'
+          'Device is reachable again, but update is still finishing in the background.\nWaiting for final completion...',
+          'progress'
         );
-        setUpdateActionsVisible(true);
+        updateProgressUI(98, Math.max(0, Math.floor((Date.now() - progressStartAt) / 1000)), 'Waiting for update flag to clear...');
+        const settleResult = await waitForUpdateToSettle();
+        notifyShellUpdateStatusChanged();
+        if (!settleResult.settled) {
+          stopProgress(100, 'Completed with pending update flag');
+          setStatus(
+            'Device is reachable again, but update flag is still present after extended waiting.\nPlease run "Check Again" before final confirmation.',
+            'warning'
+          );
+          setUpdateActionsVisible(true);
+        } else {
+          stopProgress(100, 'Update completed');
+          setStatus(
+            'Update flow completed and device reports no pending update.\nRefresh page (Ctrl+F5) to load latest files.',
+            'success'
+          );
+        }
       } else {
         stopProgress(100, 'Update completed');
         setStatus(

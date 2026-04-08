@@ -6,6 +6,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 const UPDATE_SCRIPT = '/var/www/html/morfeas_web/deploy/system_update.sh';
 const UPDATE_FLAG_FILE = '/var/lib/morfeas/update_needed';
+const UPDATE_PROGRESS_FILE = '/run/morfeas_update/update_progress.env';
 
 function update_respond(
     bool $ok,
@@ -44,7 +45,45 @@ function update_read_status(): array
         'flag_file' => UPDATE_FLAG_FILE,
         'flag_mtime_unix' => is_int($mtime) ? $mtime : null,
         'flag_mtime' => is_int($mtime) ? date('Y-m-d H:i:s', $mtime) : null,
+        'progress' => update_read_progress(),
     ];
+}
+
+function update_read_progress(): ?array
+{
+    if (!is_file(UPDATE_PROGRESS_FILE) || !is_readable(UPDATE_PROGRESS_FILE)) {
+        return null;
+    }
+
+    $raw = @file(UPDATE_PROGRESS_FILE, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (!is_array($raw) || $raw === []) {
+        return null;
+    }
+
+    $progress = [];
+    foreach ($raw as $line) {
+        $pos = strpos($line, '=');
+        if ($pos === false) {
+            continue;
+        }
+        $key = substr($line, 0, $pos);
+        $value = substr($line, $pos + 1);
+        $progress[strtolower($key)] = $value;
+    }
+
+    if ($progress === []) {
+        return null;
+    }
+
+    if (isset($progress['percent'])) {
+        $progress['percent'] = (int) $progress['percent'];
+    }
+    if (isset($progress['updated_at_unix'])) {
+        $progress['updated_at_unix'] = (int) $progress['updated_at_unix'];
+        $progress['updated_at'] = date('Y-m-d H:i:s', $progress['updated_at_unix']);
+    }
+
+    return $progress;
 }
 
 function update_exec(string $mode): array

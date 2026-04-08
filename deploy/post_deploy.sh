@@ -9,6 +9,8 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOG_TAG="[morfeas-post-deploy]"
 APACHE_RESTART_REQUIRED=0
 JOURNALD_RESTART_REQUIRED=0
+RESTART_STATE_DIR="/run/morfeas_update"
+DEFER_SERVICE_RESTARTS="${MORFEAS_DEFER_SERVICE_RESTARTS:-0}"
 
 log_info() {
     echo "$LOG_TAG $*"
@@ -16,6 +18,12 @@ log_info() {
 
 log_warn() {
     echo "$LOG_TAG WARN: $*" >&2
+}
+
+mark_restart_required() {
+    local service_name="$1"
+    mkdir -p "$RESTART_STATE_DIR"
+    touch "$RESTART_STATE_DIR/${service_name}.restart"
 }
 
 require_root() {
@@ -183,6 +191,7 @@ main() {
     require_root
 
     log_info "start"
+    mkdir -p "$RESTART_STATE_DIR"
 
     ensure_logger_dir_access
 
@@ -233,12 +242,22 @@ main() {
     ensure_journald_persistent
 
     if [ "$APACHE_RESTART_REQUIRED" -eq 1 ]; then
-        systemctl restart apache2
-        log_info "restarted apache2 for updated systemd override"
+        if [ "$DEFER_SERVICE_RESTARTS" = "1" ]; then
+            mark_restart_required apache2
+            log_info "deferred apache2 restart"
+        else
+            systemctl restart apache2
+            log_info "restarted apache2 for updated systemd override"
+        fi
     fi
     if [ "$JOURNALD_RESTART_REQUIRED" -eq 1 ]; then
-        systemctl restart systemd-journald
-        log_info "restarted systemd-journald for persistent logging"
+        if [ "$DEFER_SERVICE_RESTARTS" = "1" ]; then
+            mark_restart_required systemd-journald
+            log_info "deferred systemd-journald restart"
+        else
+            systemctl restart systemd-journald
+            log_info "restarted systemd-journald for persistent logging"
+        fi
     fi
 
     log_info "done"

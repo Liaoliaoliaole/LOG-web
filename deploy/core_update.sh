@@ -4,6 +4,16 @@ set -euo pipefail
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 LOCK_FILE="/var/lock/morfeas_core_update.lock"
+PROGRESS_STATE_DIR="/run/morfeas_update"
+PROGRESS_FILE="$PROGRESS_STATE_DIR/update_progress.env"
+CURRENT_MODE=""
+PROGRESS_STATE="idle"
+PROGRESS_PHASE="idle"
+PROGRESS_COMPONENT="system"
+PROGRESS_PERCENT="0"
+WEB_STATUS="idle"
+CORE_STATUS="idle"
+UPDATED_AT_UNIX="0"
 
 CORE_CANDIDATES=(
   "/opt/Morfeas_project/Morfeas_core"
@@ -17,6 +27,77 @@ log_line() {
   local level="$1"
   shift
   printf '[CORE-UPDATE] [%s] %s\n' "$level" "$*"
+}
+
+load_progress_state() {
+  PROGRESS_STATE="idle"
+  PROGRESS_PHASE="idle"
+  PROGRESS_COMPONENT="system"
+  PROGRESS_PERCENT="0"
+  WEB_STATUS="idle"
+  CORE_STATUS="idle"
+  UPDATED_AT_UNIX="0"
+
+  if [ -f "$PROGRESS_FILE" ]; then
+    while IFS='=' read -r key value; do
+      case "$key" in
+        STATE) PROGRESS_STATE="$value" ;;
+        MODE) CURRENT_MODE="${CURRENT_MODE:-$value}" ;;
+        PHASE) PROGRESS_PHASE="$value" ;;
+        COMPONENT) PROGRESS_COMPONENT="$value" ;;
+        PERCENT) PROGRESS_PERCENT="$value" ;;
+        WEB_STATUS) WEB_STATUS="$value" ;;
+        CORE_STATUS) CORE_STATUS="$value" ;;
+        UPDATED_AT_UNIX) UPDATED_AT_UNIX="$value" ;;
+      esac
+    done < "$PROGRESS_FILE"
+  fi
+}
+
+write_progress_state() {
+  mkdir -p "$PROGRESS_STATE_DIR"
+  cat > "$PROGRESS_FILE" <<EOF
+STATE=$PROGRESS_STATE
+MODE=$CURRENT_MODE
+PHASE=$PROGRESS_PHASE
+COMPONENT=$PROGRESS_COMPONENT
+PERCENT=$PROGRESS_PERCENT
+WEB_STATUS=$WEB_STATUS
+CORE_STATUS=$CORE_STATUS
+UPDATED_AT_UNIX=$UPDATED_AT_UNIX
+EOF
+  chgrp morfeas "$PROGRESS_FILE" 2>/dev/null || true
+  chmod 664 "$PROGRESS_FILE" 2>/dev/null || true
+}
+
+set_core_progress() {
+  local phase="$1"
+  local percent="$2"
+  local core_status="$3"
+
+  load_progress_state
+  CURRENT_MODE="${CURRENT_MODE:-update}"
+  PROGRESS_STATE="running"
+  PROGRESS_PHASE="$phase"
+  PROGRESS_COMPONENT="core"
+  PROGRESS_PERCENT="$percent"
+  CORE_STATUS="$core_status"
+  UPDATED_AT_UNIX="$(date +%s)"
+  write_progress_state
+}
+
+mark_core_failed() {
+  local exit_code="$1"
+  if [ "$CURRENT_MODE" = "update" ] && [ "$exit_code" -ne 0 ]; then
+    load_progress_state
+    PROGRESS_STATE="failed"
+    if [ "$PROGRESS_PHASE" = "idle" ]; then
+      PROGRESS_PHASE="core_failed"
+    fi
+    CORE_STATUS="failed"
+    UPDATED_AT_UNIX="$(date +%s)"
+    write_progress_state
+  fi
 }
 
 require_root() {
@@ -106,6 +187,8 @@ core_check_updates() {
   local behind=0
 
   cd "$core_root"
+  CURRENT_MODE="check"
+  set_core_progress "core_check" "40" "checking"
   if ! git fetch origin; then
     log_line "ERROR" "cannot reach core git server"
     exit 2
@@ -121,11 +204,13 @@ core_check_updates() {
   fi
 
   if [ "$behind" -gt 0 ] && [ "$ahead" -eq 0 ]; then
+    set_core_progress "core_check_done" "45" "update_available"
     log_line "INFO" "core update available on branch=$branch"
     exit 100
   fi
 
   if [ "$behind" -eq 0 ] && [ "$ahead" -gt 0 ]; then
+    set_core_progress "core_check_done" "45" "ahead"
     log_line "WARN" "core local branch is ahead of origin (ahead=$ahead behind=0); no remote update needed"
     exit 0
   fi
@@ -135,6 +220,7 @@ core_check_updates() {
     exit 3
   fi
 
+  set_core_progress "core_check_done" "45" "up_to_date"
   log_line "INFO" "core up to date on branch=$branch (ahead=0 behind=0)"
   exit 0
 }
@@ -160,6 +246,8 @@ core_apply_update() {
   local behind=0
 
   cd "$core_root"
+  CURRENT_MODE="update"
+  set_core_progress "core_check" "55" "checking"
   if ! git fetch origin; then
     log_line "ERROR" "cannot reach core git server"
     exit 2
@@ -179,10 +267,12 @@ core_apply_update() {
   fi
 
   if [ "$behind" -gt 0 ] && [ "$ahead" -eq 0 ]; then
+    set_core_progress "core_pull" "65" "updating"
     log_line "INFO" "core update detected on branch=$branch, fast-forwarding from $remote_ref"
     git merge --ff-only "$remote_ref"
     core_updated=1
   elif [ "$behind" -eq 0 ] && [ "$ahead" -gt 0 ]; then
+    set_core_progress "core_check_done" "60" "ahead"
     log_line "WARN" "core local branch is ahead of origin (ahead=$ahead behind=0); skipping pull/build"
   elif [ "$behind" -gt 0 ] && [ "$ahead" -gt 0 ]; then
     log_line "ERROR" "core branch diverged from origin (ahead=$ahead behind=$behind); cannot fast-forward"
@@ -196,14 +286,17 @@ core_apply_update() {
       log_line "ERROR" "core build script not found in $core_root (expected build_core_only.sh or build_core_full.sh)"
       exit 1
     fi
+    set_core_progress "core_build" "78" "building"
     log_line "INFO" "running $(basename "$build_script")"
     bash "$build_script"
   fi
 
+  set_core_progress "core_health" "90" "verifying"
   if ! core_health_check; then
     exit 1
   fi
 
+  set_core_progress "core_done" "94" "done"
   log_line "INFO" "core update flow completed"
   exit 0
 }
@@ -213,6 +306,7 @@ main() {
   local core_root
 
   require_root
+  trap 'mark_core_failed $?' EXIT
 
   mkdir -p "$(dirname "$LOCK_FILE")"
   exec 9>"$LOCK_FILE"

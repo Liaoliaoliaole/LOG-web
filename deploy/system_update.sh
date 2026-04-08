@@ -20,6 +20,18 @@ FLAG_DIR="/var/lib/morfeas"
 FLAG_FILE="$FLAG_DIR/update_needed"
 POST_DEPLOY_SCRIPT="$MORFEAS_WEB_DIR/deploy/post_deploy.sh"
 CORE_UPDATE_SCRIPT="$MORFEAS_WEB_DIR/deploy/core_update.sh"
+RESTART_STATE_DIR="/run/morfeas_update"
+APACHE_RESTART_MARKER="$RESTART_STATE_DIR/apache2.restart"
+JOURNALD_RESTART_MARKER="$RESTART_STATE_DIR/systemd-journald.restart"
+PROGRESS_FILE="$RESTART_STATE_DIR/update_progress.env"
+CURRENT_MODE=""
+PROGRESS_STATE="idle"
+PROGRESS_PHASE="idle"
+PROGRESS_COMPONENT="system"
+PROGRESS_PERCENT="0"
+WEB_STATUS="idle"
+CORE_STATUS="idle"
+UPDATED_AT_UNIX="0"
 
 # Create state and logs dirs if needed
 mkdir -p "$UPDATE_LOGS_DIR"
@@ -58,6 +70,99 @@ print_status() {
     log_line "INFO" "===== $1 ====="
 }
 
+load_progress_state() {
+    PROGRESS_STATE="idle"
+    PROGRESS_PHASE="idle"
+    PROGRESS_COMPONENT="system"
+    PROGRESS_PERCENT="0"
+    WEB_STATUS="idle"
+    CORE_STATUS="idle"
+    UPDATED_AT_UNIX="0"
+
+    if [ -f "$PROGRESS_FILE" ]; then
+        while IFS='=' read -r key value; do
+            case "$key" in
+                STATE) PROGRESS_STATE="$value" ;;
+                MODE) CURRENT_MODE="${CURRENT_MODE:-$value}" ;;
+                PHASE) PROGRESS_PHASE="$value" ;;
+                COMPONENT) PROGRESS_COMPONENT="$value" ;;
+                PERCENT) PROGRESS_PERCENT="$value" ;;
+                WEB_STATUS) WEB_STATUS="$value" ;;
+                CORE_STATUS) CORE_STATUS="$value" ;;
+                UPDATED_AT_UNIX) UPDATED_AT_UNIX="$value" ;;
+            esac
+        done < "$PROGRESS_FILE"
+    fi
+}
+
+write_progress_state() {
+    mkdir -p "$RESTART_STATE_DIR"
+    cat > "$PROGRESS_FILE" <<EOF
+STATE=$PROGRESS_STATE
+MODE=$CURRENT_MODE
+PHASE=$PROGRESS_PHASE
+COMPONENT=$PROGRESS_COMPONENT
+PERCENT=$PROGRESS_PERCENT
+WEB_STATUS=$WEB_STATUS
+CORE_STATUS=$CORE_STATUS
+UPDATED_AT_UNIX=$UPDATED_AT_UNIX
+EOF
+    chgrp morfeas "$PROGRESS_FILE" 2>/dev/null || true
+    chmod 664 "$PROGRESS_FILE" 2>/dev/null || true
+}
+
+set_progress() {
+    local state="$1"
+    local phase="$2"
+    local component="$3"
+    local percent="$4"
+
+    PROGRESS_STATE="$state"
+    PROGRESS_PHASE="$phase"
+    PROGRESS_COMPONENT="$component"
+    PROGRESS_PERCENT="$percent"
+    UPDATED_AT_UNIX="$(date +%s)"
+    write_progress_state
+}
+
+mark_update_failed() {
+    local exit_code="$1"
+    if [ "$CURRENT_MODE" = "update" ] && [ "$exit_code" -ne 0 ]; then
+        load_progress_state
+        PROGRESS_STATE="failed"
+        if [ "$PROGRESS_PHASE" = "idle" ]; then
+            PROGRESS_PHASE="failed"
+        fi
+        UPDATED_AT_UNIX="$(date +%s)"
+        write_progress_state
+    fi
+}
+
+clear_restart_markers() {
+    mkdir -p "$RESTART_STATE_DIR"
+    rm -f "$APACHE_RESTART_MARKER" "$JOURNALD_RESTART_MARKER"
+}
+
+schedule_apache_restart() {
+    log_line "INFO" "Scheduling delayed apache2 restart."
+    nohup /bin/bash -lc 'sleep 2; systemctl restart apache2' >/dev/null 2>&1 &
+}
+
+apply_deferred_restarts() {
+    local apache_restart_needed="$1"
+
+    if [ -f "$JOURNALD_RESTART_MARKER" ]; then
+        log_line "INFO" "Applying deferred systemd-journald restart."
+        systemctl restart systemd-journald
+        rm -f "$JOURNALD_RESTART_MARKER"
+    fi
+
+    if [ "$apache_restart_needed" -eq 1 ] || [ -f "$APACHE_RESTART_MARKER" ]; then
+        rm -f "$APACHE_RESTART_MARKER"
+        schedule_apache_restart
+    fi
+}
+
 repo_ahead_behind() {
     local branch="$1"
     local -n out_ahead="$2"
@@ -85,6 +190,10 @@ check_updates() {
     core_update_needed=0
     web_ahead=0
     web_behind=0
+    CURRENT_MODE="check"
+    WEB_STATUS="checking"
+    CORE_STATUS="checking"
+    set_progress "running" "web_check" "web" "10"
 
     if [ -d "$MORFEAS_WEB_DIR" ]; then
         cd "$MORFEAS_WEB_DIR"
@@ -110,6 +219,7 @@ check_updates() {
     fi
 
     if [ -f "$CORE_UPDATE_SCRIPT" ]; then
+        set_progress "running" "core_check" "core" "35"
         set +e
         bash "$CORE_UPDATE_SCRIPT" --check-only
         core_check_ec=$?
@@ -141,11 +251,17 @@ check_updates() {
     fi
 
     if [ $web_update_needed -eq 1 ] || [ $core_update_needed -eq 1 ]; then
+        WEB_STATUS=$([ "$web_update_needed" -eq 1 ] && printf 'update_available' || printf 'up_to_date')
+        CORE_STATUS=$([ "$core_update_needed" -eq 1 ] && printf 'update_available' || printf 'up_to_date')
+        set_progress "completed" "check_done" "system" "100"
         print_status "Update Available"
         touch "$FLAG_FILE"
         log_line "INFO" "Update available (web=$web_update_needed core=$core_update_needed). flag_file=$FLAG_FILE created. exit_code=100"
         exit 100
     else
+        WEB_STATUS="up_to_date"
+        CORE_STATUS="up_to_date"
+        set_progress "completed" "check_done" "system" "100"
         print_status "System is UP-TO-DATE"
         sudo rm -f "$FLAG_FILE"
         log_line "INFO" "No update. flag_file=$FLAG_FILE removed if present. exit_code=0"
@@ -157,8 +273,15 @@ perform_update() {
     print_status "Running FULL UPDATE Mode"
     web_updated=0
     core_updated=0
+    apache_restart_needed=0
     web_ahead=0
     web_behind=0
+    CURRENT_MODE="update"
+    WEB_STATUS="checking"
+    CORE_STATUS="pending"
+
+    clear_restart_markers
+    set_progress "running" "update_start" "system" "2"
 
     if [ -d "$MORFEAS_WEB_DIR" ]; then
         cd "$MORFEAS_WEB_DIR"
@@ -174,24 +297,34 @@ perform_update() {
         fi
 
         if [ "$web_behind" -gt 0 ] && [ "$web_ahead" -eq 0 ]; then
+            WEB_STATUS="updating"
+            set_progress "running" "web_update" "web" "18"
             git pull
             web_updated=1
             log_line "INFO" "Web repository updated via git pull."
         elif [ "$web_behind" -eq 0 ] && [ "$web_ahead" -gt 0 ]; then
+            WEB_STATUS="ahead"
             log_line "WARN" "WEB local branch is ahead of origin (ahead=$web_ahead behind=0); skipping pull."
         elif [ "$web_behind" -gt 0 ] && [ "$web_ahead" -gt 0 ]; then
             log_line "ERROR" "WEB branch diverged from origin (ahead=$web_ahead behind=$web_behind); cannot fast-forward."
             exit 1
+        else
+            WEB_STATUS="up_to_date"
         fi
     fi
 
     print_status "Running post-update deployment..."
     if [ -x "$POST_DEPLOY_SCRIPT" ]; then
         log_line "INFO" "Executing post-deploy script: $POST_DEPLOY_SCRIPT"
-        "$POST_DEPLOY_SCRIPT"
+        WEB_STATUS="deploying"
+        set_progress "running" "web_deploy" "web" "35"
+        MORFEAS_DEFER_SERVICE_RESTARTS=1 "$POST_DEPLOY_SCRIPT"
     else
         log_line "WARN" "post-update deploy script not found or not executable: $POST_DEPLOY_SCRIPT"
     fi
+    WEB_STATUS="done"
+    CORE_STATUS="checking"
+    set_progress "running" "core_check" "core" "52"
 
     print_status "Running CORE update..."
     if [ -f "$CORE_UPDATE_SCRIPT" ]; then
@@ -216,23 +349,28 @@ perform_update() {
         log_line "ERROR" "Core update script missing: $CORE_UPDATE_SCRIPT"
         exit 1
     fi
+    CORE_STATUS="done"
+    set_progress "running" "service_finalize" "system" "92"
 
     if [ $web_updated -eq 1 ]; then
         sudo rm -f "$FLAG_FILE"
         log_line "INFO" "flag_file=$FLAG_FILE removed after successful web update."
-        print_status "Restarting Apache..."
-        sleep 3
-        sudo systemctl restart apache2
-        log_line "INFO" "Apache restarted."
+        apache_restart_needed=1
     else
         print_status "No WEB updates applied"
         log_line "INFO" "No WEB repository updates were applied."
     fi
+    if [ -f "$JOURNALD_RESTART_MARKER" ] || [ "$apache_restart_needed" -eq 1 ] || [ -f "$APACHE_RESTART_MARKER" ]; then
+        set_progress "running" "service_restart" "system" "96"
+    fi
+    apply_deferred_restarts "$apache_restart_needed"
     log_line "INFO" "Update mode completed (web_updated=$web_updated core_flow_ok=$core_updated)."
     sudo rm -f "$FLAG_FILE"
+    set_progress "completed" "completed" "system" "100"
 }
 
 main() {
+    trap 'mark_update_failed $?' EXIT
     print_status "Morfeas Update Script STARTED"
     log_line "INFO" "mode=${1:---update(default)} log_file=$log_file"
 
