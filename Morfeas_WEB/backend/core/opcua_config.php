@@ -392,24 +392,23 @@ function iso_batch_update_anchors(string $xmlPath, array $updates): void
         return;
     }
 
-    $indexByIso = [];
-    foreach ($xml->CHANNEL as $idx => $ch) {
+    $channelByIso = [];
+    foreach ($xml->CHANNEL as $ch) {
         $existingIso = iso_normalize_iso_channel((string)$ch->ISO_CHANNEL);
         if ($existingIso !== '') {
-            $indexByIso[$existingIso] = $idx;
+            $channelByIso[$existingIso] = $ch;
         }
     }
 
     foreach ($normalized as $iso => $_anchor) {
-        if (!array_key_exists($iso, $indexByIso)) {
+        if (!array_key_exists($iso, $channelByIso)) {
             throw new ChannelConfigException("ISO_CHANNEL not found: " . $iso, 404, 'channel_not_found');
         }
     }
 
     $now = (string)time();
     foreach ($normalized as $iso => $anchor) {
-        $idx = $indexByIso[$iso];
-        $target = $xml->CHANNEL[$idx];
+        $target = $channelByIso[$iso];
         if (isset($target->ANCHOR)) {
             $target->ANCHOR = $anchor;
         } else {
