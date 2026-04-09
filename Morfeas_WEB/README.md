@@ -1,71 +1,77 @@
-# Morfeas_WEB_v2
+# LOG WEB v2
 
-This folder contains the v2 web UI and PHP backend for Morfeas/LOG devices. The frontend assets live at the top level, and the backend PHP endpoints are in `backend/`.
+This folder contains the v2 web UI and PHP backend for LOG(Morfeas) devices. The frontend assets live at the top level, and the backend PHP endpoints are in `backend/`.
 
 ## Structure
 
 ```
-Morfeas_WEB_v2/
-├─ assets/               # Static assets
-│  ├─ api/               # Frontend API wrappers (channels/devices/status)
-│  ├─ services/          # Frontend data helpers (ISO catalog, search pool)
-│  └─ ui/                # Shared UI helpers/formatters
-├─ backend/              # PHP API endpoints and core helpers
-│  ├─ api_channels.php   # Channel table + ISO XML CRUD
-│  ├─ api_devices.php    # Device list + LOG config CRUD
-│  ├─ api_system_status.php
+Morfeas_WEB/
+├─ assets/               # Shared static assets loaded on every page
+│  ├─ api/               # Frontend API wrappers (one module per backend endpoint)
+│  │  ├─ channels.js
+│  │  ├─ devices.js
+│  │  ├─ ftpBackup.js
+│  │  ├─ networkConfig.js
+│  │  ├─ systemPower.js
+│  │  ├─ systemStatus.js
+│  │  └─ systemUpdate.js
+│  ├─ services/          # Shared data helpers
+│  │  ├─ isoCatalog.js   # ISO standard XML loader + localStorage persistence
+│  │  └─ searchPool.js   # Channel search index builder
+│  └─ ui/
+│     └─ systemStatusFormatter.js  # Ticker + status value formatters
+├─ backend/              # PHP API endpoints and supporting layers
+│  ├─ api_calibration.php     # SDAQ calibration read/write
+│  ├─ api_channels.php        # Channel table + ISO XML CRUD + ISO standard upload
+│  ├─ api_devices.php         # Device list + LOG config CRUD
+│  ├─ api_ftp_backup.php      # FTP backup config, test, backup, restore, log upload
+│  ├─ api_network_config.php  # Network apply/confirm/rollback
+│  ├─ api_system_power.php    # Reboot / shutdown
+│  ├─ api_system_status.php   # System details, logger files, journal
+│  ├─ api_system_update.php   # Update check + apply (via update.sh)
+│  ├─ api_system_version.php  # Git branch/commit info for About page
+│  ├─ cli/
+│  │  ├─ ftp_backup_cli.php        # CLI wrapper for FTP backup (used by backup.sh cron)
+│  │  └─ network_pending_watcher.php  # Auto-rollback watcher for staged network changes
+│  ├─ config_sandbox/    # Mock data for local development (XML + logstat JSON)
 │  ├─ core/
-│  │  ├─ opcua_config.php
-│  │  ├─ logstat_*.php
-│  │  └─ paths.php        # Centralized paths/env overrides
-│  ├─ repositories/       # File and config IO helpers
-│  ├─ services/           # Aggregation and business logic
-│  └─ config_sandbox/     # Mock data (XML + logstat JSON)
-├─ index.html
-├─ linker-table/
-├─ menu/
-└─ tool-bar/
+│  │  ├─ logstat_iobox.php   # IOBOX logstat parser
+│  │  ├─ logstat_mti.php     # MTI logstat parser
+│  │  ├─ logstat_nox.php     # NOX logstat parser
+│  │  ├─ logstat_sdaq.php    # SDAQ logstat parser
+│  │  ├─ opcua_config.php    # OPC UA XML read/write (ISO channel CRUD)
+│  │  ├─ paths.php           # Hardcoded production paths (ramdisk, config, ISO dir)
+│  │  ├─ request.php         # JSON body parsing, request ID, error logging helpers
+│  │  ├─ sdaq_type_cache.php # SDAQ type cache (ramdisk-backed)
+│  │  └─ system_info.php     # MAC address, CAN bitrates, NTP server helpers
+│  ├─ repositories/
+│  │  ├─ iso_repository.php        # ISO standard file discovery and upload helpers
+│  │  ├─ log_config_repository.php # Morfeas_config.xml device read/write
+│  │  └─ logstat_repository.php    # Logstat JSON file path collection + loading
+│  └─ services/
+│     ├─ channel_service.php       # Channel row aggregation (OPC UA + logstat merge)
+│     ├─ device_service.php        # Device list aggregation + runtime status merge
+│     ├─ ftp_backup_service.php    # FTP config, backup, restore, log upload logic
+│     ├─ network_service.php       # Network state read + staged apply + rollback
+│     └─ system_status_service.php # System details, logger listing, journal, export
+├─ docs/
+│  └─ help_manual.pdf    # End-user help manual
+├─ index.html            # ISO Channels Linker (main page)
+├─ linker-table/         # Popups opened from the channel table
+│  ├─ calibration.html / calibration.js    # SDAQ calibration editor
+│  ├─ edit_channel.html / editCh.js        # ISO channel edit popup
+│  ├─ sdaq_scale.html / sdaq_scale.js      # Manual SDAQ scaling popup
+│  └─ replace_tc16.html / replace_tc16.js # TC16 bulk SDAQ replacement popup
+├─ menu/                 # Menu popup pages
+│  ├─ about/             # System version info
+│  ├─ add-devices/       # Add / remove IOBOX, MTI, NOX devices
+│  ├─ advanced-settings/ # Advanced configuration options
+│  ├─ backup-restore/    # FTP backup and restore UI
+│  ├─ network-config/    # Network configuration UI
+│  ├─ system-control/    # System update, reboot, shutdown
+│  └─ system-status/     # System status, logger viewer, journal
+└─ tool-bar/             # Toolbar popups opened from the main page
+   ├─ add_channel.html / addCh.js   # Add ISO channel popup
+   ├─ device_search.html / device_search.js  # Device anchor search popup
+   └─ import_channel.html           # Channel import (JSON) popup
 ```
-
-### Frontend modules
-
-- `assets/config.js` defines `LOG_WEB.config` (base path + endpoint resolver).
-- `assets/api/` holds page-agnostic API wrappers used by index + popups.
-- `assets/services/` provides shared ISO catalog and search pool loaders.
-- `assets/ui/` contains cross-page formatters (system status, ticker values).
-
-## Environment configuration
-
-`backend/core/paths.php` centralizes paths so they are not scattered across endpoints. Use environment variables to override defaults:
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `LOG_WEB_SANDBOX_DIR` | `backend/config_sandbox/` | Mock data directory for the sandbox builds.
-| `LOG_WEB_RAMDISK_DIR` | `/mnt/ramdisk/` | Live logstat data (LOG_core output).
-| `LOG_WEB_ISO_STANDARD_DIR` | `/home/pi/Morfeas_config/iso_standards/` | ISO standard upload directory (real device path).
-| `LOG_WEB_OPCUA_CONFIG_PATH` | `backend/config_sandbox/OPC_UA_Config.mock.xml` | Override the OPC UA config XML path (LOG_core output).
-| `LOG_WEB_LOG_CONFIG_PATH` | `backend/config_sandbox/LOG_config.mock.xml` | Override the LOG config XML path (LOG_core output).
-
-## Mock vs. real data (placeholders)
-
-The following files are **mock** inputs today and should be replaced with real LOG_core paths in production:
-
-- `backend/config_sandbox/OPC_UA_Config.mock.xml` (used by `api_channels.php`)
-- `backend/config_sandbox/LOG_config.mock.xml` (used by `api_devices.php`)
-- `backend/config_sandbox/logstat_*.json` (used by `api_*` endpoints)
-
-If you switch to a real LOG_core deployment, update `LOG_WEB_SANDBOX_DIR` and/or adjust the backend to read from the actual LOG_core config locations.
-
-## API quick view
-
-- `GET backend/api_channels.php` → channel table + status
-- `POST/PATCH/DELETE backend/api_channels.php` → ISO XML CRUD
-- `GET backend/api_devices.php` → device list + component count
-- `POST/DELETE backend/api_devices.php` → update LOG config XML
-- `GET backend/api_system_status.php?action=details` → system status detail list
-
-## Notes for LOG_core integration
-
-- `api_channels.php` expects an OPC UA config XML compatible with LOG_core output.
-- `api_devices.php` writes to `LOG_config.mock.xml` today; replace with LOG_core config path before production use.
-- `api_system_status.php` reads `logstat_*.json` (LOG_core logstat output) and merges sandbox + ramdisk sources.
