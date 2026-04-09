@@ -105,6 +105,11 @@
       flex-wrap: wrap;
     }
 
+    .logs-bar.after-terminal {
+      margin-top: 10px;
+      margin-bottom: 0;
+    }
+
     .label {
       width: 120px;
       font-weight: 800;
@@ -165,12 +170,12 @@
               </select>
               <button id="reloadLoggers" class="btn">Reload</button>
             </div>
-            <div class="logs-bar">
+            <pre id="logTerminal" class="terminal"></pre>
+            <div class="logs-bar after-terminal">
               <label class="label" for="loggerExportSelect">Export Logs</label>
               <select id="loggerExportSelect" class="input" multiple size="6" aria-label="Select logs to export"></select>
               <button id="exportLogs" class="btn">Export Selected</button>
             </div>
-            <pre id="logTerminal" class="terminal"></pre>
           </section>
 
           <section id="panel-journal" class="panel" role="tabpanel"
