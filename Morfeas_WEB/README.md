@@ -58,9 +58,9 @@ Morfeas_WEB/
 │  └─ help_manual.pdf    # End-user help manual
 ├─ index.html            # ISO Channels Linker (main page)
 ├─ linker-table/         # Popups opened from the channel table
-│  ├─ calibration.html / calibration.js    # SDAQ calibration editor
+│  ├─ calibration.html / calibration.js    # Manual SDAQ calibration editor (legacy-style save semantics)
 │  ├─ edit_channel.html / editCh.js        # ISO channel edit popup
-│  ├─ sdaq_scale.html / sdaq_scale.js      # Manual SDAQ scaling popup
+│  ├─ sdaq_scale.html / sdaq_scale.js      # Separate SDAQ-I/U scale popup (2-point auto-coefficient flow)
 │  └─ replace_tc16.html / replace_tc16.js # TC16 bulk SDAQ replacement popup
 ├─ menu/                 # Menu popup pages
 │  ├─ about/             # System version info
@@ -75,3 +75,11 @@ Morfeas_WEB/
    ├─ device_search.html / device_search.js  # Device anchor search popup
    └─ import_channel.html           # Channel import (JSON) popup
 ```
+
+## Calibration and Scale Semantics
+
+- `calibration.html / calibration.js` is the manual channel calibration editor.
+- Calibration save validates the selected channel XML and writes the entered coefficients to SDAQ without automatically recalculating them.
+- `sdaq_scale.html / sdaq_scale.js` is a separate workflow for `SDAQ-I` and `SDAQ-U`.
+- Scale save generates a dedicated two-point calibration payload and computes the required coefficients before writing to SDAQ.
+- The calibration popup supports `Read from SDAQ`, `Revert`, `Save to SDAQ`, live preview columns (`Corrected value`, `Difference`, `Type`), and `Ctrl+S`.

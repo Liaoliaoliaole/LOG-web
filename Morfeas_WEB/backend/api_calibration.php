@@ -358,6 +358,87 @@ function cal_rebuild_linear_coeffs_for_iu(string $xmlContent): string
     return $out;
 }
 
+function cal_validate_calibration_xml(string $xmlContent, array $runtimeUnits): void
+{
+    $doc = new DOMDocument('1.0', 'utf-8');
+    if (!$doc->loadXML($xmlContent)) {
+        throw new RuntimeException('Failed to parse calibration XML');
+    }
+
+    $xpath = new DOMXPath($doc);
+    $channels = $xpath->query('/SDAQ/Calibration_Data/*');
+    if (!$channels || $channels->length === 0) {
+        throw new RuntimeException('Calibration_Data has no channel nodes');
+    }
+
+    $unitSet = array_fill_keys(array_map('strval', $runtimeUnits), true);
+
+    foreach ($channels as $chNode) {
+        if (!$chNode instanceof DOMElement) {
+            continue;
+        }
+
+        $usedRaw = trim((string)$xpath->evaluate('string(./Used_Points)', $chNode));
+        if ($usedRaw === '' || preg_match('/^\d+$/', $usedRaw) !== 1) {
+            throw new RuntimeException(sprintf('Invalid calibration XML: %s Used_Points is not a non-negative integer', $chNode->tagName));
+        }
+
+        $used = (int)$usedRaw;
+        $unit = trim((string)$xpath->evaluate('string(./Unit)', $chNode));
+        if ($unit === '') {
+            throw new RuntimeException(sprintf('Invalid calibration XML: %s Unit is empty', $chNode->tagName));
+        }
+        if (!isset($unitSet[$unit])) {
+            throw new RuntimeException(sprintf('Invalid calibration XML: %s Unit "%s" is not supported by SDAQ runtime unit dictionary', $chNode->tagName, $unit));
+        }
+
+        if ($used === 0) {
+            continue;
+        }
+
+        $pointsNode = $xpath->query('./Points', $chNode)->item(0);
+        if (!$pointsNode instanceof DOMElement) {
+            throw new RuntimeException(sprintf('Invalid calibration XML: %s has no Points node', $chNode->tagName));
+        }
+
+        $prevMeasure = null;
+        for ($i = 0; $i < $used; $i++) {
+            $pointNode = $xpath->query(sprintf('./Point_%d', $i), $pointsNode)->item(0);
+            if (!$pointNode instanceof DOMElement) {
+                throw new RuntimeException(sprintf('Invalid calibration XML: %s->Point_%d is missing', $chNode->tagName, $i));
+            }
+
+            $finiteValues = [];
+            foreach (['Measure', 'Reference', 'Offset', 'Gain', 'C2', 'C3'] as $field) {
+                $raw = trim((string)$xpath->evaluate(sprintf('string(./%s)', $field), $pointNode));
+                if ($raw === '') {
+                    throw new RuntimeException(sprintf('Invalid calibration XML: %s->Point_%d->%s is empty', $chNode->tagName, $i, $field));
+                }
+                if (preg_match('/^-?nan$/i', $raw) === 1) {
+                    throw new RuntimeException(sprintf('Invalid calibration XML: %s->Point_%d->%s is non-finite', $chNode->tagName, $i, $field));
+                }
+
+                $value = filter_var($raw, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE);
+                if ($value === null || !is_finite((float)$value)) {
+                    throw new RuntimeException(sprintf('Invalid calibration XML: %s->Point_%d->%s is non-finite', $chNode->tagName, $i, $field));
+                }
+                $finiteValues[$field] = (float)$value;
+            }
+
+            if ($prevMeasure !== null && $finiteValues['Measure'] <= $prevMeasure) {
+                throw new RuntimeException(sprintf(
+                    'Invalid calibration points in %s: Point_%d.Measure must be greater than Point_%d.Measure',
+                    $chNode->tagName,
+                    $i,
+                    $i - 1
+                ));
+            }
+
+            $prevMeasure = $finiteValues['Measure'];
+        }
+    }
+}
+
 function cal_build_scale_xml_payload(
     string $sourceXml,
     int $ch,
@@ -540,31 +621,42 @@ try {
             exit;
         }
 
-        $bus = cal_normalize_bus($body['bus'] ?? ($body['SDAQnet'] ?? ''));
-        $addr = cal_normalize_addr($body['addr'] ?? ($body['SDAQaddr'] ?? null));
-        $xml = (string)($body['xmlContent'] ?? ($body['XMLcontent'] ?? ''));
+        if ($action === '' || $action === 'calibration_save') {
+            $bus = cal_normalize_bus($body['bus'] ?? ($body['SDAQnet'] ?? ''));
+            $addr = cal_normalize_addr($body['addr'] ?? ($body['SDAQaddr'] ?? null));
+            $xml = (string)($body['xmlContent'] ?? ($body['XMLcontent'] ?? ''));
 
-        if ($bus === '' || $addr === null) {
-            cal_fail('Missing or invalid bus/addr in request body', 400);
+            if ($bus === '' || $addr === null) {
+                cal_fail('Missing or invalid bus/addr in request body', 400);
+            }
+
+            if (trim($xml) === '') {
+                cal_fail('xmlContent is required', 400);
+            }
+
+            $units = cal_get_units_live();
+            $unitList = $units['SDAQ_UNITs'] ?? [];
+            if (!is_array($unitList)) {
+                cal_fail('Failed to load runtime SDAQ unit dictionary', 500);
+            }
+
+            cal_validate_calibration_xml($xml, $unitList);
+            $result = cal_save_xml_live($bus, $addr, $xml);
+
+            cal_json([
+                'ok' => true,
+                'mode' => $mode,
+                'action' => 'calibration_save',
+                'bus' => strtoupper($bus),
+                'addr' => $addr,
+                'message' => $result['message'] ?? 'Calibration saved',
+                'path' => $result['path'] ?? null,
+                'output' => $result['output'] ?? null,
+            ]);
+            exit;
         }
 
-        if (trim($xml) === '') {
-            cal_fail('xmlContent is required', 400);
-        }
-
-        $xml = cal_rebuild_linear_coeffs_for_iu($xml);
-        $result = cal_save_xml_live($bus, $addr, $xml);
-
-        cal_json([
-            'ok' => true,
-            'mode' => $mode,
-            'bus' => strtoupper($bus),
-            'addr' => $addr,
-            'message' => $result['message'] ?? 'Calibration saved',
-            'path' => $result['path'] ?? null,
-            'output' => $result['output'] ?? null,
-        ]);
-        exit;
+        cal_fail('Unsupported POST action. Use action=calibration_save or action=scale', 400);
     }
 
     http_response_code(405);

@@ -187,13 +187,17 @@ The following keyboard shortcuts and key actions are currently implemented in th
 
 \subsubsection{Calibration Popup}
 \begin{itemize}
+\item \textbf{Read from SDAQ}: reload the current channel calibration directly from the device.
+\item \textbf{Revert}: restore the last calibration data loaded into the popup.
 \item \textbf{Ctrl+S} or \textbf{Cmd+S}: save the current calibration data.
+\item The popup is fixed to the selected SDAQ channel. No channel reselection is required inside the popup.
 \item \textbf{Escape}: close the popup window.
 \end{itemize}
 
 \subsubsection{SDAQ Scale Popup}
 \begin{itemize}
 \item \textbf{Ctrl+S} or \textbf{Cmd+S}: save the current scale settings.
+\item The scale popup is separate from the calibration popup and uses its own save workflow.
 \item \textbf{Escape}: close the popup window.
 \end{itemize}
 
@@ -266,6 +270,49 @@ Preset buttons are available at the top of the page for quick loading of predefi
 \messageexample{Progress}{Applying configuration: validating and writing system network settings...}
 \messageexample{Success}{Configuration applied. If the IP changed, reconnect to the new device address in your browser.}
 \messageexample{Failure}{Apply failed: <error details>}
+
+\section{Calibration Popup}
+Open \textbf{Calibration} by right-clicking an SDAQ channel in the main table.
+
+\subsection{Purpose}
+The calibration popup is a manual channel calibration editor for the currently selected SDAQ channel.
+It is used to read, inspect, edit, preview, and save device calibration data.
+
+\subsection{Page Layout}
+The popup contains:
+
+\begin{itemize}
+\item \textbf{Device Information}: serial number, device type, available channels, samplerate, maximum calibration points, and the fixed channel.
+\item \textbf{Calibration Metadata}: calibration date, re-calibration period, channel unit, and used points.
+\item \textbf{Point Table}: \texttt{Measure}, \texttt{Reference}, \texttt{Offset}, \texttt{Gain}, \texttt{C2}, and \texttt{C3}.
+\item \textbf{Preview Columns}: \texttt{Corrected value}, \texttt{Difference}, and \texttt{Type}.
+\item \textbf{Summary Panel}: calibration type, slope or gain summary, offset, reference minimum and maximum, and unit.
+\end{itemize}
+
+\subsection{Buttons}
+\begin{itemize}
+\item \textbf{Read from SDAQ}: reload the calibration directly from the device.
+\item \textbf{Revert}: discard unsaved edits and restore the last data loaded into the popup.
+\item \textbf{Save to SDAQ}: validate the current form and write it to the device.
+\end{itemize}
+
+\subsection{Validation Rules}
+\begin{itemize}
+\item \textbf{CH's Unit} must be selected from the supported runtime SDAQ unit list.
+\item \textbf{Used Points} must be an integer between zero and the device maximum.
+\item Every field of every used point must contain a finite number.
+\item Empty strings and \texttt{nan / -nan} are rejected.
+\item \texttt{Measure} values of used points must be strictly increasing from top to bottom.
+\end{itemize}
+
+\subsection{Save Semantics}
+\begin{itemize}
+\item The calibration popup preserves the entered calibration coefficients as typed after validation.
+\item It does not automatically recalculate \texttt{Offset}, \texttt{Gain}, \texttt{C2}, or \texttt{C3}.
+\item The separate \textbf{Scale} popup has its own dedicated save workflow for SDAQ-I and SDAQ-U.
+\end{itemize}
+
+\screenshotplaceholder{Calibration Popup}{Insert a screenshot of the current calibration popup showing the metadata row, point table, summary panel, and Read / Revert / Save buttons.}
 
 \section{Add Devices}
 Open \textbf{Add Devices} to manage the current device inventory.

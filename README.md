@@ -222,7 +222,15 @@ curl -s "http://127.0.0.1/backend/api_system_update.php?action=status"
 
 Older original upstream README content has been replaced by this device-oriented guide to match current upgraded architecture and operational policy.
 
-## 13) TC16 API Regression Smoke
+## 13) Calibration and Scale UI Notes
+
+- `Morfeas_WEB/linker-table/calibration.html` is the manual SDAQ calibration editor.
+- Calibration save is legacy-style: it validates and writes the entered channel calibration without automatically recalculating coefficients.
+- `Morfeas_WEB/linker-table/sdaq_scale.html` is a separate SDAQ-I/U scaling workflow.
+- Scale save generates a dedicated two-point calibration payload and computes the needed coefficients before writing to SDAQ.
+- The calibration popup includes `Read from SDAQ`, `Revert`, `Save to SDAQ`, live preview columns, and `Ctrl+S`.
+
+## 14) TC16 API Regression Smoke
 
 Run contract checks for new TC16 endpoints:
 

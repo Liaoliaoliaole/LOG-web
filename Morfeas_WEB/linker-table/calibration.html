@@ -7,101 +7,216 @@
     <title>Channel Calibration</title>
     <link rel="stylesheet" href="../assets/app.css" />
     <style>
+        body {
+            background: var(--color-bg-weak);
+        }
+
         .wrap {
-            max-width: none;
-            width: calc(100vw - 20px);
+            width: min(1580px, calc(100vw - 18px));
             margin: 8px auto;
         }
 
         .card {
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            overflow: hidden
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(17, 24, 39, 0.08);
         }
 
         .card-head {
             padding: 16px 18px;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--color-border);
             font-weight: 900;
-            font-size: 20px
+            font-size: 20px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
         }
 
         .card-body {
-            padding: 8px 12px 12px
+            padding: 12px;
+        }
+
+        .section-block {
+            border: 1px solid #d8dee7;
+            border-radius: 14px;
+            background: #fff;
+            padding: 12px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: #475569;
+            margin: 0 0 10px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 300px;
+            gap: 12px;
+            align-items: start;
+        }
+
+        .stack {
+            display: grid;
+            gap: 12px;
         }
 
         .grid {
             display: grid;
-            grid-template-columns: 180px 1fr;
             gap: 10px 14px;
             align-items: center;
-            margin-bottom: 12px
         }
 
         .grid--info {
-            margin-bottom: 18px
+            grid-template-columns: 170px minmax(0, 1fr);
+        }
+
+        .grid--meta {
+            grid-template-columns: 150px 140px 240px 100px 100px 180px 90px 100px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .summary-item {
+            display: grid;
+            gap: 4px;
+            padding: 10px 12px;
+            border: 1px solid #d8dee7;
+            border-radius: 12px;
+            background: #f8fafc;
+        }
+
+        .summary-item .k {
+            font-size: 12px;
+            color: var(--color-muted);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            font-weight: 700;
+        }
+
+        .summary-item .v {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--color-text);
+            word-break: break-word;
         }
 
         .label {
-            font-weight: 800
+            font-weight: 800;
         }
 
-        .input--w80 {
-            min-width: 80px;
-            width: 80px;
-            text-align: center
+        .info-value {
+            min-height: 22px;
+            display: flex;
+            align-items: center;
+        }
+
+        .input,
+        select.input {
+            min-width: 0;
+            width: 100%;
+            background: #fff;
+        }
+
+        .input--w90 {
+            width: 90px;
+            min-width: 90px;
         }
 
         .input--w110 {
+            width: 110px;
             min-width: 110px;
-            width: 110px
+        }
+
+        .table-wrap {
+            overflow: auto;
+            border: 1px solid var(--color-border);
+            border-radius: 14px;
+            background: #fff;
         }
 
         .table {
             width: 100%;
+            min-width: 1280px;
             border-collapse: collapse;
-            background: #fff
+            background: #fff;
         }
 
         .table th,
         .table td {
             border: 1px solid #e5e7eb;
-            padding: 6px 8px;
+            padding: 7px 8px;
             white-space: nowrap;
-            text-align: left
+            text-align: left;
+            vertical-align: middle;
         }
 
         .table thead th {
-            background: #f3f4f6;
-            font-weight: 800
+            background: #eef4fb;
+            font-weight: 800;
+        }
+
+        .calc-cell {
+            background: #f8fafc;
+            color: #334155;
+            font-variant-numeric: tabular-nums;
         }
 
         .row-disabled {
-            background: #f9fafb;
-            opacity: .6
+            background: #f8fafc;
+            opacity: .72;
         }
 
         .cell-invalid {
             border-color: #dc2626 !important;
-            background: #fef2f2 !important
+            background: #fef2f2 !important;
         }
 
         .row-actions {
             display: flex;
             gap: 10px;
             justify-content: flex-end;
-            margin-top: 8px
+            margin-top: 10px;
+            flex-wrap: wrap;
         }
 
         .note {
-            color: var(--muted);
-            font-size: 14px
+            color: var(--color-muted);
+            font-size: 14px;
+            min-height: 22px;
         }
 
-        .btn.small {
-            height: 34px;
-            padding: 0 10px
+        @media (max-width: 1180px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .grid--meta {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .wrap {
+                width: calc(100vw - 10px);
+                margin: 5px auto;
+            }
+
+            .card-body {
+                padding: 8px;
+            }
+
+            .grid--info,
+            .grid--meta {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -111,82 +226,119 @@
         <div class="card">
             <div class="card-head">Calibration</div>
             <div class="card-body">
+                <div class="layout">
+                    <div class="stack">
+                        <section class="section-block">
+                            <h2 class="section-title">Device Information</h2>
+                            <div class="grid grid--info">
+                                <div class="label">SerialNumber</div>
+                                <div id="devSerial" class="info-value">-</div>
 
-                <!-- Channel & scope -->
-                <div class="grid grid--info">
-                    <div class="label">SerialNumber</div>
-                    <div id="devSerial">-</div>
+                                <div class="label">Type</div>
+                                <div id="devType" class="info-value">-</div>
 
-                    <div class="label">Type</div>
-                    <div id="devType">-</div>
+                                <div class="label">Available_Channels</div>
+                                <div id="devAvailChannels" class="info-value">-</div>
 
-                    <div class="label">Available_Channels</div>
-                    <div id="devAvailChannels">-</div>
+                                <div class="label">Samplerate</div>
+                                <div id="devSampleRate" class="info-value">-</div>
 
-                    <div class="label">Samplerate</div>
-                    <div id="devSampleRate">-</div>
+                                <div class="label">Max_num_of_cal_points</div>
+                                <div id="devMaxPoints" class="info-value">-</div>
 
-                    <div class="label">Max_num_of_cal_points</div>
-                    <div id="devMaxPoints">-</div>
+                                <div class="label">Channel</div>
+                                <div id="channelFixed" class="info-value">-</div>
+                            </div>
+                        </section>
 
-                    <div class="label">Channel</div>
-                    <div id="channelFixed">-</div>
-                </div>
+                        <section class="section-block">
+                            <h2 class="section-title">Calibration Metadata</h2>
+                            <div class="grid grid--meta">
+                                <div class="label">Calibration Date</div>
+                                <div><input id="calDate" type="date" class="input input--w110" /></div>
 
-                <div class="grid" style="grid-template-columns: 150px 150px 230px 100px 90px 130px 110px 90px;">
-                    <div class="label">Calibration Date</div>
-                    <div>
-                        <input id="calDate" type="date" class="input input--w110" />
+                                <div class="label">Re-Calibration Period (Months)</div>
+                                <div><input id="calPeriod" type="number" min="0" class="input input--w90" /></div>
+
+                                <div class="label">CH's Unit</div>
+                                <div>
+                                    <select id="unitBox" class="input">
+                                        <option value="">Select unit</option>
+                                    </select>
+                                </div>
+
+                                <div class="label">Used Points</div>
+                                <div><input id="usedPoints" type="number" min="0" value="0" class="input input--w90" /></div>
+                            </div>
+                        </section>
+
+                        <section class="section-block">
+                            <h2 class="section-title">Point Table</h2>
+                            <div class="table-wrap">
+                                <table class="table" id="calTable">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Measure</th>
+                                            <th>Reference</th>
+                                            <th>Offset</th>
+                                            <th>Gain</th>
+                                            <th>C2</th>
+                                            <th>C3</th>
+                                            <th>Corrected value</th>
+                                            <th>Difference</th>
+                                            <th>Type</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+
+                            <div class="row-actions">
+                                <button id="btnRead" class="btn">Read from SDAQ</button>
+                                <button id="btnRevert" class="btn">Revert</button>
+                                <button id="btnSave" class="btn primary">Save to SDAQ</button>
+                            </div>
+
+                            <div id="status" class="note" style="margin-top:8px"></div>
+                        </section>
                     </div>
 
-                    <div class="label">Re-Calibration Period (Months)</div>
-                    <div>
-                        <input id="calPeriod" type="number" min="0" class="input input--w80" />
-                    </div>
-
-                    <div class="label">CH's Unit</div>
-                    <div>
-                        <input id="unitBox" class="input input--w110" placeholder="°C, A, V" />
-                    </div>
-
-                    <div class="label">Used Points</div>
-                    <div>
-                        <input id="usedPoints" type="number" min="0" value="0" class="input input--w80" />
-                    </div>
+                    <aside class="section-block">
+                        <h2 class="section-title">Summary</h2>
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <div class="k">Calibration type</div>
+                                <div class="v" id="summaryType">-</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="k">Slope / Gain Summary</div>
+                                <div class="v" id="summarySlope">-</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="k">Offset</div>
+                                <div class="v" id="summaryOffset">-</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="k">Reference Min</div>
+                                <div class="v" id="summaryMin">-</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="k">Reference Max</div>
+                                <div class="v" id="summaryMax">-</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="k">Unit</div>
+                                <div class="v" id="summaryUnit">-</div>
+                            </div>
+                        </div>
+                    </aside>
                 </div>
-
-                <!-- Points table -->
-                <div class="table-wrap">
-                    <table class="table" id="calTable">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Measure</th>
-                                <th>Reference</th>
-                                <th>Offset</th>
-                                <th>Gain</th>
-                                <th>C2</th>
-                                <th>C3</th>
-                            </tr>
-                        </thead>
-                        <tbody><!-- filled by JS --></tbody>
-                    </table>
-                </div>
-
-                <div class="row-actions">
-                    <button id="btnSave" class="btn primary">Save</button>
-                </div>
-
-                <div id="status" class="note" style="margin-top:8px"></div>
             </div>
         </div>
     </div>
 
     <script src="./calibration.js"></script>
-    <script>
-        // ESC to close the popup
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });
-    </script>
 </body>
 
 </html>
