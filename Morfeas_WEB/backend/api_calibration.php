@@ -205,7 +205,6 @@ function cal_get_live_measurement(string $bus, int $addr, int $ch): array
                 'last_meas' => is_numeric($last) ? (float)$last : null,
                 'unit' => is_string($unit) ? $unit : null,
                 'channel_status' => is_array($meas['Channel_Status'] ?? null) ? $meas['Channel_Status'] : null,
-                'source_path' => $path,
             ];
         }
 

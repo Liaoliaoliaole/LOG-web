@@ -762,7 +762,7 @@
     });
 
     if (used === 0) state.selectedPreviewRow = 0;
-    else if (state.selectedPreviewRow >= used) state.selectedPreviewRow = 0;
+    else if (state.selectedPreviewRow >= used) state.selectedPreviewRow = Math.max(used - 1, 0);
 
     updateDerivedViews();
   }
