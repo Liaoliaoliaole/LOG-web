@@ -61,10 +61,16 @@
       white-space: nowrap;
     }
 
-    .scale-grid {
+    .scale-form {
       display: grid;
-      grid-template-columns: 190px 1fr 190px 1fr;
-      gap: 8px 10px;
+      gap: 10px;
+      max-width: 760px;
+    }
+
+    .scale-row {
+      display: grid;
+      grid-template-columns: 240px minmax(220px, 1fr);
+      gap: 12px;
       align-items: center;
     }
 
@@ -106,9 +112,12 @@
     }
 
     @media (max-width: 980px) {
-      .kv,
-      .scale-grid {
+      .kv {
         grid-template-columns: 1fr 1fr;
+      }
+
+      .scale-row {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -142,28 +151,40 @@
 
         <div class="box">
           <h3>Manual Scale</h3>
-          <div class="scale-grid">
-            <div class="label">Current Raw Value</div>
-            <input id="rawValue" class="input small" readonly />
+          <div class="scale-form">
+            <div class="scale-row">
+              <div class="label">Current Measurement Value</div>
+              <input id="rawValue" class="input small" readonly />
+            </div>
 
-            <div class="label">Raw Low</div>
-            <input id="rawLowValue" type="number" step="any" class="input small" />
+            <div class="scale-row">
+              <div class="label">Measurement Input Low</div>
+              <input id="rawLowValue" type="number" step="any" class="input small" />
+            </div>
 
-            <div class="label">Raw High</div>
-            <input id="rawHighValue" type="number" step="any" class="input small" />
+            <div class="scale-row">
+              <div class="label">Measurement Input High</div>
+              <input id="rawHighValue" type="number" step="any" class="input small" />
+            </div>
 
-            <div class="label">Eng Low</div>
-            <input id="engLowValue" type="number" step="any" class="input small" />
+            <div class="scale-row">
+              <div class="label">Engineering Output Low</div>
+              <input id="engLowValue" type="number" step="any" class="input small" />
+            </div>
 
-            <div class="label">Eng High</div>
-            <input id="engHighValue" type="number" step="any" class="input small" />
+            <div class="scale-row">
+              <div class="label">Engineering Output High</div>
+              <input id="engHighValue" type="number" step="any" class="input small" />
+            </div>
 
-            <div class="label">Engineering Unit</div>
-            <input id="engUnitInput" class="input small" list="engUnitList" placeholder="Select unit" autocomplete="off" />
-            <datalist id="engUnitList"></datalist>
+            <div class="scale-row">
+              <div class="label">Engineering Unit</div>
+              <input id="engUnitInput" class="input small" list="engUnitList" placeholder="Select unit" autocomplete="off" />
+              <datalist id="engUnitList"></datalist>
+            </div>
           </div>
 
-          <div class="preview" id="scaledPreview">Scaled Value: -</div>
+          <div class="preview" id="scaledPreview">Scaled Output Value: -</div>
 
           <div class="actions">
             <button id="btnReset" class="btn" type="button">Reset</button>

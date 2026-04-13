@@ -4,6 +4,14 @@
 
   const DEFAULT_VISIBLE_ROWS = 10;
   const LIVE_POLL_MS = 1000;
+  const DEFAULT_POINT_VALUES = {
+    measure: '0',
+    reference: '0',
+    offset: '0',
+    gain: '1',
+    c2: '0',
+    c3: '0',
+  };
 
   const params = new URLSearchParams(location.search);
   const requestedPoints = Math.max(1, parseInt(params.get('points') || '8', 10));
@@ -220,12 +228,12 @@
       tr.dataset.rowIdx = String(i);
       tr.innerHTML = `
         <td><b>${i}</b></td>
-        <td><input type="number" step="any" class="input" data-k="measure"></td>
-        <td><input type="number" step="any" class="input" data-k="reference"></td>
-        <td><input type="number" step="any" class="input" data-k="offset"></td>
-        <td><input type="number" step="any" class="input" data-k="gain"></td>
-        <td><input type="number" step="any" class="input" data-k="c2"></td>
-        <td><input type="number" step="any" class="input" data-k="c3"></td>
+        <td><input type="number" step="any" class="input" data-k="measure" value="${DEFAULT_POINT_VALUES.measure}"></td>
+        <td><input type="number" step="any" class="input" data-k="reference" value="${DEFAULT_POINT_VALUES.reference}"></td>
+        <td><input type="number" step="any" class="input" data-k="offset" value="${DEFAULT_POINT_VALUES.offset}"></td>
+        <td><input type="number" step="any" class="input" data-k="gain" value="${DEFAULT_POINT_VALUES.gain}"></td>
+        <td><input type="number" step="any" class="input" data-k="c2" value="${DEFAULT_POINT_VALUES.c2}"></td>
+        <td><input type="number" step="any" class="input" data-k="c3" value="${DEFAULT_POINT_VALUES.c3}"></td>
         <td class="calc-cell" data-calc="corrected">-</td>
         <td class="calc-cell" data-calc="difference">-</td>`;
       tableBody.appendChild(tr);
@@ -465,6 +473,7 @@
       pointCols.forEach((c) => {
         if (i >= used) {
           p[c.key] = '0';
+          if (c.key === 'gain') p[c.key] = '0';
           return;
         }
         const raw = String(getCellInput(i, c.key)?.value || '').trim();
@@ -746,7 +755,7 @@
       if (!active) {
         pointCols.forEach((c) => {
           const el = tr.querySelector(`input[data-k="${c.key}"]`);
-          if (el) el.value = '0';
+          if (el) el.value = DEFAULT_POINT_VALUES[c.key] ?? '0';
           clearInvalid(idx, c.key);
         });
       }
@@ -846,7 +855,7 @@
       return;
     }
     fillFormFromChannelObj(JSON.parse(JSON.stringify(state.originalChannelObj)));
-    setStatus(`Reverted ${selectedChannelTag()} to last loaded state.`, 'ok');
+    setStatus(`Discarded changes for ${selectedChannelTag()} and restored the last loaded state.`, 'ok');
   }
 
   tableBody.addEventListener('click', (e) => {

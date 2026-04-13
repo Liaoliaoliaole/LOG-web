@@ -123,23 +123,23 @@
     const engHigh = parseNum(engHighValue.value);
 
     if (raw === null) {
-      scaledPreview.textContent = 'Scaled Value: raw value unavailable';
+      scaledPreview.textContent = 'Scaled Output Value: current measurement value unavailable';
       return;
     }
 
     if (rawLow === null || rawHigh === null || engLow === null || engHigh === null) {
-      scaledPreview.textContent = 'Scaled Value: enter Raw/Eng low and high to calculate';
+      scaledPreview.textContent = 'Scaled Output Value: enter measurement input and engineering output ranges to calculate';
       return;
     }
 
     if (rawHigh === rawLow) {
-      scaledPreview.textContent = 'Scaled Value: invalid raw range (RawHigh equals RawLow)';
+      scaledPreview.textContent = 'Scaled Output Value: invalid measurement input range (high equals low)';
       return;
     }
 
     const scaled = (raw - rawLow) * (engHigh - engLow) / (rawHigh - rawLow) + engLow;
     const unit = getSelectedUnit();
-    scaledPreview.textContent = `Scaled Value: ${toShortNumber(scaled)}${unit ? ` ${unit}` : ''}`;
+    scaledPreview.textContent = `Scaled Output Value: ${toShortNumber(scaled)}${unit ? ` ${unit}` : ''}`;
   }
 
   function validateBeforeSave() {
@@ -157,11 +157,11 @@
     const engHigh = parseNum(engHighValue.value);
 
     if (rawLow === null || rawHigh === null || engLow === null || engHigh === null) {
-      throw new Error('Raw and Engineering low/high values are required');
+      throw new Error('Measurement input and engineering output low/high values are required');
     }
 
     if (rawHigh <= rawLow) {
-      throw new Error('Invalid raw range: RawHigh must be greater than RawLow');
+      throw new Error('Invalid measurement input range: high must be greater than low');
     }
 
     const engUnit = getSelectedUnit();
@@ -333,8 +333,8 @@
   function resetScale() {
     engLowValue.value = '';
     engHighValue.value = '';
-    scaledPreview.textContent = 'Scaled Value: -';
-    setStatus('Engineering range and preview cleared', 'info');
+    scaledPreview.textContent = 'Scaled Output Value: -';
+    setStatus('Engineering output range and preview cleared', 'info');
   }
 
   function bindEvents() {
