@@ -2,6 +2,8 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
+  const DEFAULT_VISIBLE_ROWS = 10;
+
   const params = new URLSearchParams(location.search);
   const requestedPoints = Math.max(1, parseInt(params.get('points') || '8', 10));
   const requestedCh = Math.max(1, parseInt(params.get('ch') || '1', 10));
@@ -40,13 +42,19 @@
     unit: $('#summaryUnit'),
   };
 
+  const liveEls = {
+    reference: $('#liveReferenceValue'),
+    measured: $('#liveMeasuredRawValue'),
+    calibrated: $('#liveCalibratedValue'),
+  };
+
   const pointCols = [
-    { xml: 'Measure', key: 'measure' },
-    { xml: 'Reference', key: 'reference' },
-    { xml: 'Offset', key: 'offset' },
-    { xml: 'Gain', key: 'gain' },
-    { xml: 'C2', key: 'c2' },
-    { xml: 'C3', key: 'c3' },
+    { xml: 'Measure', key: 'measure', label: 'Uncalibrated value' },
+    { xml: 'Reference', key: 'reference', label: 'Reference value' },
+    { xml: 'Offset', key: 'offset', label: 'Offset' },
+    { xml: 'Gain', key: 'gain', label: 'Gain' },
+    { xml: 'C2', key: 'c2', label: 'C2' },
+    { xml: 'C3', key: 'c3', label: 'C3' },
   ];
 
   const state = {
@@ -54,6 +62,8 @@
     selectedCh: requestedCh,
     maxPoints: requestedPoints,
     availableChannels: 64,
+    renderRows: Math.max(1, requestedPoints),
+    selectedPreviewRow: 0,
     units: [],
     unitSet: new Set(),
     invalidCells: new Map(),
@@ -91,6 +101,12 @@
     return text === '-0' ? '0' : text;
   }
 
+  function displayWithUnit(value, unit = '') {
+    const text = toDisplayNumber(value);
+    if (text === '-') return '-';
+    return unit ? `${text} ${unit}` : text;
+  }
+
   function todayYmd() {
     const d = new Date();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -120,13 +136,22 @@
 
   function colLabel(colKey) {
     const found = pointCols.find((c) => c.key === colKey);
-    return found ? found.xml : colKey;
+    return found ? found.label : colKey;
   }
 
   function setCellValue(rowIdx, colKey, value) {
     const tr = rows[rowIdx];
     const inp = tr?.querySelector(`input[data-k="${colKey}"]`);
     if (inp) inp.value = value;
+  }
+
+  function getCellInput(rowIdx, colKey) {
+    return rows[rowIdx]?.querySelector(`input[data-k="${colKey}"]`) || null;
+  }
+
+  function setPreviewCell(rowIdx, calcKey, value) {
+    const cell = rows[rowIdx]?.querySelector(`td[data-calc="${calcKey}"]`);
+    if (cell) cell.textContent = value;
   }
 
   function clearAllInvalidMarks() {
@@ -166,34 +191,41 @@
       .join('; ');
   }
 
+  function resolveRenderRows(used) {
+    const max = Math.max(1, state.maxPoints);
+    const preferred = Math.max(DEFAULT_VISIBLE_ROWS, used);
+    return Math.min(max, preferred);
+  }
+
+  function normalizeScalar(v) {
+    if (v === null || v === undefined) return '0';
+    const s = String(v).trim();
+    if (s === '') return '0';
+    if (/^-?nan$/i.test(s)) return 'nan';
+    const n = Number(s);
+    return Number.isFinite(n) ? String(n) : s;
+  }
+
   function buildRows() {
     tableBody.innerHTML = '';
     rows.length = 0;
-    for (let i = 0; i < state.maxPoints; i++) {
+    for (let i = 0; i < state.renderRows; i++) {
       const tr = document.createElement('tr');
+      tr.dataset.rowIdx = String(i);
       tr.innerHTML = `
         <td><b>${i}</b></td>
-        <td><input type="number" step="any" class="input input--w110" data-k="measure"></td>
-        <td><input type="number" step="any" class="input input--w110" data-k="reference"></td>
-        <td><input type="number" step="any" class="input input--w110" data-k="offset"></td>
-        <td><input type="number" step="any" class="input input--w110" data-k="gain"></td>
-        <td><input type="number" step="any" class="input input--w110" data-k="c2"></td>
-        <td><input type="number" step="any" class="input input--w110" data-k="c3"></td>
+        <td><input type="number" step="any" class="input" data-k="measure"></td>
+        <td><input type="number" step="any" class="input" data-k="reference"></td>
+        <td><input type="number" step="any" class="input" data-k="offset"></td>
+        <td><input type="number" step="any" class="input" data-k="gain"></td>
+        <td><input type="number" step="any" class="input" data-k="c2"></td>
+        <td><input type="number" step="any" class="input" data-k="c3"></td>
         <td class="calc-cell" data-calc="corrected">-</td>
-        <td class="calc-cell" data-calc="difference">-</td>
-        <td class="calc-cell" data-calc="type">-</td>`;
+        <td class="calc-cell" data-calc="difference">-</td>`;
       tableBody.appendChild(tr);
       rows.push(tr);
     }
-  }
-
-  function getCellInput(rowIdx, colKey) {
-    return rows[rowIdx]?.querySelector(`input[data-k="${colKey}"]`) || null;
-  }
-
-  function setPreviewCell(rowIdx, calcKey, value) {
-    const cell = rows[rowIdx]?.querySelector(`td[data-calc="${calcKey}"]`);
-    if (cell) cell.textContent = value;
+    syncSelectedRowHighlight();
   }
 
   function getRowValues(rowIdx) {
@@ -202,19 +234,6 @@
       out[c.key] = String(getCellInput(rowIdx, c.key)?.value || '').trim();
     });
     return out;
-  }
-
-  function computeRowType(values) {
-    const gain = toFiniteNumber(values.gain);
-    const offset = toFiniteNumber(values.offset);
-    const c2 = toFiniteNumber(values.c2);
-    const c3 = toFiniteNumber(values.c3);
-    const hasPoly = (c2 !== null && c2 !== 0) || (c3 !== null && c3 !== 0);
-    if (hasPoly) return 'polynomial';
-    if (gain === null || offset === null) return '-';
-    if (gain === 1 && offset === 0) return 'none';
-    if (gain === 1) return 'offset only';
-    return 'scale + offset';
   }
 
   function computeCorrected(values) {
@@ -227,12 +246,44 @@
     return offset + (gain * measure) + (c2 * measure * measure) + (c3 * measure * measure * measure);
   }
 
+  function computeChannelType(used) {
+    if (used === 0) return 'none';
+
+    let hasPoly = false;
+    let hasOffsetOnly = false;
+    let hasScale = false;
+
+    for (let i = 0; i < used; i++) {
+      const row = getRowValues(i);
+      const gain = toFiniteNumber(row.gain);
+      const offset = toFiniteNumber(row.offset);
+      const c2 = toFiniteNumber(row.c2);
+      const c3 = toFiniteNumber(row.c3);
+
+      if ((c2 !== null && c2 !== 0) || (c3 !== null && c3 !== 0)) {
+        hasPoly = true;
+        break;
+      }
+
+      if (gain === 1 && offset !== null && offset !== 0) {
+        hasOffsetOnly = true;
+      } else if (gain !== null || offset !== null) {
+        hasScale = true;
+      }
+    }
+
+    if (hasPoly) return 'polynomial';
+    if (used > 2) return 'multi-point linearization';
+    if (hasScale) return 'scale + offset';
+    if (hasOffsetOnly) return 'offset only';
+    return 'none';
+  }
+
   function updateRowPreview(rowIdx) {
     const used = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
     if (rowIdx >= used) {
       setPreviewCell(rowIdx, 'corrected', '-');
       setPreviewCell(rowIdx, 'difference', '-');
-      setPreviewCell(rowIdx, 'type', '-');
       return;
     }
 
@@ -243,7 +294,6 @@
 
     setPreviewCell(rowIdx, 'corrected', corrected === null ? '-' : toDisplayNumber(corrected));
     setPreviewCell(rowIdx, 'difference', difference === null ? '-' : toDisplayNumber(difference));
-    setPreviewCell(rowIdx, 'type', computeRowType(values));
   }
 
   function updateAllRowPreviews() {
@@ -252,33 +302,22 @@
 
   function updateSummary() {
     const used = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
-    const values = [];
-    for (let i = 0; i < used; i++) values.push(getRowValues(i));
+    const refs = [];
+    const gains = [];
+    const offsets = [];
+    let hasPoly = false;
 
-    const refs = values.map((row) => toFiniteNumber(row.reference)).filter((v) => v !== null);
-    const gains = values.map((row) => toFiniteNumber(row.gain)).filter((v) => v !== null);
-    const offsets = values.map((row) => toFiniteNumber(row.offset)).filter((v) => v !== null);
-    const hasPoly = values.some((row) => {
+    for (let i = 0; i < used; i++) {
+      const row = getRowValues(i);
+      const ref = toFiniteNumber(row.reference);
+      const gain = toFiniteNumber(row.gain);
+      const offset = toFiniteNumber(row.offset);
       const c2 = toFiniteNumber(row.c2);
       const c3 = toFiniteNumber(row.c3);
-      return (c2 !== null && c2 !== 0) || (c3 !== null && c3 !== 0);
-    });
-
-    let summaryType = 'none';
-    if (used === 0) {
-      summaryType = 'none';
-    } else if (hasPoly) {
-      summaryType = 'polynomial';
-    } else if (used > 2) {
-      summaryType = 'multi-point linearization';
-    } else {
-      const gain = gains.length ? gains[0] : null;
-      const offset = offsets.length ? offsets[0] : null;
-      if (gain === 1 && offset !== null && offset !== 0) {
-        summaryType = 'offset only';
-      } else if (gain !== null || offset !== null) {
-        summaryType = 'scale + offset';
-      }
+      if (ref !== null) refs.push(ref);
+      if (gain !== null) gains.push(gain);
+      if (offset !== null) offsets.push(offset);
+      if ((c2 !== null && c2 !== 0) || (c3 !== null && c3 !== 0)) hasPoly = true;
     }
 
     let slopeText = '-';
@@ -297,7 +336,7 @@
       offsetText = same ? toDisplayNumber(first) : 'mixed';
     }
 
-    summaryEls.type.textContent = summaryType;
+    summaryEls.type.textContent = computeChannelType(used);
     summaryEls.slope.textContent = slopeText;
     summaryEls.offset.textContent = offsetText;
     summaryEls.min.textContent = refs.length ? toDisplayNumber(Math.min(...refs)) : '-';
@@ -305,18 +344,43 @@
     summaryEls.unit.textContent = unitSelect.value || '-';
   }
 
+  function syncSelectedRowHighlight() {
+    rows.forEach((tr, idx) => {
+      tr.classList.toggle('preview-row-selected', idx === state.selectedPreviewRow);
+    });
+  }
+
+  function updateLivePreview() {
+    const used = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
+    let rowIdx = state.selectedPreviewRow;
+    if (used === 0) rowIdx = -1;
+    else if (rowIdx < 0 || rowIdx >= used) rowIdx = 0;
+
+    if (rowIdx < 0) {
+      liveEls.reference.textContent = '-';
+      liveEls.measured.textContent = '-';
+      liveEls.calibrated.textContent = '-';
+      return;
+    }
+
+    state.selectedPreviewRow = rowIdx;
+    syncSelectedRowHighlight();
+
+    const values = getRowValues(rowIdx);
+    const reference = toFiniteNumber(values.reference);
+    const measured = toFiniteNumber(values.measure);
+    const calibrated = computeCorrected(values);
+    const unit = unitSelect.value || '';
+
+    liveEls.reference.textContent = displayWithUnit(reference, unit);
+    liveEls.measured.textContent = displayWithUnit(measured, '');
+    liveEls.calibrated.textContent = displayWithUnit(calibrated, unit);
+  }
+
   function updateDerivedViews() {
     updateAllRowPreviews();
     updateSummary();
-  }
-
-  function normalizeScalar(v) {
-    if (v === null || v === undefined) return '0';
-    const s = String(v).trim();
-    if (s === '') return '0';
-    if (/^-?nan$/i.test(s)) return 'nan';
-    const n = Number(s);
-    return Number.isFinite(n) ? String(n) : s;
+    updateLivePreview();
   }
 
   function channelNodeToObject(chNode) {
@@ -347,51 +411,6 @@
       out.Points[`Point_${i}`] = p;
     }
     return out;
-  }
-
-  function fillFormFromChannelObj(chObj) {
-    clearAllInvalidMarks();
-
-    const used = Math.max(0, Math.min(state.maxPoints, toInt(chObj?.Used_Points ?? 0, 0)));
-    usedInput.value = String(used);
-    calDateInput.value = slashToYmd(chObj?.Calibration_date || '') || todayYmd();
-    calPeriodInput.value = String(Math.max(0, toInt(chObj?.Calibration_Period ?? 0, 0)));
-    unitSelect.value = state.unitSet.has(String(chObj?.Unit ?? '')) ? String(chObj.Unit) : '';
-
-    for (let i = 0; i < state.maxPoints; i++) {
-      const point = chObj?.Points?.[`Point_${i}`] || {};
-      const isUsed = i < used;
-      pointCols.forEach((c) => {
-        if (!isUsed) {
-          setCellValue(i, c.key, '0');
-          clearInvalid(i, c.key);
-          return;
-        }
-
-        const raw = String(point[c.key] ?? '0').trim();
-        if (raw === '' || /^-?nan$/i.test(raw)) {
-          setCellValue(i, c.key, '');
-          markInvalid(i, c.key, raw, raw === '' ? 'empty value' : 'non-finite value');
-          return;
-        }
-
-        const num = Number(raw);
-        if (!Number.isFinite(num)) {
-          setCellValue(i, c.key, '');
-          markInvalid(i, c.key, raw, 'non-finite value');
-          return;
-        }
-
-        setCellValue(i, c.key, String(num));
-        clearInvalid(i, c.key);
-      });
-    }
-
-    applyUsed();
-    validateMeasureAscending(false);
-    updateDerivedViews();
-    const msg = invalidMessage(true);
-    setStatus(msg || `Loaded ${selectedChannelTag()}`, msg ? 'err' : 'ok');
   }
 
   function collectChannelObjFromForm() {
@@ -428,6 +447,7 @@
       Unit: String(chObj?.Unit ?? ''),
       Points: {},
     };
+
     for (let i = 0; i < state.maxPoints; i++) {
       const src = chObj?.Points?.[`Point_${i}`] || {};
       const p = {};
@@ -486,10 +506,80 @@
     return new XMLSerializer().serializeToString(outDoc);
   }
 
+  function ensureRowCapacity(targetUsed, preserveCurrent = true) {
+    const desired = resolveRenderRows(targetUsed);
+    if (desired === rows.length) return;
+
+    const snapshot = preserveCurrent && rows.length ? collectChannelObjFromForm() : null;
+    state.renderRows = desired;
+    buildRows();
+    if (snapshot) {
+      fillFormFromChannelObj(snapshot, { skipResize: true, suppressStatus: true });
+    }
+  }
+
+  function fillFormFromChannelObj(chObj, options = {}) {
+    clearAllInvalidMarks();
+
+    const used = Math.max(0, Math.min(state.maxPoints, toInt(chObj?.Used_Points ?? 0, 0)));
+    if (!options.skipResize) {
+      state.renderRows = resolveRenderRows(used);
+      buildRows();
+    }
+
+    usedInput.value = String(used);
+    calDateInput.value = slashToYmd(chObj?.Calibration_date || '') || todayYmd();
+    calPeriodInput.value = String(Math.max(0, toInt(chObj?.Calibration_Period ?? 0, 0)));
+    unitSelect.value = state.unitSet.has(String(chObj?.Unit ?? '')) ? String(chObj.Unit) : '';
+
+    for (let i = 0; i < rows.length; i++) {
+      const point = chObj?.Points?.[`Point_${i}`] || {};
+      const isUsed = i < used;
+
+      pointCols.forEach((c) => {
+        if (!isUsed) {
+          setCellValue(i, c.key, '0');
+          clearInvalid(i, c.key);
+          return;
+        }
+
+        const raw = String(point[c.key] ?? '0').trim();
+        if (raw === '' || /^-?nan$/i.test(raw)) {
+          setCellValue(i, c.key, '');
+          markInvalid(i, c.key, raw, raw === '' ? 'empty value' : 'non-finite value');
+          return;
+        }
+
+        const num = Number(raw);
+        if (!Number.isFinite(num)) {
+          setCellValue(i, c.key, '');
+          markInvalid(i, c.key, raw, 'non-finite value');
+          return;
+        }
+
+        setCellValue(i, c.key, String(num));
+        clearInvalid(i, c.key);
+      });
+    }
+
+    state.selectedPreviewRow = used > 0 ? Math.min(state.selectedPreviewRow, used - 1) : 0;
+    applyUsed();
+    validateMeasureAscending(false);
+    updateDerivedViews();
+    const msg = invalidMessage(true);
+    if (!options.suppressStatus) {
+      setStatus(msg || `Loaded ${selectedChannelTag()}`, msg ? 'err' : 'ok');
+    }
+  }
+
   async function fetchUnits() {
     const url = new URL(apiUrl.toString());
     url.searchParams.set('action', 'units');
-    const res = await fetch(url.toString(), { method: 'GET', cache: 'no-store', headers: { Accept: 'application/json' } });
+    const res = await fetch(url.toString(), {
+      method: 'GET',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
     if (!res.ok) throw new Error(`Units request failed: HTTP ${res.status}`);
     const payload = await res.json();
     if (!payload?.ok || !Array.isArray(payload?.data?.SDAQ_UNITs)) {
@@ -509,12 +599,17 @@
 
   async function fetchCalibrationXml() {
     if (!bus || addr === null) throw new Error('Missing bus/addr in popup URL');
+
     const url = new URL(apiUrl.toString());
     url.searchParams.set('action', 'xml');
     url.searchParams.set('bus', bus);
     url.searchParams.set('addr', String(addr));
 
-    const res = await fetch(url.toString(), { method: 'GET', cache: 'no-store', headers: { Accept: 'application/xml, text/xml' } });
+    const res = await fetch(url.toString(), {
+      method: 'GET',
+      cache: 'no-store',
+      headers: { Accept: 'application/xml, text/xml' },
+    });
     if (!res.ok) {
       const t = await res.text();
       throw new Error(t || `Calibration XML request failed: HTTP ${res.status}`);
@@ -530,6 +625,7 @@
     state.maxPoints = Math.max(1, maxFromInfo);
     state.availableChannels = Math.max(1, chFromInfo);
     state.selectedCh = Math.min(Math.max(1, requestedCh), state.availableChannels);
+    state.renderRows = resolveRenderRows(0);
   }
 
   function populateInfo() {
@@ -568,6 +664,10 @@
         });
       }
     });
+
+    if (used === 0) state.selectedPreviewRow = 0;
+    else if (state.selectedPreviewRow >= used) state.selectedPreviewRow = 0;
+
     updateDerivedViews();
   }
 
@@ -577,7 +677,7 @@
       const prev = toFiniteNumber(getCellInput(i - 1, 'measure')?.value);
       const curr = toFiniteNumber(getCellInput(i, 'measure')?.value);
       if (prev !== null && curr !== null && curr <= prev) {
-        markInvalid(i, 'measure', getCellInput(i, 'measure')?.value, `value must be greater than Point_${i - 1}.Measure`);
+        markInvalid(i, 'measure', getCellInput(i, 'measure')?.value, `value must be greater than previous ${colLabel('measure')}`);
         const msg = invalidMessage(true);
         if (throwOnError) throw new Error(msg);
         setStatus(msg, 'err');
@@ -647,7 +747,6 @@
   async function readFromSdaq() {
     setStatus('Reading calibration from SDAQ...', 'info');
     await fetchCalibrationXml();
-    buildRows();
     populateInfo();
     loadSelectedChannelFromXml();
     setStatus(`Loaded calibration for ${bus.toUpperCase()} addr ${addr} CH ${state.selectedCh}`, 'ok');
@@ -662,6 +761,14 @@
     setStatus(`Reverted ${selectedChannelTag()} to last loaded state.`, 'ok');
   }
 
+  tableBody.addEventListener('click', (e) => {
+    const tr = e.target.closest('tr[data-row-idx]');
+    if (!tr) return;
+    const idx = toInt(tr.dataset.rowIdx, 0);
+    state.selectedPreviewRow = idx;
+    updateLivePreview();
+  });
+
   tableBody.addEventListener('input', (e) => {
     const inp = e.target.closest('input[data-k]');
     if (!inp) return;
@@ -669,9 +776,12 @@
     const rowIdx = rows.indexOf(tr);
     const colKey = inp.dataset.k || '';
     const used = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
+    state.selectedPreviewRow = rowIdx;
+
     if (rowIdx >= used) {
       inp.value = '0';
       clearInvalid(rowIdx, colKey);
+      updateLivePreview();
       return;
     }
 
@@ -696,6 +806,8 @@
   });
 
   usedInput.addEventListener('input', () => {
+    const targetUsed = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
+    ensureRowCapacity(targetUsed, true);
     applyUsed();
     const msg = invalidMessage(true);
     if (msg) setStatus(msg, 'err');
@@ -738,10 +850,12 @@
 
   (async function init() {
     try {
+      state.renderRows = DEFAULT_VISIBLE_ROWS;
       buildRows();
       usedInput.value = '0';
       calPeriodInput.value = '0';
       calDateInput.value = todayYmd();
+      updateDerivedViews();
 
       await fetchUnits();
       await readFromSdaq();

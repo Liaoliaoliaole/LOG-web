@@ -228,7 +228,7 @@ Older original upstream README content has been replaced by this device-oriented
 - Calibration save is legacy-style: it validates and writes the entered channel calibration without automatically recalculating coefficients.
 - `Morfeas_WEB/linker-table/sdaq_scale.html` is a separate SDAQ-I/U scaling workflow.
 - Scale save generates a dedicated two-point calibration payload and computes the needed coefficients before writing to SDAQ.
-- The calibration popup includes `Read from SDAQ`, `Revert`, `Save to SDAQ`, live preview columns, and `Ctrl+S`.
+- The calibration popup includes a top shared layout (device info + metadata + summary), a `Current Preview` area, `Read from SDAQ`, `Revert`, `Save to SDAQ`, live preview columns, and `Ctrl+S`.
 
 ## 14) TC16 API Regression Smoke
 

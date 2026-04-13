@@ -191,6 +191,7 @@ The following keyboard shortcuts and key actions are currently implemented in th
 \item \textbf{Revert}: restore the last calibration data loaded into the popup.
 \item \textbf{Ctrl+S} or \textbf{Cmd+S}: save the current calibration data.
 \item The popup is fixed to the selected SDAQ channel. No channel reselection is required inside the popup.
+\item The point table starts with a compact default height and expands automatically when the device reports more used points.
 \item \textbf{Escape}: close the popup window.
 \end{itemize}
 
@@ -282,10 +283,10 @@ It is used to read, inspect, edit, preview, and save device calibration data.
 The popup contains:
 
 \begin{itemize}
-\item \textbf{Device Information}: serial number, device type, available channels, samplerate, maximum calibration points, and the fixed channel.
-\item \textbf{Calibration Metadata}: calibration date, re-calibration period, channel unit, and used points.
-\item \textbf{Point Table}: \texttt{Measure}, \texttt{Reference}, \texttt{Offset}, \texttt{Gain}, \texttt{C2}, and \texttt{C3}.
-\item \textbf{Preview Columns}: \texttt{Corrected value}, \texttt{Difference}, and \texttt{Type}.
+\item \textbf{Upper Section}: device information, calibration metadata, and summary panel share the top area.
+\item \textbf{Current Preview}: \texttt{Reference value}, \texttt{Measured raw value}, and \texttt{Calibrated value}.
+\item \textbf{Point Table}: \texttt{Uncalibrated value}, \texttt{Reference value}, \texttt{Offset}, \texttt{Gain}, \texttt{C2}, and \texttt{C3}.
+\item \textbf{Preview Columns}: \texttt{Calibrated value} and \texttt{Difference (Calibrated - Reference)}.
 \item \textbf{Summary Panel}: calibration type, slope or gain summary, offset, reference minimum and maximum, and unit.
 \end{itemize}
 
@@ -294,6 +295,14 @@ The popup contains:
 \item \textbf{Read from SDAQ}: reload the calibration directly from the device.
 \item \textbf{Revert}: discard unsaved edits and restore the last data loaded into the popup.
 \item \textbf{Save to SDAQ}: validate the current form and write it to the device.
+\end{itemize}
+
+\subsection{Preview Behavior}
+\begin{itemize}
+\item The \textbf{Current Preview} block follows the currently highlighted point row.
+\item \texttt{Measured raw value} is taken from the selected row input value.
+\item \texttt{Calibrated value} is calculated from the current row coefficients.
+\item \texttt{Calibration type} is shown only once in the summary panel and is not repeated in every point row.
 \end{itemize}
 
 \subsection{Validation Rules}
@@ -312,7 +321,7 @@ The popup contains:
 \item The separate \textbf{Scale} popup has its own dedicated save workflow for SDAQ-I and SDAQ-U.
 \end{itemize}
 
-\screenshotplaceholder{Calibration Popup}{Insert a screenshot of the current calibration popup showing the metadata row, point table, summary panel, and Read / Revert / Save buttons.}
+\screenshotplaceholder{Calibration Popup}{Insert a screenshot of the current calibration popup showing the top shared section, current preview cards, point table, summary panel, and Read / Revert / Save buttons.}
 
 \section{Add Devices}
 Open \textbf{Add Devices} to manage the current device inventory.
