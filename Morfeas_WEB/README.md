@@ -82,4 +82,4 @@ Morfeas_WEB/
 - Calibration save validates the selected channel XML and writes the entered coefficients to SDAQ without automatically recalculating them.
 - `sdaq_scale.html / sdaq_scale.js` is a separate workflow for `SDAQ-I` and `SDAQ-U`.
 - Scale save generates a dedicated two-point calibration payload and computes the required coefficients before writing to SDAQ.
-- The calibration popup supports `Read from SDAQ`, `Revert`, `Save to SDAQ`, a top shared layout (device info + metadata + summary), a `Current Preview` block, live preview columns (`Calibrated value`, `Difference`), and `Ctrl+S`.
+- The calibration popup supports `Read from SDAQ`, `Revert`, `Save to SDAQ`, a top shared layout (device info + metadata + summary) with unified row-style cards, a `Current Preview` block (`Measured raw value`, `Correct value`), live preview columns (`Calibrated value`, `Difference`), and `Ctrl+S`.

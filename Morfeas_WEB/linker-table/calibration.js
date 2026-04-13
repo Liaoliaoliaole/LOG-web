@@ -3,6 +3,7 @@
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
   const DEFAULT_VISIBLE_ROWS = 10;
+  const LIVE_POLL_MS = 1000;
 
   const params = new URLSearchParams(location.search);
   const requestedPoints = Math.max(1, parseInt(params.get('points') || '8', 10));
@@ -43,9 +44,8 @@
   };
 
   const liveEls = {
-    reference: $('#liveReferenceValue'),
     measured: $('#liveMeasuredRawValue'),
-    calibrated: $('#liveCalibratedValue'),
+    correct: $('#liveCorrectValue'),
   };
 
   const pointCols = [
@@ -68,6 +68,12 @@
     unitSet: new Set(),
     invalidCells: new Map(),
     originalChannelObj: null,
+    liveMeasurement: {
+      rawLastMeas: null,
+      lastMeas: null,
+      unit: null,
+    },
+    liveTimerId: null,
   };
 
   const rows = [];
@@ -246,6 +252,52 @@
     return offset + (gain * measure) + (c2 * measure * measure) + (c3 * measure * measure * measure);
   }
 
+  function collectUsedPointModels(channelObj) {
+    const used = Math.max(0, Math.min(state.maxPoints, toInt(channelObj?.Used_Points ?? 0, 0)));
+    const points = [];
+
+    for (let i = 0; i < used; i++) {
+      const src = channelObj?.Points?.[`Point_${i}`] || {};
+      const measure = toFiniteNumber(src.measure);
+      const reference = toFiniteNumber(src.reference);
+      const offset = toFiniteNumber(src.offset);
+      const gain = toFiniteNumber(src.gain);
+      const c2 = toFiniteNumber(src.c2);
+      const c3 = toFiniteNumber(src.c3);
+      if ([measure, reference, offset, gain, c2, c3].some((v) => v === null)) {
+        return null;
+      }
+      points.push({ measure, reference, offset, gain, c2, c3 });
+    }
+
+    return points;
+  }
+
+  function computeChannelCorrectValue(channelObj, rawMeasure) {
+    if (!Number.isFinite(rawMeasure)) return null;
+
+    const points = collectUsedPointModels(channelObj);
+    if (!points) return null;
+    if (points.length === 0) return rawMeasure;
+    if (points.length === 1) {
+      const p = points[0];
+      return p.offset + (p.gain * rawMeasure) + (p.c2 * rawMeasure * rawMeasure) + (p.c3 * rawMeasure * rawMeasure * rawMeasure);
+    }
+
+    let selected = points[points.length - 1];
+    for (let i = 0; i < points.length - 1; i++) {
+      if (rawMeasure <= points[i + 1].measure) {
+        selected = points[i];
+        break;
+      }
+    }
+
+    return selected.offset
+      + (selected.gain * rawMeasure)
+      + (selected.c2 * rawMeasure * rawMeasure)
+      + (selected.c3 * rawMeasure * rawMeasure * rawMeasure);
+  }
+
   function computeChannelType(used) {
     if (used === 0) return 'none';
 
@@ -351,30 +403,15 @@
   }
 
   function updateLivePreview() {
-    const used = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
-    let rowIdx = state.selectedPreviewRow;
-    if (used === 0) rowIdx = -1;
-    else if (rowIdx < 0 || rowIdx >= used) rowIdx = 0;
-
-    if (rowIdx < 0) {
-      liveEls.reference.textContent = '-';
-      liveEls.measured.textContent = '-';
-      liveEls.calibrated.textContent = '-';
-      return;
-    }
-
-    state.selectedPreviewRow = rowIdx;
     syncSelectedRowHighlight();
 
-    const values = getRowValues(rowIdx);
-    const reference = toFiniteNumber(values.reference);
-    const measured = toFiniteNumber(values.measure);
-    const calibrated = computeCorrected(values);
-    const unit = unitSelect.value || '';
+    const rawMeasure = state.liveMeasurement.rawLastMeas;
+    const currentObj = collectChannelObjFromForm();
+    const corrected = computeChannelCorrectValue(currentObj, rawMeasure);
+    const unit = unitSelect.value || state.liveMeasurement.unit || '';
 
-    liveEls.reference.textContent = displayWithUnit(reference, unit);
-    liveEls.measured.textContent = displayWithUnit(measured, '');
-    liveEls.calibrated.textContent = displayWithUnit(calibrated, unit);
+    liveEls.measured.textContent = displayWithUnit(rawMeasure, '');
+    liveEls.correct.textContent = displayWithUnit(corrected, unit);
   }
 
   function updateDerivedViews() {
@@ -628,6 +665,56 @@
     state.renderRows = resolveRenderRows(0);
   }
 
+  async function fetchLiveMeasurement() {
+    if (!bus || addr === null) throw new Error('Missing bus/addr in popup URL');
+
+    const url = new URL(apiUrl.toString());
+    url.searchParams.set('action', 'live_measurement');
+    url.searchParams.set('bus', bus);
+    url.searchParams.set('addr', String(addr));
+    url.searchParams.set('ch', String(state.selectedCh));
+
+    const res = await fetch(url.toString(), {
+      method: 'GET',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
+
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok || !payload?.ok) {
+      throw new Error(payload?.error || `Live measurement request failed: HTTP ${res.status}`);
+    }
+
+    const data = payload.data || {};
+    state.liveMeasurement.rawLastMeas = Number.isFinite(Number(data.raw_last_meas)) ? Number(data.raw_last_meas) : null;
+    state.liveMeasurement.lastMeas = Number.isFinite(Number(data.last_meas)) ? Number(data.last_meas) : null;
+    state.liveMeasurement.unit = typeof data.unit === 'string' ? data.unit : null;
+  }
+
+  async function refreshLiveMeasurement({ silent = true } = {}) {
+    try {
+      await fetchLiveMeasurement();
+      updateLivePreview();
+    } catch (err) {
+      state.liveMeasurement.rawLastMeas = null;
+      state.liveMeasurement.lastMeas = null;
+      state.liveMeasurement.unit = null;
+      updateLivePreview();
+      if (!silent) {
+        throw err;
+      }
+    }
+  }
+
+  function startLivePolling() {
+    if (state.liveTimerId) {
+      clearInterval(state.liveTimerId);
+    }
+    state.liveTimerId = window.setInterval(() => {
+      refreshLiveMeasurement({ silent: true });
+    }, LIVE_POLL_MS);
+  }
+
   function populateInfo() {
     const setIf = (el, val) => { if (el) el.textContent = val; };
     const info = state.sourceXmlDoc?.querySelector('SDAQ > SDAQ_info');
@@ -749,6 +836,7 @@
     await fetchCalibrationXml();
     populateInfo();
     loadSelectedChannelFromXml();
+    await refreshLiveMeasurement({ silent: false });
     setStatus(`Loaded calibration for ${bus.toUpperCase()} addr ${addr} CH ${state.selectedCh}`, 'ok');
   }
 
@@ -859,6 +947,7 @@
 
       await fetchUnits();
       await readFromSdaq();
+      startLivePolling();
     } catch (err) {
       setStatus(err.message || 'Failed to load calibration data', 'err');
     }

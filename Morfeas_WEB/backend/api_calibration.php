@@ -2,6 +2,7 @@
 
 require __DIR__ . '/core/paths.php';
 require __DIR__ . '/core/request.php';
+require_once __DIR__ . '/repositories/logstat_repository.php';
 
 header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
@@ -165,6 +166,53 @@ function cal_save_xml_live(string $bus, int $addr, string $xml): array
         'message' => sprintf('Server: Calibration table written with success at SDAQ with ADDR:%d', $addr),
         'output' => trim($res['stdout']),
     ];
+}
+
+function cal_get_live_measurement(string $bus, int $addr, int $ch): array
+{
+    $path = backend_ramdisk_dir() . 'logstat_SDAQs_' . $bus . '.json';
+    $data = logstat_load_json($path);
+    if (!is_array($data)) {
+        throw new RuntimeException(sprintf('Live measurement logstat not found for %s', strtoupper($bus)), 404);
+    }
+
+    $devices = $data['SDAQs_data'] ?? null;
+    if (!is_array($devices)) {
+        throw new RuntimeException(sprintf('Invalid live measurement logstat for %s', strtoupper($bus)), 502);
+    }
+
+    foreach ($devices as $device) {
+        if ((int)($device['Address'] ?? -1) !== $addr) {
+            continue;
+        }
+
+        $measItems = $device['Meas'] ?? null;
+        if (!is_array($measItems)) {
+            break;
+        }
+
+        foreach ($measItems as $meas) {
+            if ((int)($meas['Channel'] ?? -1) !== $ch) {
+                continue;
+            }
+
+            $rawLast = $meas['Raw_Last_Meas'] ?? null;
+            $last = $meas['Last_Meas'] ?? ($meas['Meas_avg'] ?? null);
+            $unit = $meas['Unit'] ?? null;
+
+            return [
+                'raw_last_meas' => is_numeric($rawLast) ? (float)$rawLast : null,
+                'last_meas' => is_numeric($last) ? (float)$last : null,
+                'unit' => is_string($unit) ? $unit : null,
+                'channel_status' => is_array($meas['Channel_Status'] ?? null) ? $meas['Channel_Status'] : null,
+                'source_path' => $path,
+            ];
+        }
+
+        break;
+    }
+
+    throw new RuntimeException(sprintf('Live measurement not found for %s addr %d ch %d', strtoupper($bus), $addr, $ch), 404);
 }
 
 function cal_num_to_string(float $value): string
@@ -557,7 +605,26 @@ try {
             exit;
         }
 
-        cal_fail('Unsupported GET action. Use action=units or action=xml', 400);
+        if ($action === 'live_measurement') {
+            $bus = cal_normalize_bus($_GET['bus'] ?? '');
+            $addr = cal_normalize_addr($_GET['addr'] ?? null);
+            $ch = cal_normalize_ch($_GET['ch'] ?? null);
+
+            if ($bus === '' || $addr === null || $ch === null) {
+                cal_fail('Missing or invalid bus/addr/ch for action=live_measurement', 400);
+            }
+
+            $live = cal_get_live_measurement($bus, $addr, $ch);
+            cal_json([
+                'ok' => true,
+                'mode' => $mode,
+                'action' => 'live_measurement',
+                'data' => $live,
+            ]);
+            exit;
+        }
+
+        cal_fail('Unsupported GET action. Use action=units, action=xml, or action=live_measurement', 400);
     }
 
     if ($method === 'POST') {

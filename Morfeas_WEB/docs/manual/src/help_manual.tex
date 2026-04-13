@@ -284,7 +284,7 @@ The popup contains:
 
 \begin{itemize}
 \item \textbf{Upper Section}: device information, calibration metadata, and summary panel share the top area.
-\item \textbf{Current Preview}: \texttt{Reference value}, \texttt{Measured raw value}, and \texttt{Calibrated value}.
+\item \textbf{Current Preview}: \texttt{Measured raw value} and \texttt{Correct value}.
 \item \textbf{Point Table}: \texttt{Uncalibrated value}, \texttt{Reference value}, \texttt{Offset}, \texttt{Gain}, \texttt{C2}, and \texttt{C3}.
 \item \textbf{Preview Columns}: \texttt{Calibrated value} and \texttt{Difference (Calibrated - Reference)}.
 \item \textbf{Summary Panel}: calibration type, slope or gain summary, offset, reference minimum and maximum, and unit.
@@ -299,9 +299,9 @@ The popup contains:
 
 \subsection{Preview Behavior}
 \begin{itemize}
-\item The \textbf{Current Preview} block follows the currently highlighted point row.
-\item \texttt{Measured raw value} is taken from the selected row input value.
-\item \texttt{Calibrated value} is calculated from the current row coefficients.
+\item The \textbf{Current Preview} block is a live preview, not a single-row preview.
+\item \texttt{Measured raw value} is read from the current channel raw runtime value when \texttt{Raw\_Last\_Meas} is available in \texttt{logstat}.
+\item \texttt{Correct value} is calculated by applying the current full calibration table to the live raw value.
 \item \texttt{Calibration type} is shown only once in the summary panel and is not repeated in every point row.
 \end{itemize}
 
