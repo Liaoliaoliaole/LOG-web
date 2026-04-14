@@ -19,7 +19,6 @@
    * Backend endpoint
    * ------------------------------------------ */
   const DEFAULT_ENDPOINT = '../../backend/api_system_status.php?action=details';
-  const mockBadge = $('#mockBadge');
 
   function resolveEndpoint() {
     const fromWindow = typeof window !== 'undefined' && typeof window.API_ENDPOINT === 'string' && window.API_ENDPOINT.trim();
@@ -544,10 +543,8 @@
       if (!payload.ok) throw new Error(payload.error || 'Malformed response');
 
       detailsCache = payload.entries || [];
-      mockBadge.hidden = true;
     } catch (err) {
       detailsError = err.message || String(err);
-      mockBadge.hidden = true;
     } finally {
       renderDetails();
     }

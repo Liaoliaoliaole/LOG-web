@@ -33,7 +33,6 @@ Morfeas_WEB/
 │  ├─ cli/
 │  │  ├─ ftp_backup_cli.php        # CLI wrapper for FTP backup (used by backup.sh cron)
 │  │  └─ network_pending_watcher.php  # Auto-rollback watcher for staged network changes
-│  ├─ config_sandbox/    # Mock data for local development (XML + logstat JSON)
 │  ├─ core/
 │  │  ├─ logstat_iobox.php   # IOBOX logstat parser
 │  │  ├─ logstat_mti.php     # MTI logstat parser
@@ -75,4 +74,3 @@ Morfeas_WEB/
    ├─ device_search.html / device_search.js  # Device anchor search popup
    └─ import_channel.html           # Channel import (JSON) popup
 ```
-

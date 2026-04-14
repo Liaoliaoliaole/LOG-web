@@ -5,8 +5,6 @@ function iso_collect_files(string $isoStandardDir): array
     $paths = [];
     $locations = [
         ['live', $isoStandardDir, '*.xml'],
-        // Sandbox mode (kept for future use):
-        // ['sandbox', $sandboxDir . 'iso_standards/', '*.xml'],
     ];
 
     foreach ($locations as [$source, $dir, $pattern]) {
