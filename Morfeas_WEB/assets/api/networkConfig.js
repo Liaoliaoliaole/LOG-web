@@ -5,6 +5,7 @@
   if (!config) {
     console.warn('LOG_WEB config missing; network config API may not resolve correctly.');
   }
+  const applyHeaders = (headers = {}) => root.session?.applyHeaders ? root.session.applyHeaders(headers) : headers;
 
   const endpoint = config?.endpoints?.networkConfig || 'api_network_config.php';
   const buildUrl = (params) => config?.resolveApi?.(endpoint, params)
@@ -27,6 +28,7 @@
         cache: 'no-store',
         signal: controller.signal,
         ...fetchOptions,
+        headers: applyHeaders(fetchOptions.headers || {}),
       });
     } catch (err) {
       if (err?.name === 'AbortError') {

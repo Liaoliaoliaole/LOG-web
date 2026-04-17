@@ -1,6 +1,7 @@
 (() => {
   const root = window.LOG_WEB || (window.LOG_WEB = {});
   const config = root.config;
+  const applyHeaders = (headers = {}) => root.session?.applyHeaders ? root.session.applyHeaders(headers) : headers;
 
   const endpoint = config?.endpoints?.systemUpdate || 'api_system_update.php';
   const buildUrl = (params) => config?.resolveApi?.(endpoint, params)
@@ -18,10 +19,10 @@
         method,
         cache: 'no-store',
         signal: controller.signal,
-        headers: {
+        headers: applyHeaders({
           Accept: 'application/json',
           ...(body ? { 'Content-Type': 'application/json' } : {}),
-        },
+        }),
         body: body ? JSON.stringify(body) : undefined,
       });
     } catch (err) {

@@ -1,6 +1,7 @@
 (() => {
   const root = window.LOG_WEB || (window.LOG_WEB = {});
   const config = root.config;
+  const applyHeaders = (headers = {}) => root.session?.applyHeaders ? root.session.applyHeaders(headers) : headers;
 
   const endpoint = config?.endpoints?.systemPower || 'api_system_power.php';
   const buildUrl = () => config?.resolveApi?.(endpoint)
@@ -18,10 +19,10 @@
         method: 'POST',
         cache: 'no-store',
         signal: controller.signal,
-        headers: {
+        headers: applyHeaders({
           'Content-Type': 'application/json',
           Accept: 'application/json',
-        },
+        }),
         body: JSON.stringify({ action }),
       });
     } catch (err) {

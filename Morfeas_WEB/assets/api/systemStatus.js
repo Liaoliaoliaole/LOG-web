@@ -5,6 +5,7 @@
   if (!config) {
     console.warn('LOG_WEB config missing; system status API may not resolve correctly.');
   }
+  const applyHeaders = (headers = {}) => root.session?.applyHeaders ? root.session.applyHeaders(headers) : headers;
 
   const endpoint = config?.endpoints?.systemStatus || 'api_system_status.php';
   const buildUrl = (params) => config?.resolveApi?.(endpoint, params)
@@ -14,6 +15,7 @@
     const res = await fetch(buildUrl(params), {
       cache: 'no-store',
       ...options,
+      headers: applyHeaders(options.headers || {}),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();

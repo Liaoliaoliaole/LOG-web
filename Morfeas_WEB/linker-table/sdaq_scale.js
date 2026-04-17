@@ -1,5 +1,8 @@
 (() => {
   const $ = (s, r = document) => r.querySelector(s);
+  const root = window.LOG_WEB || (window.LOG_WEB = {});
+  const applySessionHeaders = (headers = {}) => root.session?.applyHeaders ? root.session.applyHeaders(headers) : headers;
+  const EDIT_RENEW_MS = 10000;
 
   const params = new URLSearchParams(window.location.search);
   const bus = (params.get('bus') || '').trim().toLowerCase();
@@ -13,7 +16,21 @@
   const addr = /^\d+$/.test(addrRaw) ? Number(addrRaw) : null;
   const ch = /^\d+$/.test(chRaw) ? Number(chRaw) : null;
 
-  const apiUrl = new URL('../backend/api_calibration.php', window.location.href);
+  const buildApiUrl = (query = null) => {
+    if (root.config?.resolveApi) {
+      return root.config.resolveApi('api_calibration.php', query || undefined);
+    }
+
+    const url = new URL('../backend/api_calibration.php', window.location.href);
+    if (query) {
+      Object.entries(query).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          url.searchParams.set(key, value);
+        }
+      });
+    }
+    return url.toString();
+  };
 
   const isoText = $('#isoText');
   const typeText = $('#typeText');
@@ -39,6 +56,11 @@
     unitSet: new Set(),
     defaultRawLow: 0,
     defaultRawHigh: 100,
+    editing: false,
+    blockedByOtherSession: false,
+    lockRequestPromise: null,
+    lockInfo: null,
+    renewTimerId: null,
   };
 
   function setStatus(msg, type = 'info') {
@@ -46,6 +68,208 @@
     status.style.color = type === 'ok'
       ? '#16a34a'
       : (type === 'err' ? '#dc2626' : 'var(--color-muted)');
+  }
+
+  function sessionFetch(url, options = {}) {
+    return fetch(url, {
+      cache: 'no-store',
+      ...options,
+      headers: applySessionHeaders(options.headers || {}),
+    });
+  }
+
+  function lockOwnerText(lock) {
+    const ip = lock?.owner?.operator_ip || 'another session';
+    const hint = lock?.owner?.session_hint || '';
+    return hint ? `${ip} / ${hint}` : ip;
+  }
+
+  function setEditingEnabled(enabled, { blocked = false } = {}) {
+    state.editing = !!enabled;
+    state.blockedByOtherSession = !!blocked;
+    const shouldDisable = state.blockedByOtherSession;
+    [rawLowValue, rawHighValue, engLowValue, engHighValue, engUnitInput].forEach((el) => {
+      if (!el) return;
+      el.disabled = shouldDisable;
+      el.style.background = shouldDisable ? 'var(--color-bg-weak)' : '';
+    });
+    btnSave.disabled = shouldDisable;
+    btnReset.disabled = shouldDisable;
+  }
+
+  async function fetchEditStatus() {
+    if (!bus || addr === null) throw new Error('Missing bus/addr in popup URL');
+    const res = await sessionFetch(buildApiUrl({
+      action: 'edit_status',
+      bus,
+      addr: String(addr),
+    }), {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok || !payload?.ok) {
+      throw new Error(payload?.error || `Edit status request failed: HTTP ${res.status}`);
+    }
+    return payload?.data || {};
+  }
+
+  async function postEditAction(action) {
+    if (!bus || addr === null) throw new Error('Missing bus/addr in popup URL');
+    const res = await sessionFetch(buildApiUrl(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        action,
+        bus,
+        addr,
+        tool: 'scale',
+      }),
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok || !payload?.ok) {
+      const error = new Error(payload?.error || `HTTP ${res.status}`);
+      error.payload = payload;
+      throw error;
+    }
+    return payload?.data || {};
+  }
+
+  function releaseEditLockOnUnload() {
+    if (!state.editing || !bus || addr === null) return;
+
+    try {
+      fetch(buildApiUrl(), {
+        method: 'POST',
+        keepalive: true,
+        headers: applySessionHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+        body: JSON.stringify({
+          action: 'edit_end',
+          bus,
+          addr,
+          tool: 'scale',
+        }),
+      }).catch(() => {});
+    } catch (_) {
+      // Best-effort release; TTL expiry remains the fallback.
+    }
+  }
+
+  function stopLockRenewal() {
+    if (state.renewTimerId) {
+      clearInterval(state.renewTimerId);
+      state.renewTimerId = null;
+    }
+  }
+
+  function startLockRenewal() {
+    stopLockRenewal();
+    state.renewTimerId = window.setInterval(async () => {
+      if (!state.editing) return;
+      try {
+        await postEditAction('edit_renew');
+      } catch (err) {
+        stopLockRenewal();
+        if (err?.payload?.lock) {
+          applyLockStatus({ locked: true, lock: err.payload.lock }, { silent: true });
+        } else {
+          applyLockStatus({ locked: false, lock: null }, { silent: true });
+        }
+        setStatus(err.message || 'Editing lock expired.', 'err');
+      }
+    }, EDIT_RENEW_MS);
+  }
+
+  function applyLockStatus(lockData, options = {}) {
+    state.lockInfo = lockData?.lock || null;
+    const locked = Boolean(lockData?.locked);
+    const mine = Boolean(lockData?.lock?.owned_by_current_session);
+
+    if (locked && mine) {
+      setEditingEnabled(true, { blocked: false });
+      startLockRenewal();
+      if (!options.silent) {
+        setStatus('Editing is active for this device.', 'ok');
+      }
+      return;
+    }
+
+    stopLockRenewal();
+    setEditingEnabled(false, { blocked: locked });
+
+    if (locked) {
+      if (!options.silent) {
+        setStatus(`Read-only mode. This device is currently being edited by another session (${lockOwnerText(lockData.lock)}).`, 'info');
+      }
+      return;
+    }
+
+    if (!options.silent) {
+      setStatus('Ready. Editing lock will be acquired automatically when you change a value or save.', 'info');
+    }
+  }
+
+  async function ensureEditLock({ silent = false } = {}) {
+    if (state.editing) {
+      return true;
+    }
+
+    if (state.lockRequestPromise) {
+      return state.lockRequestPromise;
+    }
+
+    state.lockRequestPromise = (async () => {
+      try {
+        const data = await postEditAction('edit_start');
+        applyLockStatus(data, { silent: true });
+        if (!silent) {
+          setStatus('Editing is active for this device.', 'ok');
+        }
+        return true;
+      } catch (err) {
+        const owner = err?.payload?.lock ? ` (${lockOwnerText(err.payload.lock)})` : '';
+        if (err?.payload?.lock) {
+          applyLockStatus({ locked: true, lock: err.payload.lock }, { silent: true });
+        } else {
+          applyLockStatus({ locked: false, lock: null }, { silent: true });
+        }
+        if (!silent) {
+          setStatus((err.message || 'Failed to acquire edit lock') + owner, 'err');
+        }
+        return false;
+      } finally {
+        state.lockRequestPromise = null;
+      }
+    })();
+
+    return state.lockRequestPromise;
+  }
+
+  function isAutoLockTarget(target) {
+    if (!target) return false;
+    if (target === btnSave) return true;
+    return target === rawLowValue
+      || target === rawHighValue
+      || target === engLowValue
+      || target === engHighValue
+      || target === engUnitInput;
+  }
+
+  function requestEditLockForInteraction(target) {
+    if (state.editing || state.blockedByOtherSession || !isAutoLockTarget(target)) {
+      return;
+    }
+
+    ensureEditLock().then((acquired) => {
+      if (!acquired) return;
+      if (target === btnSave) {
+        btnSave.click();
+        return;
+      }
+      if (typeof target?.focus === 'function') {
+        target.focus();
+      }
+    });
   }
 
   function parseNum(text) {
@@ -176,12 +400,8 @@
   }
 
   async function fetchUnits() {
-    const url = new URL(apiUrl.toString());
-    url.searchParams.set('action', 'units');
-
-    const res = await fetch(url.toString(), {
+    const res = await sessionFetch(buildApiUrl({ action: 'units' }), {
       method: 'GET',
-      cache: 'no-store',
       headers: { Accept: 'application/json' },
     });
 
@@ -211,14 +431,12 @@
       throw new Error('Missing bus/addr in popup URL');
     }
 
-    const url = new URL(apiUrl.toString());
-    url.searchParams.set('action', 'xml');
-    url.searchParams.set('bus', bus);
-    url.searchParams.set('addr', String(addr));
-
-    const res = await fetch(url.toString(), {
+    const res = await sessionFetch(buildApiUrl({
+      action: 'xml',
+      bus,
+      addr: String(addr),
+    }), {
       method: 'GET',
-      cache: 'no-store',
       headers: { Accept: 'application/xml, text/xml' },
     });
 
@@ -293,6 +511,10 @@
   }
 
   async function saveScale() {
+    const acquired = await ensureEditLock({ silent: true });
+    if (!acquired) {
+      throw new Error('This device is currently being edited by another session.');
+    }
     const validated = validateBeforeSave();
 
     const confirmed = window.confirm(
@@ -315,9 +537,8 @@
       engUnit: validated.engUnit,
     };
 
-    const res = await fetch(apiUrl.toString(), {
+    const res = await sessionFetch(buildApiUrl(), {
       method: 'POST',
-      cache: 'no-store',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(payload),
     });
@@ -352,8 +573,30 @@
       }
     });
 
+    document.addEventListener('pointerdown', (e) => {
+      const target = e.target.closest('input, button');
+      if (!target || !isAutoLockTarget(target) || state.editing || state.blockedByOtherSession) {
+        return;
+      }
+
+      e.preventDefault();
+      requestEditLockForInteraction(target);
+    }, true);
+
+    document.addEventListener('focusin', (e) => {
+      const target = e.target;
+      if (!isAutoLockTarget(target) || state.editing || state.blockedByOtherSession) {
+        return;
+      }
+
+      if (typeof target.blur === 'function') {
+        target.blur();
+      }
+      requestEditLockForInteraction(target);
+    });
+
     document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's' && !state.blockedByOtherSession) {
         e.preventDefault();
         btnSave.click();
       }
@@ -361,6 +604,9 @@
         window.close();
       }
     });
+
+    window.addEventListener('pagehide', releaseEditLockOnUnload);
+    window.addEventListener('beforeunload', releaseEditLockOnUnload);
   }
 
   function renderContext() {
@@ -386,9 +632,10 @@
       const xmlDoc = await fetchCalibrationXml();
       applyPrefillFromXml(xmlDoc);
       bindEvents();
+      setEditingEnabled(false);
       updatePreview();
-
-      setStatus(`Loaded scale context for ${bus.toUpperCase()} addr ${addr} CH ${ch}`, 'ok');
+      const lockData = await fetchEditStatus();
+      applyLockStatus(lockData);
     } catch (err) {
       setStatus(err.message || 'Failed to initialize scale page', 'err');
       btnSave.disabled = true;

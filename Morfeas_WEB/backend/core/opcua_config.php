@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/concurrency.php';
+
 class ChannelConfigException extends RuntimeException
 {
     private int $status;
@@ -72,9 +74,16 @@ function iso_save_xml(SimpleXMLElement $xml, string $xmlPath): void
         return '<UNIT>' . html_entity_decode($matches[1], ENT_QUOTES | ENT_XML1, 'UTF-8') . '</UNIT>';
     }, $xmlString);
 
-    if (file_put_contents($xmlPath, $xmlString) === false) {
+    try {
+        backend_atomic_write_file($xmlPath, $xmlString);
+    } catch (Throwable $e) {
         throw new ChannelConfigException("Failed to save XML: $xmlPath", 500, 'channel_config_save_failed');
     }
+}
+
+function iso_with_xml_lock(string $xmlPath, callable $fn)
+{
+    return backend_with_resource_file_lock('opcua_config', $xmlPath, $fn);
 }
 
 function iso_channel_snapshot(SimpleXMLElement $ch): array
@@ -217,210 +226,218 @@ function iso_pick_value(array $data, array $keys)
 
 function iso_add_channel(string $xmlPath, array $data): void
 {
-    if (!file_exists($xmlPath)) {
-        throw new ChannelConfigException("XML not found: $xmlPath", 404, 'channel_config_missing');
-    }
-    $xml = simplexml_load_file($xmlPath);
-    if ($xml === false) {
-        throw new ChannelConfigException("Failed to parse XML", 500, 'channel_config_parse_failed');
-    }
-
-    $isoChannel = iso_normalize_iso_channel($data['iso_channel']);
-
-    foreach ($xml->CHANNEL as $ch) {
-        if ((string)$ch->ISO_CHANNEL === $isoChannel) {
-            throw new ChannelConfigException("ISO_CHANNEL already exists: " . $isoChannel, 409, 'channel_conflict');
+    iso_with_xml_lock($xmlPath, function () use ($xmlPath, $data) {
+        if (!file_exists($xmlPath)) {
+            throw new ChannelConfigException("XML not found: $xmlPath", 404, 'channel_config_missing');
         }
-    }
+        $xml = simplexml_load_file($xmlPath);
+        if ($xml === false) {
+            throw new ChannelConfigException("Failed to parse XML", 500, 'channel_config_parse_failed');
+        }
 
-    $anchorConflictIso = iso_find_anchor_conflict($xml, (string)$data['anchor']);
-    if ($anchorConflictIso !== null) {
-        throw new ChannelConfigException(
-            "ANCHOR already exists: " . $data['anchor'] . " is already used by " . $anchorConflictIso,
-            409,
-            'channel_conflict'
-        );
-    }
+        $isoChannel = iso_normalize_iso_channel($data['iso_channel']);
 
-    $new = $xml->addChild('CHANNEL');
-    $now = time();
-    $buildDate = iso_pick_value($data, ['build_date', 'build_date_unix', 'Build_date_UNIX']);
-    $modDate = iso_pick_value($data, ['mod_date', 'mod_date_unix', 'Mod_date_UNIX']);
+        foreach ($xml->CHANNEL as $ch) {
+            if ((string)$ch->ISO_CHANNEL === $isoChannel) {
+                throw new ChannelConfigException("ISO_CHANNEL already exists: " . $isoChannel, 409, 'channel_conflict');
+            }
+        }
 
-    $payload = [
-        'iso_channel'    => $isoChannel,
-        'interface_type' => $data['interface_type'],
-        'anchor'         => $data['anchor'],
-        'description'    => $data['description'] ?? '',
-        'min'            => $data['min'] ?? '0',
-        'max'            => $data['max'] ?? '0',
-        'unit'           => iso_decode_xml_value($data['unit'] ?? null),
-        'cal_date'       => $data['cal_date'] ?? null,
-        'cal_period'     => $data['cal_period'] ?? null,
-        'build_date'     => $buildDate ?? $now,
-        'mod_date'       => $modDate ?? $now,
-        'alarm_high_val' => array_key_exists('alarm_high_val', $data) ? $data['alarm_high_val'] : null,
-        'alarm_low_val'  => array_key_exists('alarm_low_val', $data) ? $data['alarm_low_val'] : null,
-        'alarm_high'     => array_key_exists('alarm_high', $data) ? $data['alarm_high'] : null,
-        'alarm_low'      => array_key_exists('alarm_low', $data) ? $data['alarm_low'] : null,
-    ];
+        $anchorConflictIso = iso_find_anchor_conflict($xml, (string)$data['anchor']);
+        if ($anchorConflictIso !== null) {
+            throw new ChannelConfigException(
+                "ANCHOR already exists: " . $data['anchor'] . " is already used by " . $anchorConflictIso,
+                409,
+                'channel_conflict'
+            );
+        }
 
-    iso_set_channel_contents($new, $payload);
-    iso_save_xml($xml, $xmlPath);
+        $new = $xml->addChild('CHANNEL');
+        $now = time();
+        $buildDate = iso_pick_value($data, ['build_date', 'build_date_unix', 'Build_date_UNIX']);
+        $modDate = iso_pick_value($data, ['mod_date', 'mod_date_unix', 'Mod_date_UNIX']);
+
+        $payload = [
+            'iso_channel'    => $isoChannel,
+            'interface_type' => $data['interface_type'],
+            'anchor'         => $data['anchor'],
+            'description'    => $data['description'] ?? '',
+            'min'            => $data['min'] ?? '0',
+            'max'            => $data['max'] ?? '0',
+            'unit'           => iso_decode_xml_value($data['unit'] ?? null),
+            'cal_date'       => $data['cal_date'] ?? null,
+            'cal_period'     => $data['cal_period'] ?? null,
+            'build_date'     => $buildDate ?? $now,
+            'mod_date'       => $modDate ?? $now,
+            'alarm_high_val' => array_key_exists('alarm_high_val', $data) ? $data['alarm_high_val'] : null,
+            'alarm_low_val'  => array_key_exists('alarm_low_val', $data) ? $data['alarm_low_val'] : null,
+            'alarm_high'     => array_key_exists('alarm_high', $data) ? $data['alarm_high'] : null,
+            'alarm_low'      => array_key_exists('alarm_low', $data) ? $data['alarm_low'] : null,
+        ];
+
+        iso_set_channel_contents($new, $payload);
+        iso_save_xml($xml, $xmlPath);
+    });
 }
 
 function iso_update_channel(string $xmlPath, string $isoChannel, array $data): void
 {
-    if (!file_exists($xmlPath)) {
-        throw new ChannelConfigException("XML not found: $xmlPath", 404, 'channel_config_missing');
-    }
-    $xml = simplexml_load_file($xmlPath);
-    if ($xml === false) {
-        throw new ChannelConfigException("Failed to parse XML", 500, 'channel_config_parse_failed');
-    }
-
-    $isoChannel = iso_normalize_iso_channel($isoChannel);
-    $target = null;
-    foreach ($xml->CHANNEL as $ch) {
-        if ((string)$ch->ISO_CHANNEL === $isoChannel) {
-            $target = $ch;
-            break;
+    iso_with_xml_lock($xmlPath, function () use ($xmlPath, $isoChannel, $data) {
+        if (!file_exists($xmlPath)) {
+            throw new ChannelConfigException("XML not found: $xmlPath", 404, 'channel_config_missing');
         }
-    }
-    if (!$target) {
-        throw new ChannelConfigException("ISO_CHANNEL not found: " . $isoChannel, 404, 'channel_not_found');
-    }
+        $xml = simplexml_load_file($xmlPath);
+        if ($xml === false) {
+            throw new ChannelConfigException("Failed to parse XML", 500, 'channel_config_parse_failed');
+        }
 
-    $existing = iso_channel_snapshot($target);
-    $newIso = $existing['iso_channel'];
-    if (array_key_exists('iso_channel', $data)) {
-        $newIso = iso_normalize_iso_channel($data['iso_channel']);
-        if ($newIso !== $isoChannel) {
-            foreach ($xml->CHANNEL as $ch) {
-                if ((string)$ch->ISO_CHANNEL === $newIso) {
-                    throw new ChannelConfigException("ISO_CHANNEL already exists: " . $newIso, 409, 'channel_conflict');
+        $isoChannel = iso_normalize_iso_channel($isoChannel);
+        $target = null;
+        foreach ($xml->CHANNEL as $ch) {
+            if ((string)$ch->ISO_CHANNEL === $isoChannel) {
+                $target = $ch;
+                break;
+            }
+        }
+        if (!$target) {
+            throw new ChannelConfigException("ISO_CHANNEL not found: " . $isoChannel, 404, 'channel_not_found');
+        }
+
+        $existing = iso_channel_snapshot($target);
+        $newIso = $existing['iso_channel'];
+        if (array_key_exists('iso_channel', $data)) {
+            $newIso = iso_normalize_iso_channel($data['iso_channel']);
+            if ($newIso !== $isoChannel) {
+                foreach ($xml->CHANNEL as $ch) {
+                    if ((string)$ch->ISO_CHANNEL === $newIso) {
+                        throw new ChannelConfigException("ISO_CHANNEL already exists: " . $newIso, 409, 'channel_conflict');
+                    }
                 }
             }
         }
-    }
 
-    $buildDate = iso_pick_value($data, ['build_date', 'build_date_unix', 'Build_date_UNIX']);
-    $modDate = iso_pick_value($data, ['mod_date', 'mod_date_unix', 'Mod_date_UNIX']);
-    $now = time();
+        $buildDate = iso_pick_value($data, ['build_date', 'build_date_unix', 'Build_date_UNIX']);
+        $modDate = iso_pick_value($data, ['mod_date', 'mod_date_unix', 'Mod_date_UNIX']);
+        $now = time();
 
-    $payload = [
-        'iso_channel'    => $newIso,
-        'interface_type' => $data['interface_type'] ?? $existing['interface_type'],
-        'anchor'         => $data['anchor'] ?? $existing['anchor'],
-        'description'    => array_key_exists('description', $data) ? $data['description'] : $existing['description'],
-        'min'            => array_key_exists('min', $data) ? $data['min'] : $existing['min'],
-        'max'            => array_key_exists('max', $data) ? $data['max'] : $existing['max'],
-        'unit'           => array_key_exists('unit', $data)
-            ? iso_decode_xml_value($data['unit'])
-            : $existing['unit'],
-        'cal_date'       => array_key_exists('cal_date', $data) ? $data['cal_date'] : $existing['cal_date'],
-        'cal_period'     => array_key_exists('cal_period', $data) ? $data['cal_period'] : $existing['cal_period'],
-        'build_date'     => $buildDate ?? $existing['build_date'],
-        'mod_date'       => $modDate ?? $now,
-        'alarm_high_val' => array_key_exists('alarm_high_val', $data) ? $data['alarm_high_val'] : $existing['alarm_high_val'],
-        'alarm_low_val'  => array_key_exists('alarm_low_val', $data) ? $data['alarm_low_val'] : $existing['alarm_low_val'],
-        'alarm_high'     => array_key_exists('alarm_high', $data) ? $data['alarm_high'] : $existing['alarm_high'],
-        'alarm_low'      => array_key_exists('alarm_low', $data) ? $data['alarm_low'] : $existing['alarm_low'],
-    ];
+        $payload = [
+            'iso_channel'    => $newIso,
+            'interface_type' => $data['interface_type'] ?? $existing['interface_type'],
+            'anchor'         => $data['anchor'] ?? $existing['anchor'],
+            'description'    => array_key_exists('description', $data) ? $data['description'] : $existing['description'],
+            'min'            => array_key_exists('min', $data) ? $data['min'] : $existing['min'],
+            'max'            => array_key_exists('max', $data) ? $data['max'] : $existing['max'],
+            'unit'           => array_key_exists('unit', $data)
+                ? iso_decode_xml_value($data['unit'])
+                : $existing['unit'],
+            'cal_date'       => array_key_exists('cal_date', $data) ? $data['cal_date'] : $existing['cal_date'],
+            'cal_period'     => array_key_exists('cal_period', $data) ? $data['cal_period'] : $existing['cal_period'],
+            'build_date'     => $buildDate ?? $existing['build_date'],
+            'mod_date'       => $modDate ?? $now,
+            'alarm_high_val' => array_key_exists('alarm_high_val', $data) ? $data['alarm_high_val'] : $existing['alarm_high_val'],
+            'alarm_low_val'  => array_key_exists('alarm_low_val', $data) ? $data['alarm_low_val'] : $existing['alarm_low_val'],
+            'alarm_high'     => array_key_exists('alarm_high', $data) ? $data['alarm_high'] : $existing['alarm_high'],
+            'alarm_low'      => array_key_exists('alarm_low', $data) ? $data['alarm_low'] : $existing['alarm_low'],
+        ];
 
-    $anchorConflictIso = iso_find_anchor_conflict($xml, (string)$payload['anchor'], $isoChannel);
-    if ($anchorConflictIso !== null) {
-        throw new ChannelConfigException(
-            "ANCHOR already exists: " . $payload['anchor'] . " is already used by " . $anchorConflictIso,
-            409,
-            'channel_conflict'
-        );
-    }
+        $anchorConflictIso = iso_find_anchor_conflict($xml, (string)$payload['anchor'], $isoChannel);
+        if ($anchorConflictIso !== null) {
+            throw new ChannelConfigException(
+                "ANCHOR already exists: " . $payload['anchor'] . " is already used by " . $anchorConflictIso,
+                409,
+                'channel_conflict'
+            );
+        }
 
-    iso_set_channel_contents($target, $payload);
-    iso_save_xml($xml, $xmlPath);
+        iso_set_channel_contents($target, $payload);
+        iso_save_xml($xml, $xmlPath);
+    });
 }
 
 function iso_delete_channel(string $xmlPath, string $isoChannel): void
 {
-    if (!file_exists($xmlPath)) {
-        throw new ChannelConfigException("XML not found: $xmlPath", 404, 'channel_config_missing');
-    }
-    $xml = simplexml_load_file($xmlPath);
-    if ($xml === false) {
-        throw new ChannelConfigException("Failed to parse XML", 500, 'channel_config_parse_failed');
-    }
-
-    $isoChannel = iso_normalize_iso_channel($isoChannel);
-    $index = 0;
-    $found = false;
-    foreach ($xml->CHANNEL as $ch) {
-        if ((string)$ch->ISO_CHANNEL === $isoChannel) {
-            unset($xml->CHANNEL[$index]);
-            $found = true;
-            break;
+    iso_with_xml_lock($xmlPath, function () use ($xmlPath, $isoChannel) {
+        if (!file_exists($xmlPath)) {
+            throw new ChannelConfigException("XML not found: $xmlPath", 404, 'channel_config_missing');
         }
-        $index++;
-    }
-    if (!$found) {
-        throw new ChannelConfigException("ISO_CHANNEL not found: " . $isoChannel, 404, 'channel_not_found');
-    }
+        $xml = simplexml_load_file($xmlPath);
+        if ($xml === false) {
+            throw new ChannelConfigException("Failed to parse XML", 500, 'channel_config_parse_failed');
+        }
 
-    iso_save_xml($xml, $xmlPath);
+        $isoChannel = iso_normalize_iso_channel($isoChannel);
+        $index = 0;
+        $found = false;
+        foreach ($xml->CHANNEL as $ch) {
+            if ((string)$ch->ISO_CHANNEL === $isoChannel) {
+                unset($xml->CHANNEL[$index]);
+                $found = true;
+                break;
+            }
+            $index++;
+        }
+        if (!$found) {
+            throw new ChannelConfigException("ISO_CHANNEL not found: " . $isoChannel, 404, 'channel_not_found');
+        }
+
+        iso_save_xml($xml, $xmlPath);
+    });
 }
 
 function iso_batch_update_anchors(string $xmlPath, array $updates): void
 {
-    if (!file_exists($xmlPath)) {
-        throw new ChannelConfigException("XML not found: $xmlPath", 404, 'channel_config_missing');
-    }
-    $xml = simplexml_load_file($xmlPath);
-    if ($xml === false) {
-        throw new ChannelConfigException("Failed to parse XML", 500, 'channel_config_parse_failed');
-    }
-
-    $normalized = [];
-    foreach ($updates as $iso => $anchor) {
-        $isoNorm = iso_normalize_iso_channel((string)$iso);
-        $anchorNorm = trim((string)$anchor);
-        if ($isoNorm === '' || $anchorNorm === '') {
-            throw new ChannelConfigException('Invalid batch anchor update payload', 400, 'channel_config_error');
+    iso_with_xml_lock($xmlPath, function () use ($xmlPath, $updates) {
+        if (!file_exists($xmlPath)) {
+            throw new ChannelConfigException("XML not found: $xmlPath", 404, 'channel_config_missing');
         }
-        $normalized[$isoNorm] = $anchorNorm;
-    }
-    if (!$normalized) {
-        return;
-    }
-
-    $channelByIso = [];
-    foreach ($xml->CHANNEL as $ch) {
-        $existingIso = iso_normalize_iso_channel((string)$ch->ISO_CHANNEL);
-        if ($existingIso !== '') {
-            $channelByIso[$existingIso] = $ch;
-        }
-    }
-
-    foreach ($normalized as $iso => $_anchor) {
-        if (!array_key_exists($iso, $channelByIso)) {
-            throw new ChannelConfigException("ISO_CHANNEL not found: " . $iso, 404, 'channel_not_found');
-        }
-    }
-
-    $now = (string)time();
-    foreach ($normalized as $iso => $anchor) {
-        $target = $channelByIso[$iso];
-        if (isset($target->ANCHOR)) {
-            $target->ANCHOR = $anchor;
-        } else {
-            $target->addChild('ANCHOR', $anchor);
+        $xml = simplexml_load_file($xmlPath);
+        if ($xml === false) {
+            throw new ChannelConfigException("Failed to parse XML", 500, 'channel_config_parse_failed');
         }
 
-        if (isset($target->MOD_DATE)) {
-            $target->MOD_DATE = $now;
-        } else {
-            $target->addChild('MOD_DATE', $now);
+        $normalized = [];
+        foreach ($updates as $iso => $anchor) {
+            $isoNorm = iso_normalize_iso_channel((string)$iso);
+            $anchorNorm = trim((string)$anchor);
+            if ($isoNorm === '' || $anchorNorm === '') {
+                throw new ChannelConfigException('Invalid batch anchor update payload', 400, 'channel_config_error');
+            }
+            $normalized[$isoNorm] = $anchorNorm;
         }
-    }
+        if (!$normalized) {
+            return;
+        }
 
-    iso_save_xml($xml, $xmlPath);
+        $channelByIso = [];
+        foreach ($xml->CHANNEL as $ch) {
+            $existingIso = iso_normalize_iso_channel((string)$ch->ISO_CHANNEL);
+            if ($existingIso !== '') {
+                $channelByIso[$existingIso] = $ch;
+            }
+        }
+
+        foreach ($normalized as $iso => $_anchor) {
+            if (!array_key_exists($iso, $channelByIso)) {
+                throw new ChannelConfigException("ISO_CHANNEL not found: " . $iso, 404, 'channel_not_found');
+            }
+        }
+
+        $now = (string)time();
+        foreach ($normalized as $iso => $anchor) {
+            $target = $channelByIso[$iso];
+            if (isset($target->ANCHOR)) {
+                $target->ANCHOR = $anchor;
+            } else {
+                $target->addChild('ANCHOR', $anchor);
+            }
+
+            if (isset($target->MOD_DATE)) {
+                $target->MOD_DATE = $now;
+            } else {
+                $target->addChild('MOD_DATE', $now);
+            }
+        }
+
+        iso_save_xml($xml, $xmlPath);
+    });
 }

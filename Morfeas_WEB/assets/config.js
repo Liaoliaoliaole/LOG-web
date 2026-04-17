@@ -25,6 +25,52 @@
     return new URL(fullPath, window.location.origin).toString();
   };
 
+  const SESSION_STORAGE_KEY = 'morfeas_web_session_id';
+  let memorySessionId = '';
+
+  const generateSessionId = () => {
+    if (window.crypto?.randomUUID) {
+      return window.crypto.randomUUID().replace(/-/g, '');
+    }
+
+    const bytes = new Uint8Array(16);
+    if (window.crypto?.getRandomValues) {
+      window.crypto.getRandomValues(bytes);
+      return Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+    }
+
+    return `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`;
+  };
+
+  const getSessionId = () => {
+    try {
+      const existing = window.localStorage.getItem(SESSION_STORAGE_KEY);
+      if (existing) {
+        memorySessionId = existing;
+        return existing;
+      }
+    } catch (_) {
+      // fall back to in-memory storage
+    }
+
+    if (!memorySessionId) {
+      memorySessionId = generateSessionId();
+    }
+
+    try {
+      window.localStorage.setItem(SESSION_STORAGE_KEY, memorySessionId);
+    } catch (_) {
+      // ignore storage failures
+    }
+
+    return memorySessionId;
+  };
+
+  const applySessionHeaders = (headers = {}) => ({
+    ...headers,
+    'X-Morfeas-Session': getSessionId(),
+  });
+
   root.config = {
     basePath,
     apiBasePath,
@@ -39,5 +85,11 @@
     },
     resolveApi,
     resolvePath,
+  };
+
+  root.session = {
+    storageKey: SESSION_STORAGE_KEY,
+    getToken: getSessionId,
+    applyHeaders: applySessionHeaders,
   };
 })();

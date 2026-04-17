@@ -10,6 +10,9 @@ header('Expires: 0');
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
+const CAL_EDIT_LOCK_TYPE = 'sdaq_edit';
+const CAL_EDIT_LOCK_TTL_SEC = 30;
+
 function cal_json(array $payload, int $code = 200): void
 {
     http_response_code($code);
@@ -20,6 +23,16 @@ function cal_json(array $payload, int $code = 200): void
 function cal_fail(string $error, int $code = 400): void
 {
     cal_json(['ok' => false, 'error' => $error], $code);
+    exit;
+}
+
+function cal_fail_with_lock(string $error, ?array $lockRecord, string $sessionId, int $code = 409): void
+{
+    cal_json([
+        'ok' => false,
+        'error' => $error,
+        'lock' => backend_session_public_record($lockRecord, $sessionId),
+    ], $code);
     exit;
 }
 
@@ -75,6 +88,47 @@ function cal_normalize_ch($ch): ?int
     }
 
     return $value;
+}
+
+function cal_resource_id(string $bus, int $addr): string
+{
+    return strtolower($bus) . ':' . $addr;
+}
+
+function cal_lock_meta(string $tool, string $bus, int $addr): array
+{
+    return [
+        'tool' => $tool,
+        'bus' => strtolower($bus),
+        'addr' => $addr,
+        'label' => sprintf('SDAQ %s addr %d', strtolower($bus), $addr),
+    ];
+}
+
+function cal_lock_status(string $bus, int $addr, string $sessionId): array
+{
+    $record = backend_session_registry_get_lock(CAL_EDIT_LOCK_TYPE, cal_resource_id($bus, $addr));
+    return [
+        'resource_id' => cal_resource_id($bus, $addr),
+        'locked' => is_array($record),
+        'lock' => backend_session_public_record($record, $sessionId),
+    ];
+}
+
+function cal_require_owned_lock(string $bus, int $addr, string $sessionId): array
+{
+    $resourceId = cal_resource_id($bus, $addr);
+    $record = backend_session_registry_get_lock(CAL_EDIT_LOCK_TYPE, $resourceId);
+    if (!is_array($record)) {
+        throw new RuntimeException('Start editing before saving calibration or scale changes.', 409);
+    }
+
+    $owner = trim((string)($record['session_id'] ?? ''));
+    if ($owner !== $sessionId) {
+        throw new RuntimeException('This device is currently locked for calibration editing by another session.', 409);
+    }
+
+    return $record;
 }
 
 function cal_run_command(string $cmd, ?string $stdin = null): array
@@ -623,7 +677,24 @@ try {
             exit;
         }
 
-        cal_fail('Unsupported GET action. Use action=units, action=xml, or action=live_measurement', 400);
+        if ($action === 'edit_status') {
+            $bus = cal_normalize_bus($_GET['bus'] ?? '');
+            $addr = cal_normalize_addr($_GET['addr'] ?? null);
+            if ($bus === '' || $addr === null) {
+                cal_fail('Missing or invalid bus/addr for action=edit_status', 400);
+            }
+
+            $sessionId = backend_session_token();
+            cal_json([
+                'ok' => true,
+                'mode' => $mode,
+                'action' => 'edit_status',
+                'data' => cal_lock_status($bus, $addr, $sessionId),
+            ]);
+            exit;
+        }
+
+        cal_fail('Unsupported GET action. Use action=units, action=xml, action=live_measurement, or action=edit_status', 400);
     }
 
     if ($method === 'POST') {
@@ -631,7 +702,117 @@ try {
         $mode = 'live';
         $action = strtolower(trim((string)($body['action'] ?? '')));
 
+        if ($action === 'edit_start') {
+            $sessionId = backend_require_session_token('Missing session token for action=edit_start');
+            $bus = cal_normalize_bus($body['bus'] ?? '');
+            $addr = cal_normalize_addr($body['addr'] ?? null);
+            $tool = strtolower(trim((string)($body['tool'] ?? 'calibration')));
+            if ($tool !== 'scale') {
+                $tool = 'calibration';
+            }
+            if ($bus === '' || $addr === null) {
+                cal_fail('Missing or invalid bus/addr for action=edit_start', 400);
+            }
+
+            $acquire = backend_session_registry_acquire_lock(
+                CAL_EDIT_LOCK_TYPE,
+                cal_resource_id($bus, $addr),
+                $sessionId,
+                CAL_EDIT_LOCK_TTL_SEC,
+                'edit',
+                cal_lock_meta($tool, $bus, $addr)
+            );
+
+            if (!$acquire['acquired']) {
+                cal_fail_with_lock(
+                    'This device is currently locked for calibration editing by another session.',
+                    $acquire['record'] ?? null,
+                    $sessionId,
+                    409
+                );
+            }
+
+            cal_json([
+                'ok' => true,
+                'mode' => $mode,
+                'action' => 'edit_start',
+                'data' => cal_lock_status($bus, $addr, $sessionId),
+            ]);
+            exit;
+        }
+
+        if ($action === 'edit_renew') {
+            $sessionId = backend_require_session_token('Missing session token for action=edit_renew');
+            $bus = cal_normalize_bus($body['bus'] ?? '');
+            $addr = cal_normalize_addr($body['addr'] ?? null);
+            $tool = strtolower(trim((string)($body['tool'] ?? 'calibration')));
+            if ($tool !== 'scale') {
+                $tool = 'calibration';
+            }
+            if ($bus === '' || $addr === null) {
+                cal_fail('Missing or invalid bus/addr for action=edit_renew', 400);
+            }
+
+            $renew = backend_session_registry_renew_lock(
+                CAL_EDIT_LOCK_TYPE,
+                cal_resource_id($bus, $addr),
+                $sessionId,
+                CAL_EDIT_LOCK_TTL_SEC,
+                cal_lock_meta($tool, $bus, $addr)
+            );
+
+            if (!$renew['renewed']) {
+                cal_fail_with_lock(
+                    'Editing lock expired or was taken by another session.',
+                    $renew['record'] ?? null,
+                    $sessionId,
+                    409
+                );
+            }
+
+            cal_json([
+                'ok' => true,
+                'mode' => $mode,
+                'action' => 'edit_renew',
+                'data' => cal_lock_status($bus, $addr, $sessionId),
+            ]);
+            exit;
+        }
+
+        if ($action === 'edit_end') {
+            $sessionId = backend_require_session_token('Missing session token for action=edit_end');
+            $bus = cal_normalize_bus($body['bus'] ?? '');
+            $addr = cal_normalize_addr($body['addr'] ?? null);
+            if ($bus === '' || $addr === null) {
+                cal_fail('Missing or invalid bus/addr for action=edit_end', 400);
+            }
+
+            $release = backend_session_registry_release_lock(
+                CAL_EDIT_LOCK_TYPE,
+                cal_resource_id($bus, $addr),
+                $sessionId
+            );
+
+            if (!$release['released']) {
+                cal_fail_with_lock(
+                    'This device is currently locked for calibration editing by another session.',
+                    $release['record'] ?? null,
+                    $sessionId,
+                    409
+                );
+            }
+
+            cal_json([
+                'ok' => true,
+                'mode' => $mode,
+                'action' => 'edit_end',
+                'data' => cal_lock_status($bus, $addr, $sessionId),
+            ]);
+            exit;
+        }
+
         if ($action === 'scale') {
+            $sessionId = backend_require_session_token('Missing session token for action=scale');
             $bus = cal_normalize_bus($body['bus'] ?? '');
             $addr = cal_normalize_addr($body['addr'] ?? null);
             $ch = cal_normalize_ch($body['ch'] ?? null);
@@ -654,6 +835,8 @@ try {
             if ($engUnit === '') {
                 cal_fail('engUnit is required for action=scale', 400);
             }
+
+            cal_require_owned_lock($bus, $addr, $sessionId);
 
             $units = cal_get_units_live();
             $unitList = $units['SDAQ_UNITs'] ?? [];
@@ -688,6 +871,7 @@ try {
         }
 
         if ($action === '' || $action === 'calibration_save') {
+            $sessionId = backend_require_session_token('Missing session token for action=calibration_save');
             $bus = cal_normalize_bus($body['bus'] ?? ($body['SDAQnet'] ?? ''));
             $addr = cal_normalize_addr($body['addr'] ?? ($body['SDAQaddr'] ?? null));
             $xml = (string)($body['xmlContent'] ?? ($body['XMLcontent'] ?? ''));
@@ -699,6 +883,8 @@ try {
             if (trim($xml) === '') {
                 cal_fail('xmlContent is required', 400);
             }
+
+            cal_require_owned_lock($bus, $addr, $sessionId);
 
             $units = cal_get_units_live();
             $unitList = $units['SDAQ_UNITs'] ?? [];
@@ -722,7 +908,7 @@ try {
             exit;
         }
 
-        cal_fail('Unsupported POST action. Use action=calibration_save or action=scale', 400);
+        cal_fail('Unsupported POST action. Use action=edit_start, action=edit_renew, action=edit_end, action=calibration_save, or action=scale', 400);
     }
 
     http_response_code(405);

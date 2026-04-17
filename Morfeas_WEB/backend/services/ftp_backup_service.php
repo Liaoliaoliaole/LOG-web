@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../core/paths.php';
+require_once __DIR__ . '/../core/concurrency.php';
 
 function ftp_backup_default_host(): string
 {
@@ -428,12 +429,12 @@ function ftp_backup_run_restore(string $filename): array
         throw new RuntimeException('Invalid backup payload', 500);
     }
 
-    if (@file_put_contents(backend_opcua_config_path(), $opcUa, LOCK_EX) === false) {
-        throw new RuntimeException('Failed to restore OPC_UA config', 500);
-    }
-    if (@file_put_contents(backend_log_config_path(), $morfeas, LOCK_EX) === false) {
-        throw new RuntimeException('Failed to restore Morfeas config', 500);
-    }
+    backend_with_resource_file_lock('opcua_config', backend_opcua_config_path(), function () use ($opcUa) {
+        backend_atomic_write_file(backend_opcua_config_path(), $opcUa);
+    });
+    backend_with_resource_file_lock('log_config', backend_log_config_path(), function () use ($morfeas) {
+        backend_atomic_write_file(backend_log_config_path(), $morfeas);
+    });
 
     @touch(ftp_backup_config_file());
     ftp_backup_log('INFO', "Restored from backup: $filename");

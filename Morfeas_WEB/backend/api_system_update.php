@@ -7,6 +7,8 @@ header('Content-Type: application/json; charset=utf-8');
 const UPDATE_SCRIPT = '/var/www/html/morfeas_web/deploy/system_update.sh';
 const UPDATE_FLAG_FILE = '/var/lib/morfeas/update_needed';
 const UPDATE_PROGRESS_FILE = '/run/morfeas_update/update_progress.env';
+const UPDATE_ACTION_LOCK_TYPE = 'system_action';
+const UPDATE_ACTION_LOCK_ID = 'system_update';
 
 function update_respond(
     bool $ok,
@@ -39,6 +41,8 @@ function update_read_status(): array
 {
     $exists = is_file(UPDATE_FLAG_FILE);
     $mtime = $exists ? @filemtime(UPDATE_FLAG_FILE) : false;
+    $sessionId = backend_session_token();
+    $actionLock = backend_session_registry_get_lock(UPDATE_ACTION_LOCK_TYPE, UPDATE_ACTION_LOCK_ID);
 
     return [
         'update_needed' => $exists,
@@ -46,6 +50,7 @@ function update_read_status(): array
         'flag_mtime_unix' => is_int($mtime) ? $mtime : null,
         'flag_mtime' => is_int($mtime) ? date('Y-m-d H:i:s', $mtime) : null,
         'progress' => update_read_progress(),
+        'action_lock' => backend_session_public_record($actionLock, $sessionId),
     ];
 }
 
@@ -184,6 +189,11 @@ function update_failure_http_status(array $result): int
     };
 }
 
+function update_action_lock_ttl(string $action): int
+{
+    return $action === 'update' ? 1800 : 180;
+}
+
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 try {
@@ -202,8 +212,25 @@ try {
         if ($action !== 'check' && $action !== 'update') {
             update_respond(false, null, 'action must be check or update', 'Invalid action', 400);
         }
+        $sessionId = backend_require_session_token('Missing session token for system update action');
+        $acquire = backend_session_registry_acquire_lock(
+            UPDATE_ACTION_LOCK_TYPE,
+            UPDATE_ACTION_LOCK_ID,
+            $sessionId,
+            update_action_lock_ttl($action),
+            'running',
+            ['action' => $action]
+        );
+        if (!$acquire['acquired']) {
+            update_respond(false, update_read_status(), 'System update is already running in another session.', 'Busy', 409);
+        }
 
-        $result = update_exec($action);
+        try {
+            $result = update_exec($action);
+        } finally {
+            backend_session_registry_release_lock(UPDATE_ACTION_LOCK_TYPE, UPDATE_ACTION_LOCK_ID, $sessionId);
+        }
+
         if (!$result['ok']) {
             $requestId = api_make_request_id();
             $details = (string) ($result['internal']['stdout_stderr'] ?? '');

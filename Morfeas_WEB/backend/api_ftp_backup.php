@@ -5,6 +5,16 @@ require __DIR__ . '/services/ftp_backup_service.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
+function ftp_backup_first_restore_blocker(): ?array
+{
+    return backend_session_registry_first_active_lock(
+        ['channel_edit', 'device_config', 'sdaq_edit'],
+        static function (array $record): bool {
+            return (string)($record['mode'] ?? '') === 'edit';
+        }
+    );
+}
+
 function ftp_backup_api_respond(bool $ok, ?array $data = null, ?string $message = null, int $status = 200): void
 {
     http_response_code($status);
@@ -68,8 +78,32 @@ try {
             if ($file === '') {
                 throw new InvalidArgumentException("file is required for restore action");
             }
-            $result = ftp_backup_run_restore($file);
-            ftp_backup_api_respond(true, $result, "Restored from: $file");
+            $sessionId = backend_require_session_token('Missing session token for restore action');
+            $acquire = backend_session_registry_acquire_lock(
+                'system_action',
+                'restore',
+                $sessionId,
+                300,
+                'running',
+                ['action' => 'restore']
+            );
+            if (!$acquire['acquired']) {
+                throw new RuntimeException('Restore is already running in another session.', 409);
+            }
+
+            $restoreResult = null;
+            try {
+                $blocker = ftp_backup_first_restore_blocker();
+                if (is_array($blocker)) {
+                    throw new RuntimeException(backend_restore_blocking_lock_message($blocker), 409);
+                }
+
+                $restoreResult = ftp_backup_run_restore($file);
+            } finally {
+                backend_session_registry_release_lock('system_action', 'restore', $sessionId);
+            }
+
+            ftp_backup_api_respond(true, $restoreResult, "Restored from: $file");
 
         case 'uploadlog':
             $result = ftp_backup_upload_logs();

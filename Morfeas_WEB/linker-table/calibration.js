@@ -4,6 +4,7 @@
 
   const DEFAULT_VISIBLE_ROWS = 10;
   const LIVE_POLL_MS = 1000;
+  const EDIT_RENEW_MS = 10000;
   const DEFAULT_POINT_VALUES = {
     measure: '0',
     reference: '0',
@@ -14,6 +15,8 @@
   };
 
   const params = new URLSearchParams(location.search);
+  const root = window.LOG_WEB || (window.LOG_WEB = {});
+  const applySessionHeaders = (headers = {}) => root.session?.applyHeaders ? root.session.applyHeaders(headers) : headers;
   const requestedPoints = Math.max(1, parseInt(params.get('points') || '8', 10));
   const requestedCh = Math.max(1, parseInt(params.get('ch') || '1', 10));
   const requestedUnit = params.get('unit') || '';
@@ -21,7 +24,21 @@
   const bus = (params.get('bus') || '').trim().toLowerCase();
   const addrRaw = params.get('addr');
   const addr = addrRaw !== null && /^\d+$/.test(addrRaw) ? parseInt(addrRaw, 10) : null;
-  const apiUrl = new URL('../backend/api_calibration.php', window.location.href);
+  const buildApiUrl = (query = null) => {
+    if (root.config?.resolveApi) {
+      return root.config.resolveApi('api_calibration.php', query || undefined);
+    }
+
+    const url = new URL('../backend/api_calibration.php', window.location.href);
+    if (query) {
+      Object.entries(query).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          url.searchParams.set(key, value);
+        }
+      });
+    }
+    return url.toString();
+  };
 
   const unitSelect = $('#unitBox');
   const calDateInput = $('#calDate');
@@ -82,6 +99,11 @@
       unit: null,
     },
     liveTimerId: null,
+    editRenewTimerId: null,
+    editing: false,
+    blockedByOtherSession: false,
+    lockRequestPromise: null,
+    lockInfo: null,
   };
 
   const rows = [];
@@ -90,6 +112,218 @@
     statusEl.textContent = msg || '';
     statusEl.dataset.state = type;
     statusEl.style.color = type === 'ok' ? '#16a34a' : (type === 'err' ? '#dc2626' : 'var(--color-muted)');
+  }
+
+  function lockOwnerText(lock) {
+    const ip = lock?.owner?.operator_ip || 'another session';
+    const hint = lock?.owner?.session_hint || '';
+    return hint ? `${ip} / ${hint}` : ip;
+  }
+
+  function setEditingEnabled(enabled, { blocked = false } = {}) {
+    state.editing = !!enabled;
+    state.blockedByOtherSession = !!blocked;
+    const shouldDisable = state.blockedByOtherSession;
+
+    [calDateInput, calPeriodInput, usedInput, unitSelect].forEach((el) => {
+      if (!el) return;
+      el.disabled = shouldDisable;
+      el.style.background = shouldDisable ? 'var(--color-bg-weak)' : '';
+    });
+
+    btnSave.disabled = shouldDisable;
+    btnRevert.disabled = shouldDisable;
+
+    applyUsed();
+  }
+
+  async function sessionFetch(url, options = {}) {
+    return fetch(url, {
+      cache: 'no-store',
+      ...options,
+      headers: applySessionHeaders(options.headers || {}),
+    });
+  }
+
+  async function fetchEditStatus() {
+    if (!bus || addr === null) throw new Error('Missing bus/addr in popup URL');
+    const res = await sessionFetch(buildApiUrl({
+      action: 'edit_status',
+      bus,
+      addr: String(addr),
+    }), {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok || !payload?.ok) {
+      throw new Error(payload?.error || `Edit status request failed: HTTP ${res.status}`);
+    }
+    return payload?.data || {};
+  }
+
+  function stopEditRenewal() {
+    if (state.editRenewTimerId) {
+      clearInterval(state.editRenewTimerId);
+      state.editRenewTimerId = null;
+    }
+  }
+
+  function stopLivePolling() {
+    if (state.liveTimerId) {
+      clearInterval(state.liveTimerId);
+      state.liveTimerId = null;
+    }
+  }
+
+  function startEditRenewal() {
+    stopEditRenewal();
+    state.editRenewTimerId = window.setInterval(async () => {
+      if (!state.editing) return;
+      try {
+        await postEditAction('edit_renew');
+      } catch (err) {
+        stopEditRenewal();
+        if (err?.payload?.lock) {
+          applyLockStatus({ locked: true, lock: err.payload.lock }, { silent: true });
+        } else {
+          applyLockStatus({ locked: false, lock: null }, { silent: true });
+        }
+        setStatus(err.message || 'Editing lock expired.', 'err');
+      }
+    }, EDIT_RENEW_MS);
+  }
+
+  async function postEditAction(action) {
+    if (!bus || addr === null) throw new Error('Missing bus/addr in popup URL');
+    const res = await sessionFetch(buildApiUrl(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        action,
+        bus,
+        addr,
+        tool: 'calibration',
+      }),
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok || !payload?.ok) {
+      const error = new Error(payload?.error || `HTTP ${res.status}`);
+      error.payload = payload;
+      throw error;
+    }
+    return payload?.data || {};
+  }
+
+  function releaseEditLockOnUnload() {
+    if (!state.editing || !bus || addr === null) return;
+
+    try {
+      fetch(buildApiUrl(), {
+        method: 'POST',
+        keepalive: true,
+        headers: applySessionHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+        body: JSON.stringify({
+          action: 'edit_end',
+          bus,
+          addr,
+          tool: 'calibration',
+        }),
+      }).catch(() => {});
+    } catch (_) {
+      // Best-effort release; TTL expiry remains the fallback.
+    }
+  }
+
+  function applyLockStatus(lockData, options = {}) {
+    state.lockInfo = lockData?.lock || null;
+    const locked = Boolean(lockData?.locked);
+    const mine = Boolean(lockData?.lock?.owned_by_current_session);
+
+    if (locked && mine) {
+      setEditingEnabled(true, { blocked: false });
+      startEditRenewal();
+      if (!options.silent) {
+        setStatus('Editing is active for this device.', 'ok');
+      }
+      return;
+    }
+
+    stopEditRenewal();
+    setEditingEnabled(false, { blocked: locked });
+
+    if (locked) {
+      const owner = lockOwnerText(lockData.lock);
+      if (!options.silent) {
+        setStatus(`Read-only mode. This device is currently being edited by another session (${owner}).`, 'info');
+      }
+      return;
+    }
+
+    if (!options.silent) {
+      setStatus('Ready. Editing lock will be acquired automatically when you change a value or save.', 'info');
+    }
+  }
+
+  async function ensureEditLock({ silent = false } = {}) {
+    if (state.editing) {
+      return true;
+    }
+
+    if (state.lockRequestPromise) {
+      return state.lockRequestPromise;
+    }
+
+    state.lockRequestPromise = (async () => {
+      try {
+        const data = await postEditAction('edit_start');
+        applyLockStatus(data, { silent: true });
+        if (!silent) {
+          setStatus('Editing is active for this device.', 'ok');
+        }
+        return true;
+      } catch (err) {
+        const owner = err?.payload?.lock ? ` (${lockOwnerText(err.payload.lock)})` : '';
+        if (err?.payload?.lock) {
+          applyLockStatus({ locked: true, lock: err.payload.lock }, { silent: true });
+        } else {
+          applyLockStatus({ locked: false, lock: null }, { silent: true });
+        }
+        if (!silent) {
+          setStatus((err.message || 'Failed to acquire edit lock') + owner, 'err');
+        }
+        return false;
+      } finally {
+        state.lockRequestPromise = null;
+      }
+    })();
+
+    return state.lockRequestPromise;
+  }
+
+  function isAutoLockTarget(target) {
+    if (!target) return false;
+    if (target === btnRead) return false;
+    if (target === btnSave) return true;
+    if (target === calDateInput || target === calPeriodInput || target === usedInput || target === unitSelect) return true;
+    return Boolean(target.closest('#calTable input[data-k]'));
+  }
+
+  function requestEditLockForInteraction(target) {
+    if (state.editing || state.blockedByOtherSession || !isAutoLockTarget(target)) {
+      return;
+    }
+
+    ensureEditLock().then((acquired) => {
+      if (!acquired) return;
+      if (target === btnSave) {
+        btnSave.click();
+        return;
+      }
+      if (typeof target?.focus === 'function') {
+        target.focus();
+      }
+    });
   }
 
   function getText(parent, selector, fallback = '') {
@@ -414,6 +648,7 @@
     syncSelectedRowHighlight();
 
     const rawMeasure = state.liveMeasurement.rawLastMeas;
+    // Live preview intentionally reflects the current unsaved form state.
     const currentObj = collectChannelObjFromForm();
     const corrected = computeChannelCorrectValue(currentObj, rawMeasure);
     const unit = unitSelect.value || state.liveMeasurement.unit || '';
@@ -472,8 +707,7 @@
       const p = {};
       pointCols.forEach((c) => {
         if (i >= used) {
-          p[c.key] = '0';
-          if (c.key === 'gain') p[c.key] = '0';
+          p[c.key] = DEFAULT_POINT_VALUES[c.key] ?? '0';
           return;
         }
         const raw = String(getCellInput(i, c.key)?.value || '').trim();
@@ -498,7 +732,9 @@
       const src = chObj?.Points?.[`Point_${i}`] || {};
       const p = {};
       pointCols.forEach((c) => {
-        p[c.key] = i < used ? normalizeScalar(src[c.key]) : '0';
+        p[c.key] = i < used
+          ? normalizeScalar(src[c.key])
+          : (DEFAULT_POINT_VALUES[c.key] ?? '0');
       });
       out.Points[`Point_${i}`] = p;
     }
@@ -619,11 +855,8 @@
   }
 
   async function fetchUnits() {
-    const url = new URL(apiUrl.toString());
-    url.searchParams.set('action', 'units');
-    const res = await fetch(url.toString(), {
+    const res = await sessionFetch(buildApiUrl({ action: 'units' }), {
       method: 'GET',
-      cache: 'no-store',
       headers: { Accept: 'application/json' },
     });
     if (!res.ok) throw new Error(`Units request failed: HTTP ${res.status}`);
@@ -645,15 +878,12 @@
 
   async function fetchCalibrationXml() {
     if (!bus || addr === null) throw new Error('Missing bus/addr in popup URL');
-
-    const url = new URL(apiUrl.toString());
-    url.searchParams.set('action', 'xml');
-    url.searchParams.set('bus', bus);
-    url.searchParams.set('addr', String(addr));
-
-    const res = await fetch(url.toString(), {
+    const res = await sessionFetch(buildApiUrl({
+      action: 'xml',
+      bus,
+      addr: String(addr),
+    }), {
       method: 'GET',
-      cache: 'no-store',
       headers: { Accept: 'application/xml, text/xml' },
     });
     if (!res.ok) {
@@ -676,16 +906,13 @@
 
   async function fetchLiveMeasurement() {
     if (!bus || addr === null) throw new Error('Missing bus/addr in popup URL');
-
-    const url = new URL(apiUrl.toString());
-    url.searchParams.set('action', 'live_measurement');
-    url.searchParams.set('bus', bus);
-    url.searchParams.set('addr', String(addr));
-    url.searchParams.set('ch', String(state.selectedCh));
-
-    const res = await fetch(url.toString(), {
+    const res = await sessionFetch(buildApiUrl({
+      action: 'live_measurement',
+      bus,
+      addr: String(addr),
+      ch: String(state.selectedCh),
+    }), {
       method: 'GET',
-      cache: 'no-store',
       headers: { Accept: 'application/json' },
     });
 
@@ -716,9 +943,7 @@
   }
 
   function startLivePolling() {
-    if (state.liveTimerId) {
-      clearInterval(state.liveTimerId);
-    }
+    stopLivePolling();
     state.liveTimerId = window.setInterval(() => {
       refreshLiveMeasurement({ silent: true });
     }, LIVE_POLL_MS);
@@ -750,7 +975,7 @@
       const active = idx < used;
       tr.classList.toggle('row-disabled', !active);
       $$('input', tr).forEach((inp) => {
-        inp.disabled = !active;
+        inp.disabled = !active || state.blockedByOtherSession;
       });
       if (!active) {
         pointCols.forEach((c) => {
@@ -818,6 +1043,10 @@
   }
 
   async function saveSelectedChannel() {
+    const acquired = await ensureEditLock({ silent: true });
+    if (!acquired) {
+      throw new Error('This device is currently being edited by another session.');
+    }
     validateBeforeSave();
     const currentObj = collectChannelObjFromForm();
     if (!hasSelectedChannelDiff(currentObj, state.originalChannelObj)) {
@@ -827,9 +1056,8 @@
 
     const xmlContent = buildSaveXmlOnlySelectedChannel(currentObj);
     const payload = { action: 'calibration_save', bus, addr, xmlContent };
-    const res = await fetch(apiUrl.toString(), {
+    const res = await sessionFetch(buildApiUrl(), {
       method: 'POST',
-      cache: 'no-store',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(payload),
     });
@@ -842,10 +1070,12 @@
 
   async function readFromSdaq() {
     setStatus('Reading calibration from SDAQ...', 'info');
+    stopLivePolling();
     await fetchCalibrationXml();
     populateInfo();
     loadSelectedChannelFromXml();
     await refreshLiveMeasurement({ silent: false });
+    startLivePolling();
     setStatus(`Loaded calibration for ${bus.toUpperCase()} addr ${addr} CH ${state.selectedCh}`, 'ok');
   }
 
@@ -902,6 +1132,28 @@
     else setStatus('', 'info');
   });
 
+  document.addEventListener('pointerdown', (e) => {
+    const target = e.target.closest('input, select, button');
+    if (!target || !isAutoLockTarget(target) || state.editing || state.blockedByOtherSession) {
+      return;
+    }
+
+    e.preventDefault();
+    requestEditLockForInteraction(target);
+  }, true);
+
+  document.addEventListener('focusin', (e) => {
+    const target = e.target;
+    if (!isAutoLockTarget(target) || state.editing || state.blockedByOtherSession) {
+      return;
+    }
+
+    if (typeof target.blur === 'function') {
+      target.blur();
+    }
+    requestEditLockForInteraction(target);
+  });
+
   usedInput.addEventListener('input', () => {
     const targetUsed = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
     ensureRowCapacity(targetUsed, true);
@@ -937,13 +1189,18 @@
   });
 
   document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key).toLowerCase() === 's') {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key).toLowerCase() === 's' && !state.blockedByOtherSession) {
       e.preventDefault();
       btnSave?.click();
       return;
     }
     if (e.key === 'Escape') window.close();
   });
+
+  window.addEventListener('pagehide', releaseEditLockOnUnload);
+  window.addEventListener('beforeunload', releaseEditLockOnUnload);
+  window.addEventListener('pagehide', stopLivePolling);
+  window.addEventListener('beforeunload', stopLivePolling);
 
   (async function init() {
     try {
@@ -952,11 +1209,13 @@
       usedInput.value = '0';
       calPeriodInput.value = '0';
       calDateInput.value = todayYmd();
+      setEditingEnabled(false);
       updateDerivedViews();
 
       await fetchUnits();
       await readFromSdaq();
-      startLivePolling();
+      const lockData = await fetchEditStatus();
+      applyLockStatus(lockData);
     } catch (err) {
       setStatus(err.message || 'Failed to load calibration data', 'err');
     }

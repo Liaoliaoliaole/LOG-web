@@ -1,6 +1,8 @@
 <?php
 
 require_once __DIR__ . '/paths.php';
+require_once __DIR__ . '/concurrency.php';
+require_once __DIR__ . '/session_registry.php';
 
 function read_json_body(): array
 {
