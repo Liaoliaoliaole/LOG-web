@@ -138,7 +138,7 @@
           <div class="sensor-title">Addr ${sensor.addr}</div>
           <span class="chip ${chip[1]}">${chip[0]}</span>
         </div>
-        <table class="table">
+        <table class="kv-table">
           <tr><td>NOx Avg</td><td>${formatLegacyMeasurement(sensor, 'NOx_value_avg', 'is_NOx_value_valid', 3, ' ppm')}</td></tr>
           <tr><td>O2 Avg</td><td>${formatLegacyMeasurement(sensor, 'O2_value_avg', 'is_O2_value_valid', 3, ' %')}</td></tr>
           <tr><td>Heater Mode</td><td>${esc(sensor?.status?.heater_mode_state) || '—'}</td></tr>

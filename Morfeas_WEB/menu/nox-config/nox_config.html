@@ -132,18 +132,23 @@
       color: #5b6472;
     }
 
-    .table {
+    .kv-table {
       width: 100%;
       border-collapse: collapse;
+      min-width: 0;
+      table-layout: fixed;
     }
 
-    .table td {
+    .kv-table td,
+    .kv-table th {
       padding: 6px 4px;
       border-bottom: 1px solid #eef0f3;
       vertical-align: top;
+      text-align: left;
+      white-space: normal;
     }
 
-    .table td:first-child {
+    .kv-table td:first-child {
       width: 42%;
       color: #5b6472;
       font-weight: 700;
@@ -324,7 +329,7 @@
           <div id="statsGrid" class="stats-grid">
             <div class="stats-box">
               <h4>NOx Statistics</h4>
-              <table class="table">
+              <table class="kv-table">
                 <tr><td>Average</td><td id="noxStatAvg">—</td></tr>
                 <tr><td>Max</td><td id="noxStatMax">—</td></tr>
                 <tr><td>Min</td><td id="noxStatMin">—</td></tr>
@@ -333,7 +338,7 @@
             </div>
             <div class="stats-box">
               <h4>O2 Statistics</h4>
-              <table class="table">
+              <table class="kv-table">
                 <tr><td>Average</td><td id="o2StatAvg">—</td></tr>
                 <tr><td>Max</td><td id="o2StatMax">—</td></tr>
                 <tr><td>Min</td><td id="o2StatMin">—</td></tr>
@@ -347,7 +352,7 @@
       <div class="card">
         <div class="card-head">Current Data</div>
         <div class="card-body">
-          <table class="table">
+          <table class="kv-table">
             <tr><td>NOx Avg</td><td id="selectedNoxValue">—</td></tr>
             <tr><td>O2 Avg</td><td id="selectedO2Value">—</td></tr>
             <tr><td>Heater Mode</td><td id="selectedHeaterMode">—</td></tr>
