@@ -2,6 +2,9 @@
 
 require_once __DIR__ . '/../repositories/log_config_repository.php';
 require_once __DIR__ . '/../repositories/logstat_repository.php';
+
+const DEVICE_LEGACY_MDAQ_MESSAGE = 'Legacy MDAQ config found in XML. Remove it manually before using this page.';
+
 function device_restart_morfeas_core(): void
 {
     $output = [];
@@ -228,25 +231,24 @@ function device_merge_manual_runtime_status(array $manual, array $runtimeMaps): 
     return $manual;
 }
 
-function device_list(string $ramdisk, string $logConfig, int $maxComponents): array
+function device_list(string $ramdisk, string $logConfig): array
 {
     $auto   = device_collect_sdaq_devices($ramdisk);
-    $manual = array_values(array_filter(
-        log_config_load_manual_devices($logConfig),
-        static function (array $dev): bool {
-            $type = strtoupper(str_replace(['-', '_', ' '], '', trim((string) ($dev['type'] ?? ''))));
-            return $type !== 'MDAQ';
-        }
-    ));
+    $manual = log_config_load_manual_devices($logConfig);
     $manual = device_merge_manual_runtime_status($manual, device_build_runtime_maps($ramdisk));
     $all    = array_merge($manual, $auto);
+    $legacyMdaqPresent = log_config_has_legacy_mdaq($logConfig);
 
     return [
         'ok'         => true,
         'data'       => $all,
         'components' => [
             'total' => log_config_count_components($logConfig),
-            'max'   => $maxComponents,
+        ],
+        'legacy' => [
+            'mdaq_present' => $legacyMdaqPresent,
+            'blocking' => $legacyMdaqPresent,
+            'message' => $legacyMdaqPresent ? DEVICE_LEGACY_MDAQ_MESSAGE : null,
         ],
     ];
 }

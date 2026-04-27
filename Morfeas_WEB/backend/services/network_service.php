@@ -573,8 +573,8 @@ function network_restore_payload_from_state(array $state): array
             ],
         ],
         'can' => [
-            'can0' => ['bitrate' => (int) ($state['can']['can0']['bitrate'] ?? 250000)],
-            'can1' => ['bitrate' => (int) ($state['can']['can1']['bitrate'] ?? 250000)],
+            'can0' => ['bitrate' => is_numeric($state['can']['can0']['bitrate'] ?? null) ? (int) $state['can']['can0']['bitrate'] : null],
+            'can1' => ['bitrate' => is_numeric($state['can']['can1']['bitrate'] ?? null) ? (int) $state['can']['can1']['bitrate'] : null],
         ],
         'ntp' => [
             'server' => $stateNtp,

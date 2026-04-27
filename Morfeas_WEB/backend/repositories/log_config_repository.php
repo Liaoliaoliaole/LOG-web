@@ -8,6 +8,42 @@ function log_config_dom_text_or_empty(DOMElement $parent, string $tag): string
     return $node ? trim($node->nodeValue) : '';
 }
 
+function log_config_node_disabled(DOMElement $node): bool
+{
+    return strtolower((string) $node->getAttribute('Disable')) === 'true';
+}
+
+function log_config_has_component_tag(string $xmlPath, string $tagName): bool
+{
+    if (!is_file($xmlPath)) {
+        return false;
+    }
+
+    $xml = simplexml_load_file($xmlPath);
+    if ($xml === false) {
+        throw new RuntimeException('Failed to parse LOG config XML');
+    }
+
+    $components = $xml->COMPONENTS ?? null;
+    if ($components === null) {
+        return false;
+    }
+
+    $wanted = strtoupper(trim($tagName));
+    foreach ($components->children() as $comp) {
+        if (strtoupper($comp->getName()) === $wanted) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function log_config_has_legacy_mdaq(string $xmlPath): bool
+{
+    return log_config_has_component_tag($xmlPath, 'MDAQ_HANDLER');
+}
+
 function log_config_load_manual_devices(string $xmlPath): array
 {
     if (!is_file($xmlPath)) {
@@ -32,7 +68,6 @@ function log_config_load_manual_devices(string $xmlPath): array
 
         switch ($tag) {
             case 'IOBOX_HANDLER':
-            case 'MDAQ_HANDLER':
             case 'MTI_HANDLER':
                 $type = str_replace('_HANDLER', '', $tag);
                 $name = trim((string)$comp->DEV_NAME);
@@ -66,6 +101,47 @@ function log_config_load_manual_devices(string $xmlPath): array
             default:
                 break;
         }
+    }
+
+    return $out;
+}
+
+function log_config_load_can_handlers(string $xmlPath): array
+{
+    if (!is_file($xmlPath)) {
+        return [];
+    }
+
+    $xml = simplexml_load_file($xmlPath);
+    if ($xml === false) {
+        throw new RuntimeException('Failed to parse LOG config XML');
+    }
+
+    $components = $xml->COMPONENTS ?? null;
+    if ($components === null) {
+        return [];
+    }
+
+    $out = [];
+    foreach ($components->children() as $comp) {
+        $tag = strtoupper($comp->getName());
+        if (!in_array($tag, ['SDAQ_HANDLER', 'NOX_HANDLER'], true)) {
+            continue;
+        }
+
+        $bus = strtolower(trim((string) $comp->CANBUS_IF));
+        if ($bus === '') {
+            continue;
+        }
+
+        $disabled = strtolower((string) $comp['Disable']) === 'true';
+        $out[] = [
+            'tag' => $tag,
+            'mode' => str_replace('_HANDLER', '', $tag),
+            'bus' => $bus,
+            'enabled' => !$disabled,
+            'status' => $disabled ? 'Disabled' : 'Okay',
+        ];
     }
 
     return $out;
@@ -109,6 +185,85 @@ function log_config_with_xml_lock(string $xmlPath, callable $fn)
     return backend_with_resource_file_lock('log_config', $xmlPath, $fn);
 }
 
+function log_config_remove_can_role_nodes(DOMElement $components, string $bus): int
+{
+    $removed = 0;
+    $normalizedBus = strtolower(trim($bus));
+    $children = $components->childNodes;
+
+    for ($i = $children->length - 1; $i >= 0; $i--) {
+        $node = $children->item($i);
+        if (!$node instanceof DOMElement) {
+            continue;
+        }
+
+        $tag = strtoupper($node->tagName);
+        if (!in_array($tag, ['SDAQ_HANDLER', 'NOX_HANDLER'], true)) {
+            continue;
+        }
+
+        if (strtolower(log_config_dom_text_or_empty($node, 'CANBUS_IF')) !== $normalizedBus) {
+            continue;
+        }
+
+        $components->removeChild($node);
+        $removed++;
+    }
+
+    return $removed;
+}
+
+function log_config_set_can_role(string $xmlPath, string $bus, string $role): array
+{
+    return log_config_with_xml_lock($xmlPath, function () use ($xmlPath, $bus, $role) {
+        if (!is_file($xmlPath)) {
+            throw new RuntimeException("XML not found: $xmlPath");
+        }
+
+        $normalizedBus = strtolower(trim($bus));
+        $normalizedRole = strtoupper(trim($role));
+        if ($normalizedBus === '') {
+            throw new RuntimeException('bus is required');
+        }
+        if (!in_array($normalizedRole, ['SDAQ', 'NOX', 'FREE'], true)) {
+            throw new RuntimeException('role must be SDAQ, NOX, or FREE');
+        }
+
+        $doc = new DOMDocument();
+        $doc->preserveWhiteSpace = false;
+        $doc->formatOutput = true;
+        if (!$doc->load($xmlPath)) {
+            throw new RuntimeException('Failed to parse LOG config XML');
+        }
+
+        $components = $doc->getElementsByTagName('COMPONENTS')->item(0);
+        if (!$components instanceof DOMElement) {
+            throw new RuntimeException('Invalid LOG config XML');
+        }
+
+        log_config_remove_can_role_nodes($components, $normalizedBus);
+
+        if ($normalizedRole !== 'FREE') {
+            $node = $doc->createElement($normalizedRole . '_HANDLER');
+            $node->setAttribute('Disable', 'false');
+            $node->appendChild($doc->createElement('CANBUS_IF', $normalizedBus));
+            $components->appendChild($node);
+        }
+
+        $xmlString = $doc->saveXML();
+        if (!is_string($xmlString) || $xmlString === '') {
+            throw new RuntimeException('Failed to serialize LOG config XML');
+        }
+        backend_atomic_write_file($xmlPath, $xmlString);
+
+        return [
+            'bus' => $normalizedBus,
+            'mode' => $normalizedRole,
+            'enabled' => $normalizedRole !== 'FREE',
+        ];
+    });
+}
+
 function log_config_append_device(string $xmlPath, array $data): array
 {
     return log_config_with_xml_lock($xmlPath, function () use ($xmlPath, $data) {
@@ -129,8 +284,7 @@ function log_config_append_device(string $xmlPath, array $data): array
         }
 
         $type = strtoupper(str_replace('-', '', $data['type']));
-        $busForId = ($type === 'NOX') ? $data['bus'] : '-';
-        $id   = log_config_build_manual_id($type, $busForId, $data['name'], $data['ip']);
+        $id   = log_config_build_manual_id($type, '-', $data['name'], $data['ip']);
 
         $existing = log_config_load_manual_devices($xmlPath);
         foreach ($existing as $dev) {
@@ -141,17 +295,11 @@ function log_config_append_device(string $xmlPath, array $data): array
 
         switch ($type) {
             case 'IOBOX':
-            case 'MDAQ':
             case 'MTI':
                 $node = $doc->createElement($type . '_HANDLER');
                 $node->setAttribute('Disable', 'false');
                 $node->appendChild($doc->createElement('DEV_NAME', $data['name']));
                 $node->appendChild($doc->createElement('IPv4_ADDR', $data['ip']));
-                break;
-            case 'NOX':
-                $node = $doc->createElement('NOX_HANDLER');
-                $node->setAttribute('Disable', 'false');
-                $node->appendChild($doc->createElement('CANBUS_IF', $data['bus']));
                 break;
             default:
                 throw new RuntimeException('Unsupported type: ' . $type);
@@ -168,9 +316,9 @@ function log_config_append_device(string $xmlPath, array $data): array
         return [
             'id'     => $id,
             'type'   => $type,
-            'bus'    => $type === 'NOX' ? $data['bus'] : '-',
-            'ip'     => $type === 'NOX' ? '' : $data['ip'],
-            'name'   => $type === 'NOX' ? $data['bus'] : $data['name'],
+            'bus'    => '-',
+            'ip'     => $data['ip'],
+            'name'   => $data['name'],
             'status' => 'Okay',
             'origin' => 'xml',
         ];
@@ -212,7 +360,6 @@ function log_config_delete_devices(string $xmlPath, array $ids): void
 
             switch ($tag) {
                 case 'IOBOX_HANDLER':
-                case 'MDAQ_HANDLER':
                 case 'MTI_HANDLER':
                     $type = str_replace('_HANDLER', '', $tag);
                     $name = log_config_dom_text_or_empty($node, 'DEV_NAME');

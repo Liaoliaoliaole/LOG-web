@@ -34,6 +34,11 @@
       padding: 8px 12px 12px;
     }
 
+    .stack {
+      display: grid;
+      gap: 14px;
+    }
+
     .toolbar-mini {
       display: flex;
       gap: 10px;
@@ -62,6 +67,7 @@
       padding: 7px 8px;
       border: 1px solid #e5e7eb;
       white-space: nowrap;
+      vertical-align: middle;
     }
 
     /* Bus column: keep width consistent with neighboring columns */
@@ -128,65 +134,175 @@
       margin-top: 10px;
     }
 
+    .subtle {
+      color: #5b6472;
+      font-size: 13px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #d8dee6;
+      background: #f6f8fa;
+      font-size: 12px;
+      font-weight: 800;
+      color: #243244;
+    }
+
+    .chip.warn {
+      background: #fff4e5;
+      border-color: #f0c36d;
+      color: #8a4b00;
+    }
+
+    .chip.ok {
+      background: #edf9f0;
+      border-color: #b5e3c1;
+      color: #1f6b36;
+    }
+
+    .status-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .status-main {
+      font-weight: 800;
+    }
+
+    .status-detail {
+      color: #5b6472;
+      font-size: 12px;
+    }
+
+    .btn.sm {
+      height: 32px;
+      padding: 0 12px;
+      font-size: 13px;
+    }
+
+    .section-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      font-weight: 700;
+    }
+
+    .banner.danger {
+      background: #fff1f0;
+      border-color: #ffccc7;
+      color: #a8071a;
+    }
 
   </style>
 </head>
 
 <body>
   <div class="wrap">
-    <!-- ================================================================
-           1) DEVICES TABLE (items appear here after Save)
-           ================================================================ -->
-    <div class="card">
-      <div class="card-head">Devices</div>
-      <div class="card-body">
-        <div class="toolbar-mini">
-          <button id="refreshBtn" class="btn">Refresh</button>
-          <div style="flex:1"></div>
-          <button id="removeBtn" class="btn" disabled>Remove</button>
-          <button id="addBtn" class="btn primary">Add…</button>
-        </div>
+    <div class="stack">
+      <div id="legacyBanner" class="banner danger" hidden>
+        <span id="legacyBannerText">Legacy MDAQ config found in XML. Remove it manually before using this page.</span>
+      </div>
 
-        <div class="table-wrap" style="background:#fff;border:1px solid var(--border);">
-          <table class="table" id="devTable" aria-label="Added devices">
-            <thead>
-              <tr>
-                <th><input id="mchk" type="checkbox" aria-label="Select all rows" /></th>
-                <th>#</th>
-                <th>Bus</th>
-                <th>Device Type</th>
-                <th>Device Name/Address</th>
-                <th>IP Address</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="devBody"></tbody>
-          </table>
+      <div class="card">
+        <div class="card-head">CAN Bus Setup</div>
+        <div class="card-body">
+          <div class="section-note">
+            <span id="canChip" class="chip ok">No CAN warnings</span>
+            <span id="canTicker" class="subtle">All buses look stable.</span>
+          </div>
+
+          <div class="table-wrap" style="background:#fff;border:1px solid var(--border);">
+            <table class="table" aria-label="CAN bus setup">
+              <thead>
+                <tr>
+                  <th>Bus</th>
+                  <th>Mode</th>
+                  <th>Bitrate</th>
+                  <th>State</th>
+                  <th>Devices</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="canBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- ================================================================
-           2) ADD FORM (hidden until “Add…” is clicked)
-           ================================================================ -->
-    <div id="propCard" class="card" style="margin-top:14px;display:none;">
+      <div class="card">
+        <div class="card-head">Configured Devices</div>
+        <div class="card-body">
+          <div class="toolbar-mini">
+            <button id="refreshBtn" class="btn">Refresh</button>
+            <div style="flex:1"></div>
+            <button id="removeBtn" class="btn" disabled>Remove</button>
+            <button id="addBtn" class="btn primary">Add…</button>
+          </div>
+
+          <div class="table-wrap" style="background:#fff;border:1px solid var(--border);">
+            <table class="table" aria-label="Configured devices">
+              <thead>
+                <tr>
+                  <th><input id="mchk" type="checkbox" aria-label="Select all configured rows" /></th>
+                  <th>#</th>
+                  <th>Bus</th>
+                  <th>Device Type</th>
+                  <th>Device Name/Address</th>
+                  <th>IP Address</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="configuredBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">Detected Devices</div>
+        <div class="card-body">
+          <div class="table-wrap" style="background:#fff;border:1px solid var(--border);">
+            <table class="table" aria-label="Detected devices">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Bus</th>
+                  <th>Device Type</th>
+                  <th>Address</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="detectedBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="propCard" class="card" style="display:none;">
       <div class="card-head">Add Device — Type & Properties</div>
       <div class="card-body">
         <div class="props-grid">
           <div class="label">Device Type</div>
           <div>
             <select id="devType" class="input" style="height:38px;min-width:180px;">
-              <option value="NOX">NOX</option>
               <option value="IO-BOX">IO-BOX</option>
               <option value="MTI">MTI</option>
-            </select>
-          </div>
-
-          <div class="label">CAN Interface</div>
-          <div>
-            <select id="canIf" class="input" style="height:38px;min-width:140px;">
-              <option value="can0">can0</option>
-              <option value="can1">can1</option>
             </select>
           </div>
 
@@ -206,11 +322,13 @@
           <button id="cancelBtn" class="btn">Cancel</button>
         </div>
       </div>
+      </div>
     </div>
   </div>
 
   <!-- Scripts -->
   <script src="../../assets/config.js"></script>
+  <script src="../../assets/api/canRoles.js"></script>
   <script src="../../assets/api/devices.js"></script>
   <script src="./devices.js"></script>
   <script>

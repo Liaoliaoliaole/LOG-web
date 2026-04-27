@@ -8,9 +8,15 @@ header('Content-Type: application/json; charset=utf-8');
 
 $logConfig  = backend_log_config_path();
 $ramdisk    = backend_ramdisk_dir();
-$maxComponents = 16; // legacy limit (Morfeas_comp_amount_max)
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+function devices_legacy_mdaq_message(): string
+{
+    return defined('DEVICE_LEGACY_MDAQ_MESSAGE')
+        ? DEVICE_LEGACY_MDAQ_MESSAGE
+        : 'Legacy MDAQ config found in XML. Remove it manually before using this page.';
+}
 
 function devices_fail(string $message, int $status = 400): void
 {
@@ -54,35 +60,19 @@ function devices_validate_ipv4(string $ip): bool
     return true;
 }
 
-function devices_validate_nox_bus(string $bus): bool
-{
-    // Keep NOX bus format strict and predictable for runtime binding.
-    return preg_match('/^(can|vcan)[0-9]+$/', $bus) === 1;
-}
-
 function devices_find_conflict(
-    string $type,
-    string $bus,
     string $name,
     string $ip,
     array $manualDevices
 ): ?string {
     foreach ($manualDevices as $dev) {
         $existingType = devices_normalize_type($dev['type'] ?? '');
-        $existingBus = devices_normalize_bus($dev['bus'] ?? '');
-        $existingName = trim((string) ($dev['name'] ?? ''));
-        $existingIp = trim((string) ($dev['ip'] ?? ''));
-
-        if ($type === 'NOX') {
-            if ($existingType === 'NOX' && $existingBus === $bus) {
-                return "NOX bus already exists: $bus";
-            }
-            continue;
-        }
-
         if (!in_array($existingType, ['IOBOX', 'MTI'], true)) {
             continue;
         }
+        $existingName = trim((string) ($dev['name'] ?? ''));
+        $existingIp = trim((string) ($dev['ip'] ?? ''));
+
         if (strcasecmp($existingName, $name) === 0) {
             return "Device name already exists: $name";
         }
@@ -106,15 +96,19 @@ function devices_normalize_delete_ids($rawIds): array
 try {
     switch ($method) {
         case 'GET':
-            $payload = device_list($ramdisk, $logConfig, $maxComponents);
+            $payload = device_list($ramdisk, $logConfig);
             echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
             break;
 
         case 'POST':
+            if (log_config_has_legacy_mdaq($logConfig)) {
+                devices_fail(devices_legacy_mdaq_message(), 409);
+            }
+
             $body = read_json_body();
 
             $type = devices_normalize_type($body['type'] ?? '');
-            $bus  = devices_normalize_bus($body['bus'] ?? '');
+            $bus  = '-';
             $name = trim((string) ($body['name'] ?? ''));
             $ip   = trim((string) ($body['ip'] ?? ''));
 
@@ -124,32 +118,22 @@ try {
             if ($type === 'SDAQ') {
                 devices_fail('SDAQ is auto-discovered from logstat', 400);
             }
-
-            if (!in_array($type, ['IOBOX', 'MTI', 'NOX'], true)) {
+            if ($type === 'NOX') {
+                devices_fail('NOX is managed via CAN bus role transition', 400);
+            }
+            if (!in_array($type, ['IOBOX', 'MTI'], true)) {
                 devices_fail("unsupported type: $type", 400);
             }
 
-            if ($type === 'NOX') {
-                if ($bus === '') {
-                    devices_fail('bus is required for NOX', 400);
-                }
-                if (!devices_validate_nox_bus($bus)) {
-                    devices_fail('bus must be canN or vcanN for NOX', 400);
-                }
-                $name = '';
-                $ip = '';
-            } else {
-                $bus = '-';
-                if (!devices_validate_name($name)) {
-                    devices_fail('name must be 1..64 chars and contain only letters, numbers, "_" or "-"', 400);
-                }
-                if (!devices_validate_ipv4($ip)) {
-                    devices_fail('ip must be a valid IPv4 address', 400);
-                }
+            if (!devices_validate_name($name)) {
+                devices_fail('name must be 1..64 chars and contain only letters, numbers, "_" or "-"', 400);
+            }
+            if (!devices_validate_ipv4($ip)) {
+                devices_fail('ip must be a valid IPv4 address', 400);
             }
 
             $manualDevices = log_config_load_manual_devices($logConfig);
-            $conflict = devices_find_conflict($type, $bus, $name, $ip, $manualDevices);
+            $conflict = devices_find_conflict($name, $ip, $manualDevices);
             if ($conflict !== null) {
                 devices_fail($conflict, 409);
             }
@@ -165,6 +149,10 @@ try {
             break;
 
         case 'DELETE':
+            if (log_config_has_legacy_mdaq($logConfig)) {
+                devices_fail(devices_legacy_mdaq_message(), 409);
+            }
+
             $body = read_json_body();
             $ids = devices_normalize_delete_ids($body['ids'] ?? []);
             if (empty($ids)) {

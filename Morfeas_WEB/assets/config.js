@@ -77,6 +77,9 @@
     endpoints: {
       channels: 'api_channels.php',
       devices: 'api_devices.php',
+      canRoles: 'api_can_roles.php',
+      canRoleTransition: 'api_can_role_transition.php',
+      nox: 'api_nox.php',
       systemStatus: 'api_system_status.php',
       ftpBackup: 'api_ftp_backup.php',
       networkConfig: 'api_network_config.php',

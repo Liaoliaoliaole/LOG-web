@@ -1,13 +1,11 @@
 /* ============================================================================
- * Add Devices (popup)
- * ---------------------------------------------------------------------------
- * - “Add…” reveals the inline form; Save appends a device to the table.
- * - Type rules:
- *     SDAQ  → auto from logstat (not addable in the form).
- *     NOX   → CAN interface only (Name/IP disabled, same as old behavior).
- *     IO-BOX / MDAQ / MTI → CAN interface disabled, Name/IP editable.
- * - Table features: master checkbox, row click-to-toggle, Remove selected,
- *   Delete key to remove selected, Refresh re-renders.
+ * Add Devices
+ * ----------------------------------------------------------------------------
+ * - CAN Bus Setup is the main control surface for SDAQ / NOX role switching.
+ * - Configured Devices shows explicit XML-backed devices.
+ * - Detected Devices shows auto-discovered runtime devices.
+ * - NOX creation goes through the CAN role transition flow instead of direct
+ *   device append, so bitrate + handler changes stay together.
  * ========================================================================== */
 
 (function () {
@@ -15,26 +13,27 @@
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
   const devicesApi = window.LOG_WEB?.api?.devices;
-  const MAX_COMPONENTS = 16; // legacy Morfeas_comp_amount_max
+  const canRolesApi = window.LOG_WEB?.api?.canRoles;
+  const DEVICES_POLL_INTERVAL_MS = 1000;
 
-  // --------------------------------------------------------------------------
-  // 1) TABLE ELEMENTS
-  // --------------------------------------------------------------------------
-  const devBody = $('#devBody');
+  const canBody = $('#canBody');
+  const canChip = $('#canChip');
+  const canTicker = $('#canTicker');
+  const legacyBanner = $('#legacyBanner');
+  const legacyBannerText = $('#legacyBannerText');
+
+  const configuredBody = $('#configuredBody');
+  const detectedBody = $('#detectedBody');
   const mchk = $('#mchk');
   const refreshBtn = $('#refreshBtn');
   const removeBtn = $('#removeBtn');
 
-  // --------------------------------------------------------------------------
-  // 2) FORM ELEMENTS
-  // --------------------------------------------------------------------------
   const propCard = $('#propCard');
   const addBtn = $('#addBtn');
   const cancelBtn = $('#cancelBtn');
   const saveBtn = $('#saveBtn');
 
   const devType = $('#devType');
-  const canIf = $('#canIf');
   const devName = $('#devName');
   const devIp = $('#devIp');
 
@@ -44,20 +43,16 @@
   devName.addEventListener('change', () => validateDevName(devName));
   devIp.addEventListener('change', () => validateIp(devIp));
 
-  // --------------------------------------------------------------------------
-  // 3) IN-MEMORY MODEL (backed by API)
-  // --------------------------------------------------------------------------
   let devices = [];
-  let componentTotal = 0;
-  let componentMax = MAX_COMPONENTS;
-  const DEVICES_POLL_INTERVAL_MS = 1000; // legacy-like continuous detection cadence
+  let canRows = [];
+  let canWarnings = { chip: null, ticker: [] };
+  let legacyState = { blocking: false, message: '' };
   let devicesPollTimer = null;
   let removeInProgress = false;
+  let transitionInProgress = false;
   let popupWindowHasFocus = document.hasFocus();
+  const popupRegistry = new Map();
 
-  // --------------------------------------------------------------------------
-  // 3.1) VALIDATION HELPERS (legacy-compatible)
-  // --------------------------------------------------------------------------
   const IP_REGEX = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
   const DEV_NAME_REGEX = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -85,9 +80,7 @@
     return true;
   }
 
-  function validateRequired(type) {
-    if (type === 'NOX') return true;
-
+  function validateRequired() {
     if (!devName.value.trim() || !devIp.value.trim()) {
       alert('Nothing to commit!!!');
       return false;
@@ -100,12 +93,9 @@
     return true;
   }
 
-  function isDuplicate(type, name, ip) {
-    // Only Modbus-based devices (IOBOX/MTI/MDAQ) check duplicate name/IP
-    if (type === 'NOX') return false;
-
+  function isDuplicate(name, ip) {
     const conflict = devices.find((d) => {
-      if (d.origin === 'auto') return false;
+      if ((d.origin || '') === 'auto') return false;
       if (d.type === 'NOX' || d.type === 'SDAQ') return false;
       if (name && d.name === name) return true;
       if (ip && d.ip === ip) return true;
@@ -124,77 +114,6 @@
     return false;
   }
 
-  // --------------------------------------------------------------------------
-  // 4) RENDERING
-  // --------------------------------------------------------------------------
-  function render() {
-    const selectedIds = new Set(
-      $$('#devBody tr')
-        .filter((r) => r.querySelector('input[type="checkbox"]')?.checked)
-        .map((r) => r.dataset.id)
-        .filter(Boolean)
-    );
-
-    devBody.innerHTML = '';
-    devices.forEach((d, i) => {
-      const tr = document.createElement('tr');
-      tr.className = 'row';
-      tr.dataset.index = i;
-      tr.dataset.id = d.id || '';
-      tr.dataset.origin = d.origin || 'xml';
-
-      const tdCheck = document.createElement('td');
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.setAttribute('aria-label', `Select row ${i + 1}`);
-      if (tr.dataset.id && selectedIds.has(tr.dataset.id)) {
-        cb.checked = true;
-      }
-      tdCheck.appendChild(cb);
-
-      const tdIdx = document.createElement('td');
-      tdIdx.textContent = i + 1;
-
-      const tdBus = document.createElement('td');
-      tdBus.textContent = d.bus || '-';
-
-      const tdType = document.createElement('td');
-      tdType.textContent = d.type;
-
-      const tdName = document.createElement('td');
-      tdName.textContent = d.name || '-';
-
-      const tdIp = document.createElement('td');
-      tdIp.textContent = d.ip || '-';
-
-      const tdStatus = document.createElement('td');
-      tdStatus.textContent = d.runtime_status || d.status || 'Unknown';
-
-      [tdCheck, tdIdx, tdBus, tdType, tdName, tdIp, tdStatus].forEach((td) =>
-        tr.appendChild(td)
-      );
-      devBody.appendChild(tr);
-    });
-    syncState();
-  }
-
-  function syncState() {
-    const rows = $$('#devBody tr');
-    rows.forEach(r =>
-      r.classList.toggle('selected', r.querySelector('input[type="checkbox"]').checked)
-    );
-
-    const checked = rows.filter(r => r.querySelector('input[type="checkbox"]').checked).length;
-    removeBtn.disabled = checked === 0;
-
-    const total = rows.length;
-    mchk.checked = total > 0 && checked === total;
-    mchk.indeterminate = checked > 0 && checked < total;
-  }
-
-  // --------------------------------------------------------------------------
-  // 5) FORM RULES (enable/disable by type)
-  // --------------------------------------------------------------------------
   function setDisabled(el, disabled) {
     el.disabled = disabled;
     el.style.background = disabled ? 'var(--bg-weak)' : '';
@@ -206,8 +125,47 @@
     );
   }
 
+  function openNoxPopup(bus) {
+    const safeBus = String(bus || '').trim().toLowerCase();
+    if (!safeBus) return;
+
+    const url = new URL('../nox-config/nox_config.html', window.location.href);
+    url.searchParams.set('bus', safeBus);
+
+    const name = `nox_config_${safeBus}`;
+    const existing = popupRegistry.get(name);
+    if (existing && !existing.closed) {
+      try {
+        existing.location.href = url.toString();
+        existing.focus();
+        return;
+      } catch (_) {
+        popupRegistry.delete(name);
+      }
+    }
+
+    const features = [
+      'width=1380',
+      'height=980',
+      'left=80',
+      'top=40',
+      'resizable=yes',
+      'scrollbars=yes',
+      'toolbar=no',
+      'location=no',
+      'status=no',
+      'menubar=no',
+    ].join(',');
+
+    const win = window.open(url.toString(), name, features);
+    if (win) {
+      popupRegistry.set(name, win);
+      try { win.focus(); } catch (_) { }
+    }
+  }
+
   function shouldPollDevices() {
-    return !document.hidden && popupWindowHasFocus && !removeInProgress;
+    return !document.hidden && popupWindowHasFocus && !removeInProgress && !transitionInProgress;
   }
 
   function stopDevicesPoll() {
@@ -222,7 +180,7 @@
     stopDevicesPoll();
     devicesPollTimer = setInterval(() => {
       if (!shouldPollDevices()) return;
-      loadDevices(true, true);
+      loadPageData(true, true);
     }, DEVICES_POLL_INTERVAL_MS);
   }
 
@@ -234,56 +192,332 @@
     }
   }
 
-  async function refreshDevicesAfterConfigChange() {
-    const maxAttempts = 15;
+  function selectedConfiguredIds() {
+    return new Set(
+      $$('#configuredBody tr')
+        .filter((r) => r.querySelector('input[type="checkbox"]')?.checked)
+        .map((r) => r.dataset.id)
+        .filter(Boolean)
+    );
+  }
+
+  function renderStatusCell(primary, detail) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'status-text';
+
+    const main = document.createElement('div');
+    main.className = 'status-main';
+    main.textContent = primary || 'Unknown';
+    wrapper.appendChild(main);
+
+    if (detail) {
+      const sub = document.createElement('div');
+      sub.className = 'status-detail';
+      sub.textContent = detail;
+      wrapper.appendChild(sub);
+    }
+
+    return wrapper;
+  }
+
+  function renderCanRows() {
+    canBody.innerHTML = '';
+
+    canRows.forEach((row) => {
+      const tr = document.createElement('tr');
+      tr.dataset.bus = row.bus || '';
+
+      const cells = [
+        row.bus || '—',
+        row.mode || '—',
+        row.bitrate_display || '—',
+        null,
+        row.devices || 'None',
+        null,
+      ];
+
+      cells.forEach((value, idx) => {
+        const td = document.createElement('td');
+
+        if (idx === 3) {
+          td.appendChild(renderStatusCell(row.state || 'Unknown', row.detail || ''));
+        } else if (idx === 5) {
+          const actions = Array.isArray(row.actions) ? row.actions : [];
+          if (actions.length > 0) {
+            const wrap = document.createElement('div');
+            wrap.style.display = 'flex';
+            wrap.style.gap = '6px';
+            actions.forEach((label) => {
+              const btn = document.createElement('button');
+              btn.className = 'btn sm';
+              btn.textContent = label;
+              btn.dataset.bus = row.bus || '';
+              btn.dataset.action = label;
+              btn.disabled = !!legacyState.blocking;
+              if (legacyState.blocking && legacyState.message) {
+                btn.title = legacyState.message;
+              }
+              wrap.appendChild(btn);
+            });
+            td.appendChild(wrap);
+          } else {
+            td.textContent = '—';
+          }
+        } else {
+          td.textContent = value;
+        }
+
+        tr.appendChild(td);
+      });
+
+      canBody.appendChild(tr);
+    });
+
+    const chip = canWarnings?.chip || 'No CAN warnings';
+    const hasWarnings = !!canWarnings?.chip;
+    canChip.textContent = chip;
+    canChip.classList.toggle('warn', hasWarnings);
+    canChip.classList.toggle('ok', !hasWarnings);
+
+    const ticker = Array.isArray(canWarnings?.ticker) && canWarnings.ticker.length
+      ? canWarnings.ticker.join(' | ')
+      : 'All buses look stable.';
+    canTicker.textContent = ticker;
+  }
+
+  function renderConfiguredRows() {
+    const manualDevices = devices.filter((d) => {
+      if ((d.origin || '') === 'auto') return false;
+      if (d.type === 'NOX' && String(d.status || '').toLowerCase() === 'disabled') return false;
+      return true;
+    });
+    const selectedIds = selectedConfiguredIds();
+
+    configuredBody.innerHTML = '';
+    manualDevices.forEach((d, i) => {
+      const tr = document.createElement('tr');
+      tr.className = 'row';
+      tr.dataset.id = d.id || '';
+      tr.dataset.origin = d.origin || 'xml';
+
+      const tdCheck = document.createElement('td');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.setAttribute('aria-label', `Select configured row ${i + 1}`);
+      if (tr.dataset.id && selectedIds.has(tr.dataset.id)) {
+        cb.checked = true;
+      }
+      tdCheck.appendChild(cb);
+
+      const tdIdx = document.createElement('td');
+      tdIdx.textContent = i + 1;
+
+      const tdBus = document.createElement('td');
+      tdBus.textContent = d.bus || '-';
+
+      const tdType = document.createElement('td');
+      tdType.textContent = d.type || '-';
+
+      const tdName = document.createElement('td');
+      tdName.textContent = d.name || '-';
+
+      const tdIp = document.createElement('td');
+      tdIp.textContent = d.ip || '-';
+
+      const tdStatus = document.createElement('td');
+      tdStatus.appendChild(renderStatusCell(d.runtime_status || d.status || 'Unknown', d.status === 'Disabled' ? 'Disabled in config' : ''));
+
+      [tdCheck, tdIdx, tdBus, tdType, tdName, tdIp, tdStatus].forEach((td) => tr.appendChild(td));
+      configuredBody.appendChild(tr);
+    });
+
+    syncConfiguredState();
+  }
+
+  function renderDetectedRows() {
+    const detectedDevices = devices.filter((d) => (d.origin || '') === 'auto');
+
+    detectedBody.innerHTML = '';
+    detectedDevices.forEach((d, i) => {
+      const tr = document.createElement('tr');
+      tr.className = 'row';
+
+      const tdIdx = document.createElement('td');
+      tdIdx.textContent = i + 1;
+
+      const tdBus = document.createElement('td');
+      tdBus.textContent = d.bus || '-';
+
+      const tdType = document.createElement('td');
+      tdType.textContent = d.type || '-';
+
+      const tdName = document.createElement('td');
+      tdName.textContent = d.name || '-';
+
+      const tdStatus = document.createElement('td');
+      tdStatus.appendChild(renderStatusCell(d.runtime_status || d.status || 'Unknown', 'Auto detected'));
+
+      [tdIdx, tdBus, tdType, tdName, tdStatus].forEach((td) => tr.appendChild(td));
+      detectedBody.appendChild(tr);
+    });
+  }
+
+  function renderAll() {
+    renderCanRows();
+    renderConfiguredRows();
+    renderDetectedRows();
+    applyLegacyLockUI();
+  }
+
+  function syncConfiguredState() {
+    const rows = $$('#configuredBody tr');
+    rows.forEach((r) => {
+      const checked = !!r.querySelector('input[type="checkbox"]')?.checked;
+      r.classList.toggle('selected', checked);
+    });
+
+    const checked = rows.filter((r) => r.querySelector('input[type="checkbox"]')?.checked).length;
+    removeBtn.disabled = !!legacyState.blocking || checked === 0;
+
+    const total = rows.length;
+    mchk.checked = total > 0 && checked === total;
+    mchk.indeterminate = checked > 0 && checked < total;
+    mchk.disabled = !!legacyState.blocking || total === 0;
+  }
+
+  function applyLegacyLockUI() {
+    const blocked = !!legacyState.blocking;
+    const message = legacyState.message || 'Legacy MDAQ config found in XML. Remove it manually before using this page.';
+
+    if (legacyBanner) {
+      legacyBanner.hidden = !blocked;
+    }
+    if (legacyBannerText) {
+      legacyBannerText.textContent = message;
+    }
+
+    if (blocked) {
+      propCard.style.display = 'none';
+    }
+
+    addBtn.disabled = blocked;
+    saveBtn.disabled = blocked;
+
+    $$('#configuredBody input[type="checkbox"]').forEach((cb) => {
+      cb.disabled = blocked;
+    });
+    $$('#canBody button').forEach((btn) => {
+      btn.disabled = blocked;
+      if (blocked) {
+        btn.title = message;
+      }
+    });
+  }
+
+  function findCanRow(bus) {
+    return canRows.find((row) => row.bus === bus) || null;
+  }
+
+  async function loadPageData(silent = false, pollMode = false) {
+    try {
+      if (!devicesApi) throw new Error('Devices API unavailable');
+      if (!canRolesApi) throw new Error('CAN roles API unavailable');
+
+      const [devicesJson, canJson] = await Promise.all([
+        devicesApi.fetchDevices(),
+        canRolesApi.fetchRoles(),
+      ]);
+
+      if (devicesJson.ok === false) throw new Error(devicesJson.error || 'Load devices failed');
+      if (canJson.ok === false) throw new Error(canJson.error || 'Load CAN roles failed');
+
+      devices = devicesJson.data || [];
+      canRows = canJson.data?.rows || [];
+      canWarnings = canJson.data?.warnings || { chip: null, ticker: [] };
+      const devicesLegacy = devicesJson.legacy || {};
+      const canLegacy = canJson.data?.legacy || {};
+      legacyState = {
+        blocking: !!(devicesLegacy.blocking || canLegacy.blocking),
+        message: String(devicesLegacy.message || canLegacy.message || ''),
+      };
+
+      renderAll();
+      return true;
+    } catch (err) {
+      if (!silent) {
+        alert('Failed to load Add Devices data: ' + err.message);
+      }
+      if (!pollMode) {
+        renderAll();
+      }
+      return false;
+    }
+  }
+
+  async function refreshAfterConfigChange() {
+    const maxAttempts = 20;
     const retryDelayMs = 1000;
 
-    for (let i = 0; i < maxAttempts; i++) {
-      const ok = await loadDevices(true, false);
+    for (let i = 0; i < maxAttempts; i += 1) {
+      const ok = await loadPageData(true, true);
       if (ok) return true;
       await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
     }
 
-    // Final visible attempt if backend is still unavailable.
-    return loadDevices(false, false);
+    return loadPageData(false, false);
   }
 
-  function applyTypeRules() {
-    const t = devType.value;
-    const canOnly = (t === 'NOX');
+  async function runCanRoleAction(actionCode, bus, actionLabel) {
+    if (transitionInProgress) return false;
+    if (legacyState.blocking) {
+      alert(legacyState.message || 'Legacy MDAQ config found in XML. Remove it manually before using this page.');
+      return false;
+    }
+    if (!canRolesApi) throw new Error('CAN roles API unavailable');
 
-    // NOX → disable Name & IP; others → disable CAN
-    setDisabled(devName, canOnly);
-    setDisabled(devIp, canOnly);
-    setDisabled(canIf, !canOnly);
+    transitionInProgress = true;
+    stopDevicesPoll();
+    saveBtn.disabled = true;
+    removeBtn.disabled = true;
 
-    if (canOnly) {
-      devName.value = '';
-      devIp.value = '';
+    try {
+      const json = await canRolesApi.transition(actionCode, bus);
+      if (json.ok === false) {
+        throw new Error(json.error || 'Transition failed');
+      }
+      // Transition is pending (server returns immediately after restart).
+      // One immediate reload updates the UI to the in-progress state; the
+      // regular 1 s poll then picks up the settle progression on its own.
+      await loadPageData(true, true);
+      return true;
+    } catch (err) {
+      alert(`Failed to ${actionLabel.toLowerCase()}: ${err.message}`);
+      return false;
+    } finally {
+      transitionInProgress = false;
+      saveBtn.disabled = false;
+      syncConfiguredState();
+      syncDevicesPoll();
     }
   }
-  devType.addEventListener('change', applyTypeRules);
 
-  // --------------------------------------------------------------------------
-  // 6) FORM INTERACTIONS
-  // --------------------------------------------------------------------------
   async function saveDevice() {
+    if (legacyState.blocking) {
+      alert(legacyState.message || 'Legacy MDAQ config found in XML. Remove it manually before using this page.');
+      return;
+    }
+
     const type = devType.value;
     const name = devName.value.trim();
     const ip = devIp.value.trim();
 
-    if (componentTotal >= componentMax) {
-      alert('Maximum Amount of components reached!!!');
-      return;
-    }
+    if (!validateRequired()) return;
+    if (isDuplicate(name, ip)) return;
 
-    if (!validateRequired(type)) return;
-    if (isDuplicate(type, name, ip)) return;
     if (!confirmServiceRestart('Adding this device')) return;
 
     const payload = {
       type,
-      bus: canIf.value,
       name,
       ip,
     };
@@ -297,7 +531,7 @@
         throw new Error(json.error || 'HTTP error');
       }
       propCard.style.display = 'none';
-      await refreshDevicesAfterConfigChange();
+      await refreshAfterConfigChange();
     } catch (err) {
       alert('Failed to save: ' + err.message);
     } finally {
@@ -306,12 +540,14 @@
   }
 
   addBtn.addEventListener('click', () => {
+    if (legacyState.blocking) {
+      alert(legacyState.message || 'Legacy MDAQ config found in XML. Remove it manually before using this page.');
+      return;
+    }
     propCard.style.display = 'block';
     devType.value = 'IO-BOX';
-    canIf.value = 'can0';
     devName.value = '';
     devIp.value = '';
-    applyTypeRules();
   });
 
   saveBtn.addEventListener('click', saveDevice);
@@ -320,48 +556,85 @@
     propCard.style.display = 'none';
   });
 
-  // --------------------------------------------------------------------------
-  // 7) TABLE INTERACTIONS
-  // --------------------------------------------------------------------------
   mchk.addEventListener('change', () => {
+    if (legacyState.blocking) {
+      mchk.checked = false;
+      return;
+    }
     const enableAll = mchk.checked;
-    $$('#devBody input[type="checkbox"]').forEach(cb => {
-      if (!cb.disabled) cb.checked = enableAll;
+    $$('#configuredBody input[type="checkbox"]').forEach((cb) => {
+      cb.checked = enableAll;
     });
-    syncState();
+    syncConfiguredState();
   });
 
-  devBody.addEventListener('click', (e) => {
+  configuredBody.addEventListener('click', (e) => {
+    if (legacyState.blocking) return;
     const tr = e.target.closest('tr');
     if (!tr) return;
     const cb = tr.querySelector('input[type="checkbox"]');
     if (!cb) return;
     if (!e.target.closest('input[type="checkbox"]')) {
-      if (cb.disabled) return;
       cb.checked = !cb.checked;
     }
-    syncState();
+    syncConfiguredState();
+  });
+
+  canBody.addEventListener('click', async (e) => {
+    if (legacyState.blocking) return;
+    const btn = e.target.closest('button[data-action][data-bus]');
+    if (!btn) return;
+
+    const bus = btn.dataset.bus || '';
+    const label = btn.dataset.action || '';
+
+    if (label === 'Open NOX Config') {
+      openNoxPopup(bus);
+      return;
+    }
+
+    const actionCode = label === 'Switch to SDAQ' ? 'switch_to_sdaq' : 'switch_to_nox';
+    if (!confirmServiceRestart(`${label} on ${bus}`)) return;
+    await runCanRoleAction(actionCode, bus, label);
   });
 
   async function deleteDevices() {
     if (removeInProgress) return;
+    if (legacyState.blocking) {
+      alert(legacyState.message || 'Legacy MDAQ config found in XML. Remove it manually before using this page.');
+      return;
+    }
 
-    const rows = $$('#devBody tr').filter(r => r.querySelector('input[type="checkbox"]').checked);
+    const rows = $$('#configuredBody tr').filter((r) => r.querySelector('input[type="checkbox"]')?.checked);
     if (!rows.length) {
       alert('Please select devices to delete.');
       return;
     }
-    const manualIds = rows
-      .filter(r => (r.dataset.origin || 'xml') !== 'auto')
-      .map(r => r.dataset.id)
+
+    const selectedDevices = rows
+      .map((r) => devices.find((d) => d.id === r.dataset.id))
+      .filter(Boolean);
+    const manualIds = selectedDevices
+      .map((d) => d.id)
       .filter(Boolean);
 
-    if (manualIds.length === 0) {
-      alert('SDAQ device cannot be removed.');
+    if (!manualIds.length) {
+      alert('No removable configured devices selected.');
       return;
     }
 
-    if (manualIds.length && !confirmServiceRestart('Removing selected device(s)')) {
+    if (selectedDevices.length === 1 && selectedDevices[0].type === 'NOX') {
+      const noxBus = selectedDevices[0].bus || '';
+      if (window.confirm(`Restore ${noxBus} to SDAQ instead of leaving it free?`)) {
+        if (!confirmServiceRestart(`Switching ${noxBus} to SDAQ`)) {
+          return;
+        }
+        await runCanRoleAction('switch_to_sdaq', noxBus, 'Switch to SDAQ');
+        return;
+      }
+    }
+
+    if (!confirmServiceRestart('Removing selected device(s)')) {
       return;
     }
 
@@ -370,27 +643,23 @@
     removeBtn.disabled = true;
 
     try {
-      if (manualIds.length) {
-        if (!devicesApi) throw new Error('Devices API unavailable');
-        const json = await devicesApi.updateDevices({ ids: manualIds }, 'DELETE');
-        if (json.ok === false) {
-          throw new Error(json.error || 'HTTP error');
-        }
+      if (!devicesApi) throw new Error('Devices API unavailable');
+      const json = await devicesApi.updateDevices({ ids: manualIds }, 'DELETE');
+      if (json.ok === false) {
+        throw new Error(json.error || 'HTTP error');
       }
-
-      await refreshDevicesAfterConfigChange();
+      await refreshAfterConfigChange();
     } catch (err) {
       alert('Failed to delete: ' + err.message);
     } finally {
       removeInProgress = false;
-      startDevicesPoll();
-      syncState();
+      syncConfiguredState();
+      syncDevicesPoll();
     }
   }
 
   removeBtn.addEventListener('click', deleteDevices);
 
-  // Delete key: remove selected rows (ignores focused inputs)
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key).toLowerCase() === 's') {
       if (!saveBtn.disabled && propCard.style.display !== 'none') {
@@ -401,63 +670,35 @@
     }
 
     if (e.key !== 'Delete') return;
+    if (legacyState.blocking) return;
 
     const el = document.activeElement;
-    const isFormField =
-      el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
+    const isFormField = el && (
+      el.tagName === 'INPUT'
+      || el.tagName === 'TEXTAREA'
+      || el.tagName === 'SELECT'
+      || el.isContentEditable
+    );
     if (isFormField) return;
 
-    const rows = $$('#devBody tr').filter(r => r.querySelector('input[type="checkbox"]').checked && !r.querySelector('input[type="checkbox"]').disabled);
+    const rows = $$('#configuredBody tr').filter((r) => r.querySelector('input[type="checkbox"]')?.checked);
     if (!rows.length) return;
 
     deleteDevices();
   });
 
-  // --------------------------------------------------------------------------
-  // 8) REFRESH & INITIAL LOAD
-  // --------------------------------------------------------------------------
-  async function loadDevices(silent = false, sdaqOnlyPoll = silent) {
-    try {
-      if (!devicesApi) throw new Error('Devices API unavailable');
-      const json = await devicesApi.fetchDevices();
-      if (json.ok === false) throw new Error(json.error || 'Load failed');
-      const incoming = json.data || [];
-
-      if (sdaqOnlyPoll) {
-        // Polling mode: update only auto-detected SDAQ rows.
-        // Keep manual IOBOX/MTI/NOX rows stable so user interactions are not interrupted.
-        const polledAuto = incoming.filter((d) => (d.origin || '') === 'auto');
-        const currentManual = devices.filter((d) => (d.origin || '') !== 'auto');
-        devices = [...currentManual, ...polledAuto];
-      } else {
-        devices = incoming;
-      }
-
-      const meta = json.components || {};
-      componentTotal = typeof meta.total === 'number' ? meta.total : devices.length;
-      componentMax = typeof meta.max === 'number' ? meta.max : MAX_COMPONENTS;
-      render();
-      return true;
-    } catch (err) {
-      if (!silent) {
-        alert('Failed to load devices: ' + err.message);
-      }
-      return false;
-    }
-  }
-
-  refreshBtn.addEventListener('click', () => loadDevices(false, false));
+  refreshBtn.addEventListener('click', () => loadPageData(false, false));
 
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && popupWindowHasFocus) {
-      loadDevices(true, true);
+      loadPageData(true, true);
     }
     syncDevicesPoll();
   });
 
   window.addEventListener('focus', () => {
     popupWindowHasFocus = true;
-    loadDevices(true, true);
+    loadPageData(true, true);
     syncDevicesPoll();
   });
 
@@ -466,7 +707,7 @@
     syncDevicesPoll();
   });
 
-  loadDevices(false, false);
+  loadPageData(false, false);
   syncDevicesPoll();
   window.addEventListener('beforeunload', stopDevicesPoll);
 })();
