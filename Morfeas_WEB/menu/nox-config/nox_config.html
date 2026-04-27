@@ -262,6 +262,13 @@
             <label for="busLabel"><strong>Bus</strong></label>
             <input id="busLabel" class="input" readonly />
             <span id="runtimeChip" class="chip muted">Loading…</span>
+            <label for="plotAddr"><strong>UniNOx Addr</strong></label>
+            <select id="plotAddr" class="input">
+              <option value="0">Addr 0</option>
+              <option value="1">Addr 1</option>
+            </select>
+            <button id="selectedHeaterOnBtn" class="btn primary">Heater ON</button>
+            <button id="selectedHeaterOffBtn" class="btn">Heater OFF</button>
           </div>
 
           <div class="actions">
@@ -305,11 +312,6 @@
         <div class="card-head">Live Trend</div>
         <div class="card-body">
           <div class="graph-controls">
-            <label for="plotAddr"><strong>UniNOx Addr</strong></label>
-            <select id="plotAddr" class="input">
-              <option value="0">Addr 0</option>
-              <option value="1">Addr 1</option>
-            </select>
             <button id="playPauseBtn" class="btn">Pause</button>
             <button id="clearTrendBtn" class="btn">Clear</button>
             <label class="field-inline" style="gap:6px;">
@@ -359,19 +361,13 @@
             <tr><td>Heater Error</td><td id="selectedHeaterError">—</td></tr>
             <tr><td>NOx Error</td><td id="selectedNoxError">—</td></tr>
             <tr><td>O2 Error</td><td id="selectedO2Error">—</td></tr>
+            <tr><td>Last Seen</td><td id="selectedLastSeen">—</td></tr>
             <tr><td>WS Port</td><td id="wsPortValue">—</td></tr>
             <tr><td>Bus Error Rate</td><td id="errorRateValue">—</td></tr>
             <tr><td>Auto OFF Counter</td><td id="autoOffCountValue">—</td></tr>
             <tr><td>Detected Sensors</td><td id="detectedCountValue">—</td></tr>
           </table>
         </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head">Sensors</div>
-      <div class="card-body">
-        <div id="sensorGrid" class="sensor-grid"></div>
       </div>
     </div>
   </div>

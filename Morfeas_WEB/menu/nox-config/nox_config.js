@@ -13,13 +13,14 @@
   const autoOffInput = $('#autoOffInput');
   const autoOffLabel = $('#autoOffLabel');
   const plotAddr = $('#plotAddr');
+  const selectedHeaterOnBtn = $('#selectedHeaterOnBtn');
+  const selectedHeaterOffBtn = $('#selectedHeaterOffBtn');
   const playPauseBtn = $('#playPauseBtn');
   const clearTrendBtn = $('#clearTrendBtn');
   const exportCsvBtn = $('#exportCsvBtn');
   const exportPdfBtn = $('#exportPdfBtn');
   const zoomStatsCheck = $('#zoomStatsCheck');
   const graphHost = $('#graphHost');
-  const sensorGrid = $('#sensorGrid');
   const currentDataCard = $('#currentDataCard');
   const statsGrid = $('#statsGrid');
 
@@ -37,6 +38,7 @@
   const selectedHeaterError = $('#selectedHeaterError');
   const selectedNoxError = $('#selectedNoxError');
   const selectedO2Error = $('#selectedO2Error');
+  const selectedLastSeen = $('#selectedLastSeen');
   const noxStatAvg = $('#noxStatAvg');
   const noxStatMax = $('#noxStatMax');
   const noxStatMin = $('#noxStatMin');
@@ -119,43 +121,6 @@
     return 'Not Valid';
   }
 
-  function sensorChip(sensor) {
-    if (!sensor?.detected) return ['Not detected', 'warn'];
-    const noxOk = !!sensor?.status?.is_NOx_value_valid;
-    const o2Ok = !!sensor?.status?.is_O2_value_valid;
-    if (noxOk && o2Ok) return ['Connected', 'ok'];
-    return [String(sensor?.status?.heater_mode_state || 'Check Sensor'), 'warn'];
-  }
-
-  function renderSensors(sensors) {
-    sensorGrid.innerHTML = '';
-    sensors.forEach((sensor) => {
-      const chip = sensorChip(sensor);
-      const card = document.createElement('div');
-      card.className = 'sensor-card';
-      card.innerHTML = `
-        <div class="sensor-head">
-          <div class="sensor-title">Addr ${sensor.addr}</div>
-          <span class="chip ${chip[1]}">${chip[0]}</span>
-        </div>
-        <table class="kv-table">
-          <tr><td>NOx Avg</td><td>${formatLegacyMeasurement(sensor, 'NOx_value_avg', 'is_NOx_value_valid', 3, ' ppm')}</td></tr>
-          <tr><td>O2 Avg</td><td>${formatLegacyMeasurement(sensor, 'O2_value_avg', 'is_O2_value_valid', 3, ' %')}</td></tr>
-          <tr><td>Heater Mode</td><td>${esc(sensor?.status?.heater_mode_state) || '—'}</td></tr>
-          <tr><td>NOx Error</td><td>${esc(sensor?.errors?.NOx) || '—'}</td></tr>
-          <tr><td>O2 Error</td><td>${esc(sensor?.errors?.O2) || '—'}</td></tr>
-          <tr><td>Heater Error</td><td>${esc(sensor?.errors?.heater) || '—'}</td></tr>
-          <tr><td>Last Seen</td><td>${sensor?.last_seen ? new Date(sensor.last_seen * 1000).toLocaleString() : '—'}</td></tr>
-        </table>
-        <div class="graph-controls" style="margin-top:10px;">
-          <button class="btn primary sensor-heater-btn" data-addr="${sensor.addr}" data-enabled="true">Heater ON</button>
-          <button class="btn sensor-heater-btn" data-addr="${sensor.addr}" data-enabled="false">Heater OFF</button>
-        </div>
-      `;
-      sensorGrid.appendChild(card);
-    });
-  }
-
   function renderSelectedSensor(state) {
     const sensor = selectedSensor(state);
     selectedNoxValue.textContent = formatLegacyMeasurement(sensor, 'NOx_value_avg', 'is_NOx_value_valid', 3, ' ppm');
@@ -164,6 +129,7 @@
     selectedHeaterError.textContent = sensorText(sensor?.errors?.heater);
     selectedNoxError.textContent = sensorText(sensor?.errors?.NOx);
     selectedO2Error.textContent = sensorText(sensor?.errors?.O2);
+    selectedLastSeen.textContent = sensor?.last_seen ? new Date(sensor.last_seen * 1000).toLocaleString() : '—';
 
     const measuring = !!sensor?.status?.meas_state;
     autoOffLabel.textContent = measuring ? 'PowerOFF_CNT (sec)' : 'PowerOFF (sec)';
@@ -428,7 +394,6 @@
     autoOffCountValue.textContent = Number.isFinite(Number(state.auto_sw_off_cnt)) ? String(state.auto_sw_off_cnt) : '—';
     detectedCountValue.textContent = String((state.sensors || []).filter((sensor) => sensor?.detected).length);
 
-    renderSensors(state.sensors || []);
     renderSelectedSensor(state);
     ensureWebSocket(state);
 
@@ -581,11 +546,8 @@
     loadState(false);
   });
 
-  sensorGrid.addEventListener('click', (e) => {
-    const btn = e.target.closest('.sensor-heater-btn');
-    if (!btn) return;
-    const addr = Number(btn.dataset.addr);
-    const enabled = btn.dataset.enabled === 'true';
+  function runSelectedHeater(enabled) {
+    const addr = selectedAddr();
     withBusy(async () => {
       if (!window.confirm(`Turn heater ${enabled ? 'ON' : 'OFF'} for addr ${addr}?`)) return false;
       const json = await noxApi.setHeater(bus, addr, enabled);
@@ -595,7 +557,10 @@
         throw new Error(`Heater ${enabled ? 'ON' : 'OFF'} accepted, but addr ${addr} did not update yet.`);
       }
     }, `Heater ${enabled ? 'ON' : 'OFF'} sent for addr ${addr}.`);
-  });
+  }
+
+  selectedHeaterOnBtn.addEventListener('click', () => runSelectedHeater(true));
+  selectedHeaterOffBtn.addEventListener('click', () => runSelectedHeater(false));
 
   playPauseBtn.addEventListener('click', playPause);
 
