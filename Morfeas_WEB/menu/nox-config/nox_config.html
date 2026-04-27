@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>NOX Config</title>
   <link rel="stylesheet" href="../../assets/app.css" />
+  <link rel="stylesheet" href="../../assets/vendor/nox/dygraph.min.css" />
   <style>
     .wrap {
       max-width: 1440px;
@@ -33,7 +34,7 @@
 
     .topbar,
     .actions,
-    .heater-actions {
+    .graph-controls {
       display: flex;
       gap: 10px;
       align-items: center;
@@ -42,7 +43,7 @@
 
     .topbar { justify-content: space-between; }
     .actions { justify-content: flex-end; margin-top: 12px; }
-    .heater-actions { margin-top: 10px; }
+    .graph-controls { margin-bottom: 10px; }
 
     .grid {
       display: grid;
@@ -161,10 +162,9 @@
       background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
     }
 
-    #trendCanvas {
+    #graphHost {
       width: 100%;
-      height: 320px;
-      display: block;
+      min-height: 360px;
     }
 
     .legend {
@@ -175,6 +175,26 @@
       color: #455468;
       font-size: 12px;
       font-weight: 700;
+    }
+
+    .stats-grid {
+      display: none;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .stats-box {
+      border: 1px solid #e6e9ee;
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #fbfcfd;
+    }
+
+    .stats-box h4 {
+      margin: 0 0 10px;
+      font-size: 14px;
+      font-weight: 900;
     }
 
     .legend-dot {
@@ -207,10 +227,21 @@
       min-width: 120px;
     }
 
+    .dygraph-legend {
+      background: rgba(247, 249, 251, 0.92) !important;
+      padding: 6px 8px !important;
+      border: 1px solid #d9dde3 !important;
+      border-radius: 10px !important;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+      color: #1f2328;
+      font-family: inherit !important;
+    }
+
     @media (max-width: 1100px) {
       .grid,
       .sensor-grid,
-      .row-2 {
+      .row-2,
+      .stats-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -228,9 +259,7 @@
             <span id="runtimeChip" class="chip muted">Loading…</span>
           </div>
 
-          <div class="heater-actions">
-            <button id="globalHeaterOnBtn" class="btn primary">All Heaters ON</button>
-            <button id="globalHeaterOffBtn" class="btn">All Heaters OFF</button>
+          <div class="actions">
             <button id="refreshBtn" class="btn">Refresh</button>
           </div>
         </div>
@@ -256,18 +285,9 @@
 
         <div class="actions" style="justify-content:flex-start;">
           <div class="field-inline">
-            <label for="autoOffInput"><strong>Auto OFF (sec)</strong></label>
+            <label for="autoOffInput"><strong id="autoOffLabel">PowerOFF (sec)</strong></label>
             <input id="autoOffInput" class="input" type="number" min="0" max="65535" />
             <button id="setAutoOffBtn" class="btn">Set</button>
-          </div>
-          <div class="field-inline">
-            <label for="plotAddr"><strong>Trend Addr</strong></label>
-            <select id="plotAddr" class="input">
-              <option value="0">Addr 0</option>
-              <option value="1">Addr 1</option>
-            </select>
-            <button id="clearTrendBtn" class="btn">Clear Trend</button>
-            <button id="exportCsvBtn" class="btn">Export CSV</button>
           </div>
         </div>
 
@@ -276,23 +296,64 @@
     </div>
 
     <div class="row-2">
-      <div class="card">
+      <div id="currentDataCard" class="card">
         <div class="card-head">Live Trend</div>
         <div class="card-body">
+          <div class="graph-controls">
+            <label for="plotAddr"><strong>UniNOx Addr</strong></label>
+            <select id="plotAddr" class="input">
+              <option value="0">Addr 0</option>
+              <option value="1">Addr 1</option>
+            </select>
+            <button id="playPauseBtn" class="btn">Pause</button>
+            <button id="clearTrendBtn" class="btn">Clear</button>
+            <label class="field-inline" style="gap:6px;">
+              <input id="zoomStatsCheck" type="checkbox" />
+              <span>Show statistics on zoom</span>
+            </label>
+            <button id="exportCsvBtn" class="btn" style="display:none;">Export CSV</button>
+            <button id="exportPdfBtn" class="btn" style="display:none;">Export PDF</button>
+          </div>
           <div class="plot-wrap">
-            <canvas id="trendCanvas" width="1000" height="320"></canvas>
+            <div id="graphHost"></div>
             <div class="legend">
               <span><span class="legend-dot" style="background:#1f7a3f;"></span>NOx ppm</span>
               <span><span class="legend-dot" style="background:#1e5ed6;"></span>O2 %</span>
+            </div>
+          </div>
+          <div id="statsGrid" class="stats-grid">
+            <div class="stats-box">
+              <h4>NOx Statistics</h4>
+              <table class="table">
+                <tr><td>Average</td><td id="noxStatAvg">—</td></tr>
+                <tr><td>Max</td><td id="noxStatMax">—</td></tr>
+                <tr><td>Min</td><td id="noxStatMin">—</td></tr>
+                <tr><td>Peak-Peak</td><td id="noxStatP2P">—</td></tr>
+              </table>
+            </div>
+            <div class="stats-box">
+              <h4>O2 Statistics</h4>
+              <table class="table">
+                <tr><td>Average</td><td id="o2StatAvg">—</td></tr>
+                <tr><td>Max</td><td id="o2StatMax">—</td></tr>
+                <tr><td>Min</td><td id="o2StatMin">—</td></tr>
+                <tr><td>Peak-Peak</td><td id="o2StatP2P">—</td></tr>
+              </table>
             </div>
           </div>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-head">Bus Details</div>
+        <div class="card-head">Current Data</div>
         <div class="card-body">
           <table class="table">
+            <tr><td>NOx Avg</td><td id="selectedNoxValue">—</td></tr>
+            <tr><td>O2 Avg</td><td id="selectedO2Value">—</td></tr>
+            <tr><td>Heater Mode</td><td id="selectedHeaterMode">—</td></tr>
+            <tr><td>Heater Error</td><td id="selectedHeaterError">—</td></tr>
+            <tr><td>NOx Error</td><td id="selectedNoxError">—</td></tr>
+            <tr><td>O2 Error</td><td id="selectedO2Error">—</td></tr>
             <tr><td>WS Port</td><td id="wsPortValue">—</td></tr>
             <tr><td>Bus Error Rate</td><td id="errorRateValue">—</td></tr>
             <tr><td>Auto OFF Counter</td><td id="autoOffCountValue">—</td></tr>
@@ -312,6 +373,10 @@
 
   <script src="../../assets/config.js"></script>
   <script src="../../assets/api/nox.js"></script>
+  <script src="../../assets/vendor/nox/dygraph.min.js"></script>
+  <script src="../../assets/vendor/nox/html2canvas.min.js"></script>
+  <script src="../../assets/vendor/nox/pdfmake.min.js"></script>
+  <script src="../../assets/vendor/nox/vfs_fonts.js"></script>
   <script src="./nox_config.js"></script>
   <script>
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.close(); });

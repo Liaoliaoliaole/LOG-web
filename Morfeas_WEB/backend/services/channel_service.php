@@ -111,6 +111,27 @@ function channel_apply_default_type_fields(array &$row): void
     }
 }
 
+function channel_nox_canonical_search_entry(?string $anchor): ?array
+{
+    $raw = trim((string)$anchor);
+    if ($raw === '') {
+        return null;
+    }
+
+    if (!preg_match('/^(can\w+)\.(?:sensor|addr[:_]?)(\d+)\.(NOx|O2)$/i', $raw, $m)) {
+        return null;
+    }
+
+    $bus = strtolower($m[1]);
+    $addr = (int)$m[2];
+    $meas = strcasecmp($m[3], 'O2') === 0 ? 'O2' : 'NOx';
+
+    return [
+        'anchor' => sprintf('%s.sensor%d.%s', $bus, $addr, $meas),
+        'display_anchor' => sprintf('%s.SENSOR%d.%s', strtoupper($bus), $addr, $meas),
+    ];
+}
+
 function channel_build_rows_with_logstat(
     string $xmlPath,
     array $sdaqLogFiles,
@@ -472,18 +493,37 @@ function channel_build_rows_with_logstat(
         ];
     }
 
+    $noxSearch = [];
     foreach ($noxMap as $anchor => $entry) {
-        $upper = strtoupper($anchor);
-        $searchPool['NOX'][] = [
-            'interface_type' => 'NOX',
-            'anchor'         => $anchor,
-            'display_anchor' => $anchor,
-            'status'         => $entry['status'] ?? null,
-            'is_meas_valid'  => $entry['is_meas_valid'] ?? null,
-            'meas_value'     => $entry['meas_value'] ?? null,
-            'meas_unit'      => $entry['meas_unit'] ?? null,
-            'linked_in_xml'  => isset($anchorsInXmlUpper[$upper]),
-        ];
+        $canonical = channel_nox_canonical_search_entry($anchor);
+        if ($canonical === null) {
+            continue;
+        }
+
+        $key = strtoupper($canonical['anchor']);
+        if (!isset($noxSearch[$key])) {
+            $noxSearch[$key] = [
+                'interface_type' => 'NOX',
+                'anchor' => $canonical['anchor'],
+                'display_anchor' => $canonical['display_anchor'],
+                'status' => $entry['status'] ?? null,
+                'is_meas_valid' => $entry['is_meas_valid'] ?? null,
+                'meas_value' => $entry['meas_value'] ?? null,
+                'meas_unit' => $entry['meas_unit'] ?? null,
+                'aliases' => [],
+                'linked_in_xml' => false,
+            ];
+        }
+
+        $noxSearch[$key]['aliases'][] = $anchor;
+        if (isset($anchorsInXmlUpper[strtoupper($anchor)]) || isset($anchorsInXmlUpper[$key])) {
+            $noxSearch[$key]['linked_in_xml'] = true;
+        }
+    }
+
+    foreach ($noxSearch as $item) {
+        $item['aliases'] = array_values(array_unique($item['aliases']));
+        $searchPool['NOX'][] = $item;
     }
 
     $priority = [

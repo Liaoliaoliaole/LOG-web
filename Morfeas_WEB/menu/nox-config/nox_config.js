@@ -9,15 +9,19 @@
   const runtimeChip = $('#runtimeChip');
   const statusBox = $('#statusBox');
   const refreshBtn = $('#refreshBtn');
-  const globalHeaterOnBtn = $('#globalHeaterOnBtn');
-  const globalHeaterOffBtn = $('#globalHeaterOffBtn');
   const setAutoOffBtn = $('#setAutoOffBtn');
   const autoOffInput = $('#autoOffInput');
+  const autoOffLabel = $('#autoOffLabel');
   const plotAddr = $('#plotAddr');
+  const playPauseBtn = $('#playPauseBtn');
   const clearTrendBtn = $('#clearTrendBtn');
   const exportCsvBtn = $('#exportCsvBtn');
-  const trendCanvas = $('#trendCanvas');
+  const exportPdfBtn = $('#exportPdfBtn');
+  const zoomStatsCheck = $('#zoomStatsCheck');
+  const graphHost = $('#graphHost');
   const sensorGrid = $('#sensorGrid');
+  const currentDataCard = $('#currentDataCard');
+  const statsGrid = $('#statsGrid');
 
   const voltageValue = $('#voltageValue');
   const currentValue = $('#currentValue');
@@ -27,17 +31,36 @@
   const errorRateValue = $('#errorRateValue');
   const autoOffCountValue = $('#autoOffCountValue');
   const detectedCountValue = $('#detectedCountValue');
+  const selectedNoxValue = $('#selectedNoxValue');
+  const selectedO2Value = $('#selectedO2Value');
+  const selectedHeaterMode = $('#selectedHeaterMode');
+  const selectedHeaterError = $('#selectedHeaterError');
+  const selectedNoxError = $('#selectedNoxError');
+  const selectedO2Error = $('#selectedO2Error');
+  const noxStatAvg = $('#noxStatAvg');
+  const noxStatMax = $('#noxStatMax');
+  const noxStatMin = $('#noxStatMin');
+  const noxStatP2P = $('#noxStatP2P');
+  const o2StatAvg = $('#o2StatAvg');
+  const o2StatMax = $('#o2StatMax');
+  const o2StatMin = $('#o2StatMin');
+  const o2StatP2P = $('#o2StatP2P');
 
   const POLL_MS = 1000;
-  const MAX_HISTORY = 720;
+  const WS_PULL_MS = 100;
+  const BUFFER_SIZE = 3600 / 0.1;
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
   let pollTimer = null;
   let latestState = null;
   let busy = false;
-  const historyByAddr = {
-    0: [],
-    1: [],
-  };
+  let graph = null;
+  let dataBuffer = [];
+  let wsTimer = null;
+  let noxWs = null;
+  let pauseOrPlay = 1;
+  let statsCsv = '';
+  let currentWsPort = null;
 
   function fmt(value, digits = 2, suffix = '') {
     if (!Number.isFinite(Number(value))) return '—';
@@ -73,105 +96,26 @@
     }
   }
 
-  function pushHistory(state) {
-    const ts = Date.now();
-    (state?.sensors || []).forEach((sensor) => {
-      const addr = Number(sensor?.addr);
-      if (!Number.isInteger(addr) || !(addr in historyByAddr)) return;
-      const nox = Number(sensor?.NOx_value_avg);
-      const o2 = Number(sensor?.O2_value_avg);
-      if (!Number.isFinite(nox) && !Number.isFinite(o2)) return;
-      historyByAddr[addr].push({
-        t: ts,
-        nox: Number.isFinite(nox) ? nox : null,
-        o2: Number.isFinite(o2) ? o2 : null,
-      });
-      if (historyByAddr[addr].length > MAX_HISTORY) {
-        historyByAddr[addr].splice(0, historyByAddr[addr].length - MAX_HISTORY);
-      }
-    });
+  function selectedAddr() {
+    return Number(plotAddr.value || '0');
   }
 
-  function drawTrend() {
-    const ctx = trendCanvas.getContext('2d');
-    const width = trendCanvas.width;
-    const height = trendCanvas.height;
-    ctx.clearRect(0, 0, width, height);
+  function selectedSensor(state) {
+    return (state?.sensors || []).find((sensor) => Number(sensor?.addr) === selectedAddr()) || null;
+  }
 
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
+  function sensorText(value) {
+    const text = String(value ?? '').trim();
+    return text !== '' ? text : '—';
+  }
 
-    const pad = { l: 56, r: 16, t: 16, b: 28 };
-    const innerW = width - pad.l - pad.r;
-    const innerH = height - pad.t - pad.b;
-    const addr = String(plotAddr.value || '0');
-    const points = historyByAddr[addr] || [];
-
-    ctx.strokeStyle = '#d8dee6';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i += 1) {
-      const y = pad.t + (innerH / 4) * i;
-      ctx.beginPath();
-      ctx.moveTo(pad.l, y);
-      ctx.lineTo(width - pad.r, y);
-      ctx.stroke();
+  function formatLegacyMeasurement(sensor, valueKey, validKey, digits, suffix) {
+    if (!sensor?.detected) return 'Not detected';
+    if (!sensor?.status?.meas_state) return 'Not measuring';
+    if (sensor?.status?.[validKey] && Number.isFinite(Number(sensor?.[valueKey]))) {
+      return `${Number(sensor[valueKey]).toFixed(digits)}${suffix}`;
     }
-
-    ctx.strokeStyle = '#c4ccd6';
-    ctx.beginPath();
-    ctx.moveTo(pad.l, pad.t);
-    ctx.lineTo(pad.l, height - pad.b);
-    ctx.lineTo(width - pad.r, height - pad.b);
-    ctx.stroke();
-
-    if (!points.length) {
-      ctx.fillStyle = '#5b6472';
-      ctx.font = '700 16px sans-serif';
-      ctx.fillText('No trend data yet', pad.l + 12, pad.t + 28);
-      return;
-    }
-
-    const validNox = points.map((p) => p.nox).filter((v) => Number.isFinite(v));
-    const validO2 = points.map((p) => p.o2).filter((v) => Number.isFinite(v));
-    const all = [...validNox, ...validO2];
-    const min = all.length ? Math.min(...all) : 0;
-    const max = all.length ? Math.max(...all) : 1;
-    const minY = Math.floor(min);
-    const maxY = Math.ceil(max <= min ? min + 1 : max);
-
-    const minT = points[0].t;
-    const maxT = points[points.length - 1].t || (minT + 1);
-    const spanT = Math.max(1, maxT - minT);
-    const spanY = Math.max(1, maxY - minY);
-
-    ctx.fillStyle = '#5b6472';
-    ctx.font = '12px sans-serif';
-    ctx.fillText(String(maxY), 8, pad.t + 6);
-    ctx.fillText(String(minY), 8, height - pad.b + 4);
-    ctx.fillText('latest', width - pad.r - 34, height - 8);
-
-    const drawSeries = (key, color) => {
-      let started = false;
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      points.forEach((point) => {
-        const value = point[key];
-        if (!Number.isFinite(value)) return;
-        const x = pad.l + ((point.t - minT) / spanT) * innerW;
-        const y = pad.t + (1 - ((value - minY) / spanY)) * innerH;
-        if (!started) {
-          ctx.moveTo(x, y);
-          started = true;
-        } else {
-          ctx.lineTo(x, y);
-        }
-      });
-      if (started) ctx.stroke();
-    };
-
-    drawSeries('nox', '#1f7a3f');
-    drawSeries('o2', '#1e5ed6');
+    return 'Not Valid';
   }
 
   function sensorChip(sensor) {
@@ -179,7 +123,7 @@
     const noxOk = !!sensor?.status?.is_NOx_value_valid;
     const o2Ok = !!sensor?.status?.is_O2_value_valid;
     if (noxOk && o2Ok) return ['Connected', 'ok'];
-    return ['Check Sensor', 'warn'];
+    return [String(sensor?.status?.heater_mode_state || 'Check Sensor'), 'warn'];
   }
 
   function renderSensors(sensors) {
@@ -194,21 +138,274 @@
           <span class="chip ${chip[1]}">${chip[0]}</span>
         </div>
         <table class="table">
-          <tr><td>NOx Avg</td><td>${fmt(sensor.NOx_value_avg, 2, ' ppm')}</td></tr>
-          <tr><td>O2 Avg</td><td>${fmt(sensor.O2_value_avg, 3, ' %')}</td></tr>
+          <tr><td>NOx Avg</td><td>${formatLegacyMeasurement(sensor, 'NOx_value_avg', 'is_NOx_value_valid', 3, ' ppm')}</td></tr>
+          <tr><td>O2 Avg</td><td>${formatLegacyMeasurement(sensor, 'O2_value_avg', 'is_O2_value_valid', 3, ' %')}</td></tr>
           <tr><td>Heater Mode</td><td>${esc(sensor?.status?.heater_mode_state) || '—'}</td></tr>
           <tr><td>NOx Error</td><td>${esc(sensor?.errors?.NOx) || '—'}</td></tr>
           <tr><td>O2 Error</td><td>${esc(sensor?.errors?.O2) || '—'}</td></tr>
           <tr><td>Heater Error</td><td>${esc(sensor?.errors?.heater) || '—'}</td></tr>
           <tr><td>Last Seen</td><td>${sensor?.last_seen ? new Date(sensor.last_seen * 1000).toLocaleString() : '—'}</td></tr>
         </table>
-        <div class="heater-actions">
-          <button class="btn primary sensor-heater-btn" data-addr="${sensor.addr}" data-enabled="true">Heater ON</button>
-          <button class="btn sensor-heater-btn" data-addr="${sensor.addr}" data-enabled="false">Heater OFF</button>
-        </div>
       `;
       sensorGrid.appendChild(card);
     });
+  }
+
+  function renderSelectedSensor(state) {
+    const sensor = selectedSensor(state);
+    selectedNoxValue.textContent = formatLegacyMeasurement(sensor, 'NOx_value_avg', 'is_NOx_value_valid', 3, ' ppm');
+    selectedO2Value.textContent = formatLegacyMeasurement(sensor, 'O2_value_avg', 'is_O2_value_valid', 3, ' %');
+    selectedHeaterMode.textContent = sensorText(sensor?.status?.heater_mode_state || (sensor?.detected ? '' : 'Not detected'));
+    selectedHeaterError.textContent = sensorText(sensor?.errors?.heater);
+    selectedNoxError.textContent = sensorText(sensor?.errors?.NOx);
+    selectedO2Error.textContent = sensorText(sensor?.errors?.O2);
+
+    const measuring = !!sensor?.status?.meas_state;
+    autoOffLabel.textContent = measuring ? 'PowerOFF_CNT (sec)' : 'PowerOFF (sec)';
+    autoOffInput.readOnly = measuring;
+    setAutoOffBtn.disabled = measuring;
+
+    if (measuring) {
+      const remaining = Number(state?.auto_sw_off_value) - Number(state?.auto_sw_off_cnt);
+      autoOffInput.value = Number.isFinite(remaining) ? String(Math.max(0, remaining)) : '';
+    } else {
+      autoOffInput.value = Number.isFinite(Number(state?.auto_sw_off_value)) ? String(state.auto_sw_off_value) : '';
+    }
+  }
+
+  function clearStats() {
+    [noxStatAvg, noxStatMax, noxStatMin, noxStatP2P, o2StatAvg, o2StatMax, o2StatMin, o2StatP2P].forEach((el) => {
+      if (el) el.textContent = '—';
+    });
+    statsCsv = '';
+  }
+
+  function updateZoomUi(isZoomed) {
+    exportCsvBtn.style.display = isZoomed ? '' : 'none';
+    exportPdfBtn.style.display = isZoomed ? '' : 'none';
+    if (isZoomed && zoomStatsCheck.checked) {
+      currentDataCard.style.display = 'none';
+      statsGrid.style.display = 'grid';
+    } else {
+      currentDataCard.style.display = '';
+      statsGrid.style.display = 'none';
+    }
+  }
+
+  function graphTitle() {
+    return `UniNOx:${selectedAddr()}`;
+  }
+
+  function resetGraphBuffer() {
+    dataBuffer = [[new Date(), NaN, NaN]];
+    clearStats();
+    updateZoomUi(false);
+  }
+
+  function initGraph() {
+    resetGraphBuffer();
+    if (graph) {
+      graph.destroy();
+    }
+    if (typeof window.Dygraph !== 'function') {
+      return;
+    }
+    graph = new window.Dygraph(graphHost, dataBuffer, {
+      drawPoints: false,
+      showRoller: false,
+      digitsAfterDecimal: 3,
+      labels: ['Time', 'NOX(ppm)', 'O2(%)'],
+      series: {
+        'O2(%)': { axis: 'y2' },
+      },
+      title: graphTitle(),
+      ylabel: 'NOX(ppm)',
+      y2label: 'O2 (%)',
+      legend: 'never',
+      axisLabelWidth: 60,
+      zoomCallback(minX, maxX) {
+        if (!dataBuffer.length || minX >= maxX || !graph) {
+          return;
+        }
+        if (graph.isZoomed('x')) {
+          calcStats(minX, maxX);
+          updateZoomUi(true);
+          pauseOrPlay = 1;
+        } else {
+          clearStats();
+          updateZoomUi(false);
+          playPauseBtn.textContent = 'Pause';
+          graph.updateOptions({ legend: 'never' });
+          pauseOrPlay = 1;
+        }
+      },
+      underlayCallback(ctx, area) {
+        ctx.save();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(area.x, area.y, area.w, area.h);
+        ctx.restore();
+      },
+      labelsDivStyles: {
+        textAlign: 'left',
+      },
+    });
+  }
+
+  function getTimestampMs(view) {
+    if (typeof view.getBigUint64 === 'function') {
+      return Number(view.getBigUint64(0, true));
+    }
+    const low = view.getUint32(0, true);
+    const high = view.getUint32(4, true);
+    return high * 4294967296 + low;
+  }
+
+  function closeWebSocket() {
+    if (wsTimer) {
+      clearInterval(wsTimer);
+      wsTimer = null;
+    }
+    if (noxWs) {
+      try {
+        noxWs.close();
+      } catch (_) {
+        // ignore close errors
+      }
+      noxWs = null;
+    }
+    currentWsPort = null;
+  }
+
+  function onWsOpen() {
+    if (!noxWs || noxWs.readyState !== noxWs.OPEN) {
+      return;
+    }
+    noxWs.send('getMeasRAW');
+    wsTimer = setInterval(() => {
+      if (noxWs && noxWs.readyState === noxWs.OPEN) {
+        noxWs.send('getMeasRAW');
+      }
+    }, WS_PULL_MS);
+  }
+
+  function onWsMessage(evt) {
+    if (!(evt.data instanceof ArrayBuffer)) {
+      return;
+    }
+
+    const msg = new DataView(evt.data);
+    const timestamp = new Date(getTimestampMs(msg));
+    const addr = selectedAddr();
+    const noxVals = [Number(msg.getFloat32(8, true)), Number(msg.getFloat32(12, true))];
+    const o2Vals = [Number(msg.getFloat32(16, true)), Number(msg.getFloat32(20, true))];
+    const nox = noxVals[addr];
+    const o2 = o2Vals[addr];
+
+    if (Number.isNaN(nox) && Number.isNaN(o2)) {
+      return;
+    }
+
+    if (dataBuffer.length >= BUFFER_SIZE) {
+      dataBuffer.shift();
+    }
+    dataBuffer.push([timestamp, nox, o2]);
+    if (pauseOrPlay && graph) {
+      graph.updateOptions({ file: dataBuffer, title: graphTitle() });
+    }
+  }
+
+  function ensureWebSocket(state) {
+    const sensor = selectedSensor(state);
+    const measuring = !!sensor?.status?.meas_state;
+    const wsPort = Number.isFinite(Number(state?.ws_port)) ? Number(state.ws_port) : null;
+
+    if (!measuring || !wsPort) {
+      closeWebSocket();
+      return;
+    }
+
+    if (noxWs && noxWs.readyState === noxWs.OPEN && currentWsPort === wsPort) {
+      return;
+    }
+
+    closeWebSocket();
+    currentWsPort = wsPort;
+    noxWs = new WebSocket(`ws://${window.location.hostname}:${wsPort}`, 'Morfeas_NOX_WS_if');
+    noxWs.binaryType = 'arraybuffer';
+    noxWs.onopen = onWsOpen;
+    noxWs.onmessage = onWsMessage;
+    noxWs.onclose = () => {
+      if (wsTimer) {
+        clearInterval(wsTimer);
+        wsTimer = null;
+      }
+    };
+    noxWs.onerror = () => {
+      setStatus('NOX raw trend websocket disconnected.', 'error');
+    };
+  }
+
+  function calcStats(minX, maxX) {
+    let start = 0;
+    while (dataBuffer[start] && dataBuffer[start][0].getTime() <= minX) {
+      start += 1;
+    }
+    if (!dataBuffer[start]) {
+      clearStats();
+      return;
+    }
+
+    const noxVals = [];
+    const o2Vals = [];
+    const rows = ['Timestamp,NOx(ppm),O2(%)'];
+
+    for (let i = start; dataBuffer[i] && dataBuffer[i][0].getTime() <= maxX; i += 1) {
+      const [t, nox, o2] = dataBuffer[i];
+      if (Number.isFinite(nox)) noxVals.push(nox);
+      if (Number.isFinite(o2)) o2Vals.push(o2);
+      rows.push(`${t.toISOString()},${Number.isFinite(nox) ? nox.toFixed(3) : ''},${Number.isFinite(o2) ? o2.toFixed(3) : ''}`);
+    }
+
+    statsCsv = rows.join('\n');
+
+    const fill = (el, value, unit) => {
+      el.textContent = Number.isFinite(value) ? `${value.toFixed(3)} ${unit}` : '—';
+    };
+
+    const calc = (values) => {
+      if (!values.length) return null;
+      const sum = values.reduce((acc, value) => acc + value, 0);
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      return { avg: sum / values.length, min, max, p2p: max - min };
+    };
+
+    const noxStats = calc(noxVals);
+    const o2Stats = calc(o2Vals);
+    fill(noxStatAvg, noxStats?.avg, 'ppm');
+    fill(noxStatMax, noxStats?.max, 'ppm');
+    fill(noxStatMin, noxStats?.min, 'ppm');
+    fill(noxStatP2P, noxStats?.p2p, 'ppm');
+    fill(o2StatAvg, o2Stats?.avg, '%');
+    fill(o2StatMax, o2Stats?.max, '%');
+    fill(o2StatMin, o2Stats?.min, '%');
+    fill(o2StatP2P, o2Stats?.p2p, '%');
+  }
+
+  function playPause() {
+    if (!graph) return;
+    if (pauseOrPlay) {
+      pauseOrPlay = 0;
+      playPauseBtn.textContent = 'Play';
+      graph.updateOptions({ legend: 'follow' });
+      return;
+    }
+
+    pauseOrPlay = 1;
+    playPauseBtn.textContent = 'Pause';
+    graph.resetZoom();
+    graph.updateOptions({ legend: 'never', file: dataBuffer, title: graphTitle() });
+    updateZoomUi(false);
   }
 
   function renderState(state) {
@@ -225,11 +422,14 @@
     errorRateValue.textContent = fmt(state.bus_error_rate, 4, '');
     autoOffCountValue.textContent = Number.isFinite(Number(state.auto_sw_off_cnt)) ? String(state.auto_sw_off_cnt) : '—';
     detectedCountValue.textContent = String((state.sensors || []).filter((sensor) => sensor?.detected).length);
-    autoOffInput.value = Number.isFinite(Number(state.auto_sw_off_value)) ? String(state.auto_sw_off_value) : '';
 
     renderSensors(state.sensors || []);
-    pushHistory(state);
-    drawTrend();
+    renderSelectedSensor(state);
+    ensureWebSocket(state);
+
+    if (graph) {
+      graph.updateOptions({ title: graphTitle() });
+    }
 
     const detected = (state.sensors || []).filter((sensor) => sensor?.detected).length;
     setStatus(`Loaded ${state.bus.toUpperCase()} • ${detected} sensor(s) detected.`, 'success');
@@ -274,17 +474,67 @@
     }
   }
 
-  globalHeaterOnBtn.addEventListener('click', () => withBusy(async () => {
-    if (!window.confirm(`Turn all heaters ON for ${bus.toUpperCase()}?`)) return false;
-    const json = await noxApi.setHeater(bus, -1, true);
-    if (json.ok === false) throw new Error(json.error || 'Heater command failed');
-  }, 'All heaters turned ON.'));
+  function downloadCsv() {
+    if (!statsCsv) {
+      setStatus('Zoom the graph to export CSV.', 'error');
+      return;
+    }
+    const d = new Date();
+    const filename = `NOx_${bus}_${selectedAddr()}_${d.getMonth()}_${d.getDate()}_${d.getFullYear()}_${d.getHours()}_${d.getMinutes()}_${d.getSeconds()}.csv`;
+    const blob = new Blob([statsCsv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 
-  globalHeaterOffBtn.addEventListener('click', () => withBusy(async () => {
-    if (!window.confirm(`Turn all heaters OFF for ${bus.toUpperCase()}?`)) return false;
-    const json = await noxApi.setHeater(bus, -1, false);
-    if (json.ok === false) throw new Error(json.error || 'Heater command failed');
-  }, 'All heaters turned OFF.'));
+  function downloadPdf() {
+    if (!graph || !graph.isZoomed('x')) {
+      setStatus('Zoom the graph before exporting PDF.', 'error');
+      return;
+    }
+    const target = $('.row-2');
+    const d = new Date();
+    const stamp = `${d.getMonth()}_${d.getDate()}_${d.getFullYear()}_${d.getHours()}_${d.getMinutes()}_${d.getSeconds()}`;
+    const filename = `NOx_${bus}_${selectedAddr()}_${stamp}`;
+
+    const previousStats = statsGrid.style.display;
+    const previousCurrent = currentDataCard.style.display;
+    if (!zoomStatsCheck.checked) {
+      currentDataCard.style.display = 'none';
+      statsGrid.style.display = 'grid';
+    }
+
+    window.html2canvas(target).then((canvas) => {
+      const docDefinition = {
+        pageSize: 'LETTER',
+        pageOrientation: 'landscape',
+        pageMargins: [40, 40, 40, 40],
+        header: { columns: [{ text: window.location.hostname, alignment: 'center' }] },
+        footer: {
+          columns: [
+            `NOx@${bus}_Addr:${selectedAddr()}`,
+            { text: d.toLocaleString(), alignment: 'right' },
+          ],
+        },
+        content: [{
+          image: canvas.toDataURL(),
+          width: 700,
+          alignment: 'center',
+        }],
+      };
+      window.pdfMake.createPdf(docDefinition).download(`${filename}.pdf`);
+    }).catch((err) => {
+      setStatus(`PDF export failed: ${err.message || err}`, 'error');
+    }).finally(() => {
+      if (!zoomStatsCheck.checked) {
+        currentDataCard.style.display = previousCurrent;
+        statsGrid.style.display = previousStats;
+      }
+    });
+  }
 
   setAutoOffBtn.addEventListener('click', () => withBusy(async () => {
     const value = Number(autoOffInput.value);
@@ -299,63 +549,38 @@
     loadState(false);
   });
 
-  sensorGrid.addEventListener('click', (e) => {
-    const btn = e.target.closest('.sensor-heater-btn');
-    if (!btn) return;
-    const addr = Number(btn.dataset.addr);
-    const enabled = btn.dataset.enabled === 'true';
-    withBusy(async () => {
-      if (!window.confirm(`Turn heater ${enabled ? 'ON' : 'OFF'} for addr ${addr}?`)) return false;
-      const json = await noxApi.setHeater(bus, addr, enabled);
-      if (json.ok === false) throw new Error(json.error || 'Heater command failed');
-    }, `Heater ${enabled ? 'ON' : 'OFF'} sent for addr ${addr}.`);
-  });
+  playPauseBtn.addEventListener('click', playPause);
 
   clearTrendBtn.addEventListener('click', () => {
-    historyByAddr[0] = [];
-    historyByAddr[1] = [];
-    drawTrend();
+    resetGraphBuffer();
+    initGraph();
     setStatus('Trend history cleared.');
   });
 
-  plotAddr.addEventListener('change', drawTrend);
-
-  exportCsvBtn.addEventListener('click', () => {
-    const addr = String(plotAddr.value || '0');
-    const points = historyByAddr[addr] || [];
-    if (!points.length) {
-      setStatus('No trend data available for CSV export.', 'error');
-      return;
+  plotAddr.addEventListener('change', () => {
+    if (latestState) {
+      renderSelectedSensor(latestState);
     }
-
-    const rows = ['timestamp,nox_ppm,o2_percent'];
-    points.forEach((point) => {
-      rows.push([
-        new Date(point.t).toISOString(),
-        point.nox ?? '',
-        point.o2 ?? '',
-      ].join(','));
-    });
-
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `nox_${bus}_addr${addr}.csv`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    initGraph();
+    ensureWebSocket(latestState);
   });
+
+  zoomStatsCheck.addEventListener('change', () => {
+    updateZoomUi(!!graph?.isZoomed('x'));
+  });
+
+  exportCsvBtn.addEventListener('click', downloadCsv);
+  exportPdfBtn.addEventListener('click', downloadPdf);
 
   if (!bus) {
     setStatus('Missing bus in popup URL.', 'error');
-    globalHeaterOnBtn.disabled = true;
-    globalHeaterOffBtn.disabled = true;
     setAutoOffBtn.disabled = true;
     refreshBtn.disabled = true;
     return;
   }
 
   busLabel.value = bus.toUpperCase();
+  initGraph();
   loadState(false);
   syncPoll();
 
@@ -367,5 +592,6 @@
 
   window.addEventListener('beforeunload', () => {
     if (pollTimer) clearInterval(pollTimer);
+    closeWebSocket();
   });
 })();

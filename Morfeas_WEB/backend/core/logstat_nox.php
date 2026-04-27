@@ -45,6 +45,7 @@ function nox_load_anchor_map(string $jsonPath): array
 
         $errors      = is_array($s['errors'] ?? null) ? $s['errors'] : [];
         $statusFlags = is_array($s['status'] ?? null) ? $s['status'] : [];
+        $heaterMode  = trim((string)($statusFlags['heater_mode_state'] ?? ''));
 
         $noxValid = !empty($statusFlags['is_NOx_value_valid']);
         $o2Valid  = !empty($statusFlags['is_O2_value_valid']);
@@ -64,7 +65,7 @@ function nox_load_anchor_map(string $jsonPath): array
         }
 
         if (($errText === null) && (!$noxValid || !$o2Valid)) {
-            $errText = 'Unclassified';
+            $errText = $heaterMode !== '' ? $heaterMode : 'Unclassified';
         }
 
 
