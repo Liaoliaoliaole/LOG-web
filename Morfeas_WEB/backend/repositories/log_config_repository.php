@@ -254,7 +254,7 @@ function log_config_set_can_role(string $xmlPath, string $bus, string $role): ar
         if (!is_string($xmlString) || $xmlString === '') {
             throw new RuntimeException('Failed to serialize LOG config XML');
         }
-        backend_atomic_write_file($xmlPath, $xmlString);
+        backend_atomic_write_file($xmlPath, $xmlString, 0644);
 
         return [
             'bus' => $normalizedBus,
@@ -311,7 +311,7 @@ function log_config_append_device(string $xmlPath, array $data): array
         if (!is_string($xmlString) || $xmlString === '') {
             throw new RuntimeException('Failed to serialize LOG config XML');
         }
-        backend_atomic_write_file($xmlPath, $xmlString);
+        backend_atomic_write_file($xmlPath, $xmlString, 0644);
 
         return [
             'id'     => $id,
@@ -385,6 +385,6 @@ function log_config_delete_devices(string $xmlPath, array $ids): void
         if (!is_string($xmlString) || $xmlString === '') {
             throw new RuntimeException('Failed to serialize LOG config XML');
         }
-        backend_atomic_write_file($xmlPath, $xmlString);
+        backend_atomic_write_file($xmlPath, $xmlString, 0644);
     });
 }

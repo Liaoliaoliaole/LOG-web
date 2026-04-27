@@ -432,7 +432,7 @@ function can_role_transition(string $ramdisk, string $logConfig, string $bus, st
             'pending' => true,
         ];
     } catch (Throwable $e) {
-        backend_atomic_write_file($logConfig, $beforeXml);
+        backend_atomic_write_file($logConfig, $beforeXml, 0644);
 
         $rollbackErrors = [];
         try {

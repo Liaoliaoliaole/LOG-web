@@ -430,10 +430,10 @@ function ftp_backup_run_restore(string $filename): array
     }
 
     backend_with_resource_file_lock('opcua_config', backend_opcua_config_path(), function () use ($opcUa) {
-        backend_atomic_write_file(backend_opcua_config_path(), $opcUa);
+        backend_atomic_write_file(backend_opcua_config_path(), $opcUa, 0644);
     });
     backend_with_resource_file_lock('log_config', backend_log_config_path(), function () use ($morfeas) {
-        backend_atomic_write_file(backend_log_config_path(), $morfeas);
+        backend_atomic_write_file(backend_log_config_path(), $morfeas, 0644);
     });
 
     @touch(ftp_backup_config_file());

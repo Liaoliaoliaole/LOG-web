@@ -75,7 +75,7 @@ function iso_save_xml(SimpleXMLElement $xml, string $xmlPath): void
     }, $xmlString);
 
     try {
-        backend_atomic_write_file($xmlPath, $xmlString);
+        backend_atomic_write_file($xmlPath, $xmlString, 0644);
     } catch (Throwable $e) {
         throw new ChannelConfigException("Failed to save XML: $xmlPath", 500, 'channel_config_save_failed');
     }

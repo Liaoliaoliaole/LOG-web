@@ -73,7 +73,7 @@ function backend_with_resource_file_lock(string $kind, string $resourcePath, cal
     return backend_with_named_lock(backend_resource_lock_name($kind, $resourceId), $fn);
 }
 
-function backend_atomic_write_file(string $path, string $contents): void
+function backend_atomic_write_file(string $path, string $contents, ?int $mode = null): void
 {
     $dir = dirname($path);
     if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
@@ -90,8 +90,14 @@ function backend_atomic_write_file(string $path, string $contents): void
         if (@file_put_contents($tmp, $contents) === false) {
             throw new RuntimeException("Unable to write temporary file for: $path");
         }
+        if ($mode !== null) {
+            @chmod($tmp, $mode);
+        }
         if (!@rename($tmp, $path)) {
             throw new RuntimeException("Unable to replace target file: $path");
+        }
+        if ($mode !== null) {
+            @chmod($path, $mode);
         }
         $ok = true;
         clearstatcache(true, $path);
