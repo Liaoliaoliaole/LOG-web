@@ -50,6 +50,7 @@
   const WS_PULL_MS = 100;
   const BUFFER_SIZE = 3600 / 0.1;
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   let pollTimer = null;
   let latestState = null;
@@ -146,6 +147,10 @@
           <tr><td>Heater Error</td><td>${esc(sensor?.errors?.heater) || '—'}</td></tr>
           <tr><td>Last Seen</td><td>${sensor?.last_seen ? new Date(sensor.last_seen * 1000).toLocaleString() : '—'}</td></tr>
         </table>
+        <div class="graph-controls" style="margin-top:10px;">
+          <button class="btn primary sensor-heater-btn" data-addr="${sensor.addr}" data-enabled="true">Heater ON</button>
+          <button class="btn sensor-heater-btn" data-addr="${sensor.addr}" data-enabled="false">Heater OFF</button>
+        </div>
       `;
       sensorGrid.appendChild(card);
     });
@@ -459,6 +464,33 @@
     }, POLL_MS);
   }
 
+  function findSensor(state, addr) {
+    return (state?.sensors || []).find((sensor) => Number(sensor?.addr) === Number(addr)) || null;
+  }
+
+  function heaterStateMatches(sensor, enabled) {
+    if (!sensor) return false;
+    const mode = String(sensor?.status?.heater_mode_state || '').trim().toLowerCase();
+    const measuring = !!sensor?.status?.meas_state;
+
+    if (enabled) {
+      return measuring || (mode !== '' && mode !== 'heater off');
+    }
+
+    return !measuring && (mode === 'heater off' || (!sensor?.detected && mode === ''));
+  }
+
+  async function waitForHeaterState(addr, enabled, attempts = 8, delayMs = 1000) {
+    for (let i = 0; i < attempts; i += 1) {
+      await sleep(delayMs);
+      const ok = await loadState(true);
+      if (ok && heaterStateMatches(findSensor(latestState, addr), enabled)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   async function withBusy(task, successMessage) {
     if (busy) return;
     busy = true;
@@ -547,6 +579,22 @@
 
   refreshBtn.addEventListener('click', () => {
     loadState(false);
+  });
+
+  sensorGrid.addEventListener('click', (e) => {
+    const btn = e.target.closest('.sensor-heater-btn');
+    if (!btn) return;
+    const addr = Number(btn.dataset.addr);
+    const enabled = btn.dataset.enabled === 'true';
+    withBusy(async () => {
+      if (!window.confirm(`Turn heater ${enabled ? 'ON' : 'OFF'} for addr ${addr}?`)) return false;
+      const json = await noxApi.setHeater(bus, addr, enabled);
+      if (json.ok === false) throw new Error(json.error || 'Heater command failed');
+      const settled = await waitForHeaterState(addr, enabled);
+      if (!settled) {
+        throw new Error(`Heater ${enabled ? 'ON' : 'OFF'} accepted, but addr ${addr} did not update yet.`);
+      }
+    }, `Heater ${enabled ? 'ON' : 'OFF'} sent for addr ${addr}.`);
   });
 
   playPauseBtn.addEventListener('click', playPause);
