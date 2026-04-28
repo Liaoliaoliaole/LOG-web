@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../repositories/logstat_repository.php';
+require_once __DIR__ . '/../core/nox_runtime.php';
 require_once __DIR__ . '/../services/can_role_service.php';
 
 function nox_validate_bus(string $bus): string
@@ -63,7 +64,7 @@ function nox_normalize_sensor(array $sensor, int $addr): array
 {
     $base = nox_sensor_defaults($addr);
     $lastSeen = $sensor['last_seen'] ?? null;
-    $detected = is_numeric($lastSeen) || !empty($sensor['status']) || is_numeric($sensor['NOx_value_avg'] ?? null) || is_numeric($sensor['O2_value_avg'] ?? null);
+    $detected = nox_runtime_sensor_detected($sensor);
 
     return [
         'addr' => $addr,

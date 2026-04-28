@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/nox_runtime.php';
+
 function nox_load_anchor_map(string $jsonPath): array
 {
     if (!is_file($jsonPath)) {
@@ -30,6 +32,10 @@ function nox_load_anchor_map(string $jsonPath): array
     $allowedErrors = ['Open Wire', 'Short circuit'];
 
     foreach ($sensors as $s) {
+        if (!is_array($s) || !nox_runtime_sensor_detected($s)) {
+            continue;
+        }
+
         $addr = isset($s['addr']) ? (int)$s['addr'] : (isset($s['Address']) ? (int)$s['Address'] : null);
 
         $anchorBase = null;

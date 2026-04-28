@@ -421,24 +421,30 @@
   async function loadPageData(silent = false, pollMode = false) {
     try {
       if (!devicesApi) throw new Error('Devices API unavailable');
-      if (!canRolesApi) throw new Error('CAN roles API unavailable');
 
-      const [devicesJson, canJson] = await Promise.all([
-        devicesApi.fetchDevices(),
-        canRolesApi.fetchRoles(),
-      ]);
-
+      const devicesJson = await devicesApi.fetchDevices();
       if (devicesJson.ok === false) throw new Error(devicesJson.error || 'Load devices failed');
-      if (canJson.ok === false) throw new Error(canJson.error || 'Load CAN roles failed');
 
       devices = devicesJson.data || [];
-      canRows = canJson.data?.rows || [];
-      canWarnings = canJson.data?.warnings || { chip: null, ticker: [] };
       const devicesLegacy = devicesJson.legacy || {};
       legacyState = {
         blocking: !!devicesLegacy.blocking,
         message: String(devicesLegacy.message || ''),
       };
+
+      try {
+        if (!canRolesApi) throw new Error('CAN roles API unavailable');
+        const canJson = await canRolesApi.fetchRoles();
+        if (canJson.ok === false) throw new Error(canJson.error || 'Load CAN roles failed');
+        canRows = canJson.data?.rows || [];
+        canWarnings = canJson.data?.warnings || { chip: null, ticker: [] };
+      } catch (canErr) {
+        // Keep the last CAN table during daemon/network settle, but do not let
+        // a CAN roles read failure keep a stale legacy-MDAQ lock on the page.
+        if (!silent && !pollMode) {
+          alert('Failed to load CAN bus data: ' + canErr.message);
+        }
+      }
 
       renderAll();
       return true;

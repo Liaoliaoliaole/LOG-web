@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../repositories/log_config_repository.php';
 require_once __DIR__ . '/../repositories/logstat_repository.php';
+require_once __DIR__ . '/../core/nox_runtime.php';
 
 const DEVICE_LEGACY_MDAQ_MESSAGE = 'Legacy MDAQ config found in XML. Remove it manually before using this page.';
 
@@ -169,8 +170,7 @@ function device_build_runtime_maps(string $ramdisk): array
             continue;
         }
 
-        $sensors = $data['NOx_sensors'] ?? $data['sensors'] ?? [];
-        $detected = is_array($sensors) && count($sensors) > 0;
+        $detected = nox_runtime_bus_detected($data);
         $noxBuses[$bus] = [
             'detected' => $detected,
             'runtime_status' => $detected ? 'Connected' : 'Not detected',
