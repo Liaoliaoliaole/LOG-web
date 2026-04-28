@@ -284,11 +284,12 @@ function can_role_build_warning_summary(array $rows): array
 
 function can_role_list(string $ramdisk, string $logConfig): array
 {
-    $handlers = log_config_load_can_handlers($logConfig);
+    $xmlConfig       = log_config_read_all($logConfig);
+    $handlers        = $xmlConfig['can_handlers'];
     $groupedHandlers = can_role_group_handlers_by_bus($handlers);
-    $runtimeSummary = can_role_collect_runtime_summary($ramdisk);
-    $networkState = network_get_state();
-    $legacyMdaqPresent = log_config_has_legacy_mdaq($logConfig);
+    $runtimeSummary  = can_role_collect_runtime_summary($ramdisk);
+    $networkState    = network_get_state();
+    $legacyMdaqPresent = $xmlConfig['has_legacy_mdaq'];
 
     $rows = [];
     foreach (can_role_supported_buses() as $bus) {

@@ -233,17 +233,17 @@ function device_merge_manual_runtime_status(array $manual, array $runtimeMaps): 
 
 function device_list(string $ramdisk, string $logConfig): array
 {
-    $auto   = device_collect_sdaq_devices($ramdisk);
-    $manual = log_config_load_manual_devices($logConfig);
-    $manual = device_merge_manual_runtime_status($manual, device_build_runtime_maps($ramdisk));
-    $all    = array_merge($manual, $auto);
-    $legacyMdaqPresent = log_config_has_legacy_mdaq($logConfig);
+    $auto      = device_collect_sdaq_devices($ramdisk);
+    $xmlConfig = log_config_read_all($logConfig);
+    $manual    = device_merge_manual_runtime_status($xmlConfig['manual_devices'], device_build_runtime_maps($ramdisk));
+    $all       = array_merge($manual, $auto);
+    $legacyMdaqPresent = $xmlConfig['has_legacy_mdaq'];
 
     return [
         'ok'         => true,
         'data'       => $all,
         'components' => [
-            'total' => log_config_count_components($logConfig),
+            'total' => $xmlConfig['component_count'],
         ],
         'legacy' => [
             'mdaq_present' => $legacyMdaqPresent,
