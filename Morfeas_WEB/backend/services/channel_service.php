@@ -412,7 +412,14 @@ function channel_build_rows_with_logstat(
                         $meas .= ' ' . $ls['meas_unit'];
                         $measUnit = $ls['meas_unit'];
                     }
+                } elseif (!channel_status_is_offline((string)$status)) {
+                    // Legacy NOX linker shows "-" while heater modes/errors explain why data is invalid.
+                    $meas = '-';
                 }
+            }
+
+            if ($row['meas_error_code'] === null && channel_status_is_offline($status)) {
+                channel_assign_error_code_display($row, -901, $meas, $measUnit);
             }
 
         } else {

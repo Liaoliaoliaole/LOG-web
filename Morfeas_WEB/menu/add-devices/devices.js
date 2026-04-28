@@ -435,10 +435,9 @@
       canRows = canJson.data?.rows || [];
       canWarnings = canJson.data?.warnings || { chip: null, ticker: [] };
       const devicesLegacy = devicesJson.legacy || {};
-      const canLegacy = canJson.data?.legacy || {};
       legacyState = {
-        blocking: !!(devicesLegacy.blocking || canLegacy.blocking),
-        message: String(devicesLegacy.message || canLegacy.message || ''),
+        blocking: !!devicesLegacy.blocking,
+        message: String(devicesLegacy.message || ''),
       };
 
       renderAll();

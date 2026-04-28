@@ -1134,6 +1134,8 @@
       if (s === 'unclassified') return 'st-Error';
       if (s === 'open wire') return 'st-Error';
       if (s === 'short circuit') return 'st-Error';
+      if (s === 'heater off') return 'st-Error';
+      if (s.startsWith('heating up')) return 'st-Error';
       if (s === 'off-line' || s === 'offline') return 'st-Offline';
       if (s === 'disconnected') return 'st-Offline';
 
