@@ -592,6 +592,13 @@
     return;
   }
 
+  if (!noxApi) {
+    setStatus('NOX API unavailable — config.js not loaded.', 'error');
+    setAutoOffBtn.disabled = true;
+    refreshBtn.disabled = true;
+    return;
+  }
+
   busLabel.value = bus.toUpperCase();
   initGraph();
   loadState(false);

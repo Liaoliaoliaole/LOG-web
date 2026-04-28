@@ -432,9 +432,15 @@ function can_role_transition(string $ramdisk, string $logConfig, string $bus, st
             'pending' => true,
         ];
     } catch (Throwable $e) {
-        backend_atomic_write_file($logConfig, $beforeXml, 0644);
-
         $rollbackErrors = [];
+        try {
+            log_config_with_xml_lock($logConfig, static function () use ($logConfig, $beforeXml): void {
+                backend_atomic_write_file($logConfig, $beforeXml, 0644);
+            });
+        } catch (Throwable $rollbackXmlError) {
+            $rollbackErrors[] = 'xml rollback failed: ' . $rollbackXmlError->getMessage();
+        }
+
         try {
             can_role_restore_network($beforeState, $beforeSnapshot['rows']);
         } catch (Throwable $rollbackNetworkError) {

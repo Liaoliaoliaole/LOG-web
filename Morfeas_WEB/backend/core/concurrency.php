@@ -96,9 +96,6 @@ function backend_atomic_write_file(string $path, string $contents, ?int $mode = 
         if (!@rename($tmp, $path)) {
             throw new RuntimeException("Unable to replace target file: $path");
         }
-        if ($mode !== null) {
-            @chmod($path, $mode);
-        }
         $ok = true;
         clearstatcache(true, $path);
     } finally {

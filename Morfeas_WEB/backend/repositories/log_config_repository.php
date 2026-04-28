@@ -13,6 +13,118 @@ function log_config_node_disabled(DOMElement $node): bool
     return strtolower((string) $node->getAttribute('Disable')) === 'true';
 }
 
+/**
+ * Parse the XML once and return all derived views together.
+ *
+ * Returns:
+ *   manual_devices   — same shape as log_config_load_manual_devices()
+ *   can_handlers     — same shape as log_config_load_can_handlers()
+ *   component_count  — same value as log_config_count_components()
+ *   has_legacy_mdaq  — same value as log_config_has_legacy_mdaq()
+ */
+function log_config_read_all(string $xmlPath): array
+{
+    $empty = [
+        'manual_devices'  => [],
+        'can_handlers'    => [],
+        'component_count' => 0,
+        'has_legacy_mdaq' => false,
+    ];
+
+    if (!is_file($xmlPath)) {
+        return $empty;
+    }
+
+    $xml = simplexml_load_file($xmlPath);
+    if ($xml === false) {
+        throw new RuntimeException('Failed to parse LOG config XML');
+    }
+
+    $components = $xml->COMPONENTS ?? null;
+    if ($components === null) {
+        return $empty;
+    }
+
+    $manualDevices  = [];
+    $canHandlers    = [];
+    $componentCount = 0;
+    $hasLegacyMdaq  = false;
+
+    foreach ($components->children() as $comp) {
+        $tag     = strtoupper($comp->getName());
+        $disable = strtolower((string) $comp['Disable']) === 'true';
+        $status  = $disable ? 'Disabled' : 'Okay';
+        $componentCount++;
+
+        switch ($tag) {
+            case 'IOBOX_HANDLER':
+            case 'MTI_HANDLER':
+                $type = str_replace('_HANDLER', '', $tag);
+                $name = trim((string) $comp->DEV_NAME);
+                $ip   = trim((string) $comp->IPv4_ADDR);
+                $bus  = '-';
+                $manualDevices[] = [
+                    'id'     => log_config_build_manual_id($type, $bus, $name, $ip),
+                    'type'   => $type,
+                    'bus'    => $bus,
+                    'ip'     => $ip,
+                    'name'   => $name,
+                    'status' => $status,
+                    'origin' => 'xml',
+                ];
+                break;
+
+            case 'NOX_HANDLER':
+                $bus  = trim((string) $comp->CANBUS_IF);
+                $name = $bus;
+                $manualDevices[] = [
+                    'id'     => log_config_build_manual_id('NOX', $bus, $name, ''),
+                    'type'   => 'NOX',
+                    'bus'    => $bus,
+                    'ip'     => '',
+                    'name'   => $name,
+                    'status' => $status,
+                    'origin' => 'xml',
+                ];
+                $busKey = strtolower(trim($bus));
+                if ($busKey !== '') {
+                    $canHandlers[] = [
+                        'tag'     => $tag,
+                        'mode'    => 'NOX',
+                        'bus'     => $busKey,
+                        'enabled' => !$disable,
+                        'status'  => $status,
+                    ];
+                }
+                break;
+
+            case 'SDAQ_HANDLER':
+                $busKey = strtolower(trim((string) $comp->CANBUS_IF));
+                if ($busKey !== '') {
+                    $canHandlers[] = [
+                        'tag'     => $tag,
+                        'mode'    => 'SDAQ',
+                        'bus'     => $busKey,
+                        'enabled' => !$disable,
+                        'status'  => $status,
+                    ];
+                }
+                break;
+
+            case 'MDAQ_HANDLER':
+                $hasLegacyMdaq = true;
+                break;
+        }
+    }
+
+    return [
+        'manual_devices'  => $manualDevices,
+        'can_handlers'    => $canHandlers,
+        'component_count' => $componentCount,
+        'has_legacy_mdaq' => $hasLegacyMdaq,
+    ];
+}
+
 function log_config_has_component_tag(string $xmlPath, string $tagName): bool
 {
     if (!is_file($xmlPath)) {
