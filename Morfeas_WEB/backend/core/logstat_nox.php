@@ -2,6 +2,25 @@
 
 require_once __DIR__ . '/nox_runtime.php';
 
+function nox_canonical_anchor_base(?string $iface, ?int $addr, ?string $fallbackAnchor): ?string
+{
+    $bus = strtolower(trim((string)$iface));
+    if ($addr !== null && $bus !== '') {
+        return sprintf('%s.addr_%d', $bus, $addr);
+    }
+
+    $raw = trim((string)$fallbackAnchor);
+    if ($raw === '') {
+        return null;
+    }
+
+    if (preg_match('/^(can\w+)\.(?:sensor|addr[:_]?)(\d+)$/i', $raw, $m)) {
+        return sprintf('%s.addr_%d', strtolower($m[1]), (int)$m[2]);
+    }
+
+    return strtolower($raw);
+}
+
 function nox_load_anchor_map(string $jsonPath): array
 {
     if (!is_file($jsonPath)) {
@@ -38,12 +57,7 @@ function nox_load_anchor_map(string $jsonPath): array
 
         $addr = isset($s['addr']) ? (int)$s['addr'] : (isset($s['Address']) ? (int)$s['Address'] : null);
 
-        $anchorBase = null;
-        if ($addr !== null) {
-            $anchorBase = sprintf('%s.sensor%d', strtolower($iface), $addr);
-        } elseif (!empty($s['anchor'])) {
-            $anchorBase = strtolower((string)$s['anchor']);
-        }
+        $anchorBase = nox_canonical_anchor_base($iface, $addr, $s['anchor'] ?? null);
 
         if ($anchorBase === null) {
             continue;
@@ -104,6 +118,8 @@ function nox_load_anchor_map(string $jsonPath): array
 
         if ($addr !== null) {
             $keys = array_merge($keys, [
+                sprintf('%s.sensor%d.NOx', strtolower($iface), $addr),
+                sprintf('%s.sensor%d.O2', strtolower($iface), $addr),
                 sprintf('%s.ADDR:%d.NOx',  $ifaceUc, $addr),
                 sprintf('%s.ADDR:%d.O2',   $ifaceUc, $addr),
                 sprintf('%s.ADDR:%02d.NOx', $ifaceUc, $addr),

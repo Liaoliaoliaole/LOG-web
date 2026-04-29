@@ -127,8 +127,8 @@ function channel_nox_canonical_search_entry(?string $anchor): ?array
     $meas = strcasecmp($m[3], 'O2') === 0 ? 'O2' : 'NOx';
 
     return [
-        'anchor' => sprintf('%s.sensor%d.%s', $bus, $addr, $meas),
-        'display_anchor' => sprintf('%s.SENSOR%d.%s', strtoupper($bus), $addr, $meas),
+        'anchor' => sprintf('%s.addr_%d.%s', $bus, $addr, $meas),
+        'display_anchor' => sprintf('%s.ADDR:%d.%s', strtoupper($bus), $addr, $meas),
     ];
 }
 
