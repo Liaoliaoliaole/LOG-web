@@ -34,6 +34,7 @@
   let pollTimer = null;
   let latestState = null;
   let busy = false;
+  let setupDirty = false;
 
   function fmt(value, digits = 2, suffix = '') {
     if (!Number.isFinite(Number(value))) return '-';
@@ -136,6 +137,11 @@
   }
 
   function setInputsFromState(state) {
+    if (setupDirty) {
+      updateSetupVisibility();
+      return;
+    }
+
     const mti = state?.mti_status || {};
     const tele = state?.tele_data || {};
     const mode = text(mti.Tele_Device_type);
@@ -480,6 +486,7 @@
     try {
       const json = await mtiApi.setConfig(name, payload);
       if (json.ok === false) throw new Error(json.error || 'MTI setup failed');
+      setupDirty = false;
       render(json.data?.state || latestState || {});
       setStatus(json.data?.result?.reply || 'MTI setup updated.', 'success');
     } catch (err) {
@@ -569,9 +576,26 @@
   }
 
   refreshBtn.addEventListener('click', () => loadState(false));
-  deviceSelect.addEventListener('change', () => loadState(false));
-  modeSelect.addEventListener('change', updateSetupVisibility);
-  rfChannelInput.addEventListener('change', normalizeRfChannel);
+  deviceSelect.addEventListener('change', () => {
+    setupDirty = false;
+    loadState(false);
+  });
+  modeSelect.addEventListener('change', () => {
+    setupDirty = true;
+    updateSetupVisibility();
+  });
+  rfChannelInput.addEventListener('change', () => {
+    setupDirty = true;
+    normalizeRfChannel();
+  });
+  [samplesValidInput, samplesInvalidInput, globalControlCheck].forEach((el) => {
+    el.addEventListener('change', () => {
+      setupDirty = true;
+    });
+    el.addEventListener('input', () => {
+      setupDirty = true;
+    });
+  });
   saveConfigBtn.addEventListener('click', saveConfig);
   globalOnBtn.addEventListener('click', () => setGlobalPower(true));
   globalOffBtn.addEventListener('click', () => setGlobalPower(false));
