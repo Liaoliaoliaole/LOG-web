@@ -49,9 +49,10 @@ function nox_load_anchor_map(string $jsonPath): array
     $map = [];
 
     $allowedErrors = ['Open Wire', 'Short circuit'];
+    $onlineWindowSec = nox_runtime_online_window($data);
 
     foreach ($sensors as $s) {
-        if (!is_array($s) || !nox_runtime_sensor_detected($s)) {
+        if (!is_array($s) || !nox_runtime_sensor_detected($s, null, $onlineWindowSec)) {
             continue;
         }
 

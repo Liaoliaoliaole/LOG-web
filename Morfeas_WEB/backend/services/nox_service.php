@@ -60,11 +60,11 @@ function nox_sensor_defaults(int $addr): array
     ];
 }
 
-function nox_normalize_sensor(array $sensor, int $addr): array
+function nox_normalize_sensor(array $sensor, int $addr, ?int $onlineWindowSec = null): array
 {
     $base = nox_sensor_defaults($addr);
     $lastSeen = $sensor['last_seen'] ?? null;
-    $detected = nox_runtime_sensor_detected($sensor);
+    $detected = nox_runtime_sensor_detected($sensor, null, $onlineWindowSec);
 
     return [
         'addr' => $addr,
@@ -104,6 +104,7 @@ function nox_load_state(string $ramdisk, string $bus): array
     $state = [
         'bus' => $normalizedBus,
         'runtime_status' => 'Not detected',
+        'online_window_sec' => null,
         'ws_port' => null,
         'electrics' => null,
         'bus_utilization' => null,
@@ -121,6 +122,7 @@ function nox_load_state(string $ramdisk, string $bus): array
     }
 
     $state['ws_port'] = is_numeric($raw['ws_port'] ?? null) ? (int) $raw['ws_port'] : null;
+    $state['online_window_sec'] = nox_runtime_online_window($raw);
     $state['electrics'] = is_array($raw['Electrics'] ?? null) ? $raw['Electrics'] : null;
     $state['bus_utilization'] = is_numeric($raw['BUS_Utilization'] ?? null) ? (float) $raw['BUS_Utilization'] : null;
     $state['bus_error_rate'] = is_numeric($raw['BUS_Error_rate'] ?? null) ? (float) $raw['BUS_Error_rate'] : null;
@@ -140,7 +142,7 @@ function nox_load_state(string $ramdisk, string $bus): array
         if ($addr === null || !array_key_exists($addr, $normalizedSensors)) {
             continue;
         }
-        $normalizedSensors[$addr] = nox_normalize_sensor($sensor, $addr);
+        $normalizedSensors[$addr] = nox_normalize_sensor($sensor, $addr, $state['online_window_sec']);
     }
 
     $state['sensors'] = array_values($normalizedSensors);
