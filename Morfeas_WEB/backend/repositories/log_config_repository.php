@@ -297,6 +297,36 @@ function log_config_with_xml_lock(string $xmlPath, callable $fn)
     return backend_with_resource_file_lock('log_config', $xmlPath, $fn);
 }
 
+function log_config_component_order(string $tag): int
+{
+    static $order = [
+        'OPC_UA_SERVER' => 0,
+        'SDAQ_HANDLER' => 1,
+        'MDAQ_HANDLER' => 2,
+        'IOBOX_HANDLER' => 3,
+        'MTI_HANDLER' => 4,
+        'NOX_HANDLER' => 5,
+    ];
+
+    return $order[strtoupper($tag)] ?? 99;
+}
+
+function log_config_insert_component_ordered(DOMElement $components, DOMElement $node): void
+{
+    $newOrder = log_config_component_order($node->tagName);
+    foreach ($components->childNodes as $child) {
+        if (!$child instanceof DOMElement) {
+            continue;
+        }
+        if (log_config_component_order($child->tagName) > $newOrder) {
+            $components->insertBefore($node, $child);
+            return;
+        }
+    }
+
+    $components->appendChild($node);
+}
+
 function log_config_remove_can_role_nodes(DOMElement $components, string $bus): int
 {
     $removed = 0;
@@ -359,7 +389,7 @@ function log_config_set_can_role(string $xmlPath, string $bus, string $role): ar
             $node = $doc->createElement($normalizedRole . '_HANDLER');
             $node->setAttribute('Disable', 'false');
             $node->appendChild($doc->createElement('CANBUS_IF', $normalizedBus));
-            $components->appendChild($node);
+            log_config_insert_component_ordered($components, $node);
         }
 
         $xmlString = $doc->saveXML();
@@ -417,7 +447,7 @@ function log_config_append_device(string $xmlPath, array $data): array
                 throw new RuntimeException('Unsupported type: ' . $type);
         }
 
-        $components->appendChild($node);
+        log_config_insert_component_ordered($components, $node);
 
         $xmlString = $doc->saveXML();
         if (!is_string($xmlString) || $xmlString === '') {
