@@ -1,5 +1,29 @@
 <?php
 
+function mti_reserved_error_code($value): ?int
+{
+    if (!is_numeric($value)) {
+        return null;
+    }
+
+    $code = (int)round((float)$value);
+    return in_array($code, [-901, -902, -903, -904], true) ? $code : null;
+}
+
+function mti_status_from_error_code(int $code, ?string $connectionStatus = null): string
+{
+    if ($code === -901) {
+        if ($connectionStatus !== null && strcasecmp(trim($connectionStatus), 'Okay') !== 0) {
+            return 'OFF-Line';
+        }
+        return 'Disconnected';
+    }
+    if ($code === -902) {
+        return 'No sensor';
+    }
+    return 'Unclassified';
+}
+
 function mti_load_anchor_map(array $paths): array
 {
     $anchors     = [];
@@ -24,9 +48,7 @@ function mti_load_anchor_map(array $paths): array
             $ipv4ById[(string)$identifier] = $data['IPv4_address'];
         }
 
-        if (($data['Connection_status'] ?? null) !== 'Okay') {
-            continue;
-        }
+        $connectionStatus = is_string($data['Connection_status'] ?? null) ? $data['Connection_status'] : null;
 
         $tele     = $data['Tele_data'] ?? null;
         $teleType = $data['MTI_status']['Tele_Device_type'] ?? null;
@@ -42,16 +64,20 @@ function mti_load_anchor_map(array $paths): array
             $chNum = $idx + 1;
             $anchor = sprintf('%s.%s.CH%d', $identifier, $typeSlug, $chNum);
 
-            $status = 'Okay';
-            $valid  = is_numeric($value) && ($tele['IsValid'] ?? true);
-            $meas   = $valid ? (float)$value : null;
-
-            if (is_string($value) && strcasecmp($value, 'No sensor') === 0) {
-                $status = 'No sensor';
-                $valid  = false;
-            } elseif (!$valid) {
-                $status = 'Unclassified';
-            }
+	            $errorCode = mti_reserved_error_code($value);
+	            if ($errorCode !== null) {
+	                $status = mti_status_from_error_code($errorCode, $connectionStatus);
+	                $valid  = false;
+	                $meas   = (float)$errorCode;
+	            } elseif (is_numeric($value) && ($tele['IsValid'] ?? true)) {
+	                $status = 'Okay';
+	                $valid  = true;
+	                $meas   = (float)$value;
+	            } else {
+	                $status = 'Unclassified';
+	                $valid  = false;
+	                $meas   = null;
+	            }
 
             $anchors[$anchor] = [
                 'status'        => $status,

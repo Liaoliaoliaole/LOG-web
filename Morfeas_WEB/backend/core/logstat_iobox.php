@@ -1,7 +1,28 @@
 <?php
 
-const IOBOX_WEB_MEAS_ERROR_NO_SENSOR = -902.0;
-const IOBOX_WEB_MEAS_ERROR_UNCLASSIFIED = -904.0;
+function iobox_reserved_error_code($value): ?int
+{
+    if (!is_numeric($value)) {
+        return null;
+    }
+
+    $code = (int)round((float)$value);
+    return in_array($code, [-901, -902, -903, -904], true) ? $code : null;
+}
+
+function iobox_status_from_error_code(int $code, ?string $connectionStatus = null): string
+{
+    if ($code === -901) {
+        if ($connectionStatus !== null && strcasecmp(trim($connectionStatus), 'Okay') !== 0) {
+            return 'OFF-Line';
+        }
+        return 'Disconnected';
+    }
+    if ($code === -902) {
+        return 'No sensor';
+    }
+    return 'Unclassified';
+}
 
 function iobox_load_anchor_map(array $paths): array
 {
@@ -42,7 +63,8 @@ function iobox_load_anchor_map(array $paths): array
             $ipv4ById[$identifier] = $data['IPv4_address'];
         }
 
-        $connections[$identifier] = $data['Connection_status'] ?? null;
+        $connectionStatus = $data['Connection_status'] ?? null;
+        $connections[$identifier] = $connectionStatus;
 
         foreach ($data as $key => $rxData) {
             if (!preg_match('/^RX(\d+)$/', $key, $m)) {
@@ -69,24 +91,25 @@ function iobox_load_anchor_map(array $paths): array
                 $status = 'Okay';
                 $valid  = is_numeric($value);
                 $meas   = $valid ? (float)$value : null;
-                $errorCode = null;
+                $errorCode = iobox_reserved_error_code($value);
 
-                if (is_string($value) && strcasecmp($value, 'No sensor') === 0) {
+                if ($errorCode !== null) {
+                    $status = iobox_status_from_error_code($errorCode, is_string($connectionStatus) ? $connectionStatus : null);
+                    $valid  = false;
+                    $meas   = (float)$errorCode;
+                } elseif (is_string($value) && strcasecmp($value, 'No sensor') === 0) {
                     $status = 'No sensor';
                     $valid  = false;
                     $meas   = null;
-                    $errorCode = IOBOX_WEB_MEAS_ERROR_NO_SENSOR;
                 } elseif (!$valid) {
                     $status = 'Unclassified';
-                    $errorCode = IOBOX_WEB_MEAS_ERROR_UNCLASSIFIED;
                 }
 
                 $anchors[$anchor] = [
                     'status'        => $status,
                     'is_meas_valid' => $valid,
                     'meas_value'    => $meas,
-                    'meas_unit'     => null,
-                    'error_code'    => $errorCode,
+                    'meas_unit'     => '°C',
                 ];
             }
         }

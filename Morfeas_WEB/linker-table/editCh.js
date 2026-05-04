@@ -165,7 +165,7 @@
       return;
     }
 
-    const shouldShow = document.activeElement === isoInput || !!filter.trim();
+    const shouldShow = document.activeElement === isoInput;
     if (!shouldShow) {
       isoDropdown.classList.add('hidden');
       return;
@@ -223,7 +223,6 @@
         isoDropdown.classList.add('hidden');
         isoInput.value = code;
         hydrateFromIso(code, { skipSuggestions: true, forceDefaults: true });
-        isoInput.focus();
       });
       isoDropdown.appendChild(item);
     });

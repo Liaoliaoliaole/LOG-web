@@ -180,7 +180,7 @@
       return;
     }
 
-    const shouldShow = document.activeElement === isoInput || !!filter.trim();
+    const shouldShow = document.activeElement === isoInput;
     if (!shouldShow) {
       isoDropdown.classList.add('hidden');
       return;
@@ -235,11 +235,11 @@
       `;
       item.addEventListener('mousedown', (ev) => {
         ev.preventDefault();
+        state.suppressIsoSuggestions = true;
         isoDropdown.classList.add('hidden');
         isoInput.value = code;
         postfixSel.value = 'N/A';
         hydrateFromIso(code, { skipSuggestions: true });
-        isoInput.focus();
       });
       isoDropdown.appendChild(item);
     });

@@ -2,6 +2,16 @@
 
 require_once __DIR__ . '/nox_runtime.php';
 
+function nox_reserved_error_code($value): ?int
+{
+    if (!is_numeric($value)) {
+        return null;
+    }
+
+    $code = (int)round((float)$value);
+    return in_array($code, [-901, -902, -903, -904], true) ? $code : null;
+}
+
 function nox_canonical_anchor_base(?string $iface, ?int $addr, ?string $fallbackAnchor): ?string
 {
     $bus = strtolower(trim((string)$iface));
@@ -52,7 +62,17 @@ function nox_load_anchor_map(string $jsonPath): array
     $onlineWindowSec = nox_runtime_online_window($data);
 
     foreach ($sensors as $s) {
-        if (!is_array($s) || !nox_runtime_sensor_detected($s, null, $onlineWindowSec)) {
+        if (!is_array($s)) {
+            continue;
+        }
+
+        $noxVal = $s['NOx_value_avg'] ?? $s['NOx_ppm'] ?? null;
+        $o2Val  = $s['O2_value_avg'] ?? null;
+        $noxErrorCode = nox_reserved_error_code($noxVal);
+        $o2ErrorCode  = nox_reserved_error_code($o2Val);
+        $hasCoreErrorValue = $noxErrorCode !== null || $o2ErrorCode !== null;
+
+        if (!nox_runtime_sensor_detected($s, null, $onlineWindowSec) && !$hasCoreErrorValue) {
             continue;
         }
 
@@ -89,24 +109,21 @@ function nox_load_anchor_map(string $jsonPath): array
             $errText = $heaterMode !== '' ? $heaterMode : 'Unclassified';
         }
 
-
-        $noxVal    = $s['NOx_value_avg'] ?? $s['NOx_ppm'] ?? null;
         $noxStatus = $noxValid ? 'Okay' : ($errText ?: 'Unclassified');
 
         $noxRow = [
             'status'        => $noxStatus,
-            'is_meas_valid' => $noxValid,
-            'meas_value'    => ($noxValid && is_numeric($noxVal)) ? (float)$noxVal : null,
+            'is_meas_valid' => $noxValid && $noxErrorCode === null,
+            'meas_value'    => is_numeric($noxVal) ? (float)$noxVal : null,
             'meas_unit'     => 'ppm',
         ];
 
-        $o2Val    = $s['O2_value_avg'] ?? null;
         $o2Status = $o2Valid ? 'Okay' : ($errText ?: 'Unclassified');
 
         $o2Row = [
             'status'        => $o2Status,
-            'is_meas_valid' => $o2Valid,
-            'meas_value'    => ($o2Valid && is_numeric($o2Val)) ? (float)$o2Val : null,
+            'is_meas_valid' => $o2Valid && $o2ErrorCode === null,
+            'meas_value'    => is_numeric($o2Val) ? (float)$o2Val : null,
             'meas_unit'     => '%',
         ];
 

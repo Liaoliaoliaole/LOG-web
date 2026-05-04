@@ -1,9 +1,14 @@
 <?php
 
-const SDAQ_WEB_MEAS_ERROR_OFFLINE = -901.0;
-const SDAQ_WEB_MEAS_ERROR_NO_SENSOR = -902.0;
-const SDAQ_WEB_MEAS_ERROR_STALL = -903.0;
-const SDAQ_WEB_MEAS_ERROR_UNCLASSIFIED = -904.0;
+function sdaq_reserved_error_code($value): ?int
+{
+    if (!is_numeric($value)) {
+        return null;
+    }
+
+    $code = (int)round((float)$value);
+    return in_array($code, [-901, -902, -903, -904], true) ? $code : null;
+}
 
 function sdaq_detect_bus(array $data, string $jsonPath): string
 {
@@ -154,7 +159,6 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
             $status  = 'Okay';
             $valid   = true;
             $explain = null;
-            $errorCode = null;
 
             $hasUnit      = is_string($unit) && $unit !== '';
             $hasValueInfo = $value !== null
@@ -180,42 +184,39 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
                 $explain = 'Unlinked';
             }
 
-            if ($explain === null) {
-                if ($cnt === 0) {
-                    $status = 'Stall';
-                    $valid  = false;
-                    $value  = null;
-                    $errorCode = SDAQ_WEB_MEAS_ERROR_STALL;
-                } elseif ($noSens) {
-                    $status = 'NO_Sensor';
-                    $valid  = false;
-                    $value  = null;
-                    $errorCode = SDAQ_WEB_MEAS_ERROR_NO_SENSOR;
-                } elseif ($over) {
-                    $status = 'Over Range';
-                    $valid  = true;
-                } elseif ($out) {
+	            if ($explain === null) {
+	                if ($noSens) {
+	                    $status = 'NO_Sensor';
+	                    $valid  = false;
+	                } elseif (!empty($stVal) && !$over && !$out) {
+	                    // Error flag without a specific category.
+	                    $status = 'Unclassified';
+	                    $valid  = false;
+	                } elseif ($cnt === 0) {
+	                    $status = 'Stall';
+	                    $valid  = false;
+	                } elseif ($over) {
+	                    $status = 'Over Range';
+	                    $valid  = true;
+	                } elseif ($out) {
                     $status = 'Out of Range';
                     $valid  = true;
-                } elseif (!empty($stVal)) {
-                    // Error flag without a specific category.
-                    $status = 'Unclassified';
-                    $valid  = false;
-                    $value  = null;
-                    $errorCode = SDAQ_WEB_MEAS_ERROR_UNCLASSIFIED;
-                }
-            }
+	                }
+	            }
+
+	            if (sdaq_reserved_error_code($value) !== null) {
+	                $valid = false;
+	            }
 
             $entry = [
                 'status'        => $status,
                 'is_meas_valid' => $valid,
                 'meas_value'    => is_numeric($value) ? (float)$value : null,
-                'meas_unit'     => is_string($unit) ? $unit : null,
-                'device_user_identifier' => is_string($deviceType) ? $deviceType : null,
-                'link_state'    => $linkedByConfig ? 'Linked' : 'Unlinked',
-                'address_anchor' => $canonical,
-                'error_code'    => $errorCode,
-            ];
+	                'meas_unit'     => is_string($unit) ? $unit : null,
+	                'device_user_identifier' => is_string($deviceType) ? $deviceType : null,
+	                'link_state'    => $linkedByConfig ? 'Linked' : 'Unlinked',
+	                'address_anchor' => $canonical,
+	            ];
 
             if ($explain !== null) {
                 $entry['error_explanation'] = $explain;
