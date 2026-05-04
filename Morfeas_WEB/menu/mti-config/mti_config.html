@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MTI Config</title>
+  <link rel="stylesheet" href="../../assets/app.css" />
+  <style>
+    .wrap {
+      max-width: 1280px;
+      margin: 10px auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 900;
+      font-size: 18px;
+    }
+
+    .card-body {
+      padding: 12px;
+    }
+
+    .topbar,
+    .actions,
+    .field-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .topbar { justify-content: space-between; }
+    .actions { justify-content: flex-end; margin-top: 12px; }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .row-2 {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .metric {
+      border: 1px solid #e6e9ee;
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #fbfcfd;
+    }
+
+    .metric-label {
+      font-size: 12px;
+      color: #5b6472;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .metric-value {
+      margin-top: 4px;
+      font-size: 22px;
+      font-weight: 900;
+      color: #182433;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #d8dee6;
+      background: #f6f8fa;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .chip.ok {
+      background: #edf9f0;
+      border-color: #b5e3c1;
+      color: #1f6b36;
+    }
+
+    .chip.warn {
+      background: #fff4e5;
+      border-color: #f0c36d;
+      color: #8a4b00;
+    }
+
+    .chip.muted {
+      color: #5b6472;
+    }
+
+    .kv-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .kv-table td,
+    .kv-table th {
+      padding: 7px 6px;
+      border-bottom: 1px solid #eef0f3;
+      text-align: left;
+      vertical-align: top;
+      white-space: normal;
+    }
+
+    .kv-table td:first-child {
+      width: 42%;
+      color: #5b6472;
+      font-weight: 700;
+    }
+
+    .status-box {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #d9dde3;
+      background: #f7f9fb;
+      font-weight: 700;
+      color: #1f2328;
+    }
+
+    .subtle {
+      color: #5b6472;
+      font-size: 13px;
+    }
+
+    .tele-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+
+    .tele-card {
+      border: 1px solid #e6e9ee;
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #fbfcfd;
+    }
+
+    .tele-title {
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+
+    .control-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .led {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #0b5f23;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .led.on {
+      background: chartreuse;
+    }
+
+    .pwm-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .pwm-card {
+      border: 1px solid #e6e9ee;
+      border-radius: 12px;
+      padding: 10px;
+      background: #fbfcfd;
+    }
+
+    .pwm-card label {
+      display: grid;
+      gap: 3px;
+      margin-top: 8px;
+      font-weight: 700;
+      color: #5b6472;
+    }
+
+    @media (max-width: 980px) {
+      .grid,
+      .row-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="card-head">MTI Config</div>
+      <div class="card-body">
+        <div class="topbar">
+          <div class="field-row">
+            <strong>Device</strong>
+            <select id="deviceSelect" class="input" style="min-width:220px;"></select>
+            <span id="runtimeChip" class="chip muted">Unknown</span>
+          </div>
+          <button id="refreshBtn" class="btn">Refresh</button>
+        </div>
+        <div id="statusBox" class="status-box">Loading MTI data...</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="metric">
+        <div class="metric-label">IPv4 Address</div>
+        <div id="ipValue" class="metric-value">-</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">CPU Temp</div>
+        <div id="cpuValue" class="metric-value">-</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Battery</div>
+        <div id="batteryValue" class="metric-value">-</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Radio</div>
+        <div id="radioValue" class="metric-value">-</div>
+      </div>
+    </div>
+
+    <div class="row-2">
+      <div class="card">
+        <div class="card-head">Radio Setup</div>
+        <div class="card-body">
+          <div class="field-row">
+            <label for="modeSelect"><strong>Mode</strong></label>
+            <select id="modeSelect" class="input">
+              <option>Disabled</option>
+              <option>TC16</option>
+              <option>TC8</option>
+              <option>TC4</option>
+              <option>QUAD</option>
+              <option>RMSW/MUX</option>
+            </select>
+
+            <label for="rfChannelInput"><strong>RF Channel</strong></label>
+            <input id="rfChannelInput" class="input" type="number" min="0" max="126" step="2" style="width:110px;" />
+          </div>
+
+          <div id="tcExtra" class="field-row" style="margin-top:10px;">
+            <label for="samplesValidInput"><strong>Samples to Valid</strong></label>
+            <input id="samplesValidInput" class="input" type="number" min="0" max="255" style="width:110px;" />
+
+            <label for="samplesInvalidInput"><strong>Samples to Invalid</strong></label>
+            <input id="samplesInvalidInput" class="input" type="number" min="0" max="255" style="width:110px;" />
+          </div>
+
+          <div id="rmswExtra" class="field-row" style="margin-top:10px;">
+            <label>
+              <input id="globalControlCheck" type="checkbox" />
+              <strong>Global ON/OFF Control</strong>
+            </label>
+            <button id="globalOnBtn" class="btn sm">Global ON</button>
+            <button id="globalOffBtn" class="btn sm">Global OFF</button>
+          </div>
+
+          <div id="quadExtra" style="margin-top:10px;">
+            <div class="subtle"><strong>Gens Config</strong></div>
+            <div id="pwmConfigHost" class="pwm-grid"></div>
+          </div>
+
+          <div class="actions">
+            <button id="saveConfigBtn" class="btn primary">Set</button>
+          </div>
+
+          <div class="subtle" style="margin-top:10px;">
+            Changing MTI setup writes to the live MTI handler.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">MTI State</div>
+        <div class="card-body">
+          <table class="kv-table">
+            <tbody id="stateBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Telemetry</div>
+      <div class="card-body">
+        <div id="telemetryHost" class="tele-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../assets/config.js"></script>
+  <script src="../../assets/api/mti.js"></script>
+  <script src="./mti_config.js"></script>
+  <script>
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });
+  </script>
+</body>
+</html>

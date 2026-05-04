@@ -164,6 +164,45 @@
     }
   }
 
+  function openMtiPopup(name) {
+    const safeName = String(name || '').trim();
+    if (!safeName) return;
+
+    const url = new URL('../mti-config/mti_config.html', window.location.href);
+    url.searchParams.set('name', safeName);
+
+    const popupName = `mti_config_${safeName.replace(/[^A-Za-z0-9_-]/g, '_')}`;
+    const existing = popupRegistry.get(popupName);
+    if (existing && !existing.closed) {
+      try {
+        existing.location.href = url.toString();
+        existing.focus();
+        return;
+      } catch (_) {
+        popupRegistry.delete(popupName);
+      }
+    }
+
+    const features = [
+      'width=1260',
+      'height=860',
+      'left=100',
+      'top=60',
+      'resizable=yes',
+      'scrollbars=yes',
+      'toolbar=no',
+      'location=no',
+      'status=no',
+      'menubar=no',
+    ].join(',');
+
+    const win = window.open(url.toString(), popupName, features);
+    if (win) {
+      popupRegistry.set(popupName, win);
+      try { win.focus(); } catch (_) { }
+    }
+  }
+
   function shouldPollDevices() {
     return !document.hidden && popupWindowHasFocus && !removeInProgress && !transitionInProgress;
   }
@@ -218,6 +257,18 @@
     }
 
     return wrapper;
+  }
+
+  function updateDevicePlaceholders() {
+    const type = devType.value;
+    if (type === 'MTI') {
+      devName.placeholder = 'e.g. MTI_01';
+      devIp.placeholder = 'e.g. 192.168.137.10';
+      return;
+    }
+
+    devName.placeholder = 'e.g. IOBOX_01';
+    devIp.placeholder = 'e.g. 192.168.137.20';
   }
 
   function renderCanRows() {
@@ -325,9 +376,25 @@
       tdIp.textContent = d.ip || '-';
 
       const tdStatus = document.createElement('td');
-      tdStatus.appendChild(renderStatusCell(d.runtime_status || d.status || 'Unknown', d.status === 'Disabled' ? 'Disabled in config' : ''));
+      tdStatus.appendChild(renderStatusCell(
+        d.runtime_status || d.status || 'Unknown',
+        d.runtime_detail || (d.status === 'Disabled' ? 'Disabled in config' : '')
+      ));
 
-      [tdCheck, tdIdx, tdBus, tdType, tdName, tdIp, tdStatus].forEach((td) => tr.appendChild(td));
+      const tdAction = document.createElement('td');
+      if (d.type === 'MTI') {
+        const btn = document.createElement('button');
+        btn.className = 'btn sm';
+        btn.type = 'button';
+        btn.textContent = 'Open MTI Config';
+        btn.dataset.openMti = d.name || '';
+        btn.disabled = !!legacyState.blocking || !(d.name || '').trim();
+        tdAction.appendChild(btn);
+      } else {
+        tdAction.textContent = '—';
+      }
+
+      [tdCheck, tdIdx, tdBus, tdType, tdName, tdIp, tdStatus, tdAction].forEach((td) => tr.appendChild(td));
       configuredBody.appendChild(tr);
     });
 
@@ -551,9 +618,12 @@
     }
     propCard.style.display = 'block';
     devType.value = 'IO-BOX';
+    updateDevicePlaceholders();
     devName.value = '';
     devIp.value = '';
   });
+
+  devType.addEventListener('change', updateDevicePlaceholders);
 
   saveBtn.addEventListener('click', saveDevice);
 
@@ -575,6 +645,12 @@
 
   configuredBody.addEventListener('click', (e) => {
     if (legacyState.blocking) return;
+    const mtiBtn = e.target.closest('button[data-open-mti]');
+    if (mtiBtn) {
+      openMtiPopup(mtiBtn.dataset.openMti || '');
+      return;
+    }
+
     const tr = e.target.closest('tr');
     if (!tr) return;
     const cb = tr.querySelector('input[type="checkbox"]');

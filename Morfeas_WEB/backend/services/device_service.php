@@ -101,6 +101,34 @@ function device_normalize_runtime_status(?string $status, bool $detected = true)
     return $raw;
 }
 
+function device_normalize_ip_runtime(?string $status): array
+{
+    $raw = trim((string)$status);
+    $lower = strtolower($raw);
+
+    if ($raw === '') {
+        return [
+            'runtime_status' => 'Not connected',
+            'runtime_detail' => 'No connection status',
+            'detected' => false,
+        ];
+    }
+
+    if ($lower === 'okay') {
+        return [
+            'runtime_status' => 'Connected',
+            'runtime_detail' => '',
+            'detected' => true,
+        ];
+    }
+
+    return [
+        'runtime_status' => 'Not connected',
+        'runtime_detail' => $raw,
+        'detected' => false,
+    ];
+}
+
 function device_build_runtime_maps(string $ramdisk): array
 {
     $ipDevices = [];
@@ -116,12 +144,14 @@ function device_build_runtime_maps(string $ramdisk): array
         $identifier = trim((string)($data['Identifier'] ?? ''));
         $ipv4 = trim((string)($data['IPv4_address'] ?? ''));
         $status = trim((string)($data['Connection_status'] ?? ''));
+        $runtime = device_normalize_ip_runtime($status);
         $entry = [
             'type' => 'IOBOX',
             'identifier' => $identifier,
             'ip' => $ipv4,
-            'runtime_status' => device_normalize_runtime_status($status, true),
-            'detected' => true,
+            'runtime_status' => $runtime['runtime_status'],
+            'runtime_detail' => $runtime['runtime_detail'],
+            'detected' => $runtime['detected'],
         ];
 
         if ($identifier !== '') {
@@ -142,12 +172,14 @@ function device_build_runtime_maps(string $ramdisk): array
         $identifier = trim((string)($data['Identifier'] ?? ''));
         $ipv4 = trim((string)($data['IPv4_address'] ?? ''));
         $status = trim((string)($data['Connection_status'] ?? ''));
+        $runtime = device_normalize_ip_runtime($status);
         $entry = [
             'type' => 'MTI',
             'identifier' => $identifier,
             'ip' => $ipv4,
-            'runtime_status' => device_normalize_runtime_status($status, true),
-            'detected' => true,
+            'runtime_status' => $runtime['runtime_status'],
+            'runtime_detail' => $runtime['runtime_detail'],
+            'detected' => $runtime['detected'],
         ];
 
         if ($identifier !== '') {
@@ -195,6 +227,7 @@ function device_merge_manual_runtime_status(array $manual, array $runtimeMaps): 
 
         if ($disabled) {
             $dev['runtime_status'] = 'Disabled';
+            $dev['runtime_detail'] = 'Disabled in config';
             $dev['detected'] = false;
             continue;
         }
@@ -203,12 +236,14 @@ function device_merge_manual_runtime_status(array $manual, array $runtimeMaps): 
             $bus = strtolower(trim((string)($dev['bus'] ?? '')));
             $runtime = $bus !== '' ? ($noxBuses[$bus] ?? null) : null;
             $dev['runtime_status'] = $runtime['runtime_status'] ?? 'Not detected';
+            $dev['runtime_detail'] = '';
             $dev['detected'] = (bool)($runtime['detected'] ?? false);
             continue;
         }
 
         if (!in_array($type, ['IOBOX', 'MTI'], true)) {
             $dev['runtime_status'] = $status !== '' ? $status : 'Configured';
+            $dev['runtime_detail'] = '';
             $dev['detected'] = false;
             continue;
         }
@@ -224,6 +259,7 @@ function device_merge_manual_runtime_status(array $manual, array $runtimeMaps): 
         }
 
         $dev['runtime_status'] = $runtime['runtime_status'] ?? 'Not detected';
+        $dev['runtime_detail'] = $runtime['runtime_detail'] ?? '';
         $dev['detected'] = (bool)($runtime['detected'] ?? false);
     }
     unset($dev);

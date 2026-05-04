@@ -80,6 +80,7 @@
       canRoles: 'api_can_roles.php',
       canRoleTransition: 'api_can_role_transition.php',
       nox: 'api_nox.php',
+      mti: 'api_mti.php',
       systemStatus: 'api_system_status.php',
       ftpBackup: 'api_ftp_backup.php',
       networkConfig: 'api_network_config.php',
