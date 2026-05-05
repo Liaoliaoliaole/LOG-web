@@ -131,56 +131,70 @@ These values are emitted by Morfeas core. The web interface displays them when t
 \hline
 \end{longtable}
 
-\subsection{Device Status and Error-Code Mapping}
+\subsection{Device Status, Web Value, and OPC UA Value}
 The same reserved value can have a different operator-facing status depending on the device context. Read \textbf{Status} first for the reason, then \textbf{Meas} for the numeric value sent to downstream consumers.
 
-\begin{longtable}{|p{0.14\textwidth}|p{0.25\textwidth}|p{0.22\textwidth}|p{0.27\textwidth}|}
+\textbf{OPC UA mapped Value} below refers to the linked ISO channel \textbf{Value} node, not the raw device source node.
+
+\begingroup
+\small
+\setlength{\tabcolsep}{2pt}
+\begin{longtable}{|p{0.10\textwidth}|p{0.22\textwidth}|p{0.15\textwidth}|p{0.20\textwidth}|p{0.23\textwidth}|}
 \hline
-\textbf{Device} & \textbf{Situation} & \textbf{Meas} & \textbf{Status shown in web} \\
+\textbf{Device} & \textbf{Status / Situation} & \textbf{Web Meas} & \textbf{OPC UA mapped Value} & \textbf{Meaning} \\
 \hline
-SDAQ & Valid channel measurement & actual value & Okay, Out of Range, or Over Range depending on channel status \\
+SDAQ & Okay & actual value & actual value & Channel is valid and measuring normally. \\
 \hline
-SDAQ & Device/channel source missing from OPC UA & \texttt{-901} in OPC UA fallback & OFF-Line in linked-channel status context \\
+SDAQ & Out of Range / Over Range & actual value & actual value & Channel reports a real measurement, but it is outside the expected range. \\
 \hline
-SDAQ & No sensor & \texttt{-902} & No sensor \\
+SDAQ & No sensor & \texttt{-902} & \texttt{-902} & SDAQ reports no sensor on the channel. \\
 \hline
-SDAQ & Stall / no fresh samples & \texttt{-903} & Stall \\
+SDAQ & Stall & \texttt{-903} & \texttt{-903} & SDAQ is online, but fresh samples are not arriving. \\
 \hline
-SDAQ & Other invalid channel condition & \texttt{-904} & Unclassified \\
+SDAQ & Unclassified & \texttt{-904} & \texttt{-904} & SDAQ reports an invalid channel condition without a more specific mapping. \\
 \hline
-IOBOX & IOBOX device OFF-Line & \texttt{-901} when core provides channel values & OFF-Line \\
+SDAQ & OFF-Line with runtime source missing & \texttt{---} when no logstat value is available & \texttt{-901} fallback & Linked SDAQ source node is missing; OPC UA still returns a numeric unavailable value. \\
 \hline
-IOBOX & IOBOX online, RX/channel disconnected & \texttt{-901} & Disconnected \\
+IOBOX & Okay & actual value & actual value & Channel is valid and measuring normally. \\
 \hline
-IOBOX & No sensor & \texttt{-902} & No sensor \\
+IOBOX & OFF-Line & \texttt{-901} when core provides channel values; otherwise \texttt{---} & \texttt{-901} & IOBOX device or linked source is unavailable. \\
 \hline
-IOBOX & Other invalid channel condition & \texttt{-904} & Unclassified \\
+IOBOX & Disconnected & \texttt{-901} & \texttt{-901} & IOBOX is online, but the RX/channel path is not responding. \\
 \hline
-MTI & MTI device OFF-Line & \texttt{-901} when core provides channel values & OFF-Line \\
+IOBOX & No sensor & \texttt{-902} & \texttt{-902} & IOBOX reports no sensor on the channel. \\
 \hline
-MTI & MTI online, telemetry not responding & \texttt{-901} & Disconnected \\
+IOBOX & Unclassified & \texttt{-904} & \texttt{-904} & IOBOX reports an invalid condition without a more specific mapping. \\
 \hline
-MTI & MTI online, radio/telemetry intentionally Disabled & \texttt{---} & Disabled \\
+MTI & Okay & actual value & actual value & Channel is valid and measuring normally. \\
 \hline
-MTI & No sensor & \texttt{-902} & No sensor \\
+MTI & OFF-Line & \texttt{-901} when core provides channel values; otherwise \texttt{---} & \texttt{-901} & MTI device or linked source is unavailable. \\
 \hline
-MTI & Telemetry online but invalid data & \texttt{-904} & Unclassified \\
+MTI & Disconnected & \texttt{-901} & \texttt{-901} & MTI is online, but telemetry is not responding. \\
 \hline
-NOX & Sensor timed out after being detected & \texttt{-901} & OFF-Line or Not detected depending on runtime context \\
+MTI & Disabled & \texttt{---} & \texttt{-901} fallback if the linked source node is missing & MTI telemetry was intentionally disabled by the operator; web does not invent a numeric value. \\
 \hline
-NOX & Handler not running or sensor never detected & \texttt{---} in web; no value in OPC UA mapped channel & OFF-Line, Unknown, or not detected depending on runtime context \\
+MTI & No sensor & \texttt{-902} & \texttt{-902} & MTI telemetry reports no sensor on the channel. \\
 \hline
-NOX & Heater off & \texttt{-901} & Heater off \\
+MTI & Unclassified & \texttt{-904} & \texttt{-904} & MTI telemetry is online, but the data is invalid. \\
 \hline
-NOX & Heating / not in temperature & \texttt{-903} & Heating or not in temperature \\
+NOX & Okay & actual value & actual value & UniNOx sensor is active and measuring normally. \\
 \hline
-NOX & Sensor invalid condition & \texttt{-904} & Unclassified or device-specific error status \\
+NOX & Handler not running, NOX role removed, or sensor never detected & \texttt{---} & no value & NOX source node does not exist. This avoids phantom sensors. \\
+\hline
+NOX & OFF-Line after previously detected sensor timeout & \texttt{-901} & no value & Logstat records the timed-out sensor as offline; OPC UA source node is removed. \\
+\hline
+NOX & Heater off & \texttt{-901} & \texttt{-901} & Sensor is active, but heater-off state makes measurement unavailable. \\
+\hline
+NOX & Heating / Not in temperature & \texttt{-903} & \texttt{-903} & Sensor is active, but it is not ready for valid measurement. \\
+\hline
+NOX & Unclassified / invalid sensor condition & \texttt{-904} & \texttt{-904} & Sensor is active, but the reported measurement is invalid. \\
 \hline
 \end{longtable}
+\endgroup
 
 \textbf{MTI Disabled note:} Disabled is an operator-selected radio mode, not a measurement fault. If MTI telemetry is disabled, the web shows \textbf{Status = Disabled} and leaves \textbf{Meas} as \texttt{---} unless Morfeas core explicitly provides a numeric channel value. This keeps OPC UA/logstat measurement values owned by core and prevents the web interface from inventing error codes.
 
-\textbf{NOX mapped-channel note:} NOX uses dynamic sensor nodes for UniNOx addresses. If the NOX handler is not running, or a sensor address has never been detected, the linked OPC UA channel has no source node and returns no value rather than a numeric error code. This is intentional and prevents phantom NOX sensors. When a sensor is active but its measurement is unavailable, or when a previously detected sensor times out, Morfeas core may emit reserved numeric values such as \texttt{-901}, \texttt{-903}, or \texttt{-904} through the NOX runtime/logstat path.
+\textbf{NOX mapped-channel note:} NOX uses dynamic sensor nodes for UniNOx addresses. If the NOX handler is not running, the bus has been switched away from NOX, or a sensor address has never been detected, the linked OPC UA channel has no source node and returns no value rather than a numeric error code. This is intentional and prevents phantom NOX sensors. In the web linker table, this appears as a simple unavailable measurement such as \textbf{Status = OFF-Line} with \textbf{Meas = ---}. If NOX is still configured and Morfeas core reports that a previously detected sensor has timed out, the same \textbf{OFF-Line} status may appear with \textbf{Meas = -901}. In short: \textbf{OFF-Line + -901} means core reported an offline NOX sensor; \textbf{OFF-Line + ---} means the NOX runtime source/logstat is no longer available for that link.
 
 \subsection{Reading Status Together with Meas}
 Operators should read the \textbf{Status} and \textbf{Meas} columns together:
