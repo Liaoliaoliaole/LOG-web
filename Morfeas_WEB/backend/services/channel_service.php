@@ -19,6 +19,9 @@ function channel_reserved_error_code(?float $value): ?int
         return null;
     }
 
+    // Reserved measurement error codes are produced by core/logstat/OPC-UA.
+    // The web may display these values, but it must not infer or invent them
+    // from status text alone.
     $intValue = (int)round($value);
     return in_array($intValue, [-901, -902, -903, -904], true) ? $intValue : null;
 }
@@ -208,6 +211,7 @@ function channel_build_rows_with_logstat(
     $mtiMap  = $mtiData['anchors'] ?? [];
     $mtiConn = $mtiData['connections'] ?? [];
     $mtiIPv4 = $mtiData['ipv4'] ?? [];
+    $mtiTeleTypes = $mtiData['tele_types'] ?? [];
 
     $noxMap = [];
     foreach ($noxLogFiles as $path) {
@@ -382,6 +386,17 @@ function channel_build_rows_with_logstat(
                     channel_assign_error_code_display($row, $errorCode, $meas, $measUnit);
                 } elseif (!empty($ls['is_meas_valid']) && $ls['meas_value'] !== null) {
                     channel_assign_numeric_display($row, (float)$ls['meas_value'], $ls['meas_unit'] ?? null, $meas, $measUnit);
+                }
+            } elseif ($anchor) {
+                $deviceId = explode('.', $anchor, 2)[0] ?? null;
+                if ($deviceId !== null &&
+                    isset($mtiConn[$deviceId], $mtiTeleTypes[$deviceId]) &&
+                    strcasecmp((string)$mtiConn[$deviceId], 'Okay') === 0 &&
+                    strcasecmp((string)$mtiTeleTypes[$deviceId], 'Disabled') === 0) {
+                    // Radio Disabled is an operator-selected MTI mode, not a
+                    // measurement error value. Keep Meas as "—" unless core
+                    // provides a numeric value in logstat.
+                    $status = 'Disabled';
                 }
             }
 

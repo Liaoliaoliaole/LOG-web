@@ -12,6 +12,9 @@ function mti_reserved_error_code($value): ?int
 
 function mti_status_from_error_code(int $code, ?string $connectionStatus = null): string
 {
+    // Translate a core-emitted error code into a human-readable status string.
+    // Connection status distinguishes device-level OFF-Line from per-channel
+    // Disconnected when both are represented by -901.
     if ($code === -901) {
         if ($connectionStatus !== null && strcasecmp(trim($connectionStatus), 'Okay') !== 0) {
             return 'OFF-Line';
@@ -29,6 +32,7 @@ function mti_load_anchor_map(array $paths): array
     $anchors     = [];
     $connections = [];
     $ipv4ById    = [];
+    $teleTypes   = [];
 
     foreach ($paths as $jsonPath) {
         if (!is_file($jsonPath)) continue;
@@ -40,20 +44,24 @@ function mti_load_anchor_map(array $paths): array
         if (!is_array($data)) continue;
 
         $identifier = $data['Identifier'] ?? null;
-        if (is_numeric($identifier)) {
-            $connections[$identifier] = $data['Connection_status'] ?? null;
+        $identifierKey = is_numeric($identifier) ? (string)$identifier : null;
+        if ($identifierKey !== null) {
+            $connections[$identifierKey] = $data['Connection_status'] ?? null;
         }
 
-        if ($identifier !== null && !empty($data['IPv4_address']) && is_string($data['IPv4_address'])) {
-            $ipv4ById[(string)$identifier] = $data['IPv4_address'];
+        if ($identifierKey !== null && !empty($data['IPv4_address']) && is_string($data['IPv4_address'])) {
+            $ipv4ById[$identifierKey] = $data['IPv4_address'];
         }
 
         $connectionStatus = is_string($data['Connection_status'] ?? null) ? $data['Connection_status'] : null;
 
         $tele     = $data['Tele_data'] ?? null;
         $teleType = $data['MTI_status']['Tele_Device_type'] ?? null;
+        if ($identifierKey !== null && is_string($teleType) && $teleType !== '') {
+            $teleTypes[$identifierKey] = $teleType;
+        }
 
-        if (!$teleType || !is_array($tele) || !isset($tele['CHs']) || !is_array($tele['CHs']) || $identifier === null) {
+        if (!$teleType || !is_array($tele) || !isset($tele['CHs']) || !is_array($tele['CHs']) || $identifierKey === null) {
             continue;
         }
 
@@ -62,22 +70,22 @@ function mti_load_anchor_map(array $paths): array
 
         foreach ($tele['CHs'] as $idx => $value) {
             $chNum = $idx + 1;
-            $anchor = sprintf('%s.%s.CH%d', $identifier, $typeSlug, $chNum);
+            $anchor = sprintf('%s.%s.CH%d', $identifierKey, $typeSlug, $chNum);
 
-	            $errorCode = mti_reserved_error_code($value);
-	            if ($errorCode !== null) {
-	                $status = mti_status_from_error_code($errorCode, $connectionStatus);
-	                $valid  = false;
-	                $meas   = (float)$errorCode;
-	            } elseif (is_numeric($value) && ($tele['IsValid'] ?? true)) {
-	                $status = 'Okay';
-	                $valid  = true;
-	                $meas   = (float)$value;
-	            } else {
-	                $status = 'Unclassified';
-	                $valid  = false;
-	                $meas   = null;
-	            }
+            $errorCode = mti_reserved_error_code($value);
+            if ($errorCode !== null) {
+                $status = mti_status_from_error_code($errorCode, $connectionStatus);
+                $valid  = false;
+                $meas   = (float)$errorCode;
+            } elseif (is_numeric($value) && ($tele['IsValid'] ?? true)) {
+                $status = 'Okay';
+                $valid  = true;
+                $meas   = (float)$value;
+            } else {
+                $status = 'Unclassified';
+                $valid  = false;
+                $meas   = null;
+            }
 
             $anchors[$anchor] = [
                 'status'        => $status,
@@ -87,7 +95,7 @@ function mti_load_anchor_map(array $paths): array
             ];
 
             if ($typeSlug !== $teleType) {
-                $anchors[sprintf('%s.%s.CH%d', $identifier, $teleType, $chNum)] = $anchors[$anchor];
+                $anchors[sprintf('%s.%s.CH%d', $identifierKey, $teleType, $chNum)] = $anchors[$anchor];
             }
         }
     }
@@ -96,5 +104,6 @@ function mti_load_anchor_map(array $paths): array
         'anchors'     => $anchors,
         'connections' => $connections,
         'ipv4'        => $ipv4ById,
+        'tele_types'  => $teleTypes,
     ];
 }

@@ -115,6 +115,7 @@ The \textbf{Meas} column follows the runtime measurement semantics of the curren
 
 \subsection{Reserved Measurement Error Codes}
 The following reserved values may appear in the \textbf{Meas} column, in OPC UA downstream consumers, and in connected tools that read the same measurement path.
+These values are emitted by Morfeas core. The web interface displays them when they are present in runtime data; it does not create these numeric error codes from status text alone.
 
 \begin{longtable}{|p{0.18\textwidth}|p{0.28\textwidth}|p{0.42\textwidth}|}
 \hline
@@ -130,12 +131,64 @@ The following reserved values may appear in the \textbf{Meas} column, in OPC UA 
 \hline
 \end{longtable}
 
+\subsection{Device Status and Error-Code Mapping}
+The same reserved value can have a different operator-facing status depending on the device context. Read \textbf{Status} first for the reason, then \textbf{Meas} for the numeric value sent to downstream consumers.
+
+\begin{longtable}{|p{0.14\textwidth}|p{0.25\textwidth}|p{0.22\textwidth}|p{0.27\textwidth}|}
+\hline
+\textbf{Device} & \textbf{Situation} & \textbf{Meas} & \textbf{Status shown in web} \\
+\hline
+SDAQ & Valid channel measurement & actual value & Okay, Out of Range, or Over Range depending on channel status \\
+\hline
+SDAQ & Device/channel source missing from OPC UA & \texttt{-901} in OPC UA fallback & OFF-Line in linked-channel status context \\
+\hline
+SDAQ & No sensor & \texttt{-902} & No sensor \\
+\hline
+SDAQ & Stall / no fresh samples & \texttt{-903} & Stall \\
+\hline
+SDAQ & Other invalid channel condition & \texttt{-904} & Unclassified \\
+\hline
+IOBOX & IOBOX device OFF-Line & \texttt{-901} when core provides channel values & OFF-Line \\
+\hline
+IOBOX & IOBOX online, RX/channel disconnected & \texttt{-901} & Disconnected \\
+\hline
+IOBOX & No sensor & \texttt{-902} & No sensor \\
+\hline
+IOBOX & Other invalid channel condition & \texttt{-904} & Unclassified \\
+\hline
+MTI & MTI device OFF-Line & \texttt{-901} when core provides channel values & OFF-Line \\
+\hline
+MTI & MTI online, telemetry not responding & \texttt{-901} & Disconnected \\
+\hline
+MTI & MTI online, radio/telemetry intentionally Disabled & \texttt{---} & Disabled \\
+\hline
+MTI & No sensor & \texttt{-902} & No sensor \\
+\hline
+MTI & Telemetry online but invalid data & \texttt{-904} & Unclassified \\
+\hline
+NOX & Sensor timed out after being detected & \texttt{-901} & OFF-Line or Not detected depending on runtime context \\
+\hline
+NOX & Handler not running or sensor never detected & \texttt{---} in web; no value in OPC UA mapped channel & OFF-Line, Unknown, or not detected depending on runtime context \\
+\hline
+NOX & Heater off & \texttt{-901} & Heater off \\
+\hline
+NOX & Heating / not in temperature & \texttt{-903} & Heating or not in temperature \\
+\hline
+NOX & Sensor invalid condition & \texttt{-904} & Unclassified or device-specific error status \\
+\hline
+\end{longtable}
+
+\textbf{MTI Disabled note:} Disabled is an operator-selected radio mode, not a measurement fault. If MTI telemetry is disabled, the web shows \textbf{Status = Disabled} and leaves \textbf{Meas} as \texttt{---} unless Morfeas core explicitly provides a numeric channel value. This keeps OPC UA/logstat measurement values owned by core and prevents the web interface from inventing error codes.
+
+\textbf{NOX mapped-channel note:} NOX uses dynamic sensor nodes for UniNOx addresses. If the NOX handler is not running, or a sensor address has never been detected, the linked OPC UA channel has no source node and returns no value rather than a numeric error code. This is intentional and prevents phantom NOX sensors. When a sensor is active but its measurement is unavailable, or when a previously detected sensor times out, Morfeas core may emit reserved numeric values such as \texttt{-901}, \texttt{-903}, or \texttt{-904} through the NOX runtime/logstat path.
+
 \subsection{Reading Status Together with Meas}
 Operators should read the \textbf{Status} and \textbf{Meas} columns together:
 
 \begin{itemize}
 \item \textbf{Status = Out of Range} or \textbf{Over Range} with a numeric \textbf{Meas} value means the device still reports a measurement, but the channel is flagged as outside the expected calibrated or device range.
 \item \textbf{Status = No sensor}, \textbf{OFF-Line}, \textbf{Disconnected}, \textbf{Stall}, or \textbf{Unclassified} together with a red negative \textbf{Meas} value means the measurement is not valid and the code should be interpreted using the error-code table above.
+\item \textbf{Status = Disabled} with \textbf{Meas = ---} means the function is intentionally turned off, not failed.
 \end{itemize}
 
 \subsection{Search}
