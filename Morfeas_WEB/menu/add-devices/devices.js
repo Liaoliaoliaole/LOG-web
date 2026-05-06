@@ -36,9 +36,15 @@
   const devType = $('#devType');
   const devName = $('#devName');
   const devIp = $('#devIp');
+  const devNameHint = $('#devNameHint');
 
-  [devName, devIp].forEach((input) => {
-    input.addEventListener('input', () => stripSpaces(input));
+  devIp.addEventListener('input', () => stripSpaces(devIp));
+  devName.addEventListener('input', () => {
+    stripSpaces(devName);
+    if (devType.value === 'MTI') {
+      // Silently drop any character that is illegal in a D-Bus interface name element.
+      devName.value = devName.value.replace(/[^A-Za-z0-9_]/g, '');
+    }
   });
   devName.addEventListener('change', () => validateDevName(devName));
   devIp.addEventListener('change', () => validateIp(devIp));
@@ -55,6 +61,11 @@
 
   const IP_REGEX = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
   const DEV_NAME_REGEX = /^[A-Za-z0-9_-]{1,64}$/;
+  // D-Bus interface name element rules (RFC / D-Bus spec):
+  // only [A-Za-z0-9_], must not start with a digit.
+  // D-Bus spec: interface names max 255 chars total. Prefix "Morfeas.MTI." is 12 chars,
+  // leaving 243 chars for the element: first char [A-Za-z_], remainder [A-Za-z0-9_]{0,242}.
+  const MTI_DBUS_ELEMENT_REGEX = /^[A-Za-z_][A-Za-z0-9_]{0,242}$/;
 
   function stripSpaces(el) {
     el.value = el.value.replace(/\s+/g, '');
@@ -72,7 +83,21 @@
 
   function validateDevName(el) {
     const val = el.value.trim();
-    if (val && !DEV_NAME_REGEX.test(val)) {
+    if (!val) return true;
+    if (devType.value === 'MTI') {
+      if (!MTI_DBUS_ELEMENT_REGEX.test(val)) {
+        el.value = '';
+        alert(
+          'MTI Device Name must satisfy D-Bus interface name element rules:\n' +
+          '\u2022 Allowed characters: A\u2013Z  a\u2013z  0\u20139  _\n' +
+          '\u2022 No hyphens or other special characters\n' +
+          '\u2022 Must not start with a digit'
+        );
+        return false;
+      }
+      return true;
+    }
+    if (!DEV_NAME_REGEX.test(val)) {
       el.value = '';
       alert('DEV_NAME may contain only letters, numbers, "_" or "-"');
       return false;
@@ -264,11 +289,15 @@
     if (type === 'MTI') {
       devName.placeholder = 'e.g. MTI_01';
       devIp.placeholder = 'e.g. 192.168.137.10';
+      devNameHint.hidden = false;
+      // Strip any already-present character that is invalid for a D-Bus interface name element.
+      devName.value = devName.value.replace(/[^A-Za-z0-9_]/g, '');
       return;
     }
 
     devName.placeholder = 'e.g. IOBOX_01';
     devIp.placeholder = 'e.g. 192.168.137.20';
+    devNameHint.hidden = true;
   }
 
   function renderCanRows() {

@@ -317,6 +317,12 @@
           <div class="label">Device Name</div>
           <div>
             <input id="devName" class="input" style="min-width:280px" placeholder="e.g. IOBOX_01" />
+            <div id="devNameHint" hidden style="color:#a8071a;font-size:12px;font-weight:700;margin-top:4px;">
+              D-Bus interface name element rules &mdash;
+              allowed: <code>A&ndash;Z&nbsp; a&ndash;z&nbsp; 0&ndash;9&nbsp; _</code>
+              &nbsp;&middot;&nbsp; No hyphens &nbsp;&middot;&nbsp; Must not start with a digit
+              &nbsp;&middot;&nbsp; Max 243 chars (D-Bus interface names must not exceed 255 chars)
+            </div>
           </div>
 
           <div class="label">IPv4 Address</div>

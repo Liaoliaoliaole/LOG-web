@@ -123,6 +123,20 @@ function mti_gdbus_call(string $name, string $method, array $payload): string
         throw new InvalidArgumentException('Invalid MTI action');
     }
 
+    // D-Bus interface name elements (RFC / D-Bus spec) allow only [A-Za-z0-9_]
+    // and must not start with a digit.  Hyphens are valid in bus/destination
+    // names but NOT in interface names, so we reject them here explicitly
+    // rather than letting gdbus fail with a cryptic assertion error.
+    // D-Bus spec: interface names max 255 chars total. Prefix "Morfeas.MTI." is 12 chars,
+    // leaving 243 chars for the element: first char [A-Za-z_], remainder [A-Za-z0-9_]{0,242}.
+    if (preg_match('/^[A-Za-z_][A-Za-z0-9_]{0,242}$/', $normalizedName) !== 1) {
+        throw new InvalidArgumentException(sprintf(
+            'Device name "%s" is not a valid D-Bus interface name element. ' .
+            'Allowed: A-Z, a-z, 0-9, _ — no hyphens, must not start with a digit.',
+            $normalizedName
+        ));
+    }
+
     $target = sprintf('org.freedesktop.Morfeas.MTI.%s', $normalizedName);
     $interface = sprintf('Morfeas.MTI.%s', $normalizedName);
     $fullMethod = $interface . '.' . $method;
