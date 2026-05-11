@@ -1135,7 +1135,7 @@
       if (s === 'open wire') return 'st-Error';
       if (s === 'short circuit') return 'st-Error';
       if (s === 'heater off') return 'st-Error';
-      if (s.startsWith('heating up')) return 'st-Error';
+      if (s.startsWith('heating up')) return 'st-Stall';
       if (s === 'off-line' || s === 'offline') return 'st-Offline';
       if (s === 'disconnected') return 'st-Offline';
 
@@ -1513,7 +1513,7 @@
         const isSdaqIU = devType === 'SDAQ-I' || devType === 'SDAQ-U';
         const isOffline = statusNorm === 'off-line' || statusNorm === 'offline' || statusNorm === 'disconnected';
 
-        if (isOffline) {
+        if (isOffline && isSdaq) {
           addCtxItem('Replace', 'replace');
         }
 
@@ -1884,6 +1884,10 @@
           const rowDataReplace = latestReplace || cachedReplace || buildRowDataFromDom(trReplace);
           if (!rowDataReplace) {
             alert('No channel data available for replace');
+            break;
+          }
+          if (!isSdaqRowLike(rowDataReplace)) {
+            alert('Replace is available only for SDAQ channels.');
             break;
           }
           try {

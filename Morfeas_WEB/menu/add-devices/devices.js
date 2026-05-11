@@ -329,7 +329,7 @@
             wrap.style.gap = '6px';
             actions.forEach((label) => {
               const btn = document.createElement('button');
-              btn.className = 'btn sm';
+              btn.className = label.startsWith('Open ') && label.endsWith(' Config') ? 'btn sm primary' : 'btn sm';
               btn.textContent = label;
               btn.dataset.bus = row.bus || '';
               btn.dataset.action = label;
@@ -413,7 +413,7 @@
       const tdAction = document.createElement('td');
       if (d.type === 'MTI') {
         const btn = document.createElement('button');
-        btn.className = 'btn sm';
+        btn.className = 'btn sm primary';
         btn.type = 'button';
         btn.textContent = 'Open MTI Config';
         btn.dataset.openMti = d.name || '';

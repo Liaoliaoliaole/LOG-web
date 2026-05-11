@@ -127,6 +127,30 @@
     return 'Not Valid';
   }
 
+  function setHeaterButtonSelected(enabled) {
+    selectedHeaterOnBtn.classList.toggle('heater-selected', enabled === true);
+    selectedHeaterOffBtn.classList.toggle('heater-selected', enabled === false);
+    selectedHeaterOnBtn.setAttribute('aria-pressed', enabled === true ? 'true' : 'false');
+    selectedHeaterOffBtn.setAttribute('aria-pressed', enabled === false ? 'true' : 'false');
+  }
+
+  function syncHeaterButtons(sensor) {
+    if (!sensor?.detected) {
+      setHeaterButtonSelected(null);
+      return;
+    }
+
+    const mode = String(sensor?.status?.heater_mode_state || '').trim().toLowerCase();
+    const measuring = !!sensor?.status?.meas_state;
+    if (measuring || (mode !== '' && mode !== 'heater off')) {
+      setHeaterButtonSelected(true);
+    } else if (mode === 'heater off') {
+      setHeaterButtonSelected(false);
+    } else {
+      setHeaterButtonSelected(null);
+    }
+  }
+
   function renderSelectedSensor(state) {
     const sensor = selectedSensor(state);
     selectedNoxValue.textContent = formatLegacyMeasurement(sensor, 'NOx_value_avg', 'is_NOx_value_valid', 3, ' ppm');
@@ -136,6 +160,7 @@
     selectedNoxError.textContent = sensorText(sensor?.errors?.NOx);
     selectedO2Error.textContent = sensorText(sensor?.errors?.O2);
     selectedLastSeen.textContent = sensor?.last_seen ? new Date(sensor.last_seen * 1000).toLocaleString() : '—';
+    syncHeaterButtons(sensor);
 
     const measuring = !!sensor?.status?.meas_state;
     autoOffLabel.textContent = measuring ? 'PowerOFF_CNT (sec)' : 'PowerOFF (sec)';
@@ -558,6 +583,7 @@
       if (!window.confirm(`Turn heater ${enabled ? 'ON' : 'OFF'} for addr ${addr}?`)) return false;
       const json = await noxApi.setHeater(bus, addr, enabled);
       if (json.ok === false) throw new Error(json.error || 'Heater command failed');
+      setHeaterButtonSelected(enabled);
       const settled = await waitForHeaterState(addr, enabled);
       if (!settled) {
         throw new Error(`Heater ${enabled ? 'ON' : 'OFF'} accepted, but addr ${addr} did not update yet.`);

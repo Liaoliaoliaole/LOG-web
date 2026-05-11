@@ -232,6 +232,13 @@
       min-width: 120px;
     }
 
+    .btn.heater-selected {
+      background: var(--color-row-selected);
+      border-color: var(--color-status-stall);
+      box-shadow: inset 0 0 0 2px var(--color-status-stall);
+      color: #1f2328;
+    }
+
     .dygraph-legend {
       background: rgba(247, 249, 251, 0.92) !important;
       padding: 6px 8px !important;
@@ -267,7 +274,7 @@
               <option value="0">Addr 0</option>
               <option value="1">Addr 1</option>
             </select>
-            <button id="selectedHeaterOnBtn" class="btn primary">Heater ON</button>
+            <button id="selectedHeaterOnBtn" class="btn">Heater ON</button>
             <button id="selectedHeaterOffBtn" class="btn">Heater OFF</button>
           </div>
 
@@ -308,7 +315,7 @@
     </div>
 
     <div class="row-2">
-      <div id="currentDataCard" class="card">
+      <div class="card">
         <div class="card-head">Live Trend</div>
         <div class="card-body">
           <div class="graph-controls">
@@ -351,7 +358,7 @@
         </div>
       </div>
 
-      <div class="card">
+      <div id="currentDataCard" class="card">
         <div class="card-head">Current Data</div>
         <div class="card-body">
           <table class="kv-table">
