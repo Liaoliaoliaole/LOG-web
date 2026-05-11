@@ -268,7 +268,7 @@
       SDAQ: 'CAN1.ADDR:01.CH:01',
       IOBOX: 'DEV_NAME.RX:X.CH:XX',
       MTI: 'DEV_NAME.Type.CH:XX',
-      NOX: 'CAN-if.Addr:X.Sensor_name',
+      NOX: 'CAN0.ADDR:0.NOx',
     };
 
     rangeLabel.classList.toggle('hidden', !isSdaq);

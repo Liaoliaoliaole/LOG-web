@@ -102,6 +102,19 @@ Typical columns include:
 
 The page refreshes automatically while it is visible, so operators normally do not need to reload manually.
 
+\subsection{Next Calibration}
+The \textbf{Next Calibration} column is calculated from calibration metadata stored with each ISO channel.
+
+\begin{itemize}
+\item For \textbf{SDAQ} channels, calibration date and period come from the SDAQ runtime calibration data when the device reports it.
+\item For \textbf{IOBOX}, \textbf{MTI}, and \textbf{NOX} channels, calibration metadata is stored in the OPC UA channel configuration as \texttt{CAL\_DATE} and \texttt{CAL\_PERIOD}.
+\item When a non-SDAQ channel is added and no other calibration metadata is entered, the Add Channel popup defaults \texttt{CAL\_DATE} to the current date and \texttt{CAL\_PERIOD} to 12 months.
+\item The displayed next calibration date is \texttt{CAL\_DATE + CAL\_PERIOD} months.
+\item A missing or invalid calibration date or period is shown as \texttt{---}.
+\end{itemize}
+
+For example, a non-SDAQ channel added on \texttt{2026-05-11} with the default 12-month period is shown with next calibration \texttt{2027-05-11}.
+
 \subsection{Measurement Display Rules}
 The \textbf{Meas} column follows the runtime measurement semantics of the current system.
 
@@ -208,6 +221,19 @@ Operators should read the \textbf{Status} and \textbf{Meas} columns together:
 \subsection{Search}
 Use \textbf{Search Input} to filter channels in the current table.
 
+\subsection{Add Channel Device Search}
+The Add Channel popup uses device search to choose runtime source paths for new links.
+Search results are limited to the selected device family and to paths that are not already linked in the current OPC UA channel configuration.
+
+\begin{itemize}
+\item \textbf{SDAQ}: search lists detected SDAQ channels that are not already linked. Single-channel manual offline anchors are allowed when needed.
+\item \textbf{IOBOX}: search lists channels from IOBOX devices whose runtime connection status is \textbf{Okay}. A receiver marked \textbf{Disconnected} is not listed. Individual channels under an online receiver may still be listed even when their current status is \textbf{No sensor} or otherwise invalid, matching the legacy search behavior.
+\item \textbf{MTI}: search lists channels only when the MTI runtime connection status is \textbf{Okay} and the radio/telemetry mode provides channel data. Modes \textbf{TC4}, \textbf{TC8}, \textbf{TC16}, and \textbf{QUAD} expose their channel list. \textbf{RMSW/MUX} exposes detected \textbf{Mini\_RMSW} measurement channels. \textbf{Disabled} does not expose Add Channel candidates.
+\item \textbf{NOX}: search lists \textbf{NOx} and \textbf{O2} entries for detected UniNOx sensor objects. The current measurement does not need to be valid; for example, heater-off or warming-up sensors may still be linked and controlled later.
+\end{itemize}
+
+The search popup and save validation both enforce device-family matching. IOBOX candidates are not accepted as MTI links, and MTI candidates are not accepted as IOBOX links, even if the physical equipment connected behind the device can be similar.
+
 \subsection{Context Menu}
 Right-click a row to access actions such as:
 
@@ -242,7 +268,7 @@ The following keyboard shortcuts and key actions are currently implemented in th
 \begin{itemize}
 \item \textbf{Ctrl+S} or \textbf{Cmd+S}: save the current Add Channel form.
 \item \textbf{Enter} in the ISO field: accept the typed ISO code as a custom manual ISO value.
-\item \textbf{Enter} in the sensor path field: accept the typed device path or manual offline anchor.
+\item \textbf{Enter} in the sensor path field: accept the typed device path when it matches an available search-pool candidate. Manual offline anchors are intended for SDAQ single-channel use only.
 \item \textbf{Escape}: close the popup window.
 \end{itemize}
 
@@ -436,6 +462,7 @@ Morfeas WEB supports both single-channel replacement and grouped TC16 replacemen
 
 \subsection{Single-Channel Replace}
 Single-channel replace uses the standard Edit Link popup in replace mode.
+In the current web interface, the standard replace action is offered only for eligible SDAQ channels. IOBOX, MTI, and NOX rows do not show the normal replace option.
 
 \subsubsection{Typical Flow}
 \begin{enumerate}
@@ -587,6 +614,8 @@ This tab shows live system and bus information in tables. Depending on the devic
 \item shunt temperature,
 \item last calibration timestamps.
 \end{itemize}
+
+Temperature values shown by the current web interface are displayed in degrees Celsius. This includes CPU temperature, SDAQnet shunt temperature, IOBOX/MTI temperature channels, and NOX page shunt temperature.
 
 \subsubsection{System Logs}
 This tab is used for Morfeas application logger files.

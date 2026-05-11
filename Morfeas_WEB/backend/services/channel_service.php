@@ -178,6 +178,15 @@ function channel_build_rows_with_logstat(
         return $prefix . '.' . strtoupper($rest);
     };
 
+    $formatNoxDisplayAnchor = static function (?string $anchor): string {
+        $canonical = channel_nox_canonical_search_entry($anchor);
+        if ($canonical !== null) {
+            return $canonical['display_anchor'];
+        }
+
+        return strtoupper(trim((string)$anchor));
+    };
+
     $sdaqAnchorsFromXml = [];
     foreach ($channels as $ch) {
         if (strcasecmp($ch['interface_type'] ?? '', 'SDAQ') === 0 && !empty($ch['anchor'])) {
@@ -408,6 +417,10 @@ function channel_build_rows_with_logstat(
             }
 
         } elseif ($type === 'NOX' || $type === 'NOx') {
+            // Keep the legacy/core anchor for XML, but show CAN-bus NOX paths in
+            // the same user-facing style as other CAN devices.
+            $row['display_anchor'] = $formatNoxDisplayAnchor($anchor);
+
             if ($anchor && isset($noxMap[$anchor])) {
                 $ls = $noxMap[$anchor];
                 $status = $ls['status'] ?? 'Unknown';
