@@ -59,10 +59,11 @@ function nox_load_anchor_map(string $jsonPath): array
     $map = [];
 
     $allowedErrors = ['Open Wire', 'Short circuit'];
-    $onlineWindowSec = nox_runtime_online_window($data);
-
     foreach ($sensors as $s) {
         if (!is_array($s)) {
+            continue;
+        }
+        if (count($s) === 0) {
             continue;
         }
 
@@ -70,11 +71,6 @@ function nox_load_anchor_map(string $jsonPath): array
         $o2Val  = $s['O2_value_avg'] ?? null;
         $noxErrorCode = nox_reserved_error_code($noxVal);
         $o2ErrorCode  = nox_reserved_error_code($o2Val);
-        $hasCoreErrorValue = $noxErrorCode !== null || $o2ErrorCode !== null;
-
-        if (!nox_runtime_sensor_detected($s, null, $onlineWindowSec) && !$hasCoreErrorValue) {
-            continue;
-        }
 
         $addr = isset($s['addr']) ? (int)$s['addr'] : (isset($s['Address']) ? (int)$s['Address'] : null);
 

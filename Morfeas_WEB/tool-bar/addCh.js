@@ -371,6 +371,38 @@
     ) || null;
   }
 
+  function normalizeFamily(value) {
+    return (value || '').toString().trim().toUpperCase();
+  }
+
+  function selectedDeviceFamily(device) {
+    const direct = normalizeFamily(device?.interface_type || device?.type || device?.pool_type);
+    if (direct) return direct;
+
+    const deviceType = normalizeFamily(device?.device_type);
+    if (deviceType.startsWith('SDAQ')) return 'SDAQ';
+    if (deviceType.startsWith('IOBOX')) return 'IOBOX';
+    if (deviceType.startsWith('MTI')) return 'MTI';
+    if (deviceType.startsWith('NOX')) return 'NOX';
+    return '';
+  }
+
+  function isIoboxAnchor(value) {
+    return /\.RX\d+\.CH\d+$/i.test((value || '').toString().trim());
+  }
+
+  function selectedAnchorMatchesType(device, expectedType) {
+    if (!device || !expectedType) return true;
+    const anchors = [device.anchor, device.display_anchor].filter(Boolean);
+    if (expectedType === 'IOBOX') {
+      return anchors.some(isIoboxAnchor);
+    }
+    if (expectedType === 'MTI') {
+      return !anchors.some(isIoboxAnchor);
+    }
+    return true;
+  }
+
   function setManualPath(anchor) {
     if (!anchor) {
       state.selectedDevice = null;
@@ -436,6 +468,10 @@
     const type = typeSel.value;
     const pool = state.searchPool[type] || [];
     const manual = state.selectedDevice?.manual;
+    if (!selectedAnchorMatchesType(state.selectedDevice, type)) {
+      setStatus(`Sensor path does not match ${type}`, 'error');
+      return false;
+    }
 
     for (let i = 0; i < range; i++) {
       const anchor = buildAnchor(state.selectedDevice.anchor, i);
@@ -445,7 +481,7 @@
       }
       const entry = pool.find((p) => (p.anchor || '').toUpperCase() === anchor.toUpperCase());
       if (!entry) {
-        if (manual && range === 1) {
+        if (type === 'SDAQ' && manual && range === 1) {
           continue;
         }
         setStatus(`Channel ${anchor} is not available`, 'error');
@@ -689,7 +725,31 @@
   window.addEventListener('message', (e) => {
     const data = e.data;
     if (!data || data.type !== 'device-selected') return;
-    state.selectedDevice = data.payload || null;
+
+    const selected = data.payload || null;
+    const expectedType = normalizeFamily(typeSel.value);
+    const selectedType = selectedDeviceFamily(selected);
+    if (selected && expectedType && selectedType && selectedType !== expectedType) {
+      setStatus(`Selected ${selectedType} channel cannot be used for ${expectedType}`, 'error');
+      return;
+    }
+    if (selected && !selectedAnchorMatchesType(selected, expectedType)) {
+      setStatus(`Selected channel shape does not match ${expectedType}`, 'error');
+      return;
+    }
+
+    // Prefer the local pool entry so save-time validation uses the same anchor
+    // metadata shown in this Add Channel window. If the popup data is newer than
+    // the parent pool, keep the selected payload but never allow a known family
+    // mismatch above.
+    const selectedAnchor = selected?.anchor || selected?.display_anchor || '';
+    const localEntry = selected ? findPoolEntry(expectedType, selectedAnchor) : null;
+    if (selected && !localEntry && !selectedType) {
+      setStatus(`Selected channel is not available for ${expectedType}`, 'error');
+      return;
+    }
+
+    state.selectedDevice = localEntry || selected;
     state.manualPath = false;
     if (state.selectedDevice) {
       pathInput.value = state.selectedDevice.display_anchor || state.selectedDevice.anchor || '';

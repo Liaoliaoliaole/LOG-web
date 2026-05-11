@@ -54,6 +54,9 @@ function mti_load_anchor_map(array $paths): array
         }
 
         $connectionStatus = is_string($data['Connection_status'] ?? null) ? $data['Connection_status'] : null;
+        if ($connectionStatus === null || strcasecmp(trim($connectionStatus), 'Okay') !== 0) {
+            continue;
+        }
 
         $tele     = $data['Tele_data'] ?? null;
         $teleType = $data['MTI_status']['Tele_Device_type'] ?? null;
@@ -61,12 +64,46 @@ function mti_load_anchor_map(array $paths): array
             $teleTypes[$identifierKey] = $teleType;
         }
 
-        if (!$teleType || !is_array($tele) || !isset($tele['CHs']) || !is_array($tele['CHs']) || $identifierKey === null) {
+        if (!$teleType || !is_array($tele) || $identifierKey === null) {
             continue;
         }
 
         $typeSlug = is_string($teleType) ? $teleType : '';
         $typeSlug = (substr($typeSlug, 0, 5) === 'Tele_') ? substr($typeSlug, 5) : $typeSlug;
+
+        if ($typeSlug === 'RMSW/MUX') {
+            foreach ($tele as $device) {
+                if (!is_array($device) || ($device['Dev_type'] ?? null) !== 'Mini_RMSW') {
+                    continue;
+                }
+
+                $devId = $device['Dev_ID'] ?? null;
+                $chs = $device['CHs_meas'] ?? null;
+                if ($devId === null || !is_array($chs)) {
+                    continue;
+                }
+
+                foreach ($chs as $idx => $value) {
+                    $chNum = $idx + 1;
+                    $anchor = sprintf('%s.ID:%s.CH%d', $identifierKey, $devId, $chNum);
+                    $valid = is_numeric($value);
+
+                    $anchors[$anchor] = [
+                        'status'        => $valid ? 'Okay' : (is_string($value) && $value !== '' ? $value : 'Unclassified'),
+                        'is_meas_valid' => $valid,
+                        'meas_value'    => $valid ? (float)$value : null,
+                        'meas_unit'     => '°C',
+                    ];
+                }
+            }
+            continue;
+        }
+
+        if (!in_array($typeSlug, ['TC16', 'TC8', 'TC4', 'QUAD'], true) ||
+            !isset($tele['CHs']) ||
+            !is_array($tele['CHs'])) {
+            continue;
+        }
 
         foreach ($tele['CHs'] as $idx => $value) {
             $chNum = $idx + 1;
@@ -91,7 +128,7 @@ function mti_load_anchor_map(array $paths): array
                 'status'        => $status,
                 'is_meas_valid' => $valid,
                 'meas_value'    => $meas,
-                'meas_unit'     => '°C',
+                'meas_unit'     => $typeSlug === 'QUAD' ? '' : '°C',
             ];
 
             if ($typeSlug !== $teleType) {

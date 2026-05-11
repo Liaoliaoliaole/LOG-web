@@ -129,14 +129,12 @@
 
   function formatShuntTempC(value) {
     if (typeof value !== 'number' || Number.isNaN(value)) return value;
-    const c = (value - 32) * 5 / 9;
-    return `${c.toFixed(1)}°C`;
+    return `${value.toFixed(1)}°C`;
   }
 
   function formatCpuTempC(value) {
     if (typeof value !== 'number' || Number.isNaN(value)) return value;
-    const c = (value - 32) * 5 / 9;
-    return `${c.toFixed(1)}°C`;
+    return `${value.toFixed(1)}°C`;
   }
 
   function fallbackFormatRow(row) {

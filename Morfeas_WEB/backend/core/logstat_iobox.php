@@ -66,6 +66,10 @@ function iobox_load_anchor_map(array $paths): array
         $connectionStatus = $data['Connection_status'] ?? null;
         $connections[$identifier] = $connectionStatus;
 
+        if (!is_string($connectionStatus) || strcasecmp(trim($connectionStatus), 'Okay') !== 0) {
+            continue;
+        }
+
         foreach ($data as $key => $rxData) {
             if (!preg_match('/^RX(\d+)$/', $key, $m)) {
                 continue;

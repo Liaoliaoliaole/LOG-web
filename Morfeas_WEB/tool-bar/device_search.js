@@ -48,6 +48,10 @@
     return '';
   }
 
+  function isIoboxAnchor(value) {
+    return /\.RX\d+\.CH\d+$/i.test((value || '').toString().trim());
+  }
+
   function renderColumns() {
     const columns = document.createElement('div');
     columns.className = 'columns';
@@ -155,8 +159,17 @@
       if (item.link_state && item.link_state.toLowerCase() !== 'unlinked') return false;
 
       if (!isReplaceFlow) {
+        // Add Channel must stay inside the selected device family. This guards
+        // against stale/mixed search-pool data showing IOBOX candidates for MTI
+        // or the reverse when the backend logstat files are changing.
+        const family = normalizedFamily(item);
+        if (family && requestedType && family !== requestedType) return false;
+
         if (requestedType === 'IOBOX' && isAddChannelFlow) {
           if (!item.anchor || !/\.RX\d+\.CH\d+$/i.test(item.anchor)) return false;
+        }
+        if (requestedType === 'MTI' && (isIoboxAnchor(item.anchor) || isIoboxAnchor(item.display_anchor))) {
+          return false;
         }
       }
 

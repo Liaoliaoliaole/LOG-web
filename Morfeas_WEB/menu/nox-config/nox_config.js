@@ -70,7 +70,7 @@
     return `${Number(value).toFixed(digits)}${suffix}`;
   }
 
-  function fmtFahrenheitAsCelsius(value, digits = 1) {
+  function fmtShuntTempC(value, digits = 1) {
     if (!Number.isFinite(Number(value))) return '—';
     const celsius = (Number(value) - 32) * 5 / 9;
     return `${celsius.toFixed(digits)} °C`;
@@ -418,7 +418,7 @@
     const electrics = state.electrics || {};
     voltageValue.textContent = fmt(electrics.BUS_voltage, 1, ' V');
     currentValue.textContent = fmt(electrics.BUS_amperage, 2, ' A');
-    shuntValue.textContent = fmtFahrenheitAsCelsius(electrics.BUS_Shunt_Res_temp);
+    shuntValue.textContent = fmtShuntTempC(electrics.BUS_Shunt_Res_temp);
     utilValue.textContent = fmt(state.bus_utilization, 2, ' %');
     wsPortValue.textContent = Number.isFinite(Number(state.ws_port)) ? String(state.ws_port) : '—';
     errorRateValue.textContent = fmt(state.bus_error_rate, 4, '');

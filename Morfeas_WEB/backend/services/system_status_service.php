@@ -73,12 +73,21 @@ function system_status_build_sdaq_entry(array $data, string $path): array
         ];
         $entry['connections'][] = [
             'name'  => sprintf('SDAQnet_(%s)_ShuntTemp', strtolower($bus)),
-            'value' => $elec['BUS_Shunt_Res_temp'] ?? null,
-            'unit'  => '\u00b0F',
+            'value' => system_status_fahrenheit_to_celsius($elec['BUS_Shunt_Res_temp'] ?? null),
+            'unit'  => '\u00b0C',
         ];
     }
 
     return $entry;
+}
+
+function system_status_fahrenheit_to_celsius($value)
+{
+    if (!is_numeric($value)) {
+        return $value;
+    }
+
+    return (((float)$value) - 32.0) * 5.0 / 9.0;
 }
 
 function system_status_build_sys_entry(array $data): array
@@ -88,7 +97,11 @@ function system_status_build_sys_entry(array $data): array
         'connections' => [],
     ];
 
-    $entry['connections'][] = ['name' => 'CPU_temp', 'value' => $data['CPU_temp'] ?? null, 'unit' => '\u00b0F'];
+    $entry['connections'][] = [
+        'name' => 'CPU_temp',
+        'value' => system_status_fahrenheit_to_celsius($data['CPU_temp'] ?? null),
+        'unit' => '\u00b0C',
+    ];
     $entry['connections'][] = ['name' => 'CPU_Util', 'value' => $data['CPU_Util'] ?? null, 'unit' => '%'];
     $entry['connections'][] = ['name' => 'RAM_Util', 'value' => $data['RAM_Util'] ?? null, 'unit' => '%'];
     $entry['connections'][] = ['name' => 'Disk_Util', 'value' => $data['Disk_Util'] ?? null, 'unit' => '%'];
