@@ -9,7 +9,7 @@ function nox_reserved_error_code($value): ?int
     }
 
     $code = (int)round((float)$value);
-    return in_array($code, [-901, -902, -903, -904], true) ? $code : null;
+    return in_array($code, [-901, -902, -903, -904, -905, -906, -907], true) ? $code : null;
 }
 
 function nox_canonical_anchor_base(?string $iface, ?int $addr, ?string $fallbackAnchor): ?string

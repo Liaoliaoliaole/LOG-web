@@ -1135,6 +1135,9 @@
       if (s === 'open wire') return 'st-Error';
       if (s === 'short circuit') return 'st-Error';
       if (s === 'heater off') return 'st-Error';
+      if (s === 'signal invalid') return 'st-Error';
+      if (s === 'standby') return 'st-Stall';
+      if (s === 'unreachable') return 'st-Offline';
       if (s.startsWith('heating up')) return 'st-Stall';
       if (s === 'off-line' || s === 'offline') return 'st-Offline';
       if (s === 'disconnected') return 'st-Offline';
@@ -1144,7 +1147,7 @@
 
     function isReservedMeasErrorCode(value) {
       const n = typeof value === 'number' ? value : Number(String(value || '').trim());
-      return Number.isInteger(n) && (n === -901 || n === -902 || n === -903 || n === -904);
+      return Number.isInteger(n) && (n === -901 || n === -902 || n === -903 || n === -904 || n === -905 || n === -906 || n === -907);
     }
 
     // Compute Next Calibration（YYYY-MM-DD）from cal_date + cal_period

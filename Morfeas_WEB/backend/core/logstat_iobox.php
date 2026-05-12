@@ -7,7 +7,7 @@ function iobox_reserved_error_code($value): ?int
     }
 
     $code = (int)round((float)$value);
-    return in_array($code, [-901, -902, -903, -904], true) ? $code : null;
+    return in_array($code, [-901, -902, -903, -904, -905, -906, -907], true) ? $code : null;
 }
 
 function iobox_status_from_error_code(int $code, ?string $connectionStatus = null): string
@@ -20,6 +20,15 @@ function iobox_status_from_error_code(int $code, ?string $connectionStatus = nul
     }
     if ($code === -902) {
         return 'No sensor';
+    }
+    if ($code === -905) {
+        return 'Unreachable';
+    }
+    if ($code === -906) {
+        return 'Standby';
+    }
+    if ($code === -907) {
+        return 'Signal Invalid';
     }
     return 'Unclassified';
 }

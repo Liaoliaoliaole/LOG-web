@@ -23,7 +23,7 @@ function channel_reserved_error_code(?float $value): ?int
     // The web may display these values, but it must not infer or invent them
     // from status text alone.
     $intValue = (int)round($value);
-    return in_array($intValue, [-901, -902, -903, -904], true) ? $intValue : null;
+    return in_array($intValue, [-901, -902, -903, -904, -905, -906, -907], true) ? $intValue : null;
 }
 
 function channel_assign_error_code_display(array &$row, int $code, string &$meas, ?string &$measUnit): void
