@@ -1,4 +1,4 @@
 # sudo crontab -e and add following script
 
 0 0 * * * /var/www/html/morfeas_web/cron/system_update_check.sh
-0 0 * * * /var/www/html/morfeas_web/deploy/backup.sh
+10 0 * * * /var/www/html/morfeas_web/deploy/backup.sh

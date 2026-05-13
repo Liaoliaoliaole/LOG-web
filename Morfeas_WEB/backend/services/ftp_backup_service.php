@@ -40,6 +40,9 @@ function ftp_backup_status_logger_file(): string
 
 function ftp_backup_engine_is_valid(string $engine): bool
 {
+    if ($engine === '.' || $engine === '..') {
+        return false;
+    }
     return preg_match('/^[A-Za-z0-9_.-]+$/', $engine) === 1;
 }
 
@@ -135,17 +138,18 @@ function ftp_backup_load_config_raw(): array
         throw new RuntimeException('Invalid FTP config JSON', 500);
     }
 
-    $required = ['host', 'user', 'pass', 'dir', 'log'];
+    $required = ['host', 'dir', 'log'];
     foreach ($required as $key) {
         if (!isset($data[$key]) || trim((string) $data[$key]) === '') {
             throw new RuntimeException("Incomplete FTP config data: missing $key", 500);
         }
     }
 
+    $credentials = ftp_backup_load_credentials();
     return [
         'host' => trim((string) $data['host']),
-        'user' => trim((string) $data['user']),
-        'pass' => trim((string) $data['pass']),
+        'user' => $credentials['user'],
+        'pass' => $credentials['pass'],
         'dir' => trim((string) $data['dir']),
         'log' => trim((string) $data['log']),
     ];
@@ -160,7 +164,7 @@ function ftp_backup_save_config(string $host, string $engine): array
         throw new InvalidArgumentException('Engine Number allows only letters, numbers, ".", "_" and "-"');
     }
 
-    $credentials = ftp_backup_load_credentials();
+    ftp_backup_load_credentials();
     $hostname = trim((string) @file_get_contents('/etc/hostname'));
     if ($hostname === '') {
         $hostname = php_uname('n');
@@ -171,8 +175,6 @@ function ftp_backup_save_config(string $host, string $engine): array
 
     $config = [
         'host' => $host,
-        'user' => $credentials['user'],
-        'pass' => $credentials['pass'],
         'dir' => $engine,
         'log' => $hostname,
     ];
@@ -191,6 +193,8 @@ function ftp_backup_save_config(string $host, string $engine): array
     if (@file_put_contents($path, $json, LOCK_EX) === false) {
         throw new RuntimeException('Failed to save FTP config', 500);
     }
+    @chgrp($path, 'morfeas');
+    @chmod($path, 0660);
 
     ftp_backup_log('INFO', "Config saved for host=$host engine=$engine");
     return ftp_backup_public_config($config);
@@ -301,7 +305,7 @@ function ftp_backup_create_bundle_payload(): string
     $bundle = [
         'OPC_UA_Config' => $opcUa,
         'Morfeas_Config' => $morfeas,
-        'Checksum' => crc32($opcUa . $morfeas),
+        'Checksum' => ftp_backup_payload_checksum($opcUa, $morfeas),
     ];
 
     $json = json_encode($bundle, JSON_UNESCAPED_SLASHES);
@@ -315,6 +319,25 @@ function ftp_backup_create_bundle_payload(): string
     }
 
     return $compressed;
+}
+
+function ftp_backup_payload_checksum(string $opcUa, string $morfeas): string
+{
+    return sprintf('%u', crc32($opcUa . $morfeas));
+}
+
+function ftp_backup_payload_checksum_matches($expected, string $opcUa, string $morfeas): bool
+{
+    if (!is_scalar($expected)) {
+        return false;
+    }
+
+    $expectedChecksum = trim((string) $expected);
+    $unsigned = ftp_backup_payload_checksum($opcUa, $morfeas);
+    $native = (string) crc32($opcUa . $morfeas);
+
+    return hash_equals($expectedChecksum, $unsigned)
+        || hash_equals($expectedChecksum, $native);
 }
 
 function ftp_backup_prune_remote_backups($conn, string $remoteDir): int
@@ -427,6 +450,9 @@ function ftp_backup_run_restore(string $filename): array
     $morfeas = $bundle['Morfeas_Config'] ?? null;
     if (!is_string($opcUa) || !is_string($morfeas)) {
         throw new RuntimeException('Invalid backup payload', 500);
+    }
+    if (!ftp_backup_payload_checksum_matches($bundle['Checksum'] ?? null, $opcUa, $morfeas)) {
+        throw new RuntimeException('Backup checksum mismatch', 500);
     }
 
     backend_with_resource_file_lock('opcua_config', backend_opcua_config_path(), function () use ($opcUa) {

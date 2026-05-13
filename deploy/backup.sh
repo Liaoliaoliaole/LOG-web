@@ -17,9 +17,30 @@ ensure_log_file() {
     local log_dir
     log_dir=$(dirname "$LOG_FILE")
     mkdir -p "$log_dir"
-    touch "$LOG_FILE"
-    chown www-data:www-data "$LOG_FILE" 2>/dev/null || true
-    chmod 666 "$LOG_FILE" 2>/dev/null || true
+    if [[ ! -e "$LOG_FILE" ]]; then
+        touch "$LOG_FILE"
+    fi
+    chown root:morfeas "$LOG_FILE" 2>/dev/null || true
+    chmod 664 "$LOG_FILE" 2>/dev/null || true
+}
+
+ensure_config_access() {
+    local credential_file="$CONFIG_DIR/LOG_ftp_credential.conf"
+
+    if [[ -d "$CONFIG_DIR" ]]; then
+        chgrp morfeas "$CONFIG_DIR" 2>/dev/null || true
+        chmod 2775 "$CONFIG_DIR" 2>/dev/null || true
+    fi
+
+    if [[ -f "$credential_file" ]]; then
+        chgrp morfeas "$credential_file" 2>/dev/null || true
+        chmod 640 "$credential_file" 2>/dev/null || true
+    fi
+
+    if [[ -f "$FTP_CONFIG_FILE" ]]; then
+        chgrp morfeas "$FTP_CONFIG_FILE" 2>/dev/null || true
+        chmod 660 "$FTP_CONFIG_FILE" 2>/dev/null || true
+    fi
 }
 
 mirror_log() {
@@ -40,11 +61,12 @@ log_cli() {
 }
 
 ensure_log_file
+ensure_config_access
 
 if [[ ! -f "$FTP_CONFIG_FILE" ]]; then
-    log_cli "ERROR" "FTP config file not found. No Valid Engine Number Provided. Backup not performed."
+    log_cli "INFO" "FTP backup config not found. Automatic backup is not configured; skipping."
     mirror_log
-    exit 1
+    exit 0
 fi
 
 if [[ ! -f "$FTP_BACKUP_CLI" ]]; then

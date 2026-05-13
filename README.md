@@ -29,6 +29,7 @@ Minimum runtime dependencies:
 - `libapache2-mod-php`
 - `php-xml`
 - `php-mbstring`
+- `php-ftp`
 - `curl`
 
 Useful development/build tools:
@@ -47,6 +48,7 @@ sudo apt install -y \
   libapache2-mod-php \
   php-xml \
   php-mbstring \
+  php-ftp \
   curl \
   git \
   make \

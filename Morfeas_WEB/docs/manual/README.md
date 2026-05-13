@@ -1,6 +1,8 @@
-# Morfeas WEB Help Manual Source
+# LOG WEB Help Manual Source
 
-This directory contains the maintained source for the user help manual of the current `Morfeas_WEB` application.
+This directory contains the maintained source for the user help manual of the current LOG WEB application.
+
+`Morfeas_WEB` remains in some repository paths for code compatibility and legacy deployment continuity.
 
 ## Output
 
@@ -36,6 +38,6 @@ make distclean
 
 ## Scope
 
-This manual is for the current new Morfeas web UI.
+This manual is for the current new LOG WEB UI.
 
 Legacy documentation under `LOG-web/Docs/Morfeas_WEB_Docs` is kept only as archived reference and should not be treated as the active user manual.

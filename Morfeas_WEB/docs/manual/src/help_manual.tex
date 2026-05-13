@@ -17,13 +17,13 @@
   colorlinks=true,
   linkcolor=black,
   urlcolor=blue,
-  pdftitle={Morfeas WEB Help Manual},
-  pdfauthor={Morfeas Project}
+  pdftitle={LOG WEB Help Manual},
+  pdfauthor={LOG Project}
 }
 
 \pagestyle{fancy}
 \fancyhf{}
-\lhead{Morfeas WEB}
+\lhead{LOG WEB}
 \chead{Help Manual}
 \rhead{\thepage}
 \setlength{\headheight}{14pt}
@@ -34,18 +34,12 @@
 \titleformat{\subsection}{\normalsize\bfseries}{}{0pt}{}
 \titleformat{\subsubsection}{\normalsize\bfseries}{}{0pt}{}
 
-\newcommand{\screenshotplaceholder}[2]{%
-\begin{center}%
-\fbox{\parbox{0.9\textwidth}{\textbf{Screenshot Placeholder: #1}\\#2}}%
-\end{center}%
-}
-
 \newcommand{\messageexample}[2]{%
 \noindent\textbf{Example Message (#1):}\\%
 \begin{quote}\raggedright #2\end{quote}%
 }
 
-\title{Morfeas WEB\\Help Manual}
+\title{LOG WEB\\Help Manual}
 \author{}
 \date{Current New Web UI}
 
@@ -56,8 +50,13 @@
 \newpage
 
 \section{Introduction}
-Morfeas WEB is the browser user interface for daily operation and configuration of the Morfeas system.
-This manual describes the current \textbf{new} Morfeas web interface and is intended for operators and service users.
+LOG WEB is the browser user interface for daily operation and configuration of the LOG system.
+This manual describes the current \textbf{new} LOG WEB interface and is intended for operators and service users.
+
+\subsection{Naming Note}
+LOG WEB is the current product and user-interface name. \textbf{Morfeas WEB} is the legacy name.
+Some internal paths, service names, repository names, protocol identifiers, and code comments may still use \texttt{Morfeas}, \texttt{Morfeas\_WEB}, or related forms for code compatibility and to avoid breaking existing deployments.
+Operator-facing UI and current user documentation should use \textbf{LOG WEB}, except where an exact technical identifier must be shown.
 
 Unless a site-specific deployment says otherwise, open the system in a browser with:
 
@@ -65,9 +64,7 @@ Unless a site-specific deployment says otherwise, open the system in a browser w
 \item \texttt{http://<device-ip>/}
 \end{itemize}
 
-This manual does not describe the retired legacy web layout.
-
-\screenshotplaceholder{Main Landing Page}{Insert a current screenshot of the ISO Channels Linker landing page, showing the top bar, menu button, search bar, and the main channel table.}
+This manual does not describe the retired legacy Morfeas WEB layout.
 
 \section{Main Page}
 The landing page is \textbf{ISO Channels Linker}. It is the main operational screen.
@@ -116,19 +113,19 @@ The \textbf{Next Calibration} column is calculated from calibration metadata sto
 For example, a non-SDAQ channel added on \texttt{2026-05-11} with the default 12-month period is shown with next calibration \texttt{2027-05-11}.
 
 \subsection{Measurement Display Rules}
-The \textbf{Meas} column follows the runtime measurement semantics of the current system.
+The \textbf{Value} column follows the runtime measurement semantics of the current system.
 
 \begin{itemize}
 \item Normal valid measurements are shown as numeric values with the unit when a unit is available.
 \item \textbf{Out of Range} and \textbf{Over Range} continue to show the actual runtime measurement value. They are not converted to an error code.
-\item Reserved runtime error codes are shown as \textbf{red integers} in the \textbf{Meas} column.
+\item Reserved runtime error codes are shown as \textbf{red integers} in the \textbf{Value} column.
 \item Reserved error codes are shown without units and without decimal formatting.
 \item Reserved error codes are not collapsed to \texttt{---}.
 \end{itemize}
 
 \subsection{Reserved Measurement Error Codes}
-The following reserved values may appear in the \textbf{Meas} column, in OPC UA downstream consumers, and in connected tools that read the same measurement path.
-These values are emitted by Morfeas core. The web interface displays them when they are present in runtime data; it does not create these numeric error codes from status text alone.
+The following reserved values may appear in the \textbf{Value} column, in OPC UA downstream consumers, and in connected tools that read the same measurement path.
+These values are emitted by LOG core. The web interface displays them when they are present in runtime data; it does not create these numeric error codes from status text alone.
 
 \begin{longtable}{|p{0.18\textwidth}|p{0.28\textwidth}|p{0.42\textwidth}|}
 \hline
@@ -151,16 +148,16 @@ These values are emitted by Morfeas core. The web interface displays them when t
 \end{longtable}
 
 \subsection{Device Status, Web Value, and OPC UA Value}
-The same reserved value can have a different operator-facing status depending on the device context. Read \textbf{Status} first for the reason, then \textbf{Meas} for the numeric value sent to downstream consumers.
+The same reserved value can have a different operator-facing status depending on the device context. Read \textbf{Status} first for the reason, then \textbf{Value} for the numeric value sent to downstream consumers.
 
-\textbf{Web Status} below is the linker-table \textbf{Status} text. \textbf{Web Meas} comes from handler logstat files and usually represents interval data. \textbf{OPC UA mapped Value} refers to the linked ISO channel \textbf{Value} node used by downstream OPC UA clients.
+\textbf{Web Status} below is the linker-table \textbf{Status} text. \textbf{Web Value} comes from handler logstat files and usually represents interval data. \textbf{OPC UA mapped Value} refers to the linked ISO channel \textbf{Value} node used by downstream OPC UA clients.
 
 \begingroup
 \small
 \setlength{\tabcolsep}{2pt}
 \begin{longtable}{|p{0.09\textwidth}|p{0.20\textwidth}|p{0.15\textwidth}|p{0.16\textwidth}|p{0.30\textwidth}|}
 \hline
-\textbf{Device} & \textbf{Web Status / Situation} & \textbf{Web Meas} & \textbf{OPC UA Value} & \textbf{Meaning} \\
+\textbf{Device} & \textbf{Web Status / Situation} & \textbf{Web Value} & \textbf{OPC UA Value} & \textbf{Meaning} \\
 \hline
 SDAQ & Okay & actual value & actual value & Channel is valid and measuring normally. \\
 \hline
@@ -215,18 +212,18 @@ NOX & Unclassified / invalid sensor condition & \texttt{-904} & \texttt{-904} & 
 \end{longtable}
 \endgroup
 
-\textbf{MTI Disabled note:} Disabled is an operator-selected radio mode, not a measurement fault. If MTI telemetry is disabled, the web shows \textbf{Status = Disabled} and leaves \textbf{Meas} as \texttt{---} unless Morfeas core explicitly provides a numeric channel value. This keeps OPC UA/logstat measurement values owned by core and prevents the web interface from inventing error codes.
+\textbf{MTI Disabled note:} Disabled is an operator-selected radio mode, not a measurement fault. If MTI telemetry is disabled, the web shows \textbf{Status = Disabled} and leaves \textbf{Value} as \texttt{---} unless LOG core explicitly provides a numeric channel value. This keeps OPC UA/logstat measurement values owned by core and prevents the web interface from inventing error codes.
 
-\textbf{NOX mapped-channel note:} NOX uses dynamic sensor nodes for UniNOx addresses. If the NOX handler is not running, the bus has been switched away from NOX, or a sensor address has never been detected, the web linker table may show \textbf{Status = OFF-Line} with \textbf{Meas = ---} because no logstat runtime source exists. The OPC UA mapped \textbf{Value} may return \texttt{-905} for the same ISO link because the mapped source node is missing. These two displays describe the same missing-source condition from different layers.
+\textbf{NOX mapped-channel note:} NOX uses dynamic sensor nodes for UniNOx addresses. If the NOX handler is not running, the bus has been switched away from NOX, or a sensor address has never been detected, the web linker table may show \textbf{Status = OFF-Line} with \textbf{Value = ---} because no logstat runtime source exists. The OPC UA mapped \textbf{Value} may return \texttt{-905} for the same ISO link because the mapped source node is missing. These two displays describe the same missing-source condition from different layers.
 
-\subsection{Reading Status Together with Meas}
-Operators should read the \textbf{Status} and \textbf{Meas} columns together:
+\subsection{Reading Status Together with Value}
+Operators should read the \textbf{Status} and \textbf{Value} columns together:
 
 \begin{itemize}
-\item \textbf{Status = Out of Range} or \textbf{Over Range} with a numeric \textbf{Meas} value means the device still reports a measurement, but the channel is flagged as outside the expected calibrated or device range.
-\item \textbf{Status = No sensor}, \textbf{OFF-Line}, \textbf{Disconnected}, \textbf{Stall}, or \textbf{Unclassified} together with a red negative \textbf{Meas} value means the measurement is not valid and the code should be interpreted using the error-code table above.
-\item \textbf{Status = Unconfigured} with \textbf{Meas = ---} means the device is reachable, but the configured runtime channel path is not present.
-\item \textbf{Status = Disabled} with \textbf{Meas = ---} means the function is intentionally turned off, not failed.
+\item \textbf{Status = Out of Range} or \textbf{Over Range} with a numeric \textbf{Value} means the device still reports a measurement, but the channel is flagged as outside the expected calibrated or device range.
+\item \textbf{Status = No sensor}, \textbf{OFF-Line}, \textbf{Disconnected}, \textbf{Stall}, or \textbf{Unclassified} together with a red negative \textbf{Value} means the measurement is not valid and the code should be interpreted using the error-code table above.
+\item \textbf{Status = Unconfigured} with \textbf{Value = ---} means the device is reachable, but the configured runtime channel path is not present.
+\item \textbf{Status = Disabled} with \textbf{Value = ---} means the function is intentionally turned off, not failed.
 \end{itemize}
 
 \subsection{Search}
@@ -245,39 +242,26 @@ Search results are limited to the selected device family and to paths that are n
 
 The search popup and save validation both enforce device-family matching. IOBOX candidates are not accepted as MTI links, and MTI candidates are not accepted as IOBOX links, even if the physical equipment connected behind the device can be similar.
 
-\subsection{Context Menu}
-Right-click a row to access actions such as:
-
-\begin{itemize}
-\item Edit,
-\item Delete,
-\item Scale,
-\item Calibration,
-\item Export,
-\item device-specific actions such as Replace or Replace TC16 when the selected channel supports them.
-\end{itemize}
-
 \subsection{Keyboard Shortcuts}
-The following keyboard shortcuts and key actions are currently implemented in the new Morfeas web.
+The following keyboard shortcuts and key actions are currently implemented in LOG WEB.
 
 \subsubsection{Main ISO Channels Linker}
 \begin{itemize}
 \item \textbf{Delete}: delete the currently selected channel rows. A confirmation dialog is shown first.
-\item \textbf{Ctrl+Z} or \textbf{Cmd+Z}: undo the most recent successful delete. Only one delete step is remembered.
-\item \textbf{Ctrl+Shift+A} or \textbf{Cmd+Shift+A}: open the Add Channel popup.
+\item \textbf{Ctrl+Z}: undo the most recent successful delete. Only one delete step is remembered.
 \item \textbf{Escape}: close the main menu or an open column filter menu.
 \end{itemize}
 
 \subsubsection{Add Devices Popup}
 \begin{itemize}
-\item \textbf{Ctrl+S} or \textbf{Cmd+S}: save the device currently being added when the add form is open.
+\item \textbf{Ctrl+S}: save the device currently being added when the add form is open.
 \item \textbf{Delete}: remove the currently selected removable devices.
 \item \textbf{Escape}: close the popup window.
 \end{itemize}
 
 \subsubsection{Add Channel Popup}
 \begin{itemize}
-\item \textbf{Ctrl+S} or \textbf{Cmd+S}: save the current Add Channel form.
+\item \textbf{Ctrl+S}: save the current Add Channel form.
 \item \textbf{Enter} in the ISO field: accept the typed ISO code as a custom manual ISO value.
 \item \textbf{Enter} in the sensor path field: accept the typed device path when it matches an available search-pool candidate. Manual offline anchors are intended for SDAQ single-channel use only.
 \item \textbf{Escape}: close the popup window.
@@ -285,31 +269,13 @@ The following keyboard shortcuts and key actions are currently implemented in th
 
 \subsubsection{Edit Link / Replace Link Popup}
 \begin{itemize}
-\item \textbf{Ctrl+S} or \textbf{Cmd+S}: save the current Edit or Replace form.
-\item \textbf{Escape}: close the popup window.
-\end{itemize}
-
-\subsubsection{Calibration Popup}
-\begin{itemize}
-\item \textbf{Read from SDAQ}: reload the current channel calibration directly from the device.
-\item \textbf{Discard Changes}: restore the last calibration data loaded into the popup.
-\item \textbf{Ctrl+S} or \textbf{Cmd+S}: save the current calibration data.
-\item The popup is fixed to the selected SDAQ channel. No channel reselection is required inside the popup.
-\item The point table starts with a compact default height and expands automatically when the device reports more used points.
-\item \textbf{Escape}: close the popup window.
-\end{itemize}
-
-\subsubsection{SDAQ Scale Popup}
-\begin{itemize}
-\item \textbf{Ctrl+S} or \textbf{Cmd+S}: save the current scale settings.
-\item The scale popup is separate from the calibration popup and uses its own save workflow.
-\item The scale form is arranged vertically and uses these field names: \textbf{Current Measurement Value}, \textbf{Measurement Input Low}, \textbf{Measurement Input High}, \textbf{Engineering Output Low}, \textbf{Engineering Output High}, \textbf{Engineering Unit}, and \textbf{Scaled Output Value}.
+\item \textbf{Ctrl+S}: save the current Edit or Replace form.
 \item \textbf{Escape}: close the popup window.
 \end{itemize}
 
 \subsubsection{Other Popup Pages}
 \begin{itemize}
-\item \textbf{Escape}: close these popups when they are open: Advanced Settings, Backup \& Restore Channels, Check System Status, Network Configuration, Version, and the system control menu.
+\item \textbf{Escape}: close popups such as Advanced Settings, Backup \& Restore Channels, Check System Status, Network Configuration, Version, and system control pages.
 \end{itemize}
 
 \section{Menu Overview}
@@ -329,7 +295,7 @@ Check System Status & View live runtime details, log files, and system journal o
 \hline
 Advanced Settings & View MAC/CAN information, configure NTP server, and manage ISOstandard XML. \\
 \hline
-System Update & Check for available Morfeas web updates and apply them when desired. \\
+System Update & Check for available system updates, then update LOG WEB and LOG core when desired. \\
 \hline
 System Reboot & Reboot the device. \\
 \hline
@@ -371,175 +337,83 @@ Preset buttons are available at the top of the page for quick loading of predefi
 \item Presets are convenience values only. Review them before applying.
 \end{itemize}
 
-\screenshotplaceholder{Network Configuration Page}{Insert a screenshot showing Hostname, Mode, Network IP, Gateway, DNS addr, and the Load Last / Set / Close buttons.}
-
 \messageexample{Progress}{Applying configuration: validating and writing system network settings...}
 \messageexample{Success}{Configuration applied. If the IP changed, reconnect to the new device address in your browser.}
 \messageexample{Failure}{Apply failed: <error details>}
 
-\section{Calibration Popup}
-Open \textbf{Calibration} by right-clicking an SDAQ channel in the main table.
-
-\subsection{Purpose}
-The calibration popup is a manual channel calibration editor for the currently selected SDAQ channel.
-It is used to read, inspect, edit, preview, and save device calibration data.
-
-\subsection{Page Layout}
-The popup contains:
-
-\begin{itemize}
-\item \textbf{Upper Section}: device information, calibration metadata, and summary panel share the top area.
-\item \textbf{Current Preview}: \texttt{Measured raw value} and \texttt{Correct value}.
-\item \textbf{Point Table}: \texttt{Uncalibrated value}, \texttt{Reference value}, \texttt{Offset}, \texttt{Gain}, \texttt{C2}, and \texttt{C3}.
-\item \textbf{Preview Columns}: \texttt{Calibrated value} and \texttt{Difference (Calibrated - Reference)}.
-\item \textbf{Summary Panel}: calibration type, slope or gain summary, offset, reference minimum and maximum, and unit.
-\end{itemize}
-
-\subsection{Buttons}
-\begin{itemize}
-\item \textbf{Read from SDAQ}: reload the calibration directly from the device.
-\item \textbf{Discard Changes}: discard unsaved edits and restore the last data loaded into the popup.
-\item \textbf{Save to SDAQ}: validate the current form and write it to the device.
-\end{itemize}
-
-\subsection{Preview Behavior}
-\begin{itemize}
-\item The \textbf{Current Preview} block is a live preview, not a single-row preview.
-\item \texttt{Measured raw value} is read from the current channel raw runtime value when \texttt{Raw\_Last\_Meas} is available in \texttt{logstat}.
-\item \texttt{Correct value} is calculated by applying the current full calibration table to the live raw value.
-\item \texttt{Calibration type} is shown only once in the summary panel and is not repeated in every point row.
-\end{itemize}
-
-\subsection{Validation Rules}
-\begin{itemize}
-\item \textbf{CH's Unit} must be selected from the supported runtime SDAQ unit list.
-\item \textbf{Used Points} must be an integer between zero and the device maximum.
-\item Every field of every used point must contain a finite number.
-\item Empty strings and \texttt{nan / -nan} are rejected.
-\item \texttt{Measure} values of used points must be strictly increasing from top to bottom.
-\end{itemize}
-
-\subsection{Save Semantics}
-\begin{itemize}
-\item The calibration popup preserves the entered calibration coefficients as typed after validation.
-\item It does not automatically recalculate \texttt{Offset}, \texttt{Gain}, \texttt{C2}, or \texttt{C3}.
-\item The separate \textbf{Scale} popup has its own dedicated save workflow for SDAQ-I and SDAQ-U.
-\end{itemize}
-
-\screenshotplaceholder{Calibration Popup}{Insert a screenshot of the current calibration popup showing the top shared section, current preview cards, point table, summary panel, and Read / Discard Changes / Save buttons.}
-
 \section{Add Devices}
 Open \textbf{Add Devices} to manage the current device inventory.
 
-\subsection{Devices Table}
-The upper table shows the current devices with columns such as:
+\subsection{Page Layout}
+The page has three main areas.
 
 \begin{itemize}
-\item Bus,
-\item Device Type,
-\item Device Name or Address,
-\item IP Address,
-\item Status.
+\item \textbf{CAN Bus Setup}: shows each CAN bus, current mode, bitrate, state, detected device count, and available actions.
+\item \textbf{Configured Devices}: shows XML-backed devices that can be removed or configured.
+\item \textbf{Detected Devices}: shows auto-detected runtime devices, especially SDAQ devices found from logstat data.
 \end{itemize}
 
-The \textbf{Status} column shows the current runtime status text reported by the system for that configured device. It is intended as a quick indication of whether the device has been detected and is responding at runtime.
+The page refreshes while the popup is focused. Polling pauses during remove or role-change operations so the displayed state does not fight the operation in progress.
 
-\subsection{Toolbar}
+\subsection{SDAQ Operation Flow}
 \begin{itemize}
-\item \textbf{Refresh}: reload the current device list.
-\item \textbf{Remove}: remove selected removable devices.
-\item \textbf{Add...}: open the add form.
+\item SDAQ devices are auto-discovered from runtime \texttt{logstat} data.
+\item They appear in \textbf{Detected Devices}; they are not manually added with the \textbf{Add...} form.
+\item To use a CAN bus for SDAQ, use the \textbf{Switch to SDAQ} action in \textbf{CAN Bus Setup}. The system sets the SDAQ role and expected bitrate, restarts the LOG service, then waits for SDAQ runtime data to appear.
+\item After SDAQ devices are detected, link individual SDAQ channels from the main page with \textbf{Add Channels}.
+\item If a bus is in SDAQ mode but no SDAQ appears, check wiring, power, and CAN bitrate/state in the same table.
 \end{itemize}
 
-\subsection{Add Form}
-The add form lets the user enter:
-
+\subsection{NOX Operation Flow}
 \begin{itemize}
-\item device type,
-\item CAN interface,
-\item device name,
-\item additional device properties required by that device family.
+\item NOX is managed by CAN bus role, not by the manual \textbf{Add...} form.
+\item Use \textbf{Switch to NOX} on the target CAN bus to assign that bus to NOX operation. The transition changes the role/bitrate together and restarts the LOG service.
+\item When a bus is in NOX mode, \textbf{Open NOX Config} opens the NOX configuration page for that bus.
+\item Use the NOX configuration page for sensor setup and NOX-specific live controls.
+\item To remove NOX from a bus, use \textbf{Switch to SDAQ}. When removing a configured NOX row, the UI may also ask whether to restore the bus to SDAQ.
+\end{itemize}
+
+\subsection{IOBOX Operation Flow}
+\begin{enumerate}
+\item Click \textbf{Add...}.
+\item Select \textbf{IO-BOX}.
+\item Enter \textbf{Device Name}, for example \texttt{IOBOX\_01}.
+\item Enter the IOBOX IPv4 address.
+\item Click \textbf{Save}.
+\item Confirm the service restart warning.
+\item Wait for the page to refresh and show the configured device runtime status.
+\end{enumerate}
+
+Behind the UI, saving an IOBOX writes the device into the LOG configuration XML and restarts the LOG service. Duplicate device names and duplicate IPv4 addresses are blocked.
+
+\subsection{MTI Operation Flow}
+\begin{enumerate}
+\item Click \textbf{Add...}.
+\item Select \textbf{MTI}.
+\item Enter a \textbf{Device Name}; for MTI it must follow D-Bus element rules: letters, numbers, and underscore only, and it must not start with a digit.
+\item Enter the MTI IPv4 address.
+\item Click \textbf{Save}.
+\item Confirm the service restart warning.
+\item After the device is listed, use \textbf{Open MTI Config} from the configured row to manage MTI setup, telemetry mode, and MTI-specific controls.
+\end{enumerate}
+
+Behind the UI, saving an MTI writes the device into the LOG configuration XML and restarts the LOG service. The page compares configured name/IP with runtime MTI logstat data to show whether the device is connected.
+
+\subsection{Remove Devices}
+\begin{itemize}
+\item Select one or more rows in \textbf{Configured Devices}.
+\item Click \textbf{Remove} or press \textbf{Delete} while focus is not inside a form field.
+\item Confirm the service restart warning.
+\item The selected XML-backed devices are removed and the LOG service is restarted.
 \end{itemize}
 
 \subsection{Operator Notes}
 \begin{itemize}
-\item Some devices, such as automatically detected SDAQ devices, may not be removable from this page.
-\item The popup refreshes while active, and pauses when the popup is no longer in focus.
-\item If the remove action is not available or shows a warning, review whether the selected device is auto-detected and protected from removal.
+\item SDAQ rows in \textbf{Detected Devices} are auto-discovered and are not removable from this page.
+\item Manual add currently supports IOBOX and MTI only. SDAQ is auto-discovered; NOX is controlled through CAN bus role switching.
+\item If the page shows a legacy MDAQ warning, add/remove and CAN role actions are blocked until the legacy MDAQ XML configuration is removed manually.
+\item Any add, remove, or CAN role transition may need 10--60 seconds because the LOG service restarts.
 \end{itemize}
-
-\section{Channel Replace Workflows}
-Morfeas WEB supports both single-channel replacement and grouped TC16 replacement.
-
-\subsection{Single-Channel Replace}
-Single-channel replace uses the standard Edit Link popup in replace mode.
-In the current web interface, the standard replace action is offered only for eligible SDAQ channels. IOBOX, MTI, and NOX rows do not show the normal replace option.
-
-\subsubsection{Typical Flow}
-\begin{enumerate}
-\item In the main ISO channel table, right-click the channel you want to replace.
-\item Choose the standard replace action.
-\item The popup opens with the source type locked and the target path chosen through device search.
-\item Select the replacement device path.
-\item Review ISO code, description, min/max, alarms, unit, and calibration fields.
-\item Click \textbf{Save}.
-\end{enumerate}
-
-\subsubsection{Type Safety}
-The replace flow enforces compatibility rules.
-
-\screenshotplaceholder{Single-Channel Replace Popup}{Insert a screenshot of the replace popup showing the locked source type, search button, ISO code, limits, alarms, and Save button.}
-
-\begin{itemize}
-\item Family mismatch is blocked.
-\item If the source SDAQ subtype is known, subtype mismatch is blocked.
-\item If the source SDAQ subtype is unknown, replacement is still allowed, but the user is warned to replace within the same type.
-\end{itemize}
-
-\subsubsection{Offline Type Display}
-When an SDAQ channel has been identified before and later goes offline, the UI can display the last known type in a stale form such as:
-
-\begin{itemize}
-\item \texttt{SDAQ-TC1 (last known)}
-\end{itemize}
-
-If the subtype has never been identified, the type may be shown as unknown.
-
-\messageexample{Warning}{Subtype unknown, make sure replace within same type.}
-\messageexample{Blocked Replace}{Subtype mismatch: expected SDAQ-TC1, got SDAQ-AI8.}
-
-\subsection{TC16 Group Replace}
-The dedicated \textbf{Replace TC16} flow is separate from single-channel replace.
-It is intended for a full 16-channel SDAQ-TC16 source group.
-
-\subsubsection{When the Option Appears}
-Replace TC16 only appears when the selected source channel belongs to a resolvable offline TC16 group that is complete as channels CH1 through CH16.
-If the group is partial, the option is not shown and normal single-channel replace must be used.
-
-\subsubsection{How It Works}
-\begin{enumerate}
-\item Right-click any channel belonging to the full TC16 source group.
-\item Choose \textbf{Replace TC16}.
-\item The UI highlights and selects all 16 source channels.
-\item A dedicated Replace TC16 popup opens.
-\item The popup shows the source group summary and the source channel mapping.
-\item Choose one eligible unlinked TC16 target device.
-\item Confirm the operation.
-\item All 16 source channels are remapped to the target device in one atomic operation.
-\end{enumerate}
-
-\subsubsection{Important Notes}
-\begin{itemize}
-\item Replace TC16 is all-or-nothing.
-\item If any validation fails, no channel mapping is changed.
-\item Target selection is at device-group level, not one channel at a time.
-\item If no eligible target is listed, there is currently no fully free TC16 target device available.
-\end{itemize}
-
-\screenshotplaceholder{Replace TC16 Popup}{Insert a screenshot showing the source group summary, CH1..CH16 mapping chips, available target list, and the Apply Replace TC16 button.}
-
-\messageexample{Success}{Replace TC16 complete: 16 channels updated.}
-\messageexample{Failure}{Failed to apply TC16 replace. [tc16\_target\_not\_unlinked]}
 
 \section{Backup and Restore Channels}
 Open \textbf{Backup \& Restore Channels} for FTP-based backup and restore.
@@ -548,56 +422,58 @@ Open \textbf{Backup \& Restore Channels} for FTP-based backup and restore.
 The page contains:
 
 \begin{itemize}
-\item \textbf{Host IP}
-\item \textbf{Engine Number}
-\item \textbf{Connect \& Fetch}
-\item \textbf{Disconnect}
+\item \textbf{Host IP}: FTP server IPv4 address. The default expected server is \texttt{10.193.135.70}.
+\item \textbf{Engine Number}: remote directory name for this engine/device group. It may contain letters, numbers, dot, underscore, and hyphen.
+\item \textbf{Connect \& Fetch}: save the FTP configuration, test the FTP login, and load available backup files.
+\item \textbf{Disconnect}: remove the saved FTP configuration and disable automatic backups.
 \end{itemize}
 
-The default host value is prefilled for the expected FTP server. Credentials are stored server-side and are not edited in the UI.
+FTP credentials are read from the device-side credential file and are not typed in the UI. When the connection is saved, the main page FTP chip shows the active backup directory.
 
-\subsection{Backup to FTP}
-Use \textbf{Backup Now} to create and upload a backup bundle for the current configuration.
+\subsection{What Is Backed Up}
+Each backup bundle contains the current OPC UA channel configuration XML and the LOG device configuration XML. The bundle is compressed, uploaded to the selected FTP engine directory, and stored as an \texttt{.mbl} file.
 
-\subsection{Restore from FTP}
-Select a backup file from the list and click \textbf{Restore Selected}.
+\subsection{Automatic Nightly Backup}
+\begin{itemize}
+\item The deployment installs a root cron job that runs the FTP backup script every night at \texttt{00:10}.
+\item Automatic backup only runs when a valid FTP configuration exists.
+\item If no FTP configuration exists, the backup script logs that no valid engine number is configured and does not change system state.
+\item After a backup, the script uploads the backup logs to the same FTP engine directory when possible.
+\end{itemize}
 
-\subsection{Step-by-Step Example}
-\subsubsection{Connect and Load Backup List}
+\subsection{Manual Backup}
 \begin{enumerate}
 \item Open \textbf{Backup \& Restore Channels}.
 \item Confirm or enter the FTP server IP.
 \item Enter the engine number.
 \item Click \textbf{Connect \& Fetch}.
-\item Wait for the connection result.
-\item If the connection succeeds, the backup list is loaded for that engine directory.
-\end{enumerate}
-
-\subsubsection{Create a Backup}
-\begin{enumerate}
-\item Make sure the FTP connection is active.
+\item Wait for \textbf{Connected to FTP... Configuration saved}.
 \item Click \textbf{Backup Now}.
-\item Wait for the success message.
-\item Confirm that the new file appears in the backup list.
+\item Wait for the success message and confirm that the new \texttt{.mbl} file appears in the list.
 \end{enumerate}
 
-\subsubsection{Restore a Backup}
+\subsection{Restore}
 \begin{enumerate}
-\item Make sure the FTP connection is active.
-\item Select one file from the backup list.
+\item Connect to the FTP server and engine directory.
+\item Select one backup file from the list.
 \item Click \textbf{Restore Selected}.
 \item Wait for the restore result message.
+\item Reload the main page and verify the channel/device configuration.
 \end{enumerate}
+
+\begin{itemize}
+\item Restore downloads the selected \texttt{.mbl} file from FTP.
+\item The file must be a valid backup bundle.
+\item Restore overwrites both the OPC UA channel configuration XML and the LOG device configuration XML from the bundle.
+\item Backup files are listed newest-first, and old remote backups are pruned so the engine directory keeps up to 50 \texttt{.mbl} files.
+\end{itemize}
 
 \subsection{Operator Notes}
 \begin{itemize}
 \item Backup and restore both require a reachable FTP server.
-\item If the server is unavailable, the page shows an error and no system state is changed.
-\item The FTP directory chip on the main page shows the currently connected engine directory when configuration exists.
-\item If two sessions edit the FTP configuration, the page can detect configuration updates from the other session.
+\item If the server is unavailable, the page shows an error and no configuration is changed.
+\item If two browser sessions edit the FTP configuration, the page detects the updated configuration and refreshes the backup list.
 \end{itemize}
-
-\screenshotplaceholder{FTP Backup and Restore Page}{Insert a screenshot showing the FTP Server Setup, Backup Now, Restore Selected, and the available backup list.}
 
 \messageexample{Connect Success}{Connected to FTP at 10.193.135.70. Configuration saved.}
 \messageexample{Connect Failure}{Connection failed: FTP connect failed}
@@ -629,7 +505,7 @@ This tab shows live system and bus information in tables. Depending on the devic
 Temperature values shown by the current web interface are displayed in degrees Celsius. This includes CPU temperature, SDAQnet shunt temperature, IOBOX/MTI temperature channels, and NOX page shunt temperature.
 
 \subsubsection{System Logs}
-This tab is used for Morfeas application logger files.
+This tab is used for LOG application logger files.
 
 \begin{itemize}
 \item \textbf{Preview Logger}: choose one log file to preview.
@@ -643,13 +519,11 @@ The preview area shows the selected file content in a terminal-style viewer.
 This tab is used for journal output from system services.
 
 \begin{itemize}
-\item \textbf{Scope}: choose all services, Morfeas system, Apache2, or SSH.
+\item \textbf{Scope}: choose all services, LOG system service, Apache2, or SSH. The current UI label for the LOG system service may still appear as \textbf{Morfeas System} until that compatibility label is renamed.
 \item \textbf{Lines}: choose how many lines to load.
 \item \textbf{Reload}: reload the journal view.
 \item \textbf{Export Journal}: export the currently requested journal text.
 \end{itemize}
-
-\screenshotplaceholder{System Status Tabs}{Insert a screenshot showing the Details, System logs, and System Journal tabs with one example content area visible.}
 
 \subsection{How to Use the Tabs}
 \subsubsection{Details Tab}
@@ -657,7 +531,8 @@ Use this tab first when checking current runtime health.
 If a service is active but values look stale, compare with the Logs or Journal tabs.
 
 \subsubsection{System Logs Tab}
-Use this tab for Morfeas component logs when you want application-level detail such as handler messages, update logs, backup logs, or runtime component reports.
+Use this tab for LOG component logs when you want application-level detail such as handler messages, update logs, backup logs, or runtime component reports.
+To export logs, choose one or more files in the \textbf{Export Logs} multi-select, then click \textbf{Export Selected}. LOG WEB downloads the selected logger files as one combined text file. Use \textbf{Reload} if the file list looks stale.
 
 \subsubsection{System Journal Tab}
 Use this tab when the problem looks system-level rather than application-level, for example:
@@ -668,6 +543,8 @@ Use this tab when the problem looks system-level rather than application-level, 
 \item SSH availability,
 \item reboot or shutdown investigation.
 \end{itemize}
+
+To export journal output, choose the \textbf{Scope}, choose the number of \textbf{Lines}, click \textbf{Reload} if needed, then click \textbf{Export Journal}. The browser downloads the currently requested journal text as a \texttt{.txt} file.
 
 \section{Advanced Settings}
 Open \textbf{Advanced Settings} for machine information, NTP, and ISOstandard management.
@@ -695,7 +572,7 @@ This section lets the user:
 \end{itemize}
 
 \section{System Update}
-Open \textbf{System Update} to manage Morfeas web software updates.
+Open \textbf{System Update} to manage full system software updates.
 
 \subsection{Current Behavior}
 The page supports:
@@ -711,9 +588,7 @@ The page supports:
 A red dot on the menu item indicates that the system has recorded an available update. The reminder stays visible until a later check confirms that no update is pending, or until a successful update clears it.
 
 \subsection{Important Note}
-The current update flow is intended for the Morfeas web deployment path. Core update is handled separately.
-
-\screenshotplaceholder{System Update Page}{Insert a screenshot showing Check Again, Update Now, Update Later, Reload Page, and the status box.}
+The current update flow handles the full system update path shown in the progress messages. It checks and updates LOG WEB, applies web deployment steps, checks and downloads LOG core changes, builds and installs core when needed, runs core health checks, restarts services, and waits for the web service to become reachable again.
 
 \messageexample{Update Available}{Update available. Click "Update Now" to apply, or "Update Later" to postpone.}
 \messageexample{Update Success}{Update flow completed and web service is reachable. Refresh page (Ctrl+F5) to load latest files.}
@@ -736,24 +611,209 @@ Use \textbf{Shutdown Now} when you want to power off the device. After shutdown,
 The \textbf{Version} page shows version and commit information for:
 
 \begin{itemize}
-\item the Morfeas web repository,
-\item the Morfeas core repository,
+\item the LOG WEB repository,
+\item the LOG core repository,
 \item the related commit dates.
 \end{itemize}
 
 Use this page when confirming what software is installed on a device.
 
+\section{Import Channels}
+Use \textbf{Import Channels} on the main page to create channels from a JSON file.
+
+\subsection{How Import Opens}
+Clicking \textbf{Import Channels} opens the browser file picker. Select a \texttt{.json} file; there is no separate import popup page.
+
+\subsection{Expected File Format}
+The file must contain a JSON array. Each entry must include:
+
+\begin{itemize}
+\item \texttt{ISO\_CHANNEL}
+\item \texttt{INTERFACE\_TYPE}
+\item \texttt{ANCHOR}
+\end{itemize}
+
+Optional fields include \texttt{DESCRIPTION}, \texttt{MIN}, \texttt{MAX}, alarm fields, \texttt{UNIT}, \texttt{CAL\_DATE}, and \texttt{CAL\_PERIOD}. For SDAQ imports, LOG WEB ignores \texttt{UNIT}, \texttt{CAL\_DATE}, and \texttt{CAL\_PERIOD} because SDAQ calibration data is read from the SDAQ calibration path.
+
+\subsection{Typical Import Flow}
+\begin{enumerate}
+\item Prepare or export a JSON array of channel entries.
+\item Click \textbf{Import Channels}.
+\item Select the JSON file.
+\item LOG WEB validates the file and maps each entry to the channel-create payload.
+\item Valid entries are created one by one.
+\item The main table refreshes after successful imports.
+\end{enumerate}
+
+\subsection{Validation and Conflicts}
+\begin{itemize}
+\item The import fails immediately if the file is not valid JSON or is not a JSON array.
+\item Entries missing required fields are skipped and reported.
+\item Duplicate ISO channels inside the import file are rejected.
+\item Duplicate device paths inside the import file are rejected.
+\item Existing live ISO-channel or device-path conflicts are rejected before creating that entry.
+\item If some entries succeed and others fail, LOG WEB reports both the number imported and the failed entries.
+\end{itemize}
+
+\subsection{Export as Import Source}
+The right-click \textbf{Export} action creates a JSON file in the same structure expected by import. This is the safest way to move selected channel definitions between devices, then review the file before importing it elsewhere.
+
+\section{Right-Click Channel Options}
+Right-click one or more channel rows in the main table to access channel operations.
+
+\subsection{Selection Rules}
+\begin{itemize}
+\item With one selected row, LOG WEB can show row-specific actions.
+\item With two or more selected rows, LOG WEB shows only \textbf{Delete} and \textbf{Export}.
+\item If no row is selected and you right-click a row, that row is selected automatically.
+\item If several rows are already selected and you right-click one of them, the multi-row selection is kept.
+\end{itemize}
+
+\subsection{Action Availability by Scenario}
+\begin{longtable}{|p{0.24\textwidth}|p{0.66\textwidth}|}
+\hline
+\textbf{Scenario} & \textbf{Available actions} \\
+\hline
+Single SDAQ row & Edit, Delete, Calibration, Export. \\
+\hline
+Single SDAQ-I or SDAQ-U row & Edit, Delete, Scale, Calibration, Export. \\
+\hline
+Offline SDAQ row & Replace is added. \\
+\hline
+Offline complete SDAQ-TC16 group & Replace TC16 is added when the selected source belongs to a full CH1--CH16 offline TC16 group. \\
+\hline
+Single IOBOX row & Edit, Delete, Export. \\
+\hline
+Single MTI row & Edit, Delete, Export. \\
+\hline
+Single NOX row & Edit, Delete, Export. \\
+\hline
+Multiple rows & Delete, Export. \\
+\hline
+\end{longtable}
+
+\subsection{Edit}
+\begin{enumerate}
+\item Right-click one channel row.
+\item Choose \textbf{Edit}.
+\item Review or change ISO code, description, min/max, alarm fields, unit, calibration date/period when shown, and device path.
+\item Click \textbf{Save}.
+\end{enumerate}
+
+Edit uses the current channel data from the backend when available. The save operation updates the existing channel link.
+
+\subsection{Delete}
+\begin{enumerate}
+\item Select one or more rows.
+\item Right-click and choose \textbf{Delete}, or press \textbf{Delete}.
+\item Confirm the delete prompt.
+\end{enumerate}
+
+After a successful delete, one undo step is remembered for a short time. Press \textbf{Ctrl+Z} to restore the last deleted channel set when there is no conflict with existing live channels.
+
+\subsection{Export}
+\begin{enumerate}
+\item Select one or more rows.
+\item Right-click and choose \textbf{Export}.
+\item The browser downloads a timestamped \texttt{LOG\_ISOChannel\_Linker\_Export\_Selection} JSON file.
+\end{enumerate}
+
+The exported JSON can be used later with \textbf{Import Channels}. For SDAQ rows, export keeps the channel link fields; SDAQ device calibration remains owned by the SDAQ calibration data.
+
+\subsection{Scale}
+Scale is available only for \textbf{SDAQ-I} and \textbf{SDAQ-U} rows.
+
+\begin{enumerate}
+\item Right-click an SDAQ-I or SDAQ-U row.
+\item Choose \textbf{Scale}.
+\item Review \textbf{Current Measurement Value}.
+\item Enter \textbf{Measurement Input Low}, \textbf{Measurement Input High}, \textbf{Engineering Output Low}, \textbf{Engineering Output High}, and \textbf{Engineering Unit}.
+\item Review \textbf{Scaled Output Value}.
+\item Click \textbf{Save}.
+\end{enumerate}
+
+The scale popup writes a two-point scale into the selected SDAQ channel calibration data. It is separate from the full calibration popup.
+
+\subsection{Calibration}
+Calibration is available for SDAQ rows.
+
+\subsubsection{Purpose}
+The calibration popup is a manual channel calibration editor for the selected SDAQ channel. It is used to read, inspect, edit, preview, and save device calibration data.
+
+\subsubsection{Page Layout}
+The popup contains:
+
+\begin{itemize}
+\item \textbf{Upper Section}: device information, calibration metadata, and summary panel share the top area.
+\item \textbf{Current Preview}: \texttt{Measured raw value} and \texttt{Correct value}.
+\item \textbf{Point Table}: \texttt{Uncalibrated value}, \texttt{Reference value}, \texttt{Offset}, \texttt{Gain}, \texttt{C2}, and \texttt{C3}.
+\item \textbf{Preview Columns}: \texttt{Calibrated value} and \texttt{Difference (Calibrated - Reference)}.
+\item \textbf{Summary Panel}: calibration type, slope or gain summary, offset, reference minimum and maximum, and unit.
+\end{itemize}
+
+\subsubsection{Buttons and Validation}
+\begin{itemize}
+\item \textbf{Read from SDAQ}: reload calibration directly from the device.
+\item \textbf{Discard Changes}: restore the last data loaded into the popup.
+\item \textbf{Save to SDAQ}: validate the current form and write it to the device.
+\item \textbf{CH's Unit} must be selected from the supported runtime SDAQ unit list.
+\item \textbf{Used Points} must be an integer between zero and the device maximum.
+\item Every field of every used point must contain a finite number.
+\item Empty strings and \texttt{nan / -nan} are rejected.
+\item \texttt{Measure} values of used points must be strictly increasing from top to bottom.
+\end{itemize}
+
+The calibration popup preserves entered calibration coefficients as typed after validation; it does not automatically recalculate \texttt{Offset}, \texttt{Gain}, \texttt{C2}, or \texttt{C3}.
+
+\subsection{Replace}
+Replace is shown only for offline SDAQ rows. It uses the Edit Link popup in replace mode.
+
+\begin{enumerate}
+\item Right-click the offline SDAQ channel you want to replace.
+\item Choose \textbf{Replace}.
+\item The popup opens with the source type locked.
+\item Use device search to choose the replacement source path.
+\item Review ISO code, description, min/max, alarms, unit, and any shown calibration fields.
+\item Click \textbf{Save}.
+\end{enumerate}
+
+Family mismatch is blocked. If the source SDAQ subtype is known, subtype mismatch is blocked. If the source subtype is unknown, replacement is allowed but the UI warns the operator to replace within the same type.
+
+\messageexample{Warning}{Subtype unknown, make sure replace within same type.}
+\messageexample{Blocked Replace}{Subtype mismatch: expected SDAQ-TC1, got SDAQ-AI8.}
+
+\subsection{Replace TC16}
+Replace TC16 is shown only when the selected source belongs to a resolvable offline SDAQ-TC16 group that is complete as channels CH1 through CH16.
+
+\begin{enumerate}
+\item Right-click any channel in the full offline TC16 source group.
+\item Choose \textbf{Replace TC16}.
+\item LOG WEB selects all 16 source channels.
+\item The Replace TC16 popup shows the source group summary and channel mapping.
+\item Choose one eligible unlinked TC16 target device.
+\item Confirm the operation.
+\item All 16 source channels are remapped to the target device in one atomic operation.
+\end{enumerate}
+
+\begin{itemize}
+\item Replace TC16 is all-or-nothing.
+\item If any validation fails, no channel mapping is changed.
+\item Target selection is at device-group level, not one channel at a time.
+\item If no eligible target is listed, there is currently no fully free TC16 target device available.
+\end{itemize}
+
+\messageexample{Success}{Replace TC16 complete: 16 channels updated.}
+\messageexample{Failure}{Failed to apply TC16 replace. [tc16\_target\_not\_unlinked]}
+
 \section{Troubleshooting}
 This section gives quick operator guidance for common problems.
-
-\screenshotplaceholder{Troubleshooting Section Reference}{Optionally insert a screenshot collage of the key popups or status messages that operators most commonly use during troubleshooting.}
 
 \subsection{The Web Page Does Not Open}
 \begin{itemize}
 \item Confirm that you are using the current device IP address over HTTP.
 \item If the IP was recently changed, reconnect to the new address.
 \item If the device was rebooted or updated, wait for services to come back and refresh the browser.
-\item If still unavailable, check \textbf{System Journal} or use SSH to verify Apache and Morfeas services.
+\item If still unavailable, check \textbf{System Journal} or use SSH to verify Apache and LOG services.
 \end{itemize}
 
 \subsection{FTP Backup Cannot Connect}
@@ -824,9 +884,9 @@ The maintained source for this file is located under:
 \item \texttt{Morfeas\_WEB/docs/manual/}
 \end{itemize}
 
-This keeps the active user manual next to the current web code instead of inside the archived legacy documentation tree.
+This keeps the active user manual next to the current LOG WEB code instead of inside the archived legacy documentation tree.
 
 \section{Legacy Documentation Status}
-The old documentation tree under \texttt{LOG-web/Docs/Morfeas\_WEB\_Docs} is retained only as historical reference. Its structure and API descriptions belong to the legacy implementation and should not be used as the active operator manual for the current web UI.
+The old documentation tree under \texttt{LOG-web/Docs/Morfeas\_WEB\_Docs} is retained only as historical reference. Its structure and API descriptions belong to the legacy Morfeas WEB implementation and should not be used as the active operator manual for the current LOG WEB UI.
 
 \end{document}

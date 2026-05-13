@@ -187,6 +187,45 @@ ensure_logger_dir_access() {
     chmod 755 "$state_dir"
 }
 
+ensure_configuration_access() {
+    local dir="/home/morfeas/configuration"
+    local credential_file="$dir/LOG_ftp_credential.conf"
+    local ftp_config_file="$dir/ftp_config.json"
+
+    mkdir -p "$dir"
+
+    # The web UI writes the FTP config and the root cron job reads it later.
+    # Keep group access consistent with the morfeas service account setup.
+    chgrp morfeas "$dir" 2>/dev/null || true
+    chmod 2775 "$dir" 2>/dev/null || true
+
+    if [ -f "$credential_file" ]; then
+        chgrp morfeas "$credential_file" 2>/dev/null || true
+        chmod 640 "$credential_file" 2>/dev/null || true
+    else
+        log_warn "FTP credential file missing: $credential_file"
+    fi
+
+    if [ -f "$ftp_config_file" ]; then
+        chgrp morfeas "$ftp_config_file" 2>/dev/null || true
+        chmod 660 "$ftp_config_file" 2>/dev/null || true
+    fi
+}
+
+ensure_ftp_log_access() {
+    local ftp_log_file="/tmp/ftp_debug.log"
+
+    if [ ! -e "$ftp_log_file" ]; then
+        touch "$ftp_log_file"
+    fi
+
+    # Keep the shared FTP log root-owned in /tmp. On systems with
+    # fs.protected_regular=2, root cannot append to a www-data-owned file
+    # inside sticky /tmp even when the mode is 666.
+    chown root:morfeas "$ftp_log_file" 2>/dev/null || true
+    chmod 664 "$ftp_log_file" 2>/dev/null || true
+}
+
 main() {
     require_root
 
@@ -194,6 +233,8 @@ main() {
     mkdir -p "$RESTART_STATE_DIR"
 
     ensure_logger_dir_access
+    ensure_configuration_access
+    ensure_ftp_log_access
 
     install_regular_file \
         "$REPO_ROOT/logrotate/morfeas-loggers" \
@@ -232,10 +273,12 @@ main() {
 
     ensure_root_cron_line "@reboot sleep 30 && /var/www/html/morfeas_web/cron/system_update_check.sh"
     ensure_root_cron_line "0 0 * * * /var/www/html/morfeas_web/cron/system_update_check.sh"
-    ensure_root_cron_line "0 0 * * * /var/www/html/morfeas_web/deploy/backup.sh"
+    ensure_root_cron_line "10 0 * * * /var/www/html/morfeas_web/deploy/backup.sh"
+    remove_root_cron_line "@reboot /var/www/html/morfeas_web/cron/update_cron_wrapper.sh"
     remove_root_cron_line "@reboot sleep 30 && /var/www/html/morfeas_web/cron/update_cron_wrapper.sh"
     remove_root_cron_line "0 0 * * * /var/www/html/morfeas_web/cron/update_cron_wrapper.sh"
     remove_root_cron_line "0 0 * * * /var/www/html/morfeas_web/backup.sh"
+    remove_root_cron_line "0 0 * * * /var/www/html/morfeas_web/deploy/backup.sh"
 
     ensure_apache_private_tmp
     ensure_apache_servername_conf
