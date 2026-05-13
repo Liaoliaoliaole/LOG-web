@@ -180,6 +180,8 @@ IOBOX & Unreachable & \texttt{-905} & \texttt{-905} & IOBOX device-level Modbus 
 \hline
 IOBOX & Disconnected & \texttt{-901} & \texttt{-901} & IOBOX handler/device is alive, but the RX/channel path is not responding. \\
 \hline
+IOBOX & Unconfigured & \texttt{---} & \texttt{-905} fallback if source node is missing & IOBOX device is reachable, but the linked RX/channel path is not present in runtime logstat. Check IOBOX configuration and wiring. \\
+\hline
 IOBOX & No sensor & \texttt{-902} & \texttt{-902} & IOBOX reports no sensor on the channel. \\
 \hline
 IOBOX & Unclassified & \texttt{-904} & \texttt{-904} & IOBOX reports an invalid condition without a more specific mapping. \\
@@ -190,7 +192,7 @@ MTI & Unreachable & \texttt{-905} & \texttt{-905} & MTI device-level Modbus tran
 \hline
 MTI & Disconnected & \texttt{-901} & \texttt{-901} & MTI handler/device is alive, but telemetry is not responding. \\
 \hline
-MTI & Radio Disabled / Disabled & \texttt{---} when logstat has no channel; otherwise \texttt{-901} if core stamped the old source & \texttt{-901} when old source node remains; \texttt{-905} if source node is gone & MTI telemetry was intentionally disabled or reconfigured. Web does not invent a numeric value. \\
+MTI & Radio Disabled / Disabled & \texttt{---} when logstat has no channel; otherwise \texttt{-901} if core stamped the retained source & \texttt{-901} when the retained source node remains; \texttt{-905} if source node is gone & MTI telemetry was intentionally disabled or reconfigured. Web does not invent a numeric value. \\
 \hline
 MTI & No sensor & \texttt{-902} & \texttt{-902} & MTI telemetry reports no sensor on the channel. \\
 \hline
@@ -223,6 +225,7 @@ Operators should read the \textbf{Status} and \textbf{Meas} columns together:
 \begin{itemize}
 \item \textbf{Status = Out of Range} or \textbf{Over Range} with a numeric \textbf{Meas} value means the device still reports a measurement, but the channel is flagged as outside the expected calibrated or device range.
 \item \textbf{Status = No sensor}, \textbf{OFF-Line}, \textbf{Disconnected}, \textbf{Stall}, or \textbf{Unclassified} together with a red negative \textbf{Meas} value means the measurement is not valid and the code should be interpreted using the error-code table above.
+\item \textbf{Status = Unconfigured} with \textbf{Meas = ---} means the device is reachable, but the configured runtime channel path is not present.
 \item \textbf{Status = Disabled} with \textbf{Meas = ---} means the function is intentionally turned off, not failed.
 \end{itemize}
 
@@ -235,9 +238,9 @@ Search results are limited to the selected device family and to paths that are n
 
 \begin{itemize}
 \item \textbf{SDAQ}: search lists detected SDAQ channels that are not already linked. Single-channel manual offline anchors are allowed when needed.
-\item \textbf{IOBOX}: search lists channels from IOBOX devices whose runtime connection status is \textbf{Okay}. A receiver marked \textbf{Disconnected} is not listed. Individual channels under an online receiver may still be listed even when their current status is \textbf{No sensor} or otherwise invalid, matching the legacy search behavior.
+\item \textbf{IOBOX}: search lists channels from IOBOX devices whose runtime connection status is \textbf{Okay}. A receiver marked \textbf{Disconnected} is not listed. Individual channels under an online receiver may still be listed even when their current status is \textbf{No sensor} or otherwise invalid, matching the current channel-selection contract.
 \item \textbf{MTI}: search lists channels only when the MTI runtime connection status is \textbf{Okay} and the radio/telemetry mode provides channel data. Modes \textbf{TC4}, \textbf{TC8}, \textbf{TC16}, and \textbf{QUAD} expose their channel list. \textbf{RMSW/MUX} exposes detected \textbf{Mini\_RMSW} measurement channels. \textbf{Disabled} does not expose Add Channel candidates.
-\item \textbf{NOX}: search lists \textbf{NOx} and \textbf{O2} entries for detected UniNOx sensor objects. The current measurement does not need to be valid; for example, heater-off or warming-up sensors may still be linked and controlled later.
+\item \textbf{NOX}: search lists \textbf{NOx} and \textbf{O2} entries for detected UniNOx sensor objects. The current measurement does not need to be valid; for example, heater-off, warming-up, or previously detected \textbf{OFF-Line} sensors may still be linked and controlled later. OFF-Line historical candidates are marked with \texttt{(OFF-Line)} in the search result.
 \end{itemize}
 
 The search popup and save validation both enforce device-family matching. IOBOX candidates are not accepted as MTI links, and MTI candidates are not accepted as IOBOX links, even if the physical equipment connected behind the device can be similar.

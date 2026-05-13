@@ -184,29 +184,33 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
                 $explain = 'Unlinked';
             }
 
-	            if ($explain === null) {
-	                if ($noSens) {
-	                    $status = 'NO_Sensor';
-	                    $valid  = false;
-	                } elseif (!empty($stVal) && !$over && !$out) {
-	                    // Error flag without a specific category.
-	                    $status = 'Unclassified';
-	                    $valid  = false;
-	                } elseif ($cnt === 0) {
-	                    $status = 'Stall';
-	                    $valid  = false;
-	                } elseif ($over) {
-	                    $status = 'Over Range';
-	                    $valid  = true;
-	                } elseif ($out) {
+            if ($explain === null) {
+                if ($noSens) {
+                    $status = 'NO_Sensor';
+                    $valid  = false;
+                } elseif (!empty($stVal) && !$over && !$out) {
+                    // Error flag without a specific category.
+                    $status = 'Unclassified';
+                    $valid  = false;
+                } elseif ($cnt === 0) {
+                    // Matches core MORFEAS_MEAS_ERROR_STALL (-903).
+                    $status = 'Stall';
+                    $valid  = false;
+                } elseif ($over) {
+                    $status = 'Over Range';
+                    $valid  = true;
+                } elseif ($out) {
                     $status = 'Out of Range';
                     $valid  = true;
-	                }
-	            }
+                }
+            }
 
-	            if (sdaq_reserved_error_code($value) !== null) {
-	                $valid = false;
-	            }
+            // SDAQ logstat status is still defined by Channel_Status/CNT.
+            // Current core emits reserved SDAQ values (-902..-904) in the same
+            // situations, so here the code only marks the measurement invalid.
+            if (sdaq_reserved_error_code($value) !== null) {
+                $valid = false;
+            }
 
             $entry = [
                 'status'        => $status,

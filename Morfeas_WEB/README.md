@@ -1,6 +1,7 @@
 # LOG WEB v2
 
 This folder contains the v2 web UI and PHP backend for LOG(Morfeas) devices. The frontend assets live at the top level, and the backend PHP endpoints are in `backend/`.
+The active product is `Morfeas_WEB/`; archived legacy web folders are read-only references for behavior comparison.
 
 ## Structure
 

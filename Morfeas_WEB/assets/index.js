@@ -1138,6 +1138,7 @@
       if (s === 'signal invalid') return 'st-Error';
       if (s === 'standby') return 'st-Stall';
       if (s === 'unreachable') return 'st-Offline';
+      if (s === 'unconfigured') return 'st-Unknown';
       if (s.startsWith('heating up')) return 'st-Stall';
       if (s === 'off-line' || s === 'offline') return 'st-Offline';
       if (s === 'disconnected') return 'st-Offline';

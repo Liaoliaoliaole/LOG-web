@@ -83,7 +83,7 @@ function iobox_load_anchor_map(array $paths): array
             if (!preg_match('/^RX(\d+)$/', $key, $m)) {
                 continue;
             }
-            if (!is_array($rxData) || ($rxData === 'Disconnected')) {
+            if (!is_array($rxData)) {
                 continue;
             }
 

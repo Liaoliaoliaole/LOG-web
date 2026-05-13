@@ -375,10 +375,12 @@ function channel_build_rows_with_logstat(
                 }
             }
 
-            if ($status === 'OFF-Line' && $anchor) {
+            if ($anchor && !isset($ioboxMap[$anchor])) {
                 $deviceId = explode('.', $anchor, 2)[0] ?? null;
-                if ($deviceId !== null && isset($ioboxConn[$deviceId]) && strcasecmp($ioboxConn[$deviceId], 'Okay') === 0) {
-                    $status = 'Disconnected';
+                if ($deviceId !== null && isset($ioboxConn[$deviceId]) && strcasecmp((string)$ioboxConn[$deviceId], 'Okay') === 0) {
+                    $status = 'Unconfigured';
+                } else {
+                    $status = 'OFF-Line';
                 }
             }
 
@@ -402,9 +404,9 @@ function channel_build_rows_with_logstat(
                     isset($mtiConn[$deviceId], $mtiTeleTypes[$deviceId]) &&
                     strcasecmp((string)$mtiConn[$deviceId], 'Okay') === 0 &&
                     strcasecmp((string)$mtiTeleTypes[$deviceId], 'Disabled') === 0) {
-                    // Radio Disabled is an operator-selected MTI mode, not a
-                    // measurement error value. Keep Meas as "—" unless core
-                    // provides a numeric value in logstat.
+                    // MTI Disabled has no Tele_data in logstat, so $mtiMap is
+                    // intentionally absent. If core starts emitting -901 here,
+                    // handle it through channel_assign_error_code_display().
                     $status = 'Disabled';
                 }
             }
@@ -524,10 +526,11 @@ function channel_build_rows_with_logstat(
 
         $key = strtoupper($canonical['anchor']);
         if (!isset($noxSearch[$key])) {
+            $isOfflineOnly = !empty($entry['is_offline_only']);
             $noxSearch[$key] = [
                 'interface_type' => 'NOX',
                 'anchor' => $canonical['anchor'],
-                'display_anchor' => $canonical['display_anchor'],
+                'display_anchor' => $canonical['display_anchor'] . ($isOfflineOnly ? ' (OFF-Line)' : ''),
                 'link_state' => 'Unlinked',
                 'status' => $entry['status'] ?? null,
                 'is_meas_valid' => $entry['is_meas_valid'] ?? null,
@@ -535,6 +538,7 @@ function channel_build_rows_with_logstat(
                 'meas_unit' => $entry['meas_unit'] ?? null,
                 'error_code' => channel_reserved_error_code(isset($entry['meas_value']) ? (float)$entry['meas_value'] : null),
                 'meas_is_error_code' => channel_reserved_error_code(isset($entry['meas_value']) ? (float)$entry['meas_value'] : null) !== null,
+                'is_offline_only' => $isOfflineOnly,
                 'aliases' => [],
                 'linked_in_xml' => false,
             ];
