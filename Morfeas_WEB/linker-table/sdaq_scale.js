@@ -49,6 +49,7 @@
 
   const btnSave = $('#btnSave');
   const btnReset = $('#btnReset');
+  const btnOpenCalibration = $('#btnOpenCalibration');
   const status = $('#status');
 
   const state = {
@@ -558,12 +559,29 @@
     setStatus('Engineering output range and preview cleared', 'info');
   }
 
+  function openCalibration() {
+    if (!bus || addr === null || ch === null) {
+      setStatus('Missing channel context for Calibration page', 'err');
+      return;
+    }
+
+    const url = new URL('./calibration.html', window.location.href);
+    url.searchParams.set('bus', bus);
+    url.searchParams.set('addr', String(addr));
+    url.searchParams.set('ch', String(ch));
+    url.searchParams.set('from', 'scale');
+    if (sn) url.searchParams.set('sn', sn);
+    if (getSelectedUnit()) url.searchParams.set('unit', getSelectedUnit());
+    window.open(url.toString(), '_blank', 'noopener,noreferrer,width=1400,height=900');
+  }
+
   function bindEvents() {
     [rawValue, rawLowValue, rawHighValue, engLowValue, engHighValue, engUnitInput].forEach((el) => {
       el?.addEventListener('input', updatePreview);
     });
 
     btnReset.addEventListener('click', resetScale);
+    btnOpenCalibration?.addEventListener('click', openCalibration);
     btnSave.addEventListener('click', async () => {
       try {
         setStatus('Saving scale...', 'info');

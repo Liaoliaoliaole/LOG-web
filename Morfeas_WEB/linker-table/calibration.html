@@ -63,7 +63,7 @@
 
         .aux-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(240px, 1fr));
+            grid-template-columns: repeat(3, minmax(240px, 1fr));
             gap: 12px;
         }
 
@@ -109,6 +109,47 @@
             display: flex;
             align-items: center;
             line-height: 1.45;
+        }
+
+        .metric-card .v {
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .metric-value {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .copy-btn {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: #fff;
+            color: #334155;
+            display: inline-grid;
+            place-items: center;
+            cursor: pointer;
+            flex: 0 0 auto;
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        .copy-btn:disabled {
+            cursor: not-allowed;
+            opacity: .45;
+            background: #f1f5f9;
+        }
+
+        .mode-banner {
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 10px 12px;
+            background: #f8fafc;
+            color: #334155;
+            font-size: 14px;
+            display: none;
         }
 
         .input,
@@ -194,8 +235,17 @@
             min-height: 22px;
         }
 
+        .coeff-readonly {
+            background: #eef2f7 !important;
+            color: #64748b !important;
+        }
+
         @media (max-width: 1320px) {
             .upper-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .aux-grid {
                 grid-template-columns: 1fr 1fr;
             }
 
@@ -219,6 +269,13 @@
 
             .card-body {
                 padding: 8px;
+            }
+
+            .panel-row,
+            .summary-item,
+            .metric-card,
+            .aux-grid {
+                grid-template-columns: 1fr;
             }
 
             .panel-row,
@@ -310,17 +367,31 @@
                     <div class="aux-grid">
                         <div class="metric-card">
                             <div class="k">Measured raw value</div>
-                            <div class="v" id="liveMeasuredRawValue">-</div>
+                            <div class="v">
+                                <span id="liveMeasuredRawValue" class="metric-value">-</span>
+                                <button class="copy-btn" type="button" data-copy-target="liveMeasuredRawValue" aria-label="Copy measured raw value" title="Copy">⧉</button>
+                            </div>
                         </div>
                         <div class="metric-card">
-                            <div class="k">Correct value</div>
-                            <div class="v" id="liveCorrectValue">-</div>
+                            <div class="k">Current Device Output</div>
+                            <div class="v">
+                                <span id="liveCurrentOutputValue" class="metric-value">-</span>
+                                <button class="copy-btn" type="button" data-copy-target="liveCurrentOutputValue" aria-label="Copy current device output" title="Copy">⧉</button>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="k">Preview Output</div>
+                            <div class="v">
+                                <span id="livePreviewOutputValue" class="metric-value">-</span>
+                                <button class="copy-btn" type="button" data-copy-target="livePreviewOutputValue" aria-label="Copy preview output" title="Copy">⧉</button>
+                            </div>
                         </div>
                     </div>
                 </section>
 
                 <section class="section-block">
                     <h2 class="section-title">Point Table</h2>
+                    <div id="modeBanner" class="mode-banner"></div>
                     <div class="table-wrap">
                         <table class="table" id="calTable">
                             <thead>
@@ -342,6 +413,7 @@
 
                     <div class="row-actions">
                         <button id="btnRead" class="btn">Read from SDAQ</button>
+                        <button id="btnConvert" class="btn" type="button">Edit Calibration Points</button>
                         <button id="btnRevert" class="btn">Discard Changes</button>
                         <button id="btnSave" class="btn primary">Save to SDAQ</button>
                     </div>

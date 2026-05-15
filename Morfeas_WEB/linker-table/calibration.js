@@ -21,6 +21,7 @@
   const requestedCh = Math.max(1, parseInt(params.get('ch') || '1', 10));
   const requestedUnit = params.get('unit') || '';
   const requestedSn = (params.get('sn') || '').trim();
+  const fromScale = (params.get('from') || '').trim().toLowerCase() === 'scale';
   const bus = (params.get('bus') || '').trim().toLowerCase();
   const addrRaw = params.get('addr');
   const addr = addrRaw !== null && /^\d+$/.test(addrRaw) ? parseInt(addrRaw, 10) : null;
@@ -49,6 +50,8 @@
   const btnRead = $('#btnRead');
   const btnRevert = $('#btnRevert');
   const btnSave = $('#btnSave');
+  const btnConvert = $('#btnConvert');
+  const modeBanner = $('#modeBanner');
 
   const infoEls = {
     serial: $('#devSerial'),
@@ -70,8 +73,10 @@
 
   const liveEls = {
     measured: $('#liveMeasuredRawValue'),
-    correct: $('#liveCorrectValue'),
+    current: $('#liveCurrentOutputValue'),
+    preview: $('#livePreviewOutputValue'),
   };
+  const copyButtons = $$('[data-copy-target]');
 
   const pointCols = [
     { xml: 'Measure', key: 'measure', label: 'Uncalibrated value' },
@@ -93,6 +98,9 @@
     unitSet: new Set(),
     invalidCells: new Map(),
     originalChannelObj: null,
+    hasExistingCalibration: false,
+    editorMode: 'view',
+    protectedByExisting: false,
     liveMeasurement: {
       rawLastMeas: null,
       lastMeas: null,
@@ -123,18 +131,49 @@
   function setEditingEnabled(enabled, { blocked = false } = {}) {
     state.editing = !!enabled;
     state.blockedByOtherSession = !!blocked;
-    const shouldDisable = state.blockedByOtherSession;
+    applyInteractionState();
+    applyUsed();
+  }
 
-    [calDateInput, calPeriodInput, usedInput, unitSelect].forEach((el) => {
+  function applyInteractionState() {
+    const blocked = state.blockedByOtherSession;
+    const canEditPoints = isAutoLinearMode() && !blocked;
+    const canEditMetadata = !blocked;
+
+    [calDateInput, calPeriodInput].forEach((el) => {
       if (!el) return;
-      el.disabled = shouldDisable;
-      el.style.background = shouldDisable ? 'var(--color-bg-weak)' : '';
+      el.disabled = !canEditMetadata;
+      el.style.background = canEditMetadata ? '' : 'var(--color-bg-weak)';
     });
 
-    btnSave.disabled = shouldDisable;
-    btnRevert.disabled = shouldDisable;
+    [usedInput, unitSelect].forEach((el) => {
+      if (!el) return;
+      el.disabled = !canEditPoints;
+      el.style.background = canEditPoints ? '' : 'var(--color-bg-weak)';
+    });
 
-    applyUsed();
+    btnSave.disabled = blocked;
+    btnRevert.disabled = blocked;
+    if (btnConvert) {
+      btnConvert.style.display = state.protectedByExisting && !isAutoLinearMode() && !blocked ? '' : 'none';
+    }
+
+    if (btnSave) {
+      btnSave.textContent = isAutoLinearMode() ? 'Save to SDAQ' : 'Save Metadata';
+    }
+
+    if (modeBanner) {
+      let text = '';
+      if (blocked) {
+        text = 'Read-only mode. This device is currently being edited by another session.';
+      } else if (isAutoLinearMode()) {
+        text = 'Auto linear point editing is active. Offset, Gain, C2, and C3 are calculated automatically.';
+      } else if (state.protectedByExisting) {
+        text = 'Existing calibration is protected. Metadata can be saved without changing coefficients, or convert to edit calibration points.';
+      }
+      modeBanner.textContent = text;
+      modeBanner.style.display = text ? 'block' : 'none';
+    }
   }
 
   async function sessionFetch(url, options = {}) {
@@ -261,7 +300,10 @@
     }
 
     if (!options.silent) {
-      setStatus('Ready. Editing lock will be acquired automatically when you change a value or save.', 'info');
+      const msg = isProtectedViewMode()
+        ? 'Read-only point table. Metadata changes will acquire the edit lock automatically; use Edit Calibration Points to convert.'
+        : 'Ready. Editing lock will be acquired automatically when you change a value or save.';
+      setStatus(msg, 'info');
     }
   }
 
@@ -304,9 +346,13 @@
   function isAutoLockTarget(target) {
     if (!target) return false;
     if (target === btnRead) return false;
+    if (target === btnConvert) return false;
     if (target === btnSave) return true;
-    if (target === calDateInput || target === calPeriodInput || target === usedInput || target === unitSelect) return true;
-    return Boolean(target.closest('#calTable input[data-k]'));
+    if (target === calDateInput || target === calPeriodInput) return true;
+    if ((target === usedInput || target === unitSelect) && isAutoLinearMode()) return true;
+    const pointInput = target.closest('#calTable input[data-k]');
+    if (!pointInput || !isAutoLinearMode()) return false;
+    return isPointInputKey(pointInput.dataset.k || '');
   }
 
   function requestEditLockForInteraction(target) {
@@ -328,7 +374,7 @@
 
   function getText(parent, selector, fallback = '') {
     const node = parent?.querySelector(selector);
-    return node?.textContent?.trim() || fallback;
+    return node ? (node.textContent || '').trim() : fallback;
   }
 
   function toInt(value, fallback) {
@@ -343,6 +389,56 @@
     return Number.isFinite(n) ? n : null;
   }
 
+  function isCoeffKey(key) {
+    return key === 'offset' || key === 'gain' || key === 'c2' || key === 'c3';
+  }
+
+  function isPointInputKey(key) {
+    return key === 'measure' || key === 'reference';
+  }
+
+  function isAutoLinearMode() {
+    return state.editorMode === 'auto-linear';
+  }
+
+  function isProtectedViewMode() {
+    return state.protectedByExisting && state.editorMode === 'view';
+  }
+
+  function valuesDiffer(value, target) {
+    const n = toFiniteNumber(value);
+    return n !== null && Math.abs(n - target) > 1e-12;
+  }
+
+  function channelHasPolynomial(chObj) {
+    const used = Math.max(0, Math.min(state.maxPoints, toInt(chObj?.Used_Points ?? 0, 0)));
+    for (let i = 0; i < used; i++) {
+      const p = chObj?.Points?.[`Point_${i}`] || {};
+      if (valuesDiffer(p.c2, 0) || valuesDiffer(p.c3, 0)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function channelHasExistingCalibration(chObj) {
+    const used = Math.max(0, Math.min(state.maxPoints, toInt(chObj?.Used_Points ?? 0, 0)));
+    if (used > 0) return true;
+
+    for (let i = 0; i < state.maxPoints; i++) {
+      const p = chObj?.Points?.[`Point_${i}`] || {};
+      if (valuesDiffer(p.offset, 0) || valuesDiffer(p.gain, 1) || valuesDiffer(p.c2, 0) || valuesDiffer(p.c3, 0)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function channelLooksLikeScaleResult(chObj) {
+    const used = Math.max(0, Math.min(state.maxPoints, toInt(chObj?.Used_Points ?? 0, 0)));
+    return used === 2 && !channelHasPolynomial(chObj);
+  }
+
   function toDisplayNumber(value) {
     if (!Number.isFinite(value)) return '-';
     const text = Number(value.toFixed(8)).toString();
@@ -353,6 +449,40 @@
     const text = toDisplayNumber(value);
     if (text === '-') return '-';
     return unit ? `${text} ${unit}` : text;
+  }
+
+  function updateCopyButtons() {
+    copyButtons.forEach((btn) => {
+      const target = document.getElementById(btn.dataset.copyTarget || '');
+      const text = String(target?.textContent || '').trim();
+      const disabled = text === '' || text === '-' || target?.dataset.copyable === '0';
+      btn.disabled = disabled;
+      btn.title = disabled ? 'No measurement available' : 'Copy';
+    });
+  }
+
+  async function copyMetric(targetId) {
+    const target = document.getElementById(targetId);
+    const text = String(target?.textContent || '').trim();
+    if (!text || text === '-' || target?.dataset.copyable === '0') return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', 'readonly');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setStatus('Copied value to clipboard.', 'ok');
+    } catch (_) {
+      setStatus('Copy failed in this browser.', 'err');
+    }
   }
 
   function todayYmd() {
@@ -464,10 +594,10 @@
         <td><b>${i}</b></td>
         <td><input type="number" step="any" class="input" data-k="measure" value="${DEFAULT_POINT_VALUES.measure}"></td>
         <td><input type="number" step="any" class="input" data-k="reference" value="${DEFAULT_POINT_VALUES.reference}"></td>
-        <td><input type="number" step="any" class="input" data-k="offset" value="${DEFAULT_POINT_VALUES.offset}"></td>
-        <td><input type="number" step="any" class="input" data-k="gain" value="${DEFAULT_POINT_VALUES.gain}"></td>
-        <td><input type="number" step="any" class="input" data-k="c2" value="${DEFAULT_POINT_VALUES.c2}"></td>
-        <td><input type="number" step="any" class="input" data-k="c3" value="${DEFAULT_POINT_VALUES.c3}"></td>
+        <td><input type="number" step="any" class="input coeff-readonly" data-k="offset" value="${DEFAULT_POINT_VALUES.offset}" readonly></td>
+        <td><input type="number" step="any" class="input coeff-readonly" data-k="gain" value="${DEFAULT_POINT_VALUES.gain}" readonly></td>
+        <td><input type="number" step="any" class="input coeff-readonly" data-k="c2" value="${DEFAULT_POINT_VALUES.c2}" readonly></td>
+        <td><input type="number" step="any" class="input coeff-readonly" data-k="c3" value="${DEFAULT_POINT_VALUES.c3}" readonly></td>
         <td class="calc-cell" data-calc="corrected">-</td>
         <td class="calc-cell" data-calc="difference">-</td>`;
       tableBody.appendChild(tr);
@@ -527,6 +657,7 @@
     }
 
     let selected = points[points.length - 1];
+    // Piecewise boundary per the auto-linear writer: raw <= Point[i + 1].Measure uses Point_i's segment.
     for (let i = 0; i < points.length - 1; i++) {
       if (rawMeasure <= points[i + 1].measure) {
         selected = points[i];
@@ -538,6 +669,60 @@
       + (selected.gain * rawMeasure)
       + (selected.c2 * rawMeasure * rawMeasure)
       + (selected.c3 * rawMeasure * rawMeasure * rawMeasure);
+  }
+
+  function previousSinglePointGain() {
+    if (!state.originalChannelObj || channelHasPolynomial(state.originalChannelObj)) {
+      return 1;
+    }
+    const gain = toFiniteNumber(state.originalChannelObj?.Points?.Point_0?.gain);
+    return gain === null ? 1 : gain;
+  }
+
+  function writeCoeff(rowIdx, offset, gain, c2 = 0, c3 = 0) {
+    setCellValue(rowIdx, 'offset', normalizeScalar(offset));
+    setCellValue(rowIdx, 'gain', normalizeScalar(gain));
+    setCellValue(rowIdx, 'c2', normalizeScalar(c2));
+    setCellValue(rowIdx, 'c3', normalizeScalar(c3));
+  }
+
+  function deriveAutoLinearCoefficients() {
+    if (!isAutoLinearMode()) return;
+
+    const used = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
+    if (used === 0) return;
+
+    const points = [];
+    for (let i = 0; i < used; i++) {
+      const measure = toFiniteNumber(getCellInput(i, 'measure')?.value);
+      const reference = toFiniteNumber(getCellInput(i, 'reference')?.value);
+      if (measure === null || reference === null) return;
+      points.push({ measure, reference });
+    }
+
+    for (let i = 1; i < points.length; i++) {
+      if (points[i].measure <= points[i - 1].measure) return;
+    }
+
+    if (used === 1) {
+      const gain = previousSinglePointGain();
+      const offset = points[0].reference - (gain * points[0].measure);
+      writeCoeff(0, offset, gain);
+      return;
+    }
+
+    for (let i = 0; i < used; i++) {
+      const start = i < used - 1 ? i : i - 1;
+      const end = i < used - 1 ? i + 1 : i;
+      const x0 = points[start].measure;
+      const y0 = points[start].reference;
+      const x1 = points[end].measure;
+      const y1 = points[end].reference;
+      const gain = (y1 - y0) / (x1 - x0);
+      const offset = y0 - (gain * x0);
+      if (!Number.isFinite(gain) || !Number.isFinite(offset)) return;
+      writeCoeff(i, offset, gain);
+    }
   }
 
   function computeChannelType(used) {
@@ -648,16 +833,23 @@
     syncSelectedRowHighlight();
 
     const rawMeasure = state.liveMeasurement.rawLastMeas;
-    // Live preview intentionally reflects the current unsaved form state.
+    deriveAutoLinearCoefficients();
     const currentObj = collectChannelObjFromForm();
-    const corrected = computeChannelCorrectValue(currentObj, rawMeasure);
+    const preview = isAutoLinearMode() ? computeChannelCorrectValue(currentObj, rawMeasure) : null;
     const unit = unitSelect.value || state.liveMeasurement.unit || '';
+    const currentUnit = state.liveMeasurement.unit || unit;
 
     liveEls.measured.textContent = displayWithUnit(rawMeasure, '');
-    liveEls.correct.textContent = displayWithUnit(corrected, unit);
+    liveEls.current.textContent = displayWithUnit(state.liveMeasurement.lastMeas, currentUnit);
+    liveEls.preview.textContent = isAutoLinearMode() ? displayWithUnit(preview, unit) : '= Current Device Output';
+    liveEls.measured.dataset.copyable = Number.isFinite(rawMeasure) ? '1' : '0';
+    liveEls.current.dataset.copyable = Number.isFinite(state.liveMeasurement.lastMeas) ? '1' : '0';
+    liveEls.preview.dataset.copyable = isAutoLinearMode() && Number.isFinite(preview) ? '1' : '0';
+    updateCopyButtons();
   }
 
   function updateDerivedViews() {
+    deriveAutoLinearCoefficients();
     updateAllRowPreviews();
     updateSummary();
     updateLivePreview();
@@ -718,6 +910,24 @@
     return obj;
   }
 
+  function collectMetadataOnlyChannelObj() {
+    const base = JSON.parse(JSON.stringify(state.originalChannelObj || {}));
+    base.Calibration_date = ymdToSlash(calDateInput.value) || ymdToSlash(todayYmd());
+    base.Calibration_Period = String(Math.max(0, toInt(calPeriodInput.value, 0)));
+    base.Used_Points = String(Math.max(0, Math.min(state.maxPoints, toInt(base.Used_Points ?? 0, 0))));
+    base.Unit = String(base.Unit ?? '');
+    base.Points = base.Points || {};
+    for (let i = 0; i < state.maxPoints; i++) {
+      base.Points[`Point_${i}`] = base.Points[`Point_${i}`] || { ...DEFAULT_POINT_VALUES };
+    }
+    return base;
+  }
+
+  function hasMetadataDiff(currentObj, originalObj) {
+    return normalizeScalar(currentObj?.Calibration_date) !== normalizeScalar(originalObj?.Calibration_date)
+      || normalizeScalar(currentObj?.Calibration_Period) !== normalizeScalar(originalObj?.Calibration_Period);
+  }
+
   function normalizeChannelForDiff(chObj) {
     const used = Math.max(0, Math.min(state.maxPoints, toInt(chObj?.Used_Points ?? 0, 0)));
     const out = {
@@ -755,7 +965,12 @@
     parent.appendChild(n);
   }
 
-  function buildSaveXmlOnlySelectedChannel(channelObj) {
+  function pointValueForXml(value, preserveRaw) {
+    return preserveRaw ? String(value ?? '') : normalizeScalar(value);
+  }
+
+  function buildSaveXmlOnlySelectedChannel(channelObj, options = {}) {
+    const preserveRawPointValues = !!options.preserveRawPointValues;
     const outDoc = createEmptyDoc();
     const sdaqRoot = outDoc.documentElement;
     const srcInfo = state.sourceXmlDoc?.querySelector('SDAQ > SDAQ_info');
@@ -779,7 +994,7 @@
     for (let i = 0; i < used; i++) {
       const pNode = outDoc.createElement(`Point_${i}`);
       const p = channelObj.Points[`Point_${i}`] || {};
-      pointCols.forEach((c) => appendTextNode(outDoc, pNode, c.xml, normalizeScalar(p[c.key])));
+      pointCols.forEach((c) => appendTextNode(outDoc, pNode, c.xml, pointValueForXml(p[c.key], preserveRawPointValues)));
       pointsNode.appendChild(pNode);
     }
     chNode.appendChild(pointsNode);
@@ -964,7 +1179,12 @@
     const chNode = state.sourceXmlDoc?.querySelector(`SDAQ > Calibration_Data > ${selectedChannelTag()}`);
     const chObj = channelNodeToObject(chNode);
     state.originalChannelObj = JSON.parse(JSON.stringify(chObj));
+    state.hasExistingCalibration = channelHasExistingCalibration(chObj);
+    const allowScaleContinuation = fromScale && channelLooksLikeScaleResult(chObj);
+    state.protectedByExisting = state.hasExistingCalibration && !allowScaleContinuation;
+    state.editorMode = state.protectedByExisting ? 'view' : 'auto-linear';
     fillFormFromChannelObj(chObj);
+    applyInteractionState();
   }
 
   function applyUsed() {
@@ -973,9 +1193,13 @@
 
     rows.forEach((tr, idx) => {
       const active = idx < used;
+      const canEditPoints = isAutoLinearMode() && !state.blockedByOtherSession;
       tr.classList.toggle('row-disabled', !active);
       $$('input', tr).forEach((inp) => {
-        inp.disabled = !active || state.blockedByOtherSession;
+        const key = inp.dataset.k || '';
+        inp.disabled = !active || state.blockedByOtherSession || !canEditPoints || !isPointInputKey(key);
+        inp.readOnly = isCoeffKey(key);
+        inp.classList.toggle('coeff-readonly', isCoeffKey(key));
       });
       if (!active) {
         pointCols.forEach((c) => {
@@ -989,6 +1213,7 @@
     if (used === 0) state.selectedPreviewRow = 0;
     else if (state.selectedPreviewRow >= used) state.selectedPreviewRow = Math.max(used - 1, 0);
 
+    applyInteractionState();
     updateDerivedViews();
   }
 
@@ -1019,8 +1244,12 @@
     }
 
     clearAllInvalidMarks();
+    deriveAutoLinearCoefficients();
     for (let i = 0; i < used; i++) {
       pointCols.forEach((c) => {
+        if (isAutoLinearMode() && isCoeffKey(c.key)) {
+          return;
+        }
         const raw = String(getCellInput(i, c.key)?.value || '').trim();
         if (raw === '') {
           markInvalid(i, c.key, raw, 'empty value');
@@ -1042,20 +1271,50 @@
     validateMeasureAscending(true);
   }
 
+  function validateMetadataBeforeSave() {
+    if (!calDateInput.value || !/^\d{4}-\d{2}-\d{2}$/.test(calDateInput.value)) {
+      throw new Error('Calibration date must be a valid date');
+    }
+
+    const period = toInt(calPeriodInput.value, -1);
+    if (!Number.isInteger(period) || period < 0) {
+      throw new Error('Calibration period must be a non-negative integer');
+    }
+  }
+
   async function saveSelectedChannel() {
     const acquired = await ensureEditLock({ silent: true });
     if (!acquired) {
       throw new Error('This device is currently being edited by another session.');
     }
-    validateBeforeSave();
-    const currentObj = collectChannelObjFromForm();
-    if (!hasSelectedChannelDiff(currentObj, state.originalChannelObj)) {
+
+    const saveMode = isAutoLinearMode() ? 'auto-linear' : 'legacy';
+    if (saveMode === 'auto-linear') {
+      validateBeforeSave();
+      deriveAutoLinearCoefficients();
+    } else {
+      validateMetadataBeforeSave();
+    }
+
+    const currentObj = saveMode === 'auto-linear'
+      ? collectChannelObjFromForm()
+      : collectMetadataOnlyChannelObj();
+    const changed = saveMode === 'auto-linear'
+      ? hasSelectedChannelDiff(currentObj, state.originalChannelObj)
+      : hasMetadataDiff(currentObj, state.originalChannelObj);
+    if (!changed) {
       setStatus(`No changes for ${selectedChannelTag()}.`, 'info');
       return null;
     }
 
-    const xmlContent = buildSaveXmlOnlySelectedChannel(currentObj);
-    const payload = { action: 'calibration_save', bus, addr, xmlContent };
+    const xmlContent = buildSaveXmlOnlySelectedChannel(currentObj, { preserveRawPointValues: saveMode === 'legacy' });
+    const payload = {
+      action: 'calibration_save',
+      mode: saveMode,
+      bus,
+      addr,
+      xmlContent,
+    };
     const res = await sessionFetch(buildApiUrl(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -1064,7 +1323,20 @@
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data?.ok) throw new Error(data?.error || `Save failed: HTTP ${res.status}`);
-    state.originalChannelObj = JSON.parse(JSON.stringify(currentObj));
+    if (saveMode === 'auto-linear') {
+      await fetchCalibrationXml();
+      populateInfo();
+      loadSelectedChannelFromXml();
+      state.editorMode = 'auto-linear';
+      state.protectedByExisting = false;
+      applyInteractionState();
+      updateDerivedViews();
+    } else {
+      state.originalChannelObj = JSON.parse(JSON.stringify(currentObj));
+      state.hasExistingCalibration = channelHasExistingCalibration(currentObj);
+      state.protectedByExisting = state.hasExistingCalibration;
+      applyInteractionState();
+    }
     return data;
   }
 
@@ -1085,7 +1357,58 @@
       return;
     }
     fillFormFromChannelObj(JSON.parse(JSON.stringify(state.originalChannelObj)));
+    const allowScaleContinuation = fromScale && channelLooksLikeScaleResult(state.originalChannelObj);
+    if (state.hasExistingCalibration && !allowScaleContinuation) {
+      state.editorMode = 'view';
+      state.protectedByExisting = true;
+    }
+    applyInteractionState();
     setStatus(`Discarded changes for ${selectedChannelTag()} and restored the last loaded state.`, 'ok');
+  }
+
+  async function releaseEditLockIfHeld() {
+    if (!state.editing) return;
+    try {
+      await postEditAction('edit_end');
+    } catch (_) {
+      // TTL expiry remains the fallback.
+    } finally {
+      stopEditRenewal();
+      state.editing = false;
+      applyInteractionState();
+      applyUsed();
+    }
+  }
+
+  async function convertToAutoLinear() {
+    const confirmed = window.confirm(
+      'This channel already has calibration coefficients.\n\n'
+      + 'Converting will recalculate Offset/Gain from Uncalibrated/Reference points, '
+      + 'set C2/C3 to 0, and overwrite the existing coefficients when saved.\n\n'
+      + 'Continue?'
+    );
+    if (!confirmed) {
+      setStatus('Conversion canceled.', 'info');
+      return;
+    }
+
+    const acquired = await ensureEditLock({ silent: true });
+    if (!acquired) {
+      state.editorMode = 'view';
+      const allowScaleContinuation = fromScale && channelLooksLikeScaleResult(state.originalChannelObj);
+      state.protectedByExisting = state.hasExistingCalibration && !allowScaleContinuation;
+      applyInteractionState();
+      applyUsed();
+      setStatus('This device is currently being edited by another session.', 'err');
+      return;
+    }
+
+    state.editorMode = 'auto-linear';
+    state.protectedByExisting = false;
+    deriveAutoLinearCoefficients();
+    applyInteractionState();
+    applyUsed();
+    setStatus('Auto linear point editing is active.', 'ok');
   }
 
   tableBody.addEventListener('click', (e) => {
@@ -1094,6 +1417,12 @@
     const idx = toInt(tr.dataset.rowIdx, 0);
     state.selectedPreviewRow = idx;
     updateLivePreview();
+  });
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-copy-target]');
+    if (!btn) return;
+    copyMetric(btn.dataset.copyTarget || '');
   });
 
   tableBody.addEventListener('input', (e) => {
@@ -1174,8 +1503,17 @@
     }
   });
 
-  btnRevert.addEventListener('click', () => {
+  btnConvert?.addEventListener('click', async () => {
+    try {
+      await convertToAutoLinear();
+    } catch (err) {
+      setStatus(err.message || 'Failed to enter auto linear editing', 'err');
+    }
+  });
+
+  btnRevert.addEventListener('click', async () => {
     revertToLoadedState();
+    await releaseEditLockIfHeld();
   });
 
   btnSave.addEventListener('click', async () => {

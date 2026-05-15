@@ -730,22 +730,23 @@ Scale is available only for \textbf{SDAQ-I} and \textbf{SDAQ-U} rows.
 \item Enter \textbf{Measurement Input Low}, \textbf{Measurement Input High}, \textbf{Engineering Output Low}, \textbf{Engineering Output High}, and \textbf{Engineering Unit}.
 \item Review \textbf{Scaled Output Value}.
 \item Click \textbf{Save}.
+\item Use \textbf{Continue in Calibration} when you want to add or review calibration points for the same channel after saving the quick scale.
 \end{enumerate}
 
-The scale popup writes a two-point scale into the selected SDAQ channel calibration data. It is separate from the full calibration popup.
+The scale popup writes a two-point calibration table into the selected SDAQ channel calibration data. It is a quick workflow for SDAQ-I and SDAQ-U; the full Calibration popup edits the same underlying calibration table.
 
 \subsection{Calibration}
 Calibration is available for SDAQ rows.
 
 \subsubsection{Purpose}
-The calibration popup is a manual channel calibration editor for the selected SDAQ channel. It is used to read, inspect, edit, preview, and save device calibration data.
+The calibration popup is a channel calibration point editor for the selected SDAQ channel. It is used to read, inspect, preview, and save the device calibration table.
 
 \subsubsection{Page Layout}
 The popup contains:
 
 \begin{itemize}
 \item \textbf{Upper Section}: device information, calibration metadata, and summary panel share the top area.
-\item \textbf{Current Preview}: \texttt{Measured raw value} and \texttt{Correct value}.
+\item \textbf{Current Preview}: \texttt{Measured raw value}, \texttt{Current Device Output}, and \texttt{Preview Output}. Each value has a copy button when the value is available.
 \item \textbf{Point Table}: \texttt{Uncalibrated value}, \texttt{Reference value}, \texttt{Offset}, \texttt{Gain}, \texttt{C2}, and \texttt{C3}.
 \item \textbf{Preview Columns}: \texttt{Calibrated value} and \texttt{Difference (Calibrated - Reference)}.
 \item \textbf{Summary Panel}: calibration type, slope or gain summary, offset, reference minimum and maximum, and unit.
@@ -755,15 +756,17 @@ The popup contains:
 \begin{itemize}
 \item \textbf{Read from SDAQ}: reload calibration directly from the device.
 \item \textbf{Discard Changes}: restore the last data loaded into the popup.
-\item \textbf{Save to SDAQ}: validate the current form and write it to the device.
+\item \textbf{Save Metadata}: available when existing calibration is protected. It saves only calibration date and period, without changing points or coefficients.
+\item \textbf{Edit Calibration Points}: unlocks point editing for a channel that already has calibration data. Confirming this action converts the editable table to auto-linear points and may overwrite existing coefficients.
+\item \textbf{Save to SDAQ}: validate the current auto-linear point form and write it to the device.
 \item \textbf{CH's Unit} must be selected from the supported runtime SDAQ unit list.
 \item \textbf{Used Points} must be an integer between zero and the device maximum.
-\item Every field of every used point must contain a finite number.
-\item Empty strings and \texttt{nan / -nan} are rejected.
+\item In point editing mode, \texttt{Uncalibrated value} and \texttt{Reference value} must contain finite numbers.
 \item \texttt{Measure} values of used points must be strictly increasing from top to bottom.
+\item \texttt{Reference value} may increase or decrease, depending on the sensor and engineering range.
 \end{itemize}
 
-The calibration popup preserves entered calibration coefficients as typed after validation; it does not automatically recalculate \texttt{Offset}, \texttt{Gain}, \texttt{C2}, or \texttt{C3}.
+\texttt{Offset}, \texttt{Gain}, \texttt{C2}, and \texttt{C3} are shown for transparency. In normal point editing mode they are read-only and LOG WEB recalculates them from the calibration points before saving. The goal of each used point is that \texttt{Difference (Calibrated - Reference)} is as close to zero as possible.
 
 \subsection{Replace}
 Replace is shown only for offline SDAQ rows. It uses the Edit Link popup in replace mode.
