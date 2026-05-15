@@ -174,10 +174,32 @@
         }
 
         .table-wrap {
-            overflow: auto;
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: visible;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            scrollbar-gutter: stable both-edges;
+            scrollbar-width: auto;
+            scrollbar-color: #94a3b8 #e2e8f0;
             border: 1px solid var(--color-border);
             border-radius: 14px;
             background: #fff;
+        }
+
+        .table-wrap::-webkit-scrollbar {
+            height: 14px;
+        }
+
+        .table-wrap::-webkit-scrollbar-track {
+            background: #e2e8f0;
+            border-radius: 999px;
+        }
+
+        .table-wrap::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 999px;
+            border: 3px solid #e2e8f0;
         }
 
         .table {

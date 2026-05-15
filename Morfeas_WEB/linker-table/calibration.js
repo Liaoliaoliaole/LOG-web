@@ -752,6 +752,7 @@
     }
 
     if (hasPoly) return 'polynomial';
+    if (used === 1) return 'single-point correction';
     if (used > 2) return 'multi-point linearization';
     if (hasScale) return 'scale + offset';
     if (hasOffsetOnly) return 'offset only';
@@ -1503,12 +1504,14 @@
     }
   });
 
-  btnConvert?.addEventListener('click', async () => {
-    try {
-      await convertToAutoLinear();
-    } catch (err) {
-      setStatus(err.message || 'Failed to enter auto linear editing', 'err');
-    }
+  btnConvert?.addEventListener('click', () => {
+    window.setTimeout(async () => {
+      try {
+        await convertToAutoLinear();
+      } catch (err) {
+        setStatus(err.message || 'Failed to enter auto linear editing', 'err');
+      }
+    }, 0);
   });
 
   btnRevert.addEventListener('click', async () => {
