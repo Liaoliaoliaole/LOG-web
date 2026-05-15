@@ -38,6 +38,11 @@ function ftp_backup_status_logger_file(): string
     return '/mnt/ramdisk/Morfeas_Loggers/LOG_FTP_php_errors.log';
 }
 
+function ftp_backup_health_file(): string
+{
+    return '/tmp/ftp_backup_health.json';
+}
+
 function ftp_backup_engine_is_valid(string $engine): bool
 {
     if ($engine === '.' || $engine === '..') {
@@ -62,6 +67,47 @@ function ftp_backup_log(string $level, string $message): void
 
     @file_put_contents(ftp_backup_log_file(), $line, FILE_APPEND | LOCK_EX);
     @file_put_contents(ftp_backup_logger_mirror_file(), $line, FILE_APPEND | LOCK_EX);
+}
+
+function ftp_backup_record_health(bool $ok, string $message, ?array $config = null): void
+{
+    $payload = [
+        'ok' => $ok,
+        'message' => trim($message),
+        'checked_at' => time(),
+        'host' => is_array($config) ? (string) ($config['host'] ?? '') : '',
+        'dir' => is_array($config) ? (string) ($config['dir'] ?? '') : '',
+    ];
+
+    @file_put_contents(ftp_backup_health_file(), json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+}
+
+function ftp_backup_read_health(): array
+{
+    $path = ftp_backup_health_file();
+    if (!is_file($path)) {
+        return [
+            'ok' => null,
+            'message' => 'FTP status has not been checked yet',
+            'checked_at' => null,
+        ];
+    }
+
+    $raw = @file_get_contents($path);
+    $data = is_string($raw) ? json_decode($raw, true) : null;
+    if (!is_array($data)) {
+        return [
+            'ok' => null,
+            'message' => 'FTP status file is invalid',
+            'checked_at' => null,
+        ];
+    }
+
+    return [
+        'ok' => array_key_exists('ok', $data) ? (bool) $data['ok'] : null,
+        'message' => (string) ($data['message'] ?? ''),
+        'checked_at' => isset($data['checked_at']) ? (int) $data['checked_at'] : null,
+    ];
 }
 
 function ftp_backup_parse_kv_file(string $path): array
@@ -205,6 +251,7 @@ function ftp_backup_clear_config(): void
     $path = ftp_backup_config_file();
     if (is_file($path)) {
         @unlink($path);
+        @unlink(ftp_backup_health_file());
         ftp_backup_log('INFO', 'Config cleared');
     } else {
         ftp_backup_log('INFO', 'Config clear requested but file missing');
@@ -219,19 +266,23 @@ function ftp_backup_open_connection(array $config)
 
     $conn = @ftp_connect($config['host'], 21, 10);
     if (!$conn) {
+        ftp_backup_record_health(false, 'FTP connect failed', $config);
         throw new RuntimeException('FTP connect failed', 502);
     }
 
     if (!@ftp_login($conn, $config['user'], $config['pass'])) {
         @ftp_close($conn);
+        ftp_backup_record_health(false, 'FTP login failed', $config);
         throw new RuntimeException('FTP login failed', 502);
     }
 
     if (!@ftp_pasv($conn, true)) {
         @ftp_close($conn);
+        ftp_backup_record_health(false, 'Failed to enable FTP passive mode', $config);
         throw new RuntimeException('Failed to enable FTP passive mode', 502);
     }
 
+    ftp_backup_record_health(true, 'FTP connection is valid', $config);
     return $conn;
 }
 
@@ -536,9 +587,14 @@ function ftp_backup_config_if_updated(int $pollWindowSec = 2): array
         $config = null;
     }
 
+    $health = ftp_backup_read_health();
+    $configured = $config !== null;
+
     return [
-        'connected' => $config !== null,
+        'configured' => $configured,
+        'connected' => $configured && ($health['ok'] === true),
         'updated' => $updated,
         'config' => $config,
+        'health' => $health,
     ];
 }

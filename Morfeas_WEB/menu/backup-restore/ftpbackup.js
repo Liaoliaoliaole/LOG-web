@@ -148,7 +148,7 @@
       const data = payload?.data || {};
       const config = data.config || null;
 
-      if (!data.connected || !config) {
+      if (!config) {
         if (connected) {
           disconnectUi();
         } else {
@@ -162,7 +162,16 @@
       configSignature = newSig;
 
       applyConfigToUi(config);
-      setConnectedUI(true);
+      setConnectedUI(Boolean(data.connected));
+
+      if (!data.connected) {
+        fillList([]);
+        const message = data?.health?.message || 'FTP is configured but not currently reachable.';
+        if (announce || changed) {
+          setMsg(ftpMsg, `FTP configured but offline: ${message}`, 'err');
+        }
+        return;
+      }
 
       if (changed) {
         await listBackups(false);
@@ -171,6 +180,8 @@
         }
       }
     } catch (err) {
+      setConnectedUI(false);
+      fillList([]);
       if (announce) {
         setMsg(ftpMsg, `Unable to check latest FTP config status: ${err.message || err}`, 'err');
       }

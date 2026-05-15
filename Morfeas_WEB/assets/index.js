@@ -683,8 +683,9 @@
         const payload = await ftpBackupApi.configIfUpdated(6000);
         const data = payload?.data || {};
         const dir = (data?.config?.dir || '').toString().trim();
+        const configured = Boolean(data?.configured && dir);
         const connected = Boolean(data?.connected && dir);
-        setFtpDirChipState(connected, connected ? dir : '---');
+        setFtpDirChipState(connected, configured ? dir : '---');
       } catch (err) {
         setFtpDirChipState(false, '---');
       }
