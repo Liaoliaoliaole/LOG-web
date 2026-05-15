@@ -23,6 +23,7 @@
   }
 
   let connected = false;
+  let configured = false;
   let actionBusy = false;
   let configSignature = '';
   let syncTimer = null;
@@ -37,13 +38,14 @@
     if (type) el.classList.add(type);
   };
 
-  const setConnectedUI = (on) => {
+  const setConnectedUI = (on, hasConfig = on) => {
     connected = !!on;
+    configured = !!hasConfig;
 
     hostInput.disabled = connected;
     engineInput.disabled = connected;
     connectBtn.disabled = connected || actionBusy;
-    disconnectBtn.disabled = !connected || actionBusy;
+    disconnectBtn.disabled = !configured || actionBusy;
     backupBtn.disabled = !connected || actionBusy;
     restoreBtn.disabled = !connected || actionBusy;
 
@@ -54,7 +56,7 @@
 
   const setBusy = (busy) => {
     actionBusy = !!busy;
-    setConnectedUI(connected);
+    setConnectedUI(connected, configured);
   };
 
   const ensureDefaultHost = () => {
@@ -131,7 +133,8 @@
 
   const disconnectUi = () => {
     connected = false;
-    setConnectedUI(false);
+    configured = false;
+    setConnectedUI(false, false);
     fillList([]);
     ensureDefaultHost();
     setMsg(ftpMsg, 'Disconnected. Configuration removed. Automatic backups disabled.', 'ok');
@@ -149,7 +152,7 @@
       const config = data.config || null;
 
       if (!config) {
-        if (connected) {
+        if (connected || configured) {
           disconnectUi();
         } else {
           ensureDefaultHost();
@@ -162,7 +165,7 @@
       configSignature = newSig;
 
       applyConfigToUi(config);
-      setConnectedUI(Boolean(data.connected));
+      setConnectedUI(Boolean(data.connected), true);
 
       if (!data.connected) {
         fillList([]);
@@ -180,7 +183,7 @@
         }
       }
     } catch (err) {
-      setConnectedUI(false);
+      setConnectedUI(false, configured);
       fillList([]);
       if (announce) {
         setMsg(ftpMsg, `Unable to check latest FTP config status: ${err.message || err}`, 'err');
@@ -205,10 +208,12 @@
       await api.testConnect();
 
       configSignature = `${input.host}|${input.dir}|`;
-      setConnectedUI(true);
+      setConnectedUI(true, true);
       setMsg(ftpMsg, `Connected to FTP at ${input.host}. Configuration saved.`, 'ok');
       await listBackups(true);
     } catch (err) {
+      configSignature = `${input.host}|${input.dir}|`;
+      setConnectedUI(false, true);
       setMsg(ftpMsg, `Connection failed: ${err.message || err}`, 'err');
     } finally {
       setBusy(false);
@@ -285,7 +290,7 @@
   restoreBtn.addEventListener('click', restoreSelected);
 
   ensureDefaultHost();
-  setConnectedUI(false);
+  setConnectedUI(false, false);
   syncConfig(false);
   syncTimer = window.setInterval(() => syncConfig(true), 2000);
   window.addEventListener('beforeunload', () => {
