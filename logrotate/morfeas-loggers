@@ -3,8 +3,6 @@
     rotate 7
     missingok
     notifempty
-    compress
-    delaycompress
     copytruncate
     su root root
 }

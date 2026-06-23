@@ -1074,6 +1074,7 @@
       if (!tbody || !tbody.children.length) return;
 
       const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
       $$('tbody td[data-col="next-cal"]').forEach((td) => {
         td.classList.remove('calib-expired');
@@ -1095,7 +1096,7 @@
 
         if (!dt) return;
 
-        if (dt.getTime() < now.getTime()) {
+        if (dt.getTime() < today.getTime()) {
           td.classList.add('calib-expired');
         }
       });

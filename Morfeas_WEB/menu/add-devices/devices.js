@@ -57,6 +57,7 @@
   let removeInProgress = false;
   let transitionInProgress = false;
   let popupWindowHasFocus = document.hasFocus();
+  let pendingRevealDeviceId = '';
   const popupRegistry = new Map();
 
   const IP_REGEX = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
@@ -404,6 +405,12 @@
       const tdIp = document.createElement('td');
       tdIp.textContent = d.ip || '-';
 
+      const tdRxHealth = document.createElement('td');
+      tdRxHealth.textContent = d.type === 'IOBOX' ? (d.rx_health || 'N/A') : '—';
+
+      const tdRxSuccess = document.createElement('td');
+      tdRxSuccess.textContent = d.type === 'IOBOX' ? (d.rx_success || 'N/A') : '—';
+
       const tdStatus = document.createElement('td');
       tdStatus.appendChild(renderStatusCell(
         d.runtime_status || d.status || 'Unknown',
@@ -423,7 +430,7 @@
         tdAction.textContent = '—';
       }
 
-      [tdCheck, tdIdx, tdBus, tdType, tdName, tdIp, tdStatus, tdAction].forEach((td) => tr.appendChild(td));
+      [tdCheck, tdIdx, tdBus, tdType, tdName, tdIp, tdRxHealth, tdRxSuccess, tdStatus, tdAction].forEach((td) => tr.appendChild(td));
       configuredBody.appendChild(tr);
     });
 
@@ -463,6 +470,29 @@
     renderConfiguredRows();
     renderDetectedRows();
     applyLegacyLockUI();
+    revealPendingDevice();
+  }
+
+  function revealPendingDevice() {
+    const targetId = pendingRevealDeviceId;
+    if (!targetId) return;
+
+    const row = $$('#configuredBody tr').find((tr) => tr.dataset.id === targetId);
+    if (!row) return;
+
+    const checkbox = row.querySelector('input[type="checkbox"]');
+    if (checkbox) checkbox.checked = true;
+    syncConfiguredState();
+
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.style.transition = 'box-shadow 250ms ease';
+    row.style.boxShadow = '0 0 0 2px #1f6b36 inset';
+    window.setTimeout(() => {
+      row.style.boxShadow = '';
+      row.style.transition = '';
+    }, 1400);
+
+    pendingRevealDeviceId = '';
   }
 
   function syncConfiguredState() {
@@ -631,9 +661,11 @@
       if (json.ok === false) {
         throw new Error(json.error || 'HTTP error');
       }
+      pendingRevealDeviceId = (json.data && json.data.id) ? String(json.data.id) : '';
       propCard.style.display = 'none';
       await refreshAfterConfigChange();
     } catch (err) {
+      pendingRevealDeviceId = '';
       alert('Failed to save: ' + err.message);
     } finally {
       saveBtn.disabled = false;
@@ -650,6 +682,7 @@
     updateDevicePlaceholders();
     devName.value = '';
     devIp.value = '';
+    devName.focus();
   });
 
   devType.addEventListener('change', updateDevicePlaceholders);
