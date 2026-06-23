@@ -656,11 +656,16 @@
       return p.offset + (p.gain * rawMeasure) + (p.c2 * rawMeasure * rawMeasure) + (p.c3 * rawMeasure * rawMeasure * rawMeasure);
     }
 
-    let selected = points[points.length - 1];
+    // Sort by Measure ascending so piecewise lookup works regardless of the
+    // order the user entered the points (industry convention is to enter rows
+    // by Reference; reverse-response sensors then have descending Measure).
+    const sorted = [...points].sort((a, b) => a.measure - b.measure);
+
+    let selected = sorted[sorted.length - 1];
     // Piecewise boundary per the auto-linear writer: raw <= Point[i + 1].Measure uses Point_i's segment.
-    for (let i = 0; i < points.length - 1; i++) {
-      if (rawMeasure <= points[i + 1].measure) {
-        selected = points[i];
+    for (let i = 0; i < sorted.length - 1; i++) {
+      if (rawMeasure <= sorted[i + 1].measure) {
+        selected = sorted[i];
         break;
       }
     }
@@ -697,27 +702,40 @@
       const measure = toFiniteNumber(getCellInput(i, 'measure')?.value);
       const reference = toFiniteNumber(getCellInput(i, 'reference')?.value);
       if (measure === null || reference === null) return;
-      points.push({ measure, reference });
+      points.push({ rowIdx: i, measure, reference });
     }
 
-    for (let i = 1; i < points.length; i++) {
-      if (points[i].measure <= points[i - 1].measure) return;
+    // Follow industry convention: the user enters rows by Reference (the
+    // controlled physical input) in any order they prefer. Internally we sort
+    // by Measure ascending because the SDAQ piecewise lookup is keyed on
+    // Measure. Duplicate Measure values would make a segment slope infinite,
+    // so we still reject them.
+    const sorted = [...points].sort((a, b) => a.measure - b.measure);
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i].measure === sorted[i - 1].measure) return;
     }
 
     if (used === 1) {
       const gain = previousSinglePointGain();
       const offset = points[0].reference - (gain * points[0].measure);
-      writeCoeff(0, offset, gain);
+      writeCoeff(points[0].rowIdx, offset, gain);
       return;
     }
 
+    // Map each UI row to its position in the Measure-sorted order, so each row
+    // receives the segment whose first endpoint is that row's own (Measure,
+    // Reference). The row with the largest Measure reuses the previous segment.
+    const sortedPos = new Map();
+    sorted.forEach((p, idx) => sortedPos.set(p.rowIdx, idx));
+
     for (let i = 0; i < used; i++) {
-      const start = i < used - 1 ? i : i - 1;
-      const end = i < used - 1 ? i + 1 : i;
-      const x0 = points[start].measure;
-      const y0 = points[start].reference;
-      const x1 = points[end].measure;
-      const y1 = points[end].reference;
+      const pos = sortedPos.get(i);
+      const start = pos < used - 1 ? pos : pos - 1;
+      const end = pos < used - 1 ? pos + 1 : pos;
+      const x0 = sorted[start].measure;
+      const y0 = sorted[start].reference;
+      const x1 = sorted[end].measure;
+      const y1 = sorted[end].reference;
       const gain = (y1 - y0) / (x1 - x0);
       const offset = y0 - (gain * x0);
       if (!Number.isFinite(gain) || !Number.isFinite(offset)) return;
@@ -1062,7 +1080,7 @@
 
     state.selectedPreviewRow = used > 0 ? Math.min(state.selectedPreviewRow, used - 1) : 0;
     applyUsed();
-    validateMeasureAscending(false);
+    validateMeasureDistinct(false);
     updateDerivedViews();
     const msg = invalidMessage(true);
     if (!options.suppressStatus) {
@@ -1218,18 +1236,25 @@
     updateDerivedViews();
   }
 
-  function validateMeasureAscending(throwOnError = true) {
+  // Industry-convention calibration tools sort points by Reference and accept
+  // any Measure ordering (forward, reverse-response, or non-monotonic sensors).
+  // The only hard requirement is that no two used Measure values are equal,
+  // otherwise the segment slope between them would be infinite.
+  function validateMeasureDistinct(throwOnError = true) {
     const used = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
-    for (let i = 1; i < used; i++) {
-      const prev = toFiniteNumber(getCellInput(i - 1, 'measure')?.value);
-      const curr = toFiniteNumber(getCellInput(i, 'measure')?.value);
-      if (prev !== null && curr !== null && curr <= prev) {
-        markInvalid(i, 'measure', getCellInput(i, 'measure')?.value, `value must be greater than previous ${colLabel('measure')}`);
+    const seen = new Map();
+    for (let i = 0; i < used; i++) {
+      const value = toFiniteNumber(getCellInput(i, 'measure')?.value);
+      if (value === null) continue;
+      if (seen.has(value)) {
+        const firstIdx = seen.get(value);
+        markInvalid(i, 'measure', getCellInput(i, 'measure')?.value, `value must be unique among ${colLabel('measure')} (duplicate of Point_${firstIdx})`);
         const msg = invalidMessage(true);
         if (throwOnError) throw new Error(msg);
         setStatus(msg, 'err');
         return false;
       }
+      seen.set(value, i);
     }
     return true;
   }
@@ -1269,7 +1294,7 @@
 
     const fieldErrors = invalidMessage(true);
     if (fieldErrors) throw new Error(fieldErrors);
-    validateMeasureAscending(true);
+    validateMeasureDistinct(true);
   }
 
   function validateMetadataBeforeSave() {
@@ -1452,7 +1477,7 @@
     } else {
       clearInvalid(rowIdx, colKey);
       if (colKey === 'measure') {
-        validateMeasureAscending(false);
+        validateMeasureDistinct(false);
       }
     }
 

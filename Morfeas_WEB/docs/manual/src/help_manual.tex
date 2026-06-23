@@ -762,7 +762,7 @@ The popup contains:
 \item \textbf{CH's Unit} must be selected from the supported runtime SDAQ unit list.
 \item \textbf{Used Points} must be an integer between zero and the device maximum.
 \item In point editing mode, \texttt{Uncalibrated value} and \texttt{Reference value} must contain finite numbers.
-\item \texttt{Measure} values of used points must be strictly increasing from top to bottom.
+\item \texttt{Measure} values of used points must be unique. Rows can be entered in any order; LOG WEB follows the industry convention of letting the user enter rows by \texttt{Reference} (forward, reverse-response, or non-monotonic sensors are all supported) and sorts internally by \texttt{Measure} before computing coefficients and writing to the SDAQ.
 \item \texttt{Reference value} may increase or decrease, depending on the sensor and engineering range.
 \end{itemize}
 

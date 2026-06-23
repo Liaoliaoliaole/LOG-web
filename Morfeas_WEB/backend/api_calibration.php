@@ -462,15 +462,35 @@ function cal_rebuild_linear_coeffs_for_auto_mode(string $xmlContent, ?string $pr
             ];
         }
 
-        for ($i = 1; $i < $used; $i++) {
-            if ($points[$i]['measure'] <= $points[$i - 1]['measure']) {
+        // Industry-convention calibration tools sort points by Reference (the
+        // controlled physical input) and accept any Measure ordering, so the
+        // user can enter rows naturally for forward, reverse-response, or
+        // non-monotonic sensors. The only hard constraint is that Measure
+        // values are distinct; otherwise the linear segment slope between two
+        // identical Measure values would be infinite. We sort by Measure
+        // ascending internally because the SDAQ piecewise lookup is keyed on
+        // Measure.
+        $sortedPoints = $points;
+        usort($sortedPoints, function ($a, $b) {
+            return $a['measure'] <=> $b['measure'];
+        });
+        for ($i = 1; $i < count($sortedPoints); $i++) {
+            if ($sortedPoints[$i]['measure'] === $sortedPoints[$i - 1]['measure']) {
                 throw new RuntimeException(sprintf(
-                    'Invalid calibration points in %s: Point_%d.Measure must be greater than Point_%d.Measure',
+                    'Invalid calibration points in %s: duplicate Measure value %s',
                     $chNode->tagName,
-                    $i,
-                    $i - 1
+                    cal_num_to_string($sortedPoints[$i]['measure'])
                 ));
             }
+        }
+
+        // Map each input row to its position in the Measure-sorted order so
+        // each row receives the segment whose first endpoint is that row's own
+        // (Measure, Reference). The row with the largest Measure reuses the
+        // previous segment, matching the auto-linear writer in calibration.js.
+        $sortedPosByObj = new SplObjectStorage();
+        foreach ($sortedPoints as $pos => $p) {
+            $sortedPosByObj->attach($p['node'], $pos);
         }
 
         if ($used === 1) {
@@ -488,10 +508,10 @@ function cal_rebuild_linear_coeffs_for_auto_mode(string $xmlContent, ?string $pr
 
         if ($used === 2) {
             [$offset, $gain] = cal_compute_linear_coeff(
-                $points[0]['measure'],
-                $points[0]['reference'],
-                $points[1]['measure'],
-                $points[1]['reference']
+                $sortedPoints[0]['measure'],
+                $sortedPoints[0]['reference'],
+                $sortedPoints[1]['measure'],
+                $sortedPoints[1]['reference']
             );
             for ($i = 0; $i < 2; $i++) {
                 cal_set_point_field($doc, $points[$i]['node'], 'Offset', cal_num_to_string($offset));
@@ -503,16 +523,17 @@ function cal_rebuild_linear_coeffs_for_auto_mode(string $xmlContent, ?string $pr
         }
 
         for ($i = 0; $i < $used; $i++) {
-            if ($i < $used - 1) {
-                $x0 = $points[$i]['measure'];
-                $y0 = $points[$i]['reference'];
-                $x1 = $points[$i + 1]['measure'];
-                $y1 = $points[$i + 1]['reference'];
+            $pos = $sortedPosByObj[$points[$i]['node']];
+            if ($pos < $used - 1) {
+                $x0 = $sortedPoints[$pos]['measure'];
+                $y0 = $sortedPoints[$pos]['reference'];
+                $x1 = $sortedPoints[$pos + 1]['measure'];
+                $y1 = $sortedPoints[$pos + 1]['reference'];
             } else {
-                $x0 = $points[$i - 1]['measure'];
-                $y0 = $points[$i - 1]['reference'];
-                $x1 = $points[$i]['measure'];
-                $y1 = $points[$i]['reference'];
+                $x0 = $sortedPoints[$pos - 1]['measure'];
+                $y0 = $sortedPoints[$pos - 1]['reference'];
+                $x1 = $sortedPoints[$pos]['measure'];
+                $y1 = $sortedPoints[$pos]['reference'];
             }
 
             [$offset, $gain] = cal_compute_linear_coeff($x0, $y0, $x1, $y1);
