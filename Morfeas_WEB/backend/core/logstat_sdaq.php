@@ -102,13 +102,13 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
                 if ($chId === null) continue;
 
                 $calDate   = $cal['Calibration_date_UNIX'] ?? null;
-                $calPeriod = $cal['Calibration_period'] ?? null; // Unit: days (legacy behavior).
+                $calPeriod = $cal['Calibration_period'] ?? null; // Unit: months (stored as unsigned byte in SDAQ firmware).
 
                 if ($calDate !== null) {
                     $calibByCh[$chId] = [
                         'cal_date'   => gmdate('Y-m-d', (int)$calDate),
-                        // UI uses months; convert days to months (round up).
-                        'cal_period' => is_numeric($calPeriod) ? (int)ceil(((float)$calPeriod) / 30) : null,
+                        // Firmware stores period directly in months; use as-is.
+                        'cal_period' => is_numeric($calPeriod) ? (int)$calPeriod : null,
                     ];
                 }
             }
