@@ -335,11 +335,15 @@
         const nameSpan = document.createElement('span');
         nameSpan.className = 'fb-name';
         nameSpan.textContent = '\uD83D\uDCC1 ' + name;
-        nameSpan.title = 'Click to use as Engine Number';
-        nameSpan.addEventListener('click', () => {
-          engineInput.value = name;
+        nameSpan.title = 'Click to connect with this engine number';
+        nameSpan.addEventListener('click', async () => {
           folderBrowser.hidden = true;
-          setMsg(ftpMsg, `Engine number set to \u201c${name}\u201d. Click Connect & Fetch to proceed.`, 'ok');
+          // Force inputs back to editable state so connectFtp() can read them
+          connected = false;
+          configured = false;
+          setConnectedUI(false, false);
+          engineInput.value = name;
+          await connectFtp();
         });
 
         const enterBtn = document.createElement('button');
