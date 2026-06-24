@@ -65,6 +65,21 @@ try {
             ftp_backup_clear_config();
             ftp_backup_api_respond(true, null, 'Config cleared');
 
+        case 'listdirs':
+            $host = trim((string) ($body['host'] ?? ''));
+            $path = trim((string) ($body['path'] ?? '/'));
+            if ($host === '') {
+                // Fall back to saved config host if available
+                try {
+                    $cfg = ftp_backup_load_config_raw();
+                    $host = $cfg['host'];
+                } catch (Throwable $ignored) {
+                    throw new InvalidArgumentException('host is required');
+                }
+            }
+            $dirs = ftp_backup_list_dirs($host, $path);
+            ftp_backup_api_respond(true, $dirs, 'Directories listed');
+
         case 'list':
             $files = ftp_backup_list_files();
             ftp_backup_api_respond(true, ['files' => $files], 'Backup list loaded');

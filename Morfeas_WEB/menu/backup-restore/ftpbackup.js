@@ -18,6 +18,15 @@
   const bakMsg = $('#backupStatus');
   const resMsg = $('#restoreStatus');
 
+  // Folder browser elements
+  const browseBtn = $('#browseBtn');
+  const folderBrowser = $('#folderBrowser');
+  const fbBackBtn = $('#fbBackBtn');
+  const fbCloseBtn = $('#fbCloseBtn');
+  const fbPathEl = $('#fbPath');
+  const fbStatus = $('#fbStatus');
+  const fbList = $('#fbList');
+
   if (!hostInput || !engineInput || !connectBtn || !disconnectBtn || !backupBtn || !restoreBtn || !list || !ftpMsg || !bakMsg || !resMsg) {
     return;
   }
@@ -288,6 +297,97 @@
   disconnectBtn.addEventListener('click', disconnectFtp);
   backupBtn.addEventListener('click', backupNow);
   restoreBtn.addEventListener('click', restoreSelected);
+
+  // ---- Folder Browser ----
+  let fbHistory = [];
+  let fbCurrentPath = '/';
+
+  const fbLoadDir = async (path) => {
+    const host = hostInput.value.trim();
+    if (!host || !IPV4_REGEX.test(host)) {
+      setMsg(ftpMsg, 'Enter a valid Host IP before browsing folders.', 'err');
+      return;
+    }
+    if (!api) return;
+
+    fbStatus.textContent = 'Loading\u2026';
+    fbList.innerHTML = '';
+    fbPathEl.textContent = path || '/';
+    fbBackBtn.disabled = fbHistory.length === 0;
+
+    try {
+      const payload = await api.listDirs(host, path);
+      const dirs = Array.isArray(payload?.data?.dirs) ? payload.data.dirs : [];
+      fbStatus.textContent = '';
+
+      if (dirs.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'fb-empty';
+        li.textContent = 'No sub-folders found.';
+        fbList.appendChild(li);
+        return;
+      }
+
+      dirs.forEach((name) => {
+        const li = document.createElement('li');
+        li.className = 'fb-item';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'fb-name';
+        nameSpan.textContent = '\uD83D\uDCC1 ' + name;
+        nameSpan.title = 'Click to use as Engine Number';
+        nameSpan.addEventListener('click', () => {
+          engineInput.value = name;
+          folderBrowser.hidden = true;
+          setMsg(ftpMsg, `Engine number set to \u201c${name}\u201d. Click Connect & Fetch to proceed.`, 'ok');
+        });
+
+        const enterBtn = document.createElement('button');
+        enterBtn.className = 'btn';
+        enterBtn.textContent = '\u25B6';
+        enterBtn.title = 'Browse into this folder';
+        enterBtn.style.padding = '2px 8px';
+        enterBtn.addEventListener('click', async () => {
+          const newPath = (path === '/' ? '' : path) + '/' + name;
+          fbHistory.push(path);
+          fbCurrentPath = newPath;
+          await fbLoadDir(newPath);
+        });
+
+        li.appendChild(nameSpan);
+        li.appendChild(enterBtn);
+        fbList.appendChild(li);
+      });
+    } catch (err) {
+      fbStatus.textContent = 'Error: ' + (err.message || String(err));
+      fbStatus.className = 'status err';
+    }
+  };
+
+  if (browseBtn) {
+    browseBtn.addEventListener('click', async () => {
+      folderBrowser.hidden = false;
+      fbHistory = [];
+      fbCurrentPath = '/';
+      fbStatus.className = 'status';
+      await fbLoadDir('/');
+    });
+  }
+
+  if (fbBackBtn) {
+    fbBackBtn.addEventListener('click', async () => {
+      if (fbHistory.length === 0) return;
+      const prev = fbHistory.pop();
+      fbCurrentPath = prev;
+      await fbLoadDir(prev);
+    });
+  }
+
+  if (fbCloseBtn) {
+    fbCloseBtn.addEventListener('click', () => {
+      folderBrowser.hidden = true;
+    });
+  }
 
   ensureDefaultHost();
   setConnectedUI(false, false);

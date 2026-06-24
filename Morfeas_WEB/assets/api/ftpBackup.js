@@ -56,6 +56,8 @@
       requestJson('POST', { action: 'clearConfig' }, null, timeoutMs),
     list: (timeoutMs = 30000) =>
       requestJson('POST', { action: 'list' }, null, timeoutMs),
+    listDirs: (host, path = '/', timeoutMs = 15000) =>
+      requestJson('POST', { action: 'listDirs', host, path }, null, timeoutMs),
     backup: (timeoutMs = 120000) =>
       requestJson('POST', { action: 'backup' }, null, timeoutMs),
     restore: (file, timeoutMs = 120000) =>

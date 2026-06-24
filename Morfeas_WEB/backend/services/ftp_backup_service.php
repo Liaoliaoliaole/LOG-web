@@ -313,6 +313,70 @@ function ftp_backup_ensure_remote_dir($conn, string $engine): string
     return $remoteDir;
 }
 
+function ftp_backup_sanitize_browse_path(string $raw): string
+{
+    // Split on '/', keep only safe segments (no '..' or '.' or special chars)
+    $segments = array_values(array_filter(
+        explode('/', $raw),
+        static fn($s) => $s !== '' && $s !== '.' && $s !== '..'
+            && preg_match('/^[A-Za-z0-9_. -]+$/', $s) === 1
+    ));
+    return $segments === [] ? '/' : '/' . implode('/', $segments);
+}
+
+function ftp_backup_list_dirs(string $host, string $path): array
+{
+    if (!ftp_backup_host_is_valid($host)) {
+        throw new InvalidArgumentException('Host IP must be a valid IPv4 address');
+    }
+
+    $safePath = ftp_backup_sanitize_browse_path($path);
+    $credentials = ftp_backup_load_credentials();
+
+    $conn = @ftp_connect($host, 21, 10);
+    if (!$conn) {
+        throw new RuntimeException('FTP connect failed', 502);
+    }
+
+    if (!@ftp_login($conn, $credentials['user'], $credentials['pass'])) {
+        @ftp_close($conn);
+        throw new RuntimeException('FTP login failed', 502);
+    }
+
+    @ftp_pasv($conn, true);
+
+    try {
+        $rawList = @ftp_rawlist($conn, $safePath);
+    } finally {
+        @ftp_close($conn);
+    }
+
+    $dirs = [];
+    if (is_array($rawList)) {
+        foreach ($rawList as $line) {
+            $line = (string) $line;
+            // Unix-style listing: first char 'd' means directory
+            if ($line === '' || $line[0] !== 'd') {
+                continue;
+            }
+            // Format: drwxrwxrwx 2 user group size Month Day time name
+            $parts = preg_split('/\s+/', $line, 9);
+            if (!is_array($parts) || count($parts) < 9) {
+                continue;
+            }
+            $name = trim($parts[8]);
+            if ($name !== '' && $name !== '.' && $name !== '..') {
+                $dirs[] = $name;
+            }
+        }
+    }
+
+    sort($dirs, SORT_NATURAL | SORT_FLAG_CASE);
+    ftp_backup_log('INFO', 'Listed ' . count($dirs) . " directories at $safePath");
+
+    return ['dirs' => $dirs, 'path' => $safePath];
+}
+
 function ftp_backup_list_files(): array
 {
     $config = ftp_backup_load_config_raw();

@@ -98,6 +98,72 @@
     }
 
     /* red */
+
+    /* ---- Folder Browser ---- */
+    .folder-browser {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-top: 12px;
+      background: #f9fafb;
+    }
+
+    .fb-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .fb-path {
+      flex: 1;
+      font-size: 13px;
+      font-family: monospace;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .fb-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .fb-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .fb-item:last-child {
+      border-bottom: none;
+    }
+
+    .fb-name {
+      flex: 1;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .fb-name:hover {
+      color: var(--accent, #2563eb);
+      text-decoration: underline;
+    }
+
+    .fb-empty {
+      padding: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+    }
   </style>
 </head>
 
@@ -126,6 +192,18 @@
           <div class="field">
             <label for="engineNo" class="label">Engine Number</label>
             <input id="engineNo" class="input" type="text" placeholder="Enter the engine number" />
+            <button id="browseBtn" class="btn" title="Browse FTP folders to find the engine number">Browse</button>
+          </div>
+
+          <!-- Folder browser panel (hidden until Browse is clicked) -->
+          <div id="folderBrowser" class="folder-browser" hidden>
+            <div class="fb-header">
+              <button id="fbBackBtn" class="btn" disabled>&#8592; Back</button>
+              <span id="fbPath" class="fb-path">/</span>
+              <button id="fbCloseBtn" class="btn">&#x2715;</button>
+            </div>
+            <div id="fbStatus" class="status" aria-live="polite"></div>
+            <ul id="fbList" class="fb-list" aria-label="FTP folders"></ul>
           </div>
 
           <div class="actions">
