@@ -236,6 +236,16 @@ main() {
     ensure_configuration_access
     ensure_ftp_log_access
 
+    # Bootstrap net_presets.json to the morfeas home dir on first install.
+    # Subsequent upgrades leave the file alone so local edits are preserved.
+    local presets_src="$REPO_ROOT/Morfeas_WEB/net_presets.json"
+    local presets_dst="/home/morfeas/configuration/net_presets.json"
+    if [ -f "$presets_src" ] && [ ! -f "$presets_dst" ]; then
+        install -o morfeas -g morfeas -m 644 "$presets_src" "$presets_dst" 2>/dev/null \
+            || install -m 644 "$presets_src" "$presets_dst" 2>/dev/null || true
+        log_info "bootstrapped net_presets.json to $presets_dst"
+    fi
+
     install_regular_file \
         "$REPO_ROOT/logrotate/morfeas-loggers" \
         "/etc/logrotate.d/morfeas-loggers" \

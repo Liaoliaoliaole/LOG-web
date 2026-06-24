@@ -1,5 +1,5 @@
 (() => {
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
     const $ = (sel, root = document) => root.querySelector(sel);
     const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
@@ -18,18 +18,13 @@
 
     const STORAGE_LAST = 'netconf:lastConfirmedPayload';
 
-    const PRESETS = {
-      LOG1: { host: 'LOG1', ip: [192, 168, 1, 10], mask: 24, gw: [192, 168, 1, 1], dns: [8, 8, 8, 8] },
-      LOG2: { host: 'LOG2', ip: [192, 168, 2, 10], mask: 24, gw: [192, 168, 2, 1], dns: [1, 1, 1, 1] },
-      LOG3: { host: 'LOG3', ip: [192, 168, 3, 10], mask: 24, gw: [192, 168, 3, 1], dns: [8, 8, 4, 4] },
-      LOG4: { host: 'LOG4', ip: [10, 0, 4, 10], mask: 24, gw: [10, 0, 4, 1], dns: [9, 9, 9, 9] },
-      LOG5: { host: 'LOG5', ip: [10, 0, 5, 10], mask: 24, gw: [10, 0, 5, 1], dns: [8, 8, 8, 8] },
-      LOG6: { host: 'LOG6', ip: [10, 0, 6, 10], mask: 24, gw: [10, 0, 6, 1], dns: [1, 1, 1, 1] },
-      LOG7: { host: 'LOG7', ip: [172, 16, 7, 10], mask: 24, gw: [172, 16, 7, 1], dns: [8, 8, 4, 4] },
-      LOG8: { host: 'LOG8', ip: [172, 16, 8, 10], mask: 24, gw: [172, 16, 8, 1], dns: [9, 9, 9, 9] },
-      LOG9: { host: 'LOG9', ip: [192, 168, 9, 10], mask: 24, gw: [192, 168, 9, 1], dns: [1, 0, 0, 1] },
-      LOG10: { host: 'LOG10', ip: [192, 168, 10, 10], mask: 24, gw: [192, 168, 10, 1], dns: [8, 8, 8, 8] }
-    };
+    let PRESETS = {};
+    try {
+      const presetsRes = await fetch('../../net_presets.json', { cache: 'no-store' });
+      if (presetsRes.ok) PRESETS = await presetsRes.json();
+    } catch (_) {
+      // preset buttons will be inert if the file cannot be loaded
+    }
 
     const apiFacade = (() => {
       const wrapped = window.LOG_WEB?.api?.networkConfig;
