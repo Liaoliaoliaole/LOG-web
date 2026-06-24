@@ -1315,6 +1315,8 @@
     }
 
     const saveMode = isAutoLinearMode() ? 'auto-linear' : 'legacy';
+    // Always stamp today as the calibration date before saving
+    calDateInput.value = todayYmd();
     if (saveMode === 'auto-linear') {
       validateBeforeSave();
       deriveAutoLinearCoefficients();
@@ -1352,15 +1354,14 @@
     if (saveMode === 'auto-linear') {
       await fetchCalibrationXml();
       populateInfo();
+      // loadSelectedChannelFromXml sets editorMode/protectedByExisting correctly
       loadSelectedChannelFromXml();
-      state.editorMode = 'auto-linear';
-      state.protectedByExisting = false;
-      applyInteractionState();
       updateDerivedViews();
     } else {
       state.originalChannelObj = JSON.parse(JSON.stringify(currentObj));
       state.hasExistingCalibration = channelHasExistingCalibration(currentObj);
       state.protectedByExisting = state.hasExistingCalibration;
+      state.editorMode = state.protectedByExisting ? 'view' : 'auto-linear';
       applyInteractionState();
     }
     return data;
@@ -1548,7 +1549,10 @@
     try {
       setStatus('Saving calibration...', 'info');
       const data = await saveSelectedChannel();
-      if (data) setStatus(data.message || 'Saved', 'ok');
+      if (data) {
+        setStatus(data.message || 'Saved', 'ok');
+        await releaseEditLockIfHeld();
+      }
     } catch (err) {
       setStatus(err.message || 'Save failed', 'err');
     }
