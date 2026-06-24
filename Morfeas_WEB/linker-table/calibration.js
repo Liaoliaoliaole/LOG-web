@@ -1315,9 +1315,9 @@
     }
 
     const saveMode = isAutoLinearMode() ? 'auto-linear' : 'legacy';
-    // Always stamp today as the calibration date before saving
-    calDateInput.value = todayYmd();
     if (saveMode === 'auto-linear') {
+      // Stamp today as the calibration date whenever the point table is saved
+      calDateInput.value = todayYmd();
       validateBeforeSave();
       deriveAutoLinearCoefficients();
     } else {
