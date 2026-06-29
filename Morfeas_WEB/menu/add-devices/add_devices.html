@@ -213,6 +213,12 @@
       color: #a8071a;
     }
 
+    .banner.warn {
+      background: #fff7e6;
+      border-color: #ffd591;
+      color: #874d00;
+    }
+
   </style>
 </head>
 
@@ -221,6 +227,9 @@
     <div class="stack">
       <div id="legacyBanner" class="banner danger" hidden>
         <span id="legacyBannerText">Legacy MDAQ config found in XML. Remove it manually before using this page.</span>
+      </div>
+      <div id="popupNotice" class="banner warn" hidden>
+        <span id="popupNoticeText">Popup was blocked. Allow popups for this page and try again.</span>
       </div>
 
       <div class="card">
@@ -272,8 +281,6 @@
                   <th>Device Type</th>
                   <th>Device Name/Address</th>
                   <th>IP Address</th>
-                  <th>RX Health</th>
-                  <th>RX Success</th>
                   <th>Status</th>
                   <th>Action</th>
                 </tr>
@@ -346,7 +353,7 @@
   <script src="../../assets/config.js"></script>
   <script src="../../assets/api/canRoles.js"></script>
   <script src="../../assets/api/devices.js"></script>
-  <script src="./devices.js?v=20260428-mdaq-state"></script>
+  <script src="./devices.js?v=20260626-iobox-monitor"></script>
   <script>
     // Close this popup with ESC (consistent with other popups)
     document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });

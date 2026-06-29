@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>IOBOX Monitor</title>
+  <link rel="stylesheet" href="../../assets/app.css" />
+
+  <style>
+    body {
+      background: #f6f8fa;
+    }
+
+    .wrap {
+      max-width: 1220px;
+      margin: 10px auto;
+      padding: 0 10px 14px;
+    }
+
+    .bar {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 220px;
+    }
+
+    .title strong {
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #5b6472;
+      font-size: 13px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      border: 1px solid #d8dee6;
+      background: #f6f8fa;
+      color: #243244;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .badge.ok {
+      background: #edf9f0;
+      border-color: #b5e3c1;
+      color: #1f6b36;
+    }
+
+    .badge.bad {
+      background: #fff1f0;
+      border-color: #ffccc7;
+      color: #a8071a;
+    }
+
+    .badge.warn {
+      background: #fff7e6;
+      border-color: #ffd591;
+      color: #874d00;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .section {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .section-head {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 900;
+      font-size: 16px;
+      background: #fbfcfd;
+    }
+
+    .section-body {
+      padding: 10px 12px 12px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    .table th,
+    .table td {
+      border: 1px solid #e5e7eb;
+      padding: 7px 8px;
+      white-space: nowrap;
+      vertical-align: middle;
+      text-align: left;
+    }
+
+    .table th {
+      background: #f3f4f6;
+      font-weight: 800;
+    }
+
+    .rx-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 12px;
+    }
+
+    .rx-panel {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .rx-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      background: #f3f4f6;
+      border-bottom: 1px solid #e5e7eb;
+      flex-wrap: wrap;
+    }
+
+    .rx-head strong {
+      font-size: 15px;
+    }
+
+    .rx-body {
+      padding: 9px;
+    }
+
+    .channel-table td,
+    .channel-table th {
+      text-align: center;
+      font-size: 12px;
+      padding: 6px 5px;
+    }
+
+    .message {
+      padding: 12px 14px;
+      border: 1px solid #ffd591;
+      background: #fff7e6;
+      color: #874d00;
+      border-radius: 8px;
+      font-weight: 800;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    @media (max-width: 520px) {
+      .rx-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .table th,
+      .table td {
+        padding: 6px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <div class="title">
+        <strong id="deviceTitle">IOBOX Monitor</strong>
+        <div class="meta">
+          <span id="deviceIp">IPv4: -</span>
+          <span id="lastUpdate">Last update: -</span>
+        </div>
+      </div>
+      <span id="connectionBadge" class="badge">Unknown</span>
+    </div>
+
+    <div class="stack">
+      <div id="message" class="message" hidden></div>
+
+      <section id="powerSection" class="section" hidden>
+        <div class="section-head">Power Supply</div>
+        <div class="section-body">
+          <table class="table" aria-label="IOBOX power supply">
+            <thead>
+              <tr>
+                <th>Input</th>
+                <th>CH1 Vout</th>
+                <th>CH1 Iout</th>
+                <th>CH2 Vout</th>
+                <th>CH2 Iout</th>
+                <th>CH3 Vout</th>
+                <th>CH3 Iout</th>
+                <th>CH4 Vout</th>
+                <th>CH4 Iout</th>
+              </tr>
+            </thead>
+            <tbody id="powerBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="rxSection" class="section" hidden>
+        <div class="section-head">Receivers</div>
+        <div class="section-body">
+          <div id="rxGrid" class="rx-grid"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="../../assets/config.js"></script>
+  <script src="../../assets/api/iobox.js"></script>
+  <script src="./iobox_monitor.js?v=20260626-api"></script>
+  <script>
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });
+  </script>
+</body>
+
+</html>

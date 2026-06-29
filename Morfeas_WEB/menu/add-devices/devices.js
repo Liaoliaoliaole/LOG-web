@@ -21,6 +21,8 @@
   const canTicker = $('#canTicker');
   const legacyBanner = $('#legacyBanner');
   const legacyBannerText = $('#legacyBannerText');
+  const popupNotice = $('#popupNotice');
+  const popupNoticeText = $('#popupNoticeText');
 
   const configuredBody = $('#configuredBody');
   const detectedBody = $('#detectedBody');
@@ -151,6 +153,18 @@
     );
   }
 
+  function showPopupNotice(message) {
+    if (!popupNotice || !popupNoticeText) return;
+    popupNoticeText.textContent = message;
+    popupNotice.hidden = false;
+  }
+
+  function hidePopupNotice() {
+    if (popupNotice) {
+      popupNotice.hidden = true;
+    }
+  }
+
   function openNoxPopup(bus) {
     const safeBus = String(bus || '').trim().toLowerCase();
     if (!safeBus) return;
@@ -226,6 +240,49 @@
     if (win) {
       popupRegistry.set(popupName, win);
       try { win.focus(); } catch (_) { }
+    }
+  }
+
+  function openIoboxMonitor(name) {
+    const safeName = String(name || '').trim();
+    if (!safeName) return;
+
+    const url = new URL('../iobox-monitor/iobox_monitor.html', window.location.href);
+    url.searchParams.set('name', safeName);
+
+    const popupName = `iobox_monitor_${safeName.replace(/[^A-Za-z0-9_-]/g, '_')}`;
+    const existing = popupRegistry.get(popupName);
+    if (existing && !existing.closed) {
+      try {
+        existing.location.href = url.toString();
+        existing.focus();
+        hidePopupNotice();
+        return;
+      } catch (_) {
+        popupRegistry.delete(popupName);
+      }
+    }
+
+    const features = [
+      'width=1260',
+      'height=860',
+      'left=100',
+      'top=60',
+      'resizable=yes',
+      'scrollbars=yes',
+      'toolbar=no',
+      'location=no',
+      'status=no',
+      'menubar=no',
+    ].join(',');
+
+    const win = window.open(url.toString(), popupName, features);
+    if (win) {
+      popupRegistry.set(popupName, win);
+      hidePopupNotice();
+      try { win.focus(); } catch (_) { }
+    } else {
+      showPopupNotice('Popup was blocked. Allow popups for this page and try again.');
     }
   }
 
@@ -405,12 +462,6 @@
       const tdIp = document.createElement('td');
       tdIp.textContent = d.ip || '-';
 
-      const tdRxHealth = document.createElement('td');
-      tdRxHealth.textContent = d.type === 'IOBOX' ? (d.rx_health || 'N/A') : '—';
-
-      const tdRxSuccess = document.createElement('td');
-      tdRxSuccess.textContent = d.type === 'IOBOX' ? (d.rx_success || 'N/A') : '—';
-
       const tdStatus = document.createElement('td');
       tdStatus.appendChild(renderStatusCell(
         d.runtime_status || d.status || 'Unknown',
@@ -426,11 +477,19 @@
         btn.dataset.openMti = d.name || '';
         btn.disabled = !!legacyState.blocking || !(d.name || '').trim();
         tdAction.appendChild(btn);
+      } else if (d.type === 'IOBOX') {
+        const btn = document.createElement('button');
+        btn.className = 'btn sm primary';
+        btn.type = 'button';
+        btn.textContent = 'Open IOBOX Monitor';
+        btn.dataset.openIobox = d.name || '';
+        btn.disabled = !!legacyState.blocking || !(d.name || '').trim();
+        tdAction.appendChild(btn);
       } else {
         tdAction.textContent = '—';
       }
 
-      [tdCheck, tdIdx, tdBus, tdType, tdName, tdIp, tdRxHealth, tdRxSuccess, tdStatus, tdAction].forEach((td) => tr.appendChild(td));
+      [tdCheck, tdIdx, tdBus, tdType, tdName, tdIp, tdStatus, tdAction].forEach((td) => tr.appendChild(td));
       configuredBody.appendChild(tr);
     });
 
@@ -710,6 +769,11 @@
     const mtiBtn = e.target.closest('button[data-open-mti]');
     if (mtiBtn) {
       openMtiPopup(mtiBtn.dataset.openMti || '');
+      return;
+    }
+    const ioboxBtn = e.target.closest('button[data-open-iobox]');
+    if (ioboxBtn) {
+      openIoboxMonitor(ioboxBtn.dataset.openIobox || '');
       return;
     }
 

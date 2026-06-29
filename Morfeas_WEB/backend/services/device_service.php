@@ -129,60 +129,6 @@ function device_normalize_ip_runtime(?string $status): array
     ];
 }
 
-function device_iobox_rx_metrics(array $logstat): array
-{
-    $totalRx = 0;
-    $onlineRx = 0;
-    $successValues = [];
-
-    foreach ($logstat as $key => $rxData) {
-        if (!preg_match('/^RX\d+$/', (string)$key)) {
-            continue;
-        }
-
-        $totalRx += 1;
-        if (!is_array($rxData)) {
-            continue;
-        }
-
-        // The Morfeas core writes Status and Success as numbers. An RX is
-        // considered on-line when both are non-zero (mirrors the daemon's
-        // own `status && success` condition in Morfeas_JSON.c).
-        $statusRaw  = $rxData['Status'] ?? null;
-        $successRaw = $rxData['Success'] ?? null;
-        $statusNum  = is_numeric($statusRaw) ? (float)$statusRaw : 0.0;
-        $successNum = is_numeric($successRaw) ? (float)$successRaw : 0.0;
-
-        $isOnline = $statusNum != 0.0 && $successNum != 0.0;
-        if (!$isOnline) {
-            continue;
-        }
-
-        $onlineRx += 1;
-
-        $success = $successNum;
-        if ($success < 0.0) {
-            $success = 0.0;
-        }
-        if ($success > 100.0) {
-            $success = 100.0;
-        }
-        $successValues[] = $success;
-    }
-
-    $health = $totalRx > 0 ? sprintf('%d/%d online', $onlineRx, $totalRx) : 'N/A';
-    $successLabel = 'N/A';
-    if (!empty($successValues)) {
-        $avg = array_sum($successValues) / count($successValues);
-        $successLabel = sprintf('avg %d%%', (int)round($avg));
-    }
-
-    return [
-        'rx_health' => $health,
-        'rx_success' => $successLabel,
-    ];
-}
-
 function device_build_runtime_maps(string $ramdisk): array
 {
     $ipDevices = [];
@@ -199,7 +145,6 @@ function device_build_runtime_maps(string $ramdisk): array
         $ipv4 = trim((string)($data['IPv4_address'] ?? ''));
         $status = trim((string)($data['Connection_status'] ?? ''));
         $runtime = device_normalize_ip_runtime($status);
-        $metrics = device_iobox_rx_metrics($data);
         $entry = [
             'type' => 'IOBOX',
             'identifier' => $identifier,
@@ -207,8 +152,6 @@ function device_build_runtime_maps(string $ramdisk): array
             'runtime_status' => $runtime['runtime_status'],
             'runtime_detail' => $runtime['runtime_detail'],
             'detected' => $runtime['detected'],
-            'rx_health' => $metrics['rx_health'],
-            'rx_success' => $metrics['rx_success'],
         ];
 
         if ($identifier !== '') {
@@ -286,8 +229,6 @@ function device_merge_manual_runtime_status(array $manual, array $runtimeMaps): 
             $dev['runtime_status'] = 'Disabled';
             $dev['runtime_detail'] = 'Disabled in config';
             $dev['detected'] = false;
-            $dev['rx_health'] = '—';
-            $dev['rx_success'] = '—';
             continue;
         }
 
@@ -297,8 +238,6 @@ function device_merge_manual_runtime_status(array $manual, array $runtimeMaps): 
             $dev['runtime_status'] = $runtime['runtime_status'] ?? 'Not detected';
             $dev['runtime_detail'] = '';
             $dev['detected'] = (bool)($runtime['detected'] ?? false);
-            $dev['rx_health'] = '—';
-            $dev['rx_success'] = '—';
             continue;
         }
 
@@ -306,8 +245,6 @@ function device_merge_manual_runtime_status(array $manual, array $runtimeMaps): 
             $dev['runtime_status'] = $status !== '' ? $status : 'Configured';
             $dev['runtime_detail'] = '';
             $dev['detected'] = false;
-            $dev['rx_health'] = '—';
-            $dev['rx_success'] = '—';
             continue;
         }
 
@@ -324,8 +261,6 @@ function device_merge_manual_runtime_status(array $manual, array $runtimeMaps): 
         $dev['runtime_status'] = $runtime['runtime_status'] ?? 'Not detected';
         $dev['runtime_detail'] = $runtime['runtime_detail'] ?? '';
         $dev['detected'] = (bool)($runtime['detected'] ?? false);
-        $dev['rx_health'] = $type === 'IOBOX' ? ($runtime['rx_health'] ?? 'N/A') : '—';
-        $dev['rx_success'] = $type === 'IOBOX' ? ($runtime['rx_success'] ?? 'N/A') : '—';
     }
     unset($dev);
 

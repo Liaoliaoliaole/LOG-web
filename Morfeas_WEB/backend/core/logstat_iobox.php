@@ -125,6 +125,31 @@ function iobox_load_anchor_map(array $paths): array
                     'meas_unit'     => '°C',
                 ];
             }
+
+            $rxKey = strtoupper((string)$key);
+            $statusValue = $rxData['Status'] ?? null;
+            $statusNum = is_numeric($statusValue) ? (float)$statusValue : null;
+            if (is_numeric($statusValue)) {
+                // RX Status is the boolean measurement itself: 0 and 1 are both valid reads.
+                $anchors[sprintf('%s.%s.Status', $identifier, $rxKey)] = [
+                    'status'        => 'Okay',
+                    'is_meas_valid' => true,
+                    'meas_value'    => $statusNum != 0.0 ? 1.0 : 0.0,
+                    'meas_unit'     => '',
+                ];
+            }
+
+            $successValue = $rxData['Success'] ?? null;
+            if (is_numeric($successValue)) {
+                $successNum = (float)$successValue;
+                // RX Success is link quality; when the RX link is down the percentage is not meaningful.
+                $anchors[sprintf('%s.%s.Success', $identifier, $rxKey)] = [
+                    'status'        => ($statusNum !== null && $statusNum == 0.0) ? 'Disconnected' : 'Okay',
+                    'is_meas_valid' => true,
+                    'meas_value'    => $successNum,
+                    'meas_unit'     => '%',
+                ];
+            }
         }
     }
 
