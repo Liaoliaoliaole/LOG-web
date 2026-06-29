@@ -49,7 +49,7 @@
   }
 
   function isIoboxAnchor(value) {
-    return /\.RX\d+\.CH\d+$/i.test((value || '').toString().trim());
+    return /\.RX\d+\.(?:CH\d+|Status|Success)$/i.test((value || '').toString().trim());
   }
 
   function renderColumns() {
@@ -166,7 +166,7 @@
         if (family && requestedType && family !== requestedType) return false;
 
         if (requestedType === 'IOBOX' && isAddChannelFlow) {
-          if (!item.anchor || !/\.RX\d+\.CH\d+$/i.test(item.anchor)) return false;
+          if (!item.anchor || !isIoboxAnchor(item.anchor)) return false;
         }
         if (requestedType === 'MTI' && (isIoboxAnchor(item.anchor) || isIoboxAnchor(item.display_anchor))) {
           return false;

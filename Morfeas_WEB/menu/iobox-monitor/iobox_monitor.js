@@ -14,11 +14,14 @@
   const connectionBadge = $('#connectionBadge');
   const message = $('#message');
   const powerSection = $('#powerSection');
-  const powerBody = $('#powerBody');
+  const powerGrid = $('#powerGrid');
   const rxSection = $('#rxSection');
-  const rxGrid = $('#rxGrid');
+  const rxTabs = $('#rxTabs');
+  const rxPanel = $('#rxPanel');
 
   let pollTimer = null;
+  let activeRx = 1;
+  let latestData = null;
 
   function ioboxApi() {
     return window.LOG_WEB?.api?.iobox || null;
@@ -30,7 +33,8 @@
 
   function formatNumber(value, digits = 2) {
     if (!Number.isFinite(value)) return '-';
-    return value.toFixed(digits).replace(/\.?0+$/, '');
+    const fixed = value.toFixed(digits);
+    return fixed.includes('.') ? fixed.replace(/\.?0+$/, '') : fixed;
   }
 
   function numberOrNull(value) {
@@ -79,10 +83,38 @@
     rxSection.hidden = !visible;
   }
 
-  function makeCell(text) {
-    const td = document.createElement('td');
-    td.textContent = text;
-    return td;
+  function metricCard(label, value) {
+    const card = document.createElement('div');
+    card.className = 'metric-card';
+
+    const labelEl = document.createElement('div');
+    labelEl.className = 'metric-label';
+    labelEl.textContent = label;
+    card.appendChild(labelEl);
+
+    const valueEl = document.createElement('div');
+    valueEl.className = 'metric-value';
+    valueEl.textContent = value;
+    card.appendChild(valueEl);
+
+    return card;
+  }
+
+  function channelCard(label, value) {
+    const card = document.createElement('div');
+    card.className = 'channel-card';
+
+    const labelEl = document.createElement('div');
+    labelEl.className = 'channel-label';
+    labelEl.textContent = label;
+    card.appendChild(labelEl);
+
+    const valueEl = document.createElement('div');
+    valueEl.className = 'channel-value';
+    valueEl.textContent = value;
+    card.appendChild(valueEl);
+
+    return card;
   }
 
   function valueWithUnit(value, unit, digits = 2) {
@@ -94,14 +126,12 @@
   }
 
   function renderPower(power) {
-    powerBody.innerHTML = '';
-    const row = document.createElement('tr');
-    row.appendChild(makeCell(valueWithUnit(power?.Vin, 'V', 2)));
+    powerGrid.innerHTML = '';
+    powerGrid.appendChild(metricCard('Input Vin', valueWithUnit(power?.Vin, 'V', 2)));
     for (let i = 1; i <= 4; i += 1) {
-      row.appendChild(makeCell(valueWithUnit(power?.[`CH${i}_Vout`], 'V', 2)));
-      row.appendChild(makeCell(valueWithUnit(power?.[`CH${i}_Iout`], 'A', 3)));
+      powerGrid.appendChild(metricCard(`Output ${i} Vout`, valueWithUnit(power?.[`CH${i}_Vout`], 'V', 2)));
+      powerGrid.appendChild(metricCard(`Output ${i} Iout`, valueWithUnit(power?.[`CH${i}_Iout`], 'A', 3)));
     }
-    powerBody.appendChild(row);
   }
 
   function rxStatusLabel(rxData) {
@@ -116,27 +146,12 @@
     return 'Unknown';
   }
 
-  function renderChannelRows(table, rxData) {
-    for (let rowStart = 1; rowStart <= CHANNEL_COUNT; rowStart += 8) {
-      const head = document.createElement('tr');
-      const values = document.createElement('tr');
-      for (let ch = rowStart; ch < rowStart + 8; ch += 1) {
-        const th = document.createElement('th');
-        th.textContent = `CH${ch}`;
-        head.appendChild(th);
-        values.appendChild(makeCell(valueWithUnit(rxData?.[`CH${ch}`], '°C', 2)));
-      }
-      table.appendChild(head);
-      table.appendChild(values);
-    }
-  }
-
   function renderRxPanel(index, rxData) {
     const panel = document.createElement('div');
-    panel.className = 'rx-panel';
+    panel.className = 'rx-detail';
 
     const head = document.createElement('div');
-    head.className = 'rx-head';
+    head.className = 'rx-detail-head';
 
     const title = document.createElement('strong');
     title.textContent = `RX${index}`;
@@ -161,17 +176,18 @@
     panel.appendChild(head);
 
     const body = document.createElement('div');
-    body.className = 'rx-body';
 
     if (typeof rxData === 'string') {
+      body.className = 'channel-grid';
       body.textContent = rxData;
     } else if (!rxData || typeof rxData !== 'object') {
+      body.className = 'channel-grid';
       body.textContent = 'No RX data';
     } else {
-      const table = document.createElement('table');
-      table.className = 'table channel-table';
-      renderChannelRows(table, rxData);
-      body.appendChild(table);
+      body.className = 'channel-grid';
+      for (let ch = 1; ch <= CHANNEL_COUNT; ch += 1) {
+        body.appendChild(channelCard(`CH${ch}`, valueWithUnit(rxData?.[`CH${ch}`], '°C', 2)));
+      }
     }
 
     panel.appendChild(body);
@@ -179,10 +195,40 @@
   }
 
   function renderReceivers(data) {
-    rxGrid.innerHTML = '';
+    latestData = data || {};
+    if (activeRx < 1 || activeRx > RX_COUNT) activeRx = 1;
+
+    rxTabs.innerHTML = '';
     for (let i = 1; i <= RX_COUNT; i += 1) {
-      rxGrid.appendChild(renderRxPanel(i, data?.[`RX${i}`]));
+      const rxData = latestData?.[`RX${i}`];
+      const statusLabel = rxStatusLabel(rxData);
+      const success = numberOrNull(rxData?.Success);
+      const tab = document.createElement('button');
+      tab.type = 'button';
+      tab.className = `rx-tab ${i === activeRx ? 'active' : ''}`;
+      tab.setAttribute('role', 'tab');
+      tab.setAttribute('aria-selected', i === activeRx ? 'true' : 'false');
+      tab.innerHTML = `<span class="rx-tab-title">RX${i}</span>`;
+
+      const statusBadge = document.createElement('span');
+      statusBadge.className = `badge ${rxBadgeClass(statusLabel)}`;
+      statusBadge.textContent = statusLabel;
+      tab.appendChild(statusBadge);
+
+      const successBadge = document.createElement('span');
+      successBadge.className = 'badge';
+      successBadge.textContent = success === null ? '-' : `${formatNumber(success, 0)}%`;
+      tab.appendChild(successBadge);
+
+      tab.addEventListener('click', () => {
+        activeRx = i;
+        renderReceivers(latestData);
+      });
+      rxTabs.appendChild(tab);
     }
+
+    rxPanel.innerHTML = '';
+    rxPanel.appendChild(renderRxPanel(activeRx, latestData?.[`RX${activeRx}`]));
   }
 
   function updateHeader(data) {

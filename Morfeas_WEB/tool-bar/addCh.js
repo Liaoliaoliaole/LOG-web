@@ -266,7 +266,7 @@
 
     const placeholders = {
       SDAQ: 'CAN1.ADDR:01.CH:01',
-      IOBOX: 'DEV_NAME.RX:X.CH:XX',
+      IOBOX: 'DEV_NAME.RX:X.CH:XX / RX:X.Status',
       MTI: 'DEV_NAME.Type.CH:XX',
       NOX: 'CAN0.ADDR:0.NOx',
     };
@@ -388,7 +388,7 @@
   }
 
   function isIoboxAnchor(value) {
-    return /\.RX\d+\.CH\d+$/i.test((value || '').toString().trim());
+    return /\.RX\d+\.(?:CH\d+|Status|Success)$/i.test((value || '').toString().trim());
   }
 
   function selectedAnchorMatchesType(device, expectedType) {

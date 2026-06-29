@@ -98,6 +98,11 @@
     }
 
     .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
       padding: 9px 12px;
       border-bottom: 1px solid var(--border);
       font-weight: 900;
@@ -105,67 +110,114 @@
       background: #fbfcfd;
     }
 
+    .section-note {
+      color: #5b6472;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
     .section-body {
       padding: 10px 12px 12px;
     }
 
-    .table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #fff;
+    .power-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
     }
 
-    .table th,
-    .table td {
+    .metric-card,
+    .channel-card {
       border: 1px solid #e5e7eb;
-      padding: 7px 8px;
-      white-space: nowrap;
-      vertical-align: middle;
-      text-align: left;
+      border-radius: 7px;
+      background: #fff;
+      min-width: 0;
     }
 
-    .table th {
-      background: #f3f4f6;
+    .metric-card {
+      padding: 9px 10px;
+    }
+
+    .metric-label,
+    .channel-label {
+      color: #5b6472;
+      font-size: 12px;
       font-weight: 800;
     }
 
-    .rx-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-      gap: 12px;
+    .metric-value,
+    .channel-value {
+      margin-top: 4px;
+      color: #061224;
+      font-weight: 900;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
     }
 
-    .rx-panel {
+    .rx-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    .rx-tab {
+      min-width: 132px;
+      border: 1px solid #d8dee6;
+      background: #fff;
+      border-radius: 7px;
+      padding: 8px 9px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .rx-tab.active {
+      border-color: #1677ff;
+      box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.14);
+    }
+
+    .rx-tab-title {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 900;
+    }
+
+    .rx-tab .badge + .badge {
+      margin-left: 5px;
+    }
+
+    .rx-detail {
       border: 1px solid #e5e7eb;
       border-radius: 8px;
       overflow: hidden;
       background: #fff;
     }
 
-    .rx-head {
+    .rx-detail-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      padding: 8px 10px;
+      gap: 10px;
+      padding: 10px 12px;
       background: #f3f4f6;
       border-bottom: 1px solid #e5e7eb;
       flex-wrap: wrap;
     }
 
-    .rx-head strong {
-      font-size: 15px;
+    .rx-detail-head strong {
+      font-size: 16px;
     }
 
-    .rx-body {
-      padding: 9px;
+    .channel-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 10px;
     }
 
-    .channel-table td,
-    .channel-table th {
-      text-align: center;
-      font-size: 12px;
-      padding: 6px 5px;
+    .channel-card {
+      padding: 8px 9px;
+      min-height: 58px;
     }
 
     .message {
@@ -182,13 +234,8 @@
     }
 
     @media (max-width: 520px) {
-      .rx-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .table th,
-      .table td {
-        padding: 6px;
+      .channel-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
   </style>
@@ -211,31 +258,23 @@
       <div id="message" class="message" hidden></div>
 
       <section id="powerSection" class="section" hidden>
-        <div class="section-head">Power Supply</div>
+        <div class="section-head">
+          <span>Receiver Power</span>
+          <span class="section-note">Vin plus four output voltage/current pairs</span>
+        </div>
         <div class="section-body">
-          <table class="table" aria-label="IOBOX power supply">
-            <thead>
-              <tr>
-                <th>Input</th>
-                <th>CH1 Vout</th>
-                <th>CH1 Iout</th>
-                <th>CH2 Vout</th>
-                <th>CH2 Iout</th>
-                <th>CH3 Vout</th>
-                <th>CH3 Iout</th>
-                <th>CH4 Vout</th>
-                <th>CH4 Iout</th>
-              </tr>
-            </thead>
-            <tbody id="powerBody"></tbody>
-          </table>
+          <div id="powerGrid" class="power-grid" aria-label="IOBOX supply power"></div>
         </div>
       </section>
 
       <section id="rxSection" class="section" hidden>
-        <div class="section-head">Receivers</div>
+        <div class="section-head">
+          <span>Receivers</span>
+          <span class="section-note">Select one RX to inspect all 16 channels</span>
+        </div>
         <div class="section-body">
-          <div id="rxGrid" class="rx-grid"></div>
+          <div id="rxTabs" class="rx-tabs" role="tablist" aria-label="IOBOX receivers"></div>
+          <div id="rxPanel"></div>
         </div>
       </section>
     </div>
@@ -243,7 +282,7 @@
 
   <script src="../../assets/config.js"></script>
   <script src="../../assets/api/iobox.js"></script>
-  <script src="./iobox_monitor.js?v=20260626-api"></script>
+  <script src="./iobox_monitor.js?v=20260629-tabs"></script>
   <script>
     document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });
   </script>

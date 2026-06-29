@@ -175,6 +175,9 @@ function channel_build_rows_with_logstat(
         $deviceKey = (string)$deviceId;
 
         $prefix = $ipv4Map[$deviceKey] ?? $deviceId;
+        if (preg_match('/^(RX\d+)\.(Status|Success)$/i', $rest, $m) === 1) {
+            return sprintf('%s.%s.%s', $prefix, strtoupper($m[1]), ucfirst(strtolower($m[2])));
+        }
         return $prefix . '.' . strtoupper($rest);
     };
 
