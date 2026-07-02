@@ -182,16 +182,16 @@
     statsCsv = '';
   }
 
-  function applyStatsView() {
-    const showStats = zoomStatsCheck.checked;
-    currentDataCard.style.display = showStats ? 'none' : '';
-    statsGrid.style.display = showStats ? 'grid' : 'none';
-  }
-
   function updateZoomUi(isZoomed) {
     exportCsvBtn.style.display = isZoomed ? '' : 'none';
     exportPdfBtn.style.display = isZoomed ? '' : 'none';
-    applyStatsView();
+    if (isZoomed && zoomStatsCheck.checked) {
+      currentDataCard.style.display = 'none';
+      statsGrid.style.display = 'grid';
+    } else {
+      currentDataCard.style.display = '';
+      statsGrid.style.display = 'none';
+    }
   }
 
   function graphTitle() {
@@ -648,10 +648,6 @@
   }
 
   busLabel.value = bus.toUpperCase();
-  // Force the "Show statistics on zoom" checkbox to a known unchecked state on
-  // load. Browsers (Firefox especially) restore form values across reloads,
-  // which would otherwise cause the stats view to appear by default.
-  zoomStatsCheck.checked = false;
   initGraph();
   loadState(false);
   syncPoll();
