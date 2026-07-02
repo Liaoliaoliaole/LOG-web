@@ -182,16 +182,16 @@
     statsCsv = '';
   }
 
+  function applyStatsView() {
+    const showStats = zoomStatsCheck.checked;
+    currentDataCard.style.display = showStats ? 'none' : '';
+    statsGrid.style.display = showStats ? 'grid' : 'none';
+  }
+
   function updateZoomUi(isZoomed) {
     exportCsvBtn.style.display = isZoomed ? '' : 'none';
     exportPdfBtn.style.display = isZoomed ? '' : 'none';
-    if (isZoomed && zoomStatsCheck.checked) {
-      currentDataCard.style.display = 'none';
-      statsGrid.style.display = 'grid';
-    } else {
-      currentDataCard.style.display = '';
-      statsGrid.style.display = 'none';
-    }
+    applyStatsView();
   }
 
   function graphTitle() {
@@ -536,38 +536,47 @@
       statsGrid.style.display = 'grid';
     }
 
-    const captureAndExport = () => window.html2canvas(target).then((canvas) => {
-      const docDefinition = {
-        pageSize: 'LETTER',
-        pageOrientation: 'landscape',
-        pageMargins: [40, 40, 40, 40],
-        header: { columns: [{ text: window.location.hostname, alignment: 'center' }] },
-        footer: {
-          columns: [
-            `NOx@${bus}_Addr:${selectedAddr()}`,
-            { text: d.toLocaleString(), alignment: 'right' },
-          ],
-        },
-        content: [{
-          image: canvas.toDataURL(),
-          width: 700,
-          alignment: 'center',
-        }],
-      };
-      window.pdfMake.createPdf(docDefinition).download(`${filename}.pdf`);
-    }).catch((err) => {
-      setStatus(`PDF export failed: ${err.message || err}`, 'error');
-    }).finally(() => {
+    const restore = () => {
       if (needsToggle) {
         currentDataCard.style.display = previousCurrent;
         statsGrid.style.display = previousStats;
       }
-    });
+    };
 
-    if (needsToggle) {
-      requestAnimationFrame(captureAndExport);
-    } else {
-      captureAndExport();
+    // NOTE: The vendored html2canvas is v0.4.1, which uses the legacy
+    // onrendered callback API (no Promise). Do NOT switch to .then(...).
+    try {
+      window.html2canvas(target, {
+        onrendered(canvas) {
+          try {
+            const docDefinition = {
+              pageSize: 'LETTER',
+              pageOrientation: 'landscape',
+              pageMargins: [40, 40, 40, 40],
+              header: { columns: [{ text: window.location.hostname, alignment: 'center' }] },
+              footer: {
+                columns: [
+                  `NOx@${bus}_Addr:${selectedAddr()}`,
+                  { text: d.toLocaleString(), alignment: 'right' },
+                ],
+              },
+              content: [{
+                image: canvas.toDataURL(),
+                width: 700,
+                alignment: 'center',
+              }],
+            };
+            window.pdfMake.createPdf(docDefinition).download(`${filename}.pdf`);
+          } catch (err) {
+            setStatus(`PDF export failed: ${err.message || err}`, 'error');
+          } finally {
+            restore();
+          }
+        },
+      });
+    } catch (err) {
+      setStatus(`PDF export failed: ${err.message || err}`, 'error');
+      restore();
     }
   }
 
