@@ -332,7 +332,7 @@
   }
 
   function normalizeBaseDescription(value) {
-    return (value || '').replace(/\s*Cyl:\s*\d+$/i, '').trim();
+    return (value || '').replace(/ Cyl:\s*\d+$/i, '');
   }
 
   function updateDescriptionWithPostfix() {

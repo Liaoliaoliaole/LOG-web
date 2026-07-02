@@ -530,12 +530,13 @@
 
     const previousStats = statsGrid.style.display;
     const previousCurrent = currentDataCard.style.display;
-    if (!zoomStatsCheck.checked) {
+    const needsToggle = !zoomStatsCheck.checked;
+    if (needsToggle) {
       currentDataCard.style.display = 'none';
       statsGrid.style.display = 'grid';
     }
 
-    window.html2canvas(target).then((canvas) => {
+    const captureAndExport = () => window.html2canvas(target).then((canvas) => {
       const docDefinition = {
         pageSize: 'LETTER',
         pageOrientation: 'landscape',
@@ -557,11 +558,17 @@
     }).catch((err) => {
       setStatus(`PDF export failed: ${err.message || err}`, 'error');
     }).finally(() => {
-      if (!zoomStatsCheck.checked) {
+      if (needsToggle) {
         currentDataCard.style.display = previousCurrent;
         statsGrid.style.display = previousStats;
       }
     });
+
+    if (needsToggle) {
+      requestAnimationFrame(captureAndExport);
+    } else {
+      captureAndExport();
+    }
   }
 
   setAutoOffBtn.addEventListener('click', () => withBusy(async () => {

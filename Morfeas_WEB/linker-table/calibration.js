@@ -112,6 +112,7 @@
     blockedByOtherSession: false,
     lockRequestPromise: null,
     lockInfo: null,
+    editCalibrationClicked: false,
   };
 
   const rows = [];
@@ -156,6 +157,10 @@
     btnRevert.disabled = blocked;
     if (btnConvert) {
       btnConvert.style.display = state.protectedByExisting && !isAutoLinearMode() && !blocked ? '' : 'none';
+    }
+
+    if (btnRevert) {
+      btnRevert.style.display = state.editCalibrationClicked ? '' : 'none';
     }
 
     if (btnSave) {
@@ -1202,6 +1207,7 @@
     const allowScaleContinuation = fromScale && channelLooksLikeScaleResult(chObj);
     state.protectedByExisting = state.hasExistingCalibration && !allowScaleContinuation;
     state.editorMode = state.protectedByExisting ? 'view' : 'auto-linear';
+    state.editCalibrationClicked = false;
     fillFormFromChannelObj(chObj);
     applyInteractionState();
   }
@@ -1383,6 +1389,7 @@
       setStatus('Nothing to revert.', 'info');
       return;
     }
+    state.editCalibrationClicked = false;
     fillFormFromChannelObj(JSON.parse(JSON.stringify(state.originalChannelObj)));
     const allowScaleContinuation = fromScale && channelLooksLikeScaleResult(state.originalChannelObj);
     if (state.hasExistingCalibration && !allowScaleContinuation) {
@@ -1432,6 +1439,7 @@
 
     state.editorMode = 'auto-linear';
     state.protectedByExisting = false;
+    state.editCalibrationClicked = true;
     deriveAutoLinearCoefficients();
     applyInteractionState();
     applyUsed();

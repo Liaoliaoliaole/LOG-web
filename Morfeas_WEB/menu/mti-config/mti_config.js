@@ -131,7 +131,7 @@
   function setMetricValues(state) {
     const mti = state?.mti_status || {};
     ipValue.textContent = text(state?.ipv4_address);
-    cpuValue.textContent = fmt(mti.MTI_CPU_temp, 1, ' C');
+    cpuValue.textContent = fmt(mti.MTI_CPU_temp, 1, ' °C');
     batteryValue.textContent = `${fmt(mti.MTI_batt_volt, 2, ' V')} / ${fmt(mti.MTI_batt_capacity, 0, ' %')}`;
     radioValue.textContent = text(mti.Tele_Device_type);
   }
@@ -260,11 +260,11 @@
 
     for (let i = 0; i < limit; i += 1) {
       const refVal = getTcRef(refs, i, mode);
-      const ref = refVal !== null ? `<div class="subtle">Ref: ${esc(channelValue(refVal, ' C'))}</div>` : '';
+      const ref = refVal !== null ? `<div class="subtle">Ref: ${esc(channelValue(refVal, ' °C'))}</div>` : '';
       cards.push(`
         <div class="tele-card">
           <div class="tele-title">CH${i + 1}</div>
-          <div>${esc(channelValue(chs[i], ' C'))}</div>
+          <div>${esc(channelValue(chs[i], ' °C'))}</div>
           ${ref}
         </div>
       `);
@@ -375,7 +375,7 @@
         controlsHtml = renderRmswControls(dev, globalEnabled);
       } else if (dev?.Dev_type === 'Mini_RMSW') {
         measHtml = meas.length
-          ? meas.map((value, idx) => `<div>TC_CH${idx + 1}: ${esc(Number.isFinite(Number(value)) ? `${Number(value).toFixed(3)} C` : text(value))}</div>`).join('')
+          ? meas.map((value, idx) => `<div>TC_CH${idx + 1}: ${esc(Number.isFinite(Number(value)) ? `${Number(value).toFixed(3)} °C` : text(value))}</div>`).join('')
           : measHtml;
         controlsHtml = renderMiniRmswControls(dev, globalEnabled);
       }
@@ -384,7 +384,7 @@
         <div class="tele-card">
           <div class="tele-title">${esc(dev?.Dev_type || 'Device')} ${esc(dev?.Dev_ID ?? '')}</div>
           <div class="subtle">Last RX: ${esc(dev?.Time_from_last_msg ?? '-')} sec</div>
-          <div class="subtle">Temp: ${esc(channelValue(dev?.Dev_temp, ' C'))}</div>
+          <div class="subtle">Temp: ${esc(channelValue(dev?.Dev_temp, ' °C'))}</div>
           <div class="subtle">Supply: ${esc(channelValue(dev?.Supply_volt, ' V'))}</div>
           ${measHtml}
           ${controlsHtml}
