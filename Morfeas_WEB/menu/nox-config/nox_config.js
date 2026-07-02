@@ -648,6 +648,10 @@
   }
 
   busLabel.value = bus.toUpperCase();
+  // Force the "Show statistics on zoom" checkbox to a known unchecked state on
+  // load. Browsers (Firefox especially) restore form values across reloads,
+  // which would otherwise cause the stats view to appear by default.
+  zoomStatsCheck.checked = false;
   initGraph();
   loadState(false);
   syncPoll();
