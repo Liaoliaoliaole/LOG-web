@@ -330,6 +330,9 @@ function channel_build_rows_with_logstat(
             $cacheKeys = channel_sdaq_cache_keys($busAddrKey, $sdaqAddressAnchor, $anchor);
             $cachedSdaqType = channel_pick_cached_sdaq_type($typeCache, $cacheKeys);
             $isOffline = channel_status_is_offline($status);
+            if ($isOffline) {
+                $row['display_anchor'] = $formatSdaqDisplayAnchor($anchor);
+            }
 
             if (is_string($runtimeSdaqType) && trim($runtimeSdaqType) !== '') {
                 $runtimeSdaqType = trim($runtimeSdaqType);
