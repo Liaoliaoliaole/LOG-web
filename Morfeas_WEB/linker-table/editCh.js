@@ -592,8 +592,8 @@
     setDisabled(typeSel, true);
     setDisabled(isoInput, true);
     setDisabled(postfixSel, true);
-    setDisabled(descInput, true);
     if (replaceMode) {
+      setDisabled(descInput, true);
       setDisabled(pathInput, false);
       setDisabled(btnSearch, false);
       pathInput.classList.remove('ro');
@@ -605,7 +605,11 @@
       setDisabled(alarmHighVal, true);
       setDisabled(alarmLowChk, true);
       setDisabled(alarmHighChk, true);
+      if (calDateInput) setDisabled(calDateInput, true);
+      if (calPeriodInput) setDisabled(calPeriodInput, true);
     } else {
+      setDisabled(descInput, false);
+      descInput.classList.remove('ro');
       setDisabled(pathInput, true);
       setDisabled(btnSearch, true);
     }

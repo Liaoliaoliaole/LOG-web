@@ -130,32 +130,16 @@
       return normalizeTcSubtype(raw) === 'SDAQ-TC16';
     }
 
+    function hasKnownNonTc16Subtype(row) {
+      const subtype = normalizeTcSubtype(row?.dev_type_display || row?.dev_type);
+      if (isTc16Subtype(subtype)) return false;
+      const known = row?.dev_type_known === true || row?.dev_type_known === '1';
+      return known && subtype && subtype !== 'SDAQ';
+    }
+
     function isOfflineStatusValue(status) {
       const s = String(status || '').trim().toLowerCase();
       return s === 'off-line' || s === 'offline' || s === 'disconnected';
-    }
-
-    function parseAddrAnchor(raw) {
-      const text = String(raw || '').trim().toUpperCase();
-      if (!text) return null;
-
-      let m = text.match(/^(CAN\w+)\.ADDR:(\d{1,3})\.CH:?(\d{1,3})$/i);
-      if (!m) {
-        m = text.match(/^(CAN\w+)\.(\d{1,3})\.CH:?(\d{1,3})$/i);
-      }
-      if (!m) return null;
-
-      const bus = m[1].toUpperCase();
-      const addr = Number.parseInt(m[2], 10);
-      const ch = Number.parseInt(m[3], 10);
-      if (!Number.isFinite(addr) || !Number.isFinite(ch)) return null;
-
-      return {
-        key: `${bus}.ADDR:${String(addr).padStart(2, '0')}`,
-        bus,
-        addr,
-        ch,
-      };
     }
 
     function parseSnAnchor(raw) {
@@ -172,6 +156,10 @@
       };
     }
 
+    function rowSnInfo(row) {
+      return parseSnAnchor(row?.anchor) || parseSnAnchor(row?.display_anchor);
+    }
+
     function isSdaqRowLike(row) {
       const family = String(row?.interface_type || row?.type || row?.dev_type || '').trim().toUpperCase();
       if (family === 'SDAQ') return true;
@@ -185,29 +173,14 @@
       return true;
     }
 
-    function buildTc16GroupByAddr(rows, addrKey, requireTc16Compat = false) {
-      const map = new Map();
-      rows.forEach((row) => {
-        if (!isSdaqRowLike(row)) return;
-        const addrInfo = parseAddrAnchor(row?.display_anchor || row?.anchor || '');
-        if (!addrInfo || addrInfo.key !== addrKey) return;
-        if (addrInfo.ch < 1 || addrInfo.ch > 16) return;
-        if (requireTc16Compat && !isTc16Subtype(row?.dev_type_display || row?.dev_type)) return;
-        if (!map.has(addrInfo.ch)) {
-          map.set(addrInfo.ch, row);
-        }
-      });
-      return map;
-    }
-
     function buildTc16GroupBySn(rows, sn, requireTc16Compat = false) {
       const map = new Map();
       rows.forEach((row) => {
         if (!isSdaqRowLike(row)) return;
-        const snInfo = parseSnAnchor(row?.anchor || row?.display_anchor || '');
+        const snInfo = rowSnInfo(row);
         if (!snInfo || snInfo.sn !== sn) return;
         if (snInfo.ch < 1 || snInfo.ch > 16) return;
-        if (requireTc16Compat && !isTc16Subtype(row?.dev_type_display || row?.dev_type)) return;
+        if (requireTc16Compat && hasKnownNonTc16Subtype(row)) return;
         if (!map.has(snInfo.ch)) {
           map.set(snInfo.ch, row);
         }
@@ -224,26 +197,17 @@
         return { ok: false, reason: 'Replace TC16 requires source channel to be offline.' };
       }
 
-      if (!isTc16Subtype(sourceRow.dev_type_display || sourceRow.dev_type)) {
+      if (!isSdaqRowLike(sourceRow)) {
+        return { ok: false, reason: 'Replace TC16 requires an SDAQ source channel.' };
+      }
+
+      if (hasKnownNonTc16Subtype(sourceRow)) {
         return { ok: false, reason: 'Replace TC16 requires source subtype SDAQ-TC16.' };
       }
 
       const sdaqRows = (isoChannelCache || []).filter((row) => isSdaqRowLike(row));
 
-      const addrInfo = parseAddrAnchor(sourceRow.display_anchor || sourceRow.anchor || '');
-      if (addrInfo) {
-        const addrGroup = buildTc16GroupByAddr(sdaqRows, addrInfo.key, false);
-        if (mapIsFull16(addrGroup)) {
-          return {
-            ok: true,
-            mode: 'addr',
-            sourceKey: addrInfo.key,
-            channels: addrGroup,
-          };
-        }
-      }
-
-      const snInfo = parseSnAnchor(sourceRow.anchor || sourceRow.display_anchor || '');
+      const snInfo = rowSnInfo(sourceRow);
       if (snInfo) {
         const snGroup = buildTc16GroupBySn(sdaqRows, snInfo.sn, true);
         if (mapIsFull16(snGroup)) {
@@ -256,7 +220,7 @@
         }
       }
 
-      return { ok: false, reason: 'TC16 source group is not full CH1..CH16.' };
+      return { ok: false, reason: 'TC16 source serial anchor group is not full CH1..CH16.' };
     }
 
     function setSelectionByIsoSet(isoSet) {
@@ -287,7 +251,7 @@
       return entries;
     }
 
-    function openTc16ReplacePopup(sourceRow, group) {
+    function openTc16ReplacePopup(sourceRow, group = null) {
       const sourceIso = String(sourceRow?.iso_channel || '').trim();
       if (!sourceIso) {
         alert('Unable to start Replace TC16: source ISO is missing.');
@@ -296,9 +260,9 @@
 
       const payload = {
         source_iso: sourceIso,
-        source_mode: group.mode,
-        source_key: group.sourceKey,
-        channels: sourceGroupToPayload(group),
+        source_mode: group?.mode || 'unknown',
+        source_key: group?.sourceKey || 'unknown',
+        channels: group ? sourceGroupToPayload(group) : [],
       };
 
       try {
@@ -1525,7 +1489,7 @@
 
         if (isOffline && rowData) {
           const tc16Group = resolveTc16SourceGroup(rowData);
-          if (tc16Group.ok) {
+          if (tc16Group.ok || isTc16Subtype(rowData.dev_type_display || rowData.dev_type)) {
             addCtxItem('Replace TC16', 'replace_tc16');
           }
         }
@@ -1915,7 +1879,11 @@
 
           const tc16Group = resolveTc16SourceGroup(rowDataReplaceTc16);
           if (!tc16Group.ok) {
-            alert(tc16Group.reason || 'TC16 source group is not eligible for Replace TC16.');
+            if (!isTc16Subtype(rowDataReplaceTc16.dev_type_display || rowDataReplaceTc16.dev_type)) {
+              alert(tc16Group.reason || 'TC16 source group is not eligible for Replace TC16.');
+              break;
+            }
+            openTc16ReplacePopup(rowDataReplaceTc16);
             break;
           }
 

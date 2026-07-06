@@ -24,69 +24,7 @@
       // preset buttons will be inert if the file cannot be loaded
     }
 
-    const apiFacade = (() => {
-      const wrapped = window.LOG_WEB?.api?.networkConfig;
-      const endpoint = '../../backend/api_network_config.php';
-
-      const fetchJson = async (opts = {}) => {
-        const {
-          timeoutMs = 20000,
-          ...fetchOpts
-        } = opts || {};
-
-        const controller = new AbortController();
-        const timer = Number.isFinite(timeoutMs) && timeoutMs > 0
-          ? setTimeout(() => controller.abort(), Number(timeoutMs))
-          : null;
-
-        let res;
-        try {
-          res = await fetch(endpoint, {
-            cache: 'no-store',
-            signal: controller.signal,
-            ...fetchOpts,
-          });
-        } catch (err) {
-          if (err?.name === 'AbortError') {
-            throw new Error('Request timeout');
-          }
-          throw err;
-        } finally {
-          if (timer) clearTimeout(timer);
-        }
-
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw new Error(body?.error || `HTTP ${res.status}`);
-        }
-        if (body?.ok === false) {
-          throw new Error(body?.error || 'API returned error');
-        }
-        return body;
-      };
-
-      if (wrapped) {
-        return {
-          fetchState: () => wrapped.fetchState(),
-          apply: (payload, options = { autoConfirm: true, timeoutSec: 0 }) => wrapped.apply(payload, options),
-        };
-      }
-
-      return {
-        fetchState: () => fetchJson({ method: 'GET', headers: { Accept: 'application/json' } }),
-        apply: (payload, options = { autoConfirm: true, timeoutSec: 0 }) => fetchJson({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          timeoutMs: Number.isFinite(options?.requestTimeoutMs) ? Number(options.requestTimeoutMs) : 15000,
-          body: JSON.stringify({
-            action: 'apply',
-            payload,
-            timeout_sec: Number.isFinite(options?.timeoutSec) ? Number(options.timeoutSec) : 0,
-            auto_confirm: options?.autoConfirm !== false,
-          }),
-        }),
-      };
-    })();
+    const apiFacade = window.LOG_WEB?.api?.networkConfig || null;
 
     let latestState = null;
     let pageStaleAfterIpSwitch = false;
@@ -351,6 +289,11 @@
     }
 
     async function loadState() {
+      if (!apiFacade?.fetchState) {
+        setStatus('Network configuration API unavailable.', 'error');
+        return;
+      }
+
       setStatus('Loading current network configuration...', 'progress');
       try {
         const res = await apiFacade.fetchState();
@@ -367,6 +310,11 @@
     }
 
     async function applyConfig() {
+      if (!apiFacade?.apply) {
+        setStatus('Network configuration API unavailable.', 'error');
+        return;
+      }
+
       let payload;
       let requestedIp = '';
       try {

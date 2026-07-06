@@ -293,38 +293,15 @@ function channel_is_tc16_compatible(?string $raw): bool
     return channel_normalize_tc16_subtype($raw) === 'SDAQ-TC16';
 }
 
-function channel_parse_addr_channel(?string $anchor): ?array
+function channel_row_has_known_non_tc16_subtype(array $row): bool
 {
-    $raw = strtoupper(trim((string)$anchor));
-    if ($raw === '') {
-        return null;
+    $subtype = channel_normalize_tc16_subtype((string)($row['dev_type_display'] ?? ($row['dev_type'] ?? '')));
+    if ($subtype === 'SDAQ-TC16') {
+        return false;
     }
 
-    if (preg_match('/^(CAN\w+)\.ADDR:(\d{1,3})\.CH:?(\d{1,3})$/i', $raw, $m)) {
-        $bus = strtoupper($m[1]);
-        $addr = (int)$m[2];
-        $ch = (int)$m[3];
-        return [
-            'key' => sprintf('%s.ADDR:%02d', $bus, $addr),
-            'bus' => $bus,
-            'address' => $addr,
-            'ch' => $ch,
-        ];
-    }
-
-    if (preg_match('/^(CAN\w+)\.(\d{1,3})\.CH:?(\d{1,3})$/i', $raw, $m)) {
-        $bus = strtoupper($m[1]);
-        $addr = (int)$m[2];
-        $ch = (int)$m[3];
-        return [
-            'key' => sprintf('%s.ADDR:%02d', $bus, $addr),
-            'bus' => $bus,
-            'address' => $addr,
-            'ch' => $ch,
-        ];
-    }
-
-    return null;
+    $known = !empty($row['dev_type_known']);
+    return $known && $subtype !== '' && $subtype !== 'SDAQ';
 }
 
 function channel_parse_sn_channel(?string $anchor): ?array
@@ -353,15 +330,6 @@ function channel_row_is_sdaq(array $row): bool
     return str_starts_with(channel_normalize_subtype($row['dev_type'] ?? ''), 'SDAQ');
 }
 
-function channel_row_addr_info(array $row): ?array
-{
-    $display = channel_parse_addr_channel((string)($row['display_anchor'] ?? ''));
-    if ($display !== null) {
-        return $display;
-    }
-    return channel_parse_addr_channel((string)($row['anchor'] ?? ''));
-}
-
 function channel_row_sn_info(array $row): ?array
 {
     $raw = channel_parse_sn_channel((string)($row['anchor'] ?? ''));
@@ -379,28 +347,6 @@ function channel_group_is_full16(array $group): bool
         }
     }
     return true;
-}
-
-function channel_group_by_addr(array $rows, string $addrKey): array
-{
-    $group = [];
-    foreach ($rows as $row) {
-        if (!channel_row_is_sdaq($row)) {
-            continue;
-        }
-        $addr = channel_row_addr_info($row);
-        if ($addr === null || strtoupper($addr['key']) !== strtoupper($addrKey)) {
-            continue;
-        }
-        $ch = (int)($addr['ch'] ?? 0);
-        if ($ch < 1 || $ch > 16) {
-            continue;
-        }
-        if (!isset($group[$ch])) {
-            $group[$ch] = $row;
-        }
-    }
-    return $group;
 }
 
 function channel_group_by_sn(array $rows, string $sn): array
@@ -440,6 +386,15 @@ function channel_group_to_source_map(array $group, string $mode, string $sourceK
         ];
     }
     return $items;
+}
+
+function channel_tc16_source_serial(array $sourceGroup): string
+{
+    $sourceKey = trim((string)($sourceGroup['source_key'] ?? ''));
+    if (preg_match('/^SN:(.+)$/i', $sourceKey, $m)) {
+        return strtoupper(trim((string)$m[1]));
+    }
+    return '';
 }
 
 function channel_collect_sdaq_capabilities(array $sdaqLogFiles): array
@@ -586,29 +541,12 @@ function channel_resolve_tc16_source_group(array $rows, string $sourceIso): arra
         throw new ChannelRuleException('Source channel must be offline for Replace TC16', 409, 'tc16_source_not_offline');
     }
 
-    $sourceSubtype = (string)($source['dev_type_display'] ?? ($source['dev_type'] ?? ''));
-    if (!channel_is_tc16_compatible($sourceSubtype)) {
-        throw new ChannelRuleException('Source channel subtype is not SDAQ-TC16', 409, 'tc16_subtype_mismatch');
+    if (!channel_row_is_sdaq($source)) {
+        throw new ChannelRuleException('Source channel must be SDAQ for Replace TC16', 409, 'tc16_source_not_sdaq');
     }
 
-    $addrInfo = channel_row_addr_info($source);
-    if ($addrInfo !== null) {
-        $addrGroup = channel_group_by_addr($rows, (string)$addrInfo['key']);
-        if (channel_group_is_full16($addrGroup)) {
-            foreach ($addrGroup as $row) {
-                $subtype = (string)($row['dev_type_display'] ?? ($row['dev_type'] ?? ''));
-                if (!channel_is_tc16_compatible($subtype)) {
-                    throw new ChannelRuleException('ADDR group contains non TC16-compatible channels', 409, 'tc16_subtype_mismatch');
-                }
-            }
-
-            return [
-                'source' => $source,
-                'mode' => 'addr',
-                'source_key' => (string)$addrInfo['key'],
-                'channels' => $addrGroup,
-            ];
-        }
+    if (channel_row_has_known_non_tc16_subtype($source)) {
+        throw new ChannelRuleException('Source channel subtype is not SDAQ-TC16', 409, 'tc16_subtype_mismatch');
     }
 
     $snInfo = channel_row_sn_info($source);
@@ -616,8 +554,7 @@ function channel_resolve_tc16_source_group(array $rows, string $sourceIso): arra
         $snGroup = channel_group_by_sn($rows, (string)$snInfo['sn']);
         if (channel_group_is_full16($snGroup)) {
             foreach ($snGroup as $row) {
-                $subtype = (string)($row['dev_type_display'] ?? ($row['dev_type'] ?? ''));
-                if (!channel_is_tc16_compatible($subtype)) {
+                if (channel_row_has_known_non_tc16_subtype($row)) {
                     throw new ChannelRuleException('SN group contains non TC16-compatible channels', 409, 'tc16_subtype_mismatch');
                 }
             }
@@ -631,18 +568,24 @@ function channel_resolve_tc16_source_group(array $rows, string $sourceIso): arra
         }
     }
 
-    throw new ChannelRuleException('Source TC16 group is not full CH1..CH16', 409, 'tc16_source_not_full');
+    throw new ChannelRuleException('Source TC16 serial anchor group is not full CH1..CH16', 409, 'tc16_source_not_full');
 }
 
 function channel_collect_tc16_target_candidates(array $rows, array $devices, array $sourceGroup): array
 {
     $usage = channel_anchor_usage_from_rows($rows);
     $sourceKey = strtoupper((string)($sourceGroup['source_key'] ?? ''));
+    $sourceSerial = channel_tc16_source_serial($sourceGroup);
 
     $items = [];
     foreach ($devices as $deviceKey => $device) {
         $key = strtoupper((string)$deviceKey);
         if ($key === $sourceKey) {
+            continue;
+        }
+
+        $deviceSerial = strtoupper(trim((string)($device['serial'] ?? '')));
+        if ($sourceSerial !== '' && $deviceSerial !== '' && $deviceSerial === $sourceSerial) {
             continue;
         }
 
@@ -686,6 +629,12 @@ function channel_collect_tc16_target_candidates(array $rows, array $devices, arr
 
 function channel_validate_tc16_target(array $rows, array $device, array $sourceGroup): void
 {
+    $sourceSerial = channel_tc16_source_serial($sourceGroup);
+    $targetSerial = strtoupper(trim((string)($device['serial'] ?? '')));
+    if ($sourceSerial !== '' && $targetSerial !== '' && $targetSerial === $sourceSerial) {
+        throw new ChannelRuleException('Target device matches source TC16 serial', 409, 'tc16_target_is_source');
+    }
+
     if (!channel_is_tc16_compatible((string)($device['sdaq_type'] ?? ''))) {
         throw new ChannelRuleException('Target device subtype is not SDAQ-TC16', 409, 'tc16_subtype_mismatch');
     }
