@@ -24,6 +24,7 @@ mode_install()
 	sudo chmod 644 /etc/logrotate.d/morfeas-loggers &&
 	sudo cp "$(dirname "$0")/apache_site_conf/morfeas-servername.conf" /etc/apache2/conf-available/morfeas-servername.conf &&
 	sudo chmod 644 /etc/apache2/conf-available/morfeas-servername.conf &&
+	sudo a2enmod headers &&
 	sudo a2enconf morfeas-servername &&
 	sudo chmod g+w /etc/network/interfaces.d \
 	               /etc/network/interfaces.d/*\

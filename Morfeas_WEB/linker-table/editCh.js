@@ -43,6 +43,7 @@
     selectedDevice: null,
     searchWin: null,
     originalIso: '',
+    originalAnchor: '',
     sourceFamily: '',
     sourceDevType: '',
     sourceSubtypeKnown: false,
@@ -303,10 +304,12 @@
     const lowVal = entry.alarmLowVal || entry.min;
     if (shouldOverride(alarmHighVal) && highVal != null) alarmHighVal.value = highVal;
     if (shouldOverride(alarmLowVal) && lowVal != null) alarmLowVal.value = lowVal;
-    if (options.forceDefaults || !alarmHighChk.dataset.userEdited) {
+    // In edit mode, payload alarm values reflect the persisted XML state.
+    // ISO defaults may replace them only when the ISO is explicitly changed.
+    if (options.forceDefaults || (!alarmHighChk.dataset.userEdited && !alarmHighChk.dataset.payloadValue)) {
       alarmHighChk.checked = (entry.alarmHigh || '').toLowerCase() === 'yes';
     }
-    if (options.forceDefaults || !alarmLowChk.dataset.userEdited) {
+    if (options.forceDefaults || (!alarmLowChk.dataset.userEdited && !alarmLowChk.dataset.payloadValue)) {
       alarmLowChk.checked  = (entry.alarmLow  || '').toLowerCase() === 'yes';
     }
     syncAlarmInputs();
@@ -323,6 +326,7 @@
 
     typeSel.value = type || '-';
     state.originalIso = iso || '';
+    state.originalAnchor = (payload.anchor || '').toString().trim();
     state.sourceFamily = normFamily(type || payload.interface_type || payload.IF_type || payload.Type || '');
     state.sourceDevType = (payload.dev_type || type || '').toString().trim();
     state.sourceSubtypeKnown = !!payload.dev_type_known;
@@ -346,8 +350,15 @@
     alarmHighChk.checked = ((payload.alarm_high || payload.AlarmHigh || 'no').toString().toLowerCase()) === 'yes';
     alarmLowVal.value    = payload.alarm_low_val ?? payload.AlarmLowVal ?? (minInput.value || '');
     alarmHighVal.value   = payload.alarm_high_val ?? payload.AlarmHighVal ?? (maxInput.value || '');
+    alarmLowChk.dataset.payloadValue = '1';
+    alarmHighChk.dataset.payloadValue = '1';
     syncAlarmInputs();
     applyCalibrationRules(type, payload);
+
+    if (!isReplaceMode() && !state.originalAnchor) {
+      setStatus('Channel data is missing its canonical anchor. Refresh the list and retry.', 'error');
+      btnSave.disabled = true;
+    }
   }
 
   // ----- SEARCH POPUP -----
@@ -381,10 +392,25 @@
     return isoInput.value.trim();
   }
 
+  function resolveAnchorForSave() {
+    if (state.selectedDevice && state.selectedDevice.anchor) {
+      return String(state.selectedDevice.anchor).trim();
+    }
+
+    if (!isReplaceMode()) {
+      // pathInput shows display_anchor for operators, for example IOBOX/MTI
+      // use an IP prefix. XML must keep the canonical anchor or runtime
+      // matching fails and the channel appears OFF-Line.
+      return state.originalAnchor || '';
+    }
+
+    return '';
+  }
+
   async function save() {
     const type = typeSel.value;
     const isoVal = normalizeIsoValue();
-    const anchor = (pathInput.value || '').trim();
+    const anchor = resolveAnchorForSave();
 
     if (!isoVal) {
       setStatus('ISO Code is required', 'error');

@@ -138,6 +138,18 @@ ensure_apache_servername_conf() {
     fi
 }
 
+ensure_apache_headers_module() {
+    if command -v a2enmod >/dev/null 2>&1; then
+        if [ ! -e "/etc/apache2/mods-enabled/headers.load" ]; then
+            a2enmod headers >/dev/null
+            APACHE_RESTART_REQUIRED=1
+            log_info "enabled apache module: headers"
+        fi
+    else
+        log_warn "a2enmod not found; cannot ensure apache headers module"
+    fi
+}
+
 ensure_journald_persistent() {
     local dir="/etc/systemd/journald.conf.d"
     local file="$dir/10-morfeas-journal.conf"
@@ -292,6 +304,7 @@ main() {
 
     ensure_apache_private_tmp
     ensure_apache_servername_conf
+    ensure_apache_headers_module
     ensure_journald_persistent
 
     if [ "$APACHE_RESTART_REQUIRED" -eq 1 ]; then

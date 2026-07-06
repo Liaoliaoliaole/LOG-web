@@ -12,11 +12,9 @@
     const dnsOcts = $$('.dns');
     const staticEditables = [...ipOcts, ...gwOcts, ...dnsOcts, maskInp];
 
-    const loadLastBtn = $('#loadLastBtn');
+    const resetBtn = $('#resetBtn');
     const commitBtn = $('#commitBtn');
     const closeBtn = $('#closeBtn');
-
-    const STORAGE_LAST = 'netconf:lastConfirmedPayload';
 
     let PRESETS = {};
     try {
@@ -91,6 +89,7 @@
     })();
 
     let latestState = null;
+    let pageStaleAfterIpSwitch = false;
 
     function ensureStatusEl() {
       let el = document.getElementById('netconfStatus');
@@ -221,6 +220,7 @@
 
     function applyStateToForm(state) {
       latestState = state;
+      setActivePresetBtn('');
 
       hostInp.value = state?.hostname || '';
       const mode = String(state?.eth?.mode || 'static').toLowerCase() === 'dhcp' ? 'DHCP' : 'Static';
@@ -334,32 +334,20 @@
       return payload;
     }
 
-    function loadLastPayload() {
-      const raw = localStorage.getItem(STORAGE_LAST);
-      if (!raw) {
-        setStatus('No previously saved payload in this browser.', 'error');
+    function markPageStaleAfterIpSwitch() {
+      pageStaleAfterIpSwitch = true;
+      commitBtn.disabled = true;
+      resetBtn.disabled = true;
+    }
+
+    function resetFormToLoadedState() {
+      if (!latestState) {
+        setStatus('No loaded network configuration available yet.', 'error');
         return;
       }
 
-      let payload;
-      try {
-        payload = JSON.parse(raw);
-      } catch (_) {
-        setStatus('Saved payload JSON is invalid.', 'error');
-        return;
-      }
-
-      hostInp.value = payload?.hostname || '';
-      const mode = payload?.eth?.mode === 'dhcp' ? 'DHCP' : 'Static';
-      modeSel.value = mode;
-      setStaticEnabled(mode === 'Static');
-
-      const ipv4 = payload?.eth?.ipv4 || {};
-      fillGroup(ipOcts, splitIp(ipv4.address));
-      fillGroup(gwOcts, splitIp(ipv4.gateway));
-      fillGroup(dnsOcts, splitIp((ipv4.dns || [])[0] || ''));
-      maskInp.value = Number.isFinite(Number(ipv4.prefix)) ? String(ipv4.prefix) : '24';
-      setStatus('Loaded last saved payload.');
+      applyStateToForm(latestState);
+      setStatus('Reset form to the loaded configuration. Review values before Set.', 'success');
     }
 
     async function loadState() {
@@ -390,6 +378,7 @@
       }
 
       commitBtn.disabled = true;
+      resetBtn.disabled = true;
       setStatus('Applying configuration: validating and writing system network settings...', 'progress');
 
       try {
@@ -400,13 +389,10 @@
           throw new Error('Apply response missing effective state.');
         }
 
-        localStorage.setItem(STORAGE_LAST, JSON.stringify(payload));
-
         const appliedState = res?.data?.state || null;
         const newIp = appliedState?.eth?.ipv4?.address || '';
         const mode = (appliedState?.eth?.mode || 'n/a').toUpperCase();
         const warnings = Array.isArray(res?.data?.warnings) ? res.data.warnings : [];
-        const requestedIp = payload?.eth?.mode === 'static' ? (payload?.eth?.ipv4?.address || '') : '';
 
         if (warnings.length) {
           setStatus(`Apply completed with warnings. mode=${mode}, effective ip=${newIp || 'n/a'}. ${warnings.join(' | ')}`, 'error');
@@ -422,6 +408,7 @@
           && prevIp
           && prevIp !== newIp;
         if (ipChanged) {
+          markPageStaleAfterIpSwitch();
           setStatus(
             `Apply completed. IP changed from ${prevIp} to ${newIp}. `
             + `Current page may disconnect by design. Open ${buildReconnectUrl(newIp)}.`,
@@ -448,12 +435,14 @@
           );
           const reachable = await probeTargetHost(requestedIp);
           if (reachable) {
+            markPageStaleAfterIpSwitch();
             setStatus(
               `IP switch appears successful. Device is reachable at ${requestedIp}. `
               + `Open ${buildReconnectUrl(requestedIp)}.`,
               'success'
             );
           } else {
+            markPageStaleAfterIpSwitch();
             setStatus(
               `IP switch result is not confirmed yet because the old connection was interrupted. `
               + `Try ${buildReconnectUrl(requestedIp)} first. `
@@ -465,7 +454,8 @@
           setStatus(`Apply failed: ${msg}`, 'error');
         }
       } finally {
-        commitBtn.disabled = false;
+        commitBtn.disabled = pageStaleAfterIpSwitch;
+        resetBtn.disabled = pageStaleAfterIpSwitch;
       }
     }
 
@@ -480,7 +470,7 @@
       });
     });
 
-    loadLastBtn.addEventListener('click', loadLastPayload);
+    resetBtn.addEventListener('click', resetFormToLoadedState);
     commitBtn.addEventListener('click', applyConfig);
     closeBtn.addEventListener('click', () => window.close());
 

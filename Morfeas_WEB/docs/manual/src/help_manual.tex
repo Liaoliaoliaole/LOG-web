@@ -325,7 +325,7 @@ Preset buttons are available at the top of the page for quick loading of predefi
 
 \subsection{Buttons}
 \begin{itemize}
-\item \textbf{Load Last}: reload the last confirmed configuration into the form.
+\item \textbf{Reset}: restore the form to the configuration loaded when the popup was opened or last refreshed.
 \item \textbf{Set}: apply the current values.
 \item \textbf{Close}: close the popup window.
 \end{itemize}
@@ -335,10 +335,14 @@ Preset buttons are available at the top of the page for quick loading of predefi
 \item If you change the device IP address, reconnect the browser to the new HTTP address after the change is applied.
 \item DHCP mode disables manual IPv4 entry.
 \item Presets are convenience values only. Review them before applying.
+\item \textbf{Reset} only restores the values already loaded into the current popup. It does not reload from the device, roll back a saved IP change, or reconnect the browser.
+\item After an IP change, or after the old connection is interrupted during a static IP switch, the current page may be stale. Open the new device address before making more network changes.
 \end{itemize}
 
 \messageexample{Progress}{Applying configuration: validating and writing system network settings...}
-\messageexample{Success}{Configuration applied. If the IP changed, reconnect to the new device address in your browser.}
+\messageexample{Apply Success}{Apply completed successfully. mode=<mode>, effective ip=<device-ip>.}
+\messageexample{IP Changed}{Apply completed. IP changed from <current-device-ip> to <new-device-ip>. Current page may disconnect by design. Open http://<new-device-ip>/.}
+\messageexample{Switch Interrupted}{IP switch result is not confirmed yet because the old connection was interrupted. Try http://<new-device-ip>/ first. If still unreachable, wait 20--30 seconds and try http://<new-device-ip>/ again.}
 \messageexample{Failure}{Apply failed: <error details>}
 
 \section{Add Devices}
@@ -696,11 +700,12 @@ Multiple rows & Delete, Export. \\
 \begin{enumerate}
 \item Right-click one channel row.
 \item Choose \textbf{Edit}.
-\item Review or change ISO code, description, min/max, alarm fields, unit, calibration date/period when shown, and device path.
+\item Review the locked source type, ISO code, postfix, description, and device path.
+\item Change min/max, alarm fields, unit, and calibration date/period when these fields are available for the selected channel.
 \item Click \textbf{Save}.
 \end{enumerate}
 
-Edit uses the current channel data from the backend when available. The save operation updates the existing channel link.
+Edit uses the current channel data from the backend when available. The save operation updates the existing channel link while keeping the existing canonical device source anchor.
 
 \subsection{Delete}
 \begin{enumerate}
@@ -776,11 +781,11 @@ Replace is shown only for offline SDAQ rows. It uses the Edit Link popup in repl
 \item Choose \textbf{Replace}.
 \item The popup opens with the source type locked.
 \item Use device search to choose the replacement source path.
-\item Review ISO code, description, min/max, alarms, unit, and any shown calibration fields.
+\item Review the locked ISO code, description, min/max, alarms, unit, and any shown calibration fields.
 \item Click \textbf{Save}.
 \end{enumerate}
 
-Family mismatch is blocked. If the source SDAQ subtype is known, subtype mismatch is blocked. If the source subtype is unknown, replacement is allowed but the UI warns the operator to replace within the same type.
+Replace changes only the device source path for the existing offline SDAQ link. Family mismatch is blocked. If the source SDAQ subtype is known, subtype mismatch is blocked. If the source subtype is unknown, replacement is allowed but the UI warns the operator to replace within the same type.
 
 \messageexample{Warning}{Subtype unknown, make sure replace within same type.}
 \messageexample{Blocked Replace}{Subtype mismatch: expected SDAQ-TC1, got SDAQ-AI8.}

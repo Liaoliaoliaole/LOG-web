@@ -48,6 +48,11 @@ function iso_load_channels(string $xmlPath): array
             'unit'           => trim((string)$ch->UNIT),
             'cal_date'       => trim((string)$ch->CAL_DATE),
             'cal_period'     => $ch->CAL_PERIOD !== null ? (int)$ch->CAL_PERIOD : null,
+            // Keep alarm fields aligned with iso_channel_snapshot() for edit hydration.
+            'alarm_high_val' => (string)$ch->ALARM_HIGH_VAL,
+            'alarm_low_val'  => (string)$ch->ALARM_LOW_VAL,
+            'alarm_high'     => trim((string)$ch->ALARM_HIGH),
+            'alarm_low'      => trim((string)$ch->ALARM_LOW),
         ];
     }
 
