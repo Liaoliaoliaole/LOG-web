@@ -272,6 +272,33 @@
       return payload;
     }
 
+    function hasNetworkConfigChanged(payload) {
+      if (!latestState) return true;
+
+      const currentIpv4 = latestState?.eth?.ipv4 || {};
+      const currentDns = Array.isArray(currentIpv4.dns) ? currentIpv4.dns[0] || '' : '';
+      const currentMode = String(latestState?.eth?.mode || 'static').toLowerCase();
+      const requestedDns = payload?.eth?.ipv4?.dns?.[0] || '';
+
+      return payload.hostname !== String(latestState?.hostname || '')
+        || payload.eth.mode !== currentMode
+        || payload.eth.ipv4.address !== String(currentIpv4.address || '')
+        || payload.eth.ipv4.prefix !== Number(currentIpv4.prefix || 24)
+        || payload.eth.ipv4.gateway !== String(currentIpv4.gateway || '')
+        || requestedDns !== currentDns;
+    }
+
+    function confirmNetworkConfigChange(payload) {
+      if (!hasNetworkConfigChanged(payload)) return true;
+
+      return window.confirm(
+        'Changing the network configuration may disconnect this browser from the device.\n\n'
+        + 'Before continuing, configure the Ethernet interface on the connected PC for the new network '
+        + '(a compatible IP address and subnet mask).\n\n'
+        + 'Apply the new network configuration?'
+      );
+    }
+
     function markPageStaleAfterIpSwitch() {
       pageStaleAfterIpSwitch = true;
       commitBtn.disabled = true;
@@ -322,6 +349,11 @@
         requestedIp = payload?.eth?.mode === 'static' ? (payload?.eth?.ipv4?.address || '') : '';
       } catch (err) {
         setStatus(err.message || String(err), 'error');
+        return;
+      }
+
+      if (!confirmNetworkConfigChange(payload)) {
+        setStatus('Network configuration change canceled. No settings were applied.', 'info');
         return;
       }
 

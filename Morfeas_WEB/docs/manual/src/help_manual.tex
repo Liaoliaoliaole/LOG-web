@@ -242,6 +242,15 @@ Search results are limited to the selected device family and to paths that are n
 
 The search popup and save validation both enforce device-family matching. IOBOX candidates are not accepted as MTI links, and MTI candidates are not accepted as IOBOX links, even if the physical equipment connected behind the device can be similar.
 
+\subsection{Add Channel ISO and Multilinking Rules}
+With \textbf{Range = 1}, the entered ISO code may be saved even when it is not present in the selected ISOstandard.
+
+With \textbf{Range greater than 1}, every generated base ISO code must exist in the selected ISOstandard and remain in the same measurement category. The numeric suffix is expanded without adding an extra leading zero; for example, \texttt{TEMP099} continues as \texttt{TEMP100}.
+
+A selected cylinder postfix is applied only after the batch ISO sequence is validated. For example, the ISOstandard lookup uses \texttt{TEMP1}, \texttt{TEMP2}, and \texttt{TEMP3}, while cylinder 5 is saved as \texttt{TEMP1\_5}, \texttt{TEMP2\_5}, and \texttt{TEMP3\_5}.
+
+The multilinking naming and rejection rules follow \emph{Rules for how to name channels in Laboratory measurement systems}, Document ID \texttt{DMTA00018532}.
+
 \subsection{Keyboard Shortcuts}
 The following keyboard shortcuts and key actions are currently implemented in LOG WEB.
 

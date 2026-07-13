@@ -64,13 +64,9 @@ function sv_git_info(?string $repoRoot): array
 
 function sv_detect_core_repo(): ?string
 {
+    // The production core is installed at this fixed location on the Pi.
     $candidates = [
-        getenv('MORFEAS_CORE_INSTALL_DIR') ?: null,
         '/opt/Morfeas_project/Morfeas_core',
-        '/home/morfeas/Morfeas_project/Morfeas_core',
-        '/home/pi/Morfeas_project/Morfeas_core',
-        '/home/morfeas/LOG_project/LOG-core',
-        '/opt/Morfeas_project/LOG-core',
     ];
 
     foreach ($candidates as $cand) {

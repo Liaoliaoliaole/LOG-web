@@ -7,6 +7,7 @@
   const updateNowBtn = document.getElementById('updateNowBtn');
   const updateLaterBtn = document.getElementById('updateLaterBtn');
   const reloadBtn = document.getElementById('reloadBtn');
+  const linkerBack = document.getElementById('linkerBack');
   const statusBox = document.getElementById('statusBox');
   const progressWrap = document.getElementById('progressWrap');
   const progressFill = document.getElementById('progressFill');
@@ -373,6 +374,14 @@
   });
   reloadBtn.addEventListener('click', () => {
     window.location.reload();
+  });
+
+  linkerBack?.addEventListener('click', (event) => {
+    if (!window.opener || window.opener.closed) return;
+
+    event.preventDefault();
+    window.opener.focus();
+    window.close();
   });
 
   runCheck();

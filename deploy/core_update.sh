@@ -17,10 +17,6 @@ UPDATED_AT_UNIX="0"
 
 CORE_CANDIDATES=(
   "/opt/Morfeas_project/Morfeas_core"
-  "/home/morfeas/Morfeas_project/Morfeas_core"
-  "/home/pi/Morfeas_project/Morfeas_core"
-  "/home/morfeas/LOG_project/LOG-core"
-  "/opt/Morfeas_project/LOG-core"
 )
 
 log_line() {

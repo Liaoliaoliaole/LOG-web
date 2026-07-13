@@ -39,6 +39,7 @@
 
   const channelsApi = window.LOG_WEB?.api?.channels;
   const isoCatalogService = window.LOG_WEB?.services?.isoCatalog;
+  const isoCatalogRules = isoCatalogService?.rules;
   const searchPoolService = window.LOG_WEB?.services?.searchPool;
 
   const state = {
@@ -125,9 +126,7 @@
 
 
   function lookupIso(codeRaw) {
-    if (!codeRaw) return null;
-    const code = codeRaw.startsWith('_') ? codeRaw : '_' + codeRaw;
-    return state.isoCatalog[code] || null;
+    return isoCatalogRules?.lookupEntry(state.isoCatalog, codeRaw) || null;
   }
 
   function clearIsoDefaults() {
@@ -147,14 +146,21 @@
   function hydrateFromIso(codeRaw, options = {}) {
     const entry = lookupIso(codeRaw);
     if (!entry) return;
-    if (!descInput.dataset.userEdited && !descInput.value) {
-      descInput.value = entry.description;
+
+    const standardFields = [descInput, minInput, maxInput, unitInput];
+    if (options.forceDefaults) {
+      standardFields.forEach((el) => delete el.dataset.userEdited);
+    }
+    const shouldOverride = (el) => options.forceDefaults || (!el.dataset.userEdited && !el.value);
+
+    if (shouldOverride(descInput)) {
+      descInput.value = entry.description || '';
       descInput.dataset.base = entry.description || '';
       updateDescriptionWithPostfix();
     }
-    if (!minInput.dataset.userEdited && !minInput.value) minInput.value = entry.min;
-    if (!maxInput.dataset.userEdited && !maxInput.value) maxInput.value = entry.max;
-    if (!unitInput.dataset.userEdited && !unitInput.value) unitInput.value = entry.unit;
+    if (shouldOverride(minInput)) minInput.value = entry.min || '';
+    if (shouldOverride(maxInput)) maxInput.value = entry.max || '';
+    if (shouldOverride(unitInput)) unitInput.value = entry.unit || '';
 
     const highVal = entry.alarmHighVal || entry.max;
     const lowVal = entry.alarmLowVal || entry.min;
@@ -239,7 +245,7 @@
         isoDropdown.classList.add('hidden');
         isoInput.value = code;
         postfixSel.value = 'N/A';
-        hydrateFromIso(code, { skipSuggestions: true });
+        hydrateFromIso(code, { skipSuggestions: true, forceDefaults: true });
       });
       isoDropdown.appendChild(item);
     });
@@ -248,15 +254,18 @@
   }
 
   function syncAlarmInputs() {
-    const lockLow = !alarmLowChk.checked;
-    const lockHigh = !alarmHighChk.checked;
+    const isMulti = typeSel.value === 'SDAQ'
+      && Math.max(1, parseInt(rangeInput.value || '1', 10)) > 1;
+    const lockLow = isMulti || !alarmLowChk.checked;
+    const lockHigh = isMulti || !alarmHighChk.checked;
     setDisabled(alarmLowVal, lockLow);
     setDisabled(alarmHighVal, lockHigh);
   }
 
   function toggleMultiLock(isMulti) {
-    [minInput, maxInput, alarmLowVal, alarmLowChk, alarmHighVal, alarmHighChk, unitInput]
+    [descInput, minInput, maxInput, alarmLowChk, alarmHighChk, unitInput]
       .forEach((el) => setDisabled(el, isMulti));
+    syncAlarmInputs();
   }
 
   function applyTypeRules() {
@@ -343,14 +352,6 @@
       return;
     }
     descInput.value = formatDescription(base, postfix);
-  }
-
-  function buildIsoName(base, offset) {
-    if (offset === 0) return base;
-    const m = base.match(/^(.*?)(\d+)$/);
-    if (!m) return null;
-    const next = parseInt(m[2], 10) + offset;
-    return `${m[1]}${next}`;
   }
 
   function buildAnchor(base, offset) {
@@ -462,50 +463,74 @@
   function validateSelection(range) {
     if (!state.selectedDevice) {
       setStatus('Select a sensor from search first', 'error');
-      return false;
+      return null;
     }
 
     const type = typeSel.value;
     const pool = state.searchPool[type] || [];
     const manual = state.selectedDevice?.manual;
+    const anchors = [];
     if (!selectedAnchorMatchesType(state.selectedDevice, type)) {
       setStatus(`Sensor path does not match ${type}`, 'error');
-      return false;
+      return null;
     }
 
     for (let i = 0; i < range; i++) {
       const anchor = buildAnchor(state.selectedDevice.anchor, i);
       if (!anchor) {
         setStatus('Invalid anchor format for range expansion', 'error');
-        return false;
+        return null;
       }
       const entry = pool.find((p) => (p.anchor || '').toUpperCase() === anchor.toUpperCase());
       if (!entry) {
         if (type === 'SDAQ' && manual && range === 1) {
+          anchors.push(anchor);
           continue;
         }
         setStatus(`Channel ${anchor} is not available`, 'error');
-        return false;
+        return null;
       }
       if (entry.link_state && entry.link_state.toLowerCase() !== 'unlinked') {
         setStatus(`Channel ${anchor} is already linked`, 'error');
-        return false;
+        return null;
       }
       if (entry.linked_in_xml) {
         setStatus(`Channel ${anchor} already exists in configuration`, 'error');
-        return false;
+        return null;
       }
+      anchors.push(anchor);
     }
-    return true;
+    return anchors;
   }
 
-  function collectSingleRecord(anchor, isoName, baseDesc, entryFromIso) {
+  function collectRecord(anchor, isoName, entryFromIso, useCatalogValues) {
     const postfix = postfixSel.value !== 'N/A' ? postfixSel.value : '';
+    const baseDesc = useCatalogValues
+      ? (entryFromIso?.description || '')
+      : (descInput.value || entryFromIso?.description || '');
     const base = normalizeBaseDescription(baseDesc || isoName);
     const desc = formatDescription(base, postfix);
-    const min = minInput.value || (entryFromIso ? entryFromIso.min : '0');
-    const max = maxInput.value || (entryFromIso ? entryFromIso.max : '0');
-    const unit = unitInput.value || (entryFromIso ? entryFromIso.unit : '') || (state.selectedDevice?.unit || '');
+    const min = useCatalogValues
+      ? (entryFromIso?.min || '0')
+      : (minInput.value || entryFromIso?.min || '0');
+    const max = useCatalogValues
+      ? (entryFromIso?.max || '0')
+      : (maxInput.value || entryFromIso?.max || '0');
+    const unit = useCatalogValues
+      ? (entryFromIso?.unit || '')
+      : (unitInput.value || entryFromIso?.unit || state.selectedDevice?.unit || '');
+    const alarmHigh = useCatalogValues
+      ? (entryFromIso?.alarmHigh || '').toLowerCase() === 'yes'
+      : alarmHighChk.checked;
+    const alarmLow = useCatalogValues
+      ? (entryFromIso?.alarmLow || '').toLowerCase() === 'yes'
+      : alarmLowChk.checked;
+    const resolvedAlarmHighVal = useCatalogValues
+      ? (entryFromIso?.alarmHighVal || max)
+      : (alarmHighVal.value || max);
+    const resolvedAlarmLowVal = useCatalogValues
+      ? (entryFromIso?.alarmLowVal || min)
+      : (alarmLowVal.value || min);
     const type = typeSel.value;
     const calDate = calDateInput?.value || '';
     const calPeriod = calPeriodInput?.value || '';
@@ -518,10 +543,10 @@
       min,
       max,
       unit,
-      alarm_high: alarmHighChk.checked ? 'yes' : 'no',
-      alarm_high_val: alarmHighVal.value || max,
-      alarm_low: alarmLowChk.checked ? 'yes' : 'no',
-      alarm_low_val: alarmLowVal.value || min,
+      alarm_high: alarmHigh ? 'yes' : 'no',
+      alarm_high_val: resolvedAlarmHighVal,
+      alarm_low: alarmLow ? 'yes' : 'no',
+      alarm_low_val: resolvedAlarmLowVal,
     };
 
     if (type !== 'SDAQ' && calDate && calPeriod) {
@@ -546,24 +571,30 @@
     }
 
     const range = type === 'SDAQ' ? Math.max(1, parseInt(rangeInput.value || '1', 10)) : 1;
-    if (!validateSelection(range)) return;
+    const anchors = validateSelection(range);
+    if (!anchors) return;
 
-    const records = [];
-    for (let i = 0; i < range; i++) {
-      const isoName = buildIsoName(isoBase, i);
-      if (!isoName) {
-        setStatus('ISO Code must end with a number for ranged add', 'error');
+    let isoItems;
+    if (range === 1) {
+      // Range === 1 saves the entered code directly; ISOstandard lookup is optional.
+      isoItems = [{ code: isoBase, entry: lookupIso(isoBase) }];
+    } else {
+      if (!isoCatalogRules) {
+        setStatus('ISO catalog rules are unavailable', 'error');
         return;
       }
-      const anchor = buildAnchor(state.selectedDevice.anchor, i);
-      if (!anchor) {
-        setStatus('Invalid sensor path format', 'error');
+      const resolution = isoCatalogRules.resolveSequentialEntries(state.isoCatalog, isoBase, range);
+      if (!resolution.ok) {
+        setStatus(resolution.error.message, 'error');
         return;
       }
-      const isoEntry = lookupIso(isoName);
-      const baseDesc = i === 0 ? (descInput.value || (isoEntry ? isoEntry.description : '')) : (isoEntry ? isoEntry.description : descInput.value);
-      records.push(collectSingleRecord(anchor, isoName, baseDesc, isoEntry));
+      isoItems = resolution.items;
     }
+
+    const useCatalogValues = range > 1;
+    const records = isoItems.map((item, index) =>
+      collectRecord(anchors[index], item.code, item.entry, useCatalogValues)
+    );
 
     btnSave.disabled = true;
     try {
