@@ -293,9 +293,10 @@
 
       return window.confirm(
         'Changing the network configuration may disconnect this browser from the device.\n\n'
-        + 'Before continuing, configure the Ethernet interface on the connected PC for the new network '
-        + '(a compatible IP address and subnet mask).\n\n'
-        + 'Apply the new network configuration?'
+        + 'Apply the new network configuration?\n\n'
+        + 'After applying the new configuration, update the Ethernet interface on the connected PC '
+        + 'to use a compatible IP address and subnet mask for the new network. '
+        + 'Then reconnect to the device using its new IP address.'
       );
     }
 
