@@ -1,0 +1,566 @@
+
+/* =============================================================================
+ * Morfeas WEB — Base UI Theme (Refactored)
+ * -----------------------------------------------------------------------------
+ * Purpose: Shared visual system for all pages with modular structure.
+ * Notes  : All colors and sizing tokens are centralized in :root.
+ * ===========================================================================*/
+
+/* == 1) THEME TOKENS ======================================================= */
+:root {
+  /* === Color Tokens === */
+  --color-text: #111827;
+  --color-muted: #6b7280;
+  --color-border: #a2a6ae;
+  --color-bg: #ffffff;
+  --color-bg-weak: #f8fafc;
+
+  /* Accent Colors */
+  --color-accent: #3498db;
+
+  /* Status Colors */
+  --color-status-okay: #2ecc71;
+  --color-status-stall: #f39c12;
+  --color-status-error: #e74c3c;
+  --color-status-offline: #95a5a6;
+  --color-status-idle: #1abc9c;
+  --color-status-unknown: #95a5a6;
+  --color-status-disabled: #b6bec6;
+
+  /* Row Interaction Colors */
+  --color-row-hover: #fff9db;
+  --color-row-selected: #ffe8a3;
+
+  /* Calibration Expired Background */
+  --color-calib-expired-bg: #f39c12;
+
+  /* === Typography & Sizing === */
+  --radius: 14px;
+  --header-height: 72px;
+  --font-size-base: 16.5px;
+  --font-size-btn: 17px;
+  --font-size-title: clamp(20px, 3vw, 28px);
+}
+
+/* == 2) GLOBAL RESETS ====================================================== */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: var(--font-size-base)/1.55 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+}
+
+/* == 3) TOPBAR ============================================================= */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.top-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 260px;
+}
+
+.brand img {
+  height: 54px;
+  width: auto;
+  display: block;
+}
+
+.page-title {
+  font-size: var(--font-size-title);
+  font-weight: 900;
+  letter-spacing: .2px;
+}
+
+/* Info chips on right side */
+.info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-left: auto;
+  min-width: 280px;
+  flex: 0 1 auto;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg-weak);
+  color: #4b5563;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.chip.chip-connected {
+  color: var(--color-status-okay);
+}
+
+.chip.chip-disconnected {
+  color: var(--color-status-error);
+}
+
+/* == 4) MENU BUTTON & DROPDOWN ============================================ */
+.menu-wrap {
+  margin-left: 0;
+  position: relative;
+}
+
+.menu-btn {
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.menu-btn:hover {
+  background: #f6f6f6;
+}
+
+.burger {
+  width: 20px;
+  height: 2px;
+  background: var(--color-text);
+  position: relative;
+}
+
+.burger::before,
+.burger::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-text);
+}
+
+.burger::before {
+  top: -7px;
+}
+
+.burger::after {
+  top: 7px;
+}
+
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 280px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
+  padding: 8px;
+  display: none;
+}
+
+.dropdown.open {
+  display: block;
+}
+
+.group {
+  font-size: 12px;
+  color: var(--color-muted);
+  padding: 8px 12px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.menu-item-with-indicator {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.menu-indicator-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-status-error);
+  box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
+  flex: 0 0 auto;
+}
+
+.menu-item:hover {
+  background: var(--color-row-hover);
+}
+
+.menu-sep {
+  height: 1px;
+  background: #e6e8ea;
+  margin: 6px 0;
+}
+
+/* == 4) TICKER (inside chip) ============================================== */
+.ticker {
+  display: block;
+  overflow: hidden;
+}
+
+.ticker .track {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+  transition: transform .35s ease;
+  margin: 0;
+}
+
+.ticker .item {
+  display: flex;
+  align-items: center;
+  line-height: 1.2;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+}
+
+/* == 5) TOOLBAR ============================================================ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.input {
+  height: 42px;
+  min-width: clamp(200px, 40vw, 380px);
+  font-size: var(--font-size-base);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 0 12px;
+}
+
+.btn {
+  height: 42px;
+  padding: 0 14px;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg);
+  font-size: var(--font-size-btn);
+  line-height: 1;
+  font-weight: 600;
+}
+
+.btn.primary {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-color: var(--color-accent);
+}
+
+/* == 6) TABLE ============================================================== */
+.table-wrap {
+  overflow: auto;
+  border-top: 1px solid var(--color-border);
+  background: #d1d5db;
+}
+
+.table {
+  width: 100%;
+  min-width: 1200px;
+  border-collapse: collapse;
+  background: #f3f4f6;
+  table-layout: auto;
+}
+
+@media (max-width: 960px) {
+  .top-inner {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .info {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .menu-wrap {
+    margin-left: auto;
+  }
+
+  .toolbar {
+    gap: 8px;
+  }
+
+  .table {
+    min-width: 960px;
+  }
+}
+
+.table th,
+.table td {
+  border: 1px solid #e5e7eb;
+  padding: 12px 14px;
+  white-space: nowrap;
+  vertical-align: middle;
+  text-align: left;
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  background: #eaecef;
+  font-weight: 800;
+}
+
+/* Column alignment */
+.table th:nth-child(1),
+.table td:nth-child(1),
+.table th:nth-child(2),
+.table td:nth-child(2) {
+  text-align: center;
+}
+
+.table th:nth-child(8),
+.table td:nth-child(8),
+.table th:nth-child(11),
+.table td:nth-child(11),
+.table th:nth-child(12),
+.table td:nth-child(12) {
+  text-align: right;
+}
+
+/* Color column (3rd) */
+.table td:nth-child(3) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.table td.meas-error {
+  color: var(--color-status-error);
+  font-weight: 700;
+}
+
+/* Row states */
+.row:hover {
+  background: var(--color-row-hover);
+}
+
+.row.selected {
+  background: var(--color-row-selected);
+}
+
+/* Status dots */
+.dot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid rgba(0, 0, 0, .15);
+}
+
+.st-Okay {
+  background: var(--color-status-okay);
+}
+
+.st-Stall {
+  background: var(--color-status-stall);
+}
+
+.st-Error {
+  background: var(--color-status-error);
+}
+
+.st-Offline {
+  background: var(--color-status-offline);
+}
+
+.st-Idle {
+  background: var(--color-status-idle);
+}
+
+.st-Unknown {
+  background: var(--color-status-unknown);
+}
+
+.st-Disabled {
+  background: var(--color-status-disabled);
+}
+
+/* Column filter headers */
+th.th-filterable {
+  position: relative;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+th.th-filterable .filter-icon {
+  font-size: 10px;
+  margin-left: 4px;
+  color: var(--color-muted);
+}
+
+.th-sortable {
+  position: relative;
+  padding-right: 20px;
+}
+
+.sort-icons {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  vertical-align: middle;
+  color: var(--color-muted);
+  user-select: none;
+}
+
+.sort-icon {
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sort-icon.active {
+  color: var(--color-text);
+}
+
+/* Dropdown menu for column filters */
+.col-filter-menu {
+  position: absolute;
+  z-index: 40;
+  background: var(--color-bg);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
+  padding: 4px 0;
+}
+
+.col-filter-menu-body {
+  max-height: 260px;
+  overflow: auto;
+}
+
+.col-filter-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 4px 12px;
+  background: transparent;
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.col-filter-item:hover,
+.col-filter-item.active {
+  background: var(--color-bg-weak);
+}
+
+/* Calibration expired cell */
+td.calib-expired {
+  background: var(--color-calib-expired-bg);
+}
+
+/* == 7) CONTEXT MENU ======================================================= */
+.ctx {
+  position: fixed;
+  z-index: 60;
+  min-width: 220px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .12);
+  display: none;
+  padding: 6px;
+}
+
+.ctx .item {
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.ctx .item:hover {
+  background: #f6f6f6;
+}
+
+/* == 8) MINI TRENDS ======================================================= */
+.sparkline {
+  display: block;
+  width: 100%;
+  height: 24px;
+}
+
+.sparkline path {
+  fill: none;
+  stroke: #4a8df8;
+  stroke-width: 1.5;
+}
+
+.sparkline .spark-fill {
+  fill: rgba(74, 141, 248, 0.15);
+  stroke: none;
+}
+
+/* == 9) FOOTER ============================================================= */
+.footer {
+  padding: 12px 14px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 15px;
+}
+
+/* == 9) RESPONSIVE TWEAKS ================================================= */
+@media (max-width: 920px) {
+  .menu-wrap {
+    width: 100%;
+  }
+}

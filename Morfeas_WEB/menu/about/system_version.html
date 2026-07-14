@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>System Version</title>
+    <link rel="stylesheet" href="../../assets/app.css" />
+    <style>
+    .wrap {
+      max-width: 520px;
+      margin: 16px auto;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 900;
+      font-size: 20px;
+    }
+
+    .card-body {
+      padding: 14px 16px;
+    }
+
+    .grid {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    .grid td {
+      border-bottom: 1px solid #eef0f3;
+      padding: 10px 8px;
+      vertical-align: middle;
+      color: var(--text);
+    }
+
+    .label {
+      width: 180px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .value {
+      font-weight: 700;
+    }
+  </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <div class="card-head">System Version</div>
+        <div class="card-body">
+          <table class="grid" aria-label="System version information">
+            <tbody>
+              <tr>
+                <td class="label">Web Version</td>
+                <td class="value" id="webVersionValue">Loading...</td>
+              </tr>
+              <tr>
+                <td class="label">Web Commit Date</td>
+                <td class="value" id="webCommitDateValue">Loading...</td>
+              </tr>
+              <tr>
+                <td class="label">Core Version</td>
+                <td class="value" id="coreVersionValue">Loading...</td>
+              </tr>
+              <tr>
+                <td class="label">Core Commit Date</td>
+                <td class="value" id="coreCommitDateValue">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    (function () {
+      const webVersionEl = document.getElementById('webVersionValue');
+      const webCommitDateEl = document.getElementById('webCommitDateValue');
+      const coreVersionEl = document.getElementById('coreVersionValue');
+      const coreCommitDateEl = document.getElementById('coreCommitDateValue');
+
+      async function loadSystemVersion() {
+        try {
+          const res = await fetch('../../backend/api_system_version.php', { cache: 'no-store' });
+          const data = await res.json();
+          if (!res.ok || !data || data.ok !== true) {
+            throw new Error((data && data.error) || 'Failed to load system version');
+          }
+          webVersionEl.textContent = data.web && data.web.label ? data.web.label : 'unknown @ unknown';
+          webCommitDateEl.textContent = data.web && data.web.commit_date ? data.web.commit_date : 'unknown';
+
+          coreVersionEl.textContent = data.core && data.core.label ? data.core.label : 'unknown @ unknown';
+          coreCommitDateEl.textContent = data.core && data.core.commit_date ? data.core.commit_date : 'unknown';
+        } catch (err) {
+          webVersionEl.textContent = 'unknown @ unknown';
+          webCommitDateEl.textContent = 'unknown';
+          coreVersionEl.textContent = 'unknown @ unknown';
+          coreCommitDateEl.textContent = 'unknown';
+        }
+      }
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') window.close();
+      });
+
+      loadSystemVersion();
+    })();
+  </script>
+  </body>
+
+</html>

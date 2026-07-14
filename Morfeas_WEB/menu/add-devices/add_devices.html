@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Add Devices</title>
+
+  <!-- Shared site theme -->
+  <link rel="stylesheet" href="../../assets/app.css" />
+
+  <style>
+    /* Local layout; visuals come from the shared theme */
+    .wrap {
+      max-width: 1320px;
+      margin: 10px auto;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 900;
+      font-size: 18px;
+    }
+
+    .card-body {
+      padding: 8px 12px 12px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .toolbar-mini {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .toolbar-mini .btn {
+      height: 36px;
+    }
+
+    .table {
+      width: 100%;
+      background: #fff;
+      min-width: 0;
+      table-layout: auto;
+    }
+
+    .table thead th {
+      background: #f3f4f6;
+      font-weight: 800;
+    }
+
+    .table th,
+    .table td {
+      padding: 7px 8px;
+      border: 1px solid #e5e7eb;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    /* Bus column: keep width consistent with neighboring columns */
+    .table th:nth-child(3),
+    .table td:nth-child(3) {
+      width: 120px;
+      display: table-cell;
+      text-align: center;
+    }
+
+    .table td:nth-child(1),
+    .table th:nth-child(1) {
+      text-align: center;
+      width: 48px;
+    }
+
+    .table td:nth-child(2),
+    .table th:nth-child(2) {
+      text-align: center;
+      width: 64px;
+    }
+
+    .table .row:hover {
+      background: var(--row-hover);
+    }
+
+    .table .row.selected {
+      background: var(--row-selected);
+    }
+
+    .grid {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .grid th,
+    .grid td {
+      border-bottom: 1px solid #eef0f3;
+      padding: 6px 6px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .label {
+      width: 140px;
+      font-weight: 800;
+    }
+
+    .input {
+      min-width: 120px;
+    }
+
+    .props-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr 140px 1fr;
+      gap: 6px 10px;
+      align-items: center;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 10px;
+    }
+
+    .subtle {
+      color: #5b6472;
+      font-size: 13px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #d8dee6;
+      background: #f6f8fa;
+      font-size: 12px;
+      font-weight: 800;
+      color: #243244;
+    }
+
+    .chip.warn {
+      background: #fff4e5;
+      border-color: #f0c36d;
+      color: #8a4b00;
+    }
+
+    .chip.ok {
+      background: #edf9f0;
+      border-color: #b5e3c1;
+      color: #1f6b36;
+    }
+
+    .status-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .status-main {
+      font-weight: 800;
+    }
+
+    .status-detail {
+      color: #5b6472;
+      font-size: 12px;
+    }
+
+    .btn.sm {
+      height: 32px;
+      padding: 0 12px;
+      font-size: 13px;
+    }
+
+    .section-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      font-weight: 700;
+    }
+
+    .banner[hidden] {
+      display: none;
+    }
+
+    .banner.danger {
+      background: #fff1f0;
+      border-color: #ffccc7;
+      color: #a8071a;
+    }
+
+    .banner.warn {
+      background: #fff7e6;
+      border-color: #ffd591;
+      color: #874d00;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="stack">
+      <div id="legacyBanner" class="banner danger" hidden>
+        <span id="legacyBannerText">Legacy MDAQ config found in XML. Remove it manually before using this page.</span>
+      </div>
+      <div id="popupNotice" class="banner warn" hidden>
+        <span id="popupNoticeText">Popup was blocked. Allow popups for this page and try again.</span>
+      </div>
+
+      <div class="card">
+        <div class="card-head">CAN Bus Setup</div>
+        <div class="card-body">
+          <div class="section-note">
+            <span id="canChip" class="chip ok">No CAN warnings</span>
+            <span id="canTicker" class="subtle">All buses look stable.</span>
+          </div>
+          <div class="subtle" style="margin:-4px 0 10px;">
+            After unplugging: NOX updates in about 10s, SDAQ in about 50s.
+          </div>
+
+          <div class="table-wrap" style="background:#fff;border:1px solid var(--border);">
+            <table class="table" aria-label="CAN bus setup">
+              <thead>
+                <tr>
+                  <th>Bus</th>
+                  <th>Mode</th>
+                  <th>Bitrate</th>
+                  <th>State</th>
+                  <th>Devices</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="canBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">Configured Devices</div>
+        <div class="card-body">
+          <div class="toolbar-mini">
+            <button id="refreshBtn" class="btn">Refresh</button>
+            <div style="flex:1"></div>
+            <button id="removeBtn" class="btn" disabled>Remove</button>
+            <button id="addBtn" class="btn primary">Add…</button>
+          </div>
+
+          <div class="table-wrap" style="background:#fff;border:1px solid var(--border);">
+            <table class="table" aria-label="Configured devices">
+              <thead>
+                <tr>
+                  <th><input id="mchk" type="checkbox" aria-label="Select all configured rows" /></th>
+                  <th>#</th>
+                  <th>Bus</th>
+                  <th>Device Type</th>
+                  <th>Device Name/Address</th>
+                  <th>IP Address</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="configuredBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="propCard" class="card" style="display:none;">
+      <div class="card-head">Add Device — Type & Properties</div>
+      <div class="card-body">
+        <div class="props-grid">
+          <div class="label">Device Type</div>
+          <div>
+            <select id="devType" class="input" style="height:38px;min-width:180px;">
+              <option value="IO-BOX">IO-BOX</option>
+              <option value="MTI">MTI</option>
+            </select>
+          </div>
+
+          <div class="label">Device Name</div>
+          <div>
+            <input id="devName" class="input" style="min-width:280px" placeholder="e.g. IOBOX_01" />
+            <div id="devNameHint" hidden style="color:#a8071a;font-size:12px;font-weight:700;margin-top:4px;">
+              D-Bus interface name element rules &mdash;
+              allowed: <code>A&ndash;Z&nbsp; a&ndash;z&nbsp; 0&ndash;9&nbsp; _</code>
+              &nbsp;&middot;&nbsp; No hyphens &nbsp;&middot;&nbsp; Must not start with a digit
+              &nbsp;&middot;&nbsp; Max 243 chars (D-Bus interface names must not exceed 255 chars)
+            </div>
+          </div>
+
+          <div class="label">IPv4 Address</div>
+          <div>
+            <input id="devIp" class="input" style="min-width:200px" placeholder="192.168.1.10" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="saveBtn" class="btn primary">Save</button>
+          <button id="cancelBtn" class="btn">Cancel</button>
+        </div>
+      </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">Detected Devices</div>
+        <div class="card-body">
+          <div class="table-wrap" style="background:#fff;border:1px solid var(--border);">
+            <table class="table" aria-label="Detected devices">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Bus</th>
+                  <th>Device Type</th>
+                  <th>Address</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="detectedBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../../assets/config.js"></script>
+  <script src="../../assets/api/canRoles.js"></script>
+  <script src="../../assets/api/devices.js"></script>
+  <script src="./devices.js?v=20260626-iobox-monitor"></script>
+  <script>
+    // Close this popup with ESC (consistent with other popups)
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });
+  </script>
+</body>
+
+</html>

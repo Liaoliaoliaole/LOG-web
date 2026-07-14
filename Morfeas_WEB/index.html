@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>LOG WEB · ISO Channels Linker</title>
+
+    <!-- Shared theme (do not inline; many popups reuse this) -->
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
+
+  <body>
+    <!-- =========================================================================
+         1) TOP BAR
+         ========================================================================= -->
+    <div class="topbar">
+      <div class="top-inner">
+        <!-- Brand -->
+        <div class="brand">
+          <img src="assets/logo.png" alt="Logo" />
+          <div class="page-title">ISO Channels Linker</div>
+        </div>
+
+        <!-- Info chips (FTP dir + rolling status summary) -->
+        <div class="info">
+          <div id="ftpDirChip" class="chip chip-disconnected">FTP backup dir: ---</div>
+          <div class="chip">
+            <div class="ticker"><!-- filled by JS -->
+              <div class="track"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Menu Button -->
+        <div class="menu-wrap">
+          <button id="menuBtn" class="menu-btn" aria-haspopup="true"
+            aria-expanded="false">
+            <span class="burger"></span> Menu
+          </button>
+
+          <div id="mainMenu" class="dropdown" role="menu">
+            <div class="group">Main</div>
+
+            <!-- Network Configuration -->
+            <a class="menu-item" href="menu/network-config/network_config.html"
+              data-popup data-name="netconf"
+              data-width="760" data-height="820">
+              Network Configuration
+            </a>
+
+            <!-- Add Devices -->
+            <a class="menu-item" href="menu/add-devices/add_devices.html"
+              data-popup data-name="adddev" data-width="1360"
+              data-height="980">
+              Add Devices
+            </a>
+
+            <!-- Backup & Restore Channels -->
+            <a class="menu-item" href="menu/backup-restore/backup_restore.html"
+              data-popup data-name="backup"
+              data-width="720" data-height="760">
+              Backup & Restore Channels
+            </a>
+
+            <div class="menu-sep"></div>
+            <div class="group">Advanced</div>
+
+            <!-- Check System Status -->
+            <a class="menu-item" href="menu/system-status/system_status.html"
+              data-popup data-name="sysstatus"
+              data-width="1500" data-height="1100"
+              data-force-reload="true">
+              Check System Status
+            </a>
+
+            <!-- Advanced Settings -->
+            <a class="menu-item"
+              href="menu/advanced-settings/advanced_setting.html" data-popup
+              data-name="advset"
+              data-width="960" data-height="960">
+              Advanced Settings
+            </a>
+
+            <div class="menu-sep"></div>
+            <div class="group">System</div>
+            <a id="menuSystemUpdate" class="menu-item menu-item-with-indicator"
+              href="menu/system-control/update.html"
+              data-popup data-name="sysupdate"
+              data-width="920" data-height="760"
+              data-force-reload="true">
+              <span>System Update</span>
+              <span id="systemUpdateIndicator" class="menu-indicator-dot" hidden></span>
+            </a>
+            <a class="menu-item" href="menu/system-control/reboot.html"
+              data-popup data-name="sysreboot"
+              data-width="900" data-height="680"
+              data-force-reload="true">System Reboot</a>
+            <a class="menu-item" href="menu/system-control/shutdown.html"
+              data-popup data-name="sysshutdown"
+              data-width="900" data-height="680"
+              data-force-reload="true">System Shutdown</a>
+
+            <div class="menu-sep"></div>
+            <div class="group">About</div>
+            <a class="menu-item" href="menu/about/system_version.html"
+              data-popup data-name="sysver"
+              data-width="560" data-height="360"
+              data-force-reload="true">
+              Version
+            </a>
+            <a class="menu-item" href="docs/help_manual.pdf"
+              target="_blank" rel="noopener">Help</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         2) TOOL BAR
+         ========================================================================= -->
+    <div class="toolbar">
+      <input id="searchInput" class="input" type="text"
+        placeholder="Search Input" />
+      <button id="searchBtn" class="btn">Search</button>
+
+      <div class="spacer"></div>
+
+      <!-- Import opens classic import page in a new tab (kept from legacy flow) -->
+      <button id="importBtn" class="btn primary">Import Channels</button>
+
+      <!-- Add opens Link Creator popup-->
+      <button id="addBtn" class="btn primary">Add Channels</button>
+    </div>
+
+    <!-- =========================================================================
+         3) DATA TABLE
+         ========================================================================= -->
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>
+              <input id="masterCheck" type="checkbox"
+                aria-label="Select all rows" />
+            </th>
+            <th>#</th>
+
+            <th>Color</th>
+
+            <!-- Status with filter dropdown -->
+            <th data-filter-key="status" class="th-filterable th-sortable">
+              <span>Status</span>
+              <span class="filter-icon" aria-hidden="true">▾</span>
+              <span class="sort-icons" data-sort-key="status" aria-hidden="true">
+                <span class="sort-icon up" data-dir="asc">▲</span>
+                <span class="sort-icon down" data-dir="desc">▼</span>
+              </span>
+            </th>
+
+            <th class="th-sortable">
+              <span>ISOChannel</span>
+              <span class="sort-icons" data-sort-key="iso" aria-hidden="true">
+                <span class="sort-icon up" data-dir="asc">▲</span>
+                <span class="sort-icon down" data-dir="desc">▼</span>
+              </span>
+            </th>
+
+            <!-- Type with filter dropdown -->
+            <th data-filter-key="type" class="th-filterable th-sortable">
+              <span>Type</span>
+              <span class="filter-icon" aria-hidden="true">▾</span>
+              <span class="sort-icons" data-sort-key="type" aria-hidden="true">
+                <span class="sort-icon up" data-dir="asc">▲</span>
+                <span class="sort-icon down" data-dir="desc">▼</span>
+              </span>
+            </th>
+
+            <th class="th-sortable">
+              <span>Connection</span>
+              <span class="sort-icons" data-sort-key="anchor" aria-hidden="true">
+                <span class="sort-icon up" data-dir="asc">▲</span>
+                <span class="sort-icon down" data-dir="desc">▼</span>
+              </span>
+            </th>
+            <th>Value</th>
+            <th>History</th>
+            <th>Next Calibration</th>
+            <th>Min</th>
+            <th>Max</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+
+        <!-- Data rows are injected by assets/index.js via /backend/api_channels.php -->
+        <tbody id="isoTableBody">
+        </tbody>
+      </table>
+    </div>
+
+    <!-- =========================================================================
+         4) CONTEXT MENU
+         ========================================================================= -->
+    <div id="ctx" class="ctx" role="menu">
+      <div class="item" data-action="edit">Edit</div>
+      <div class="item" data-action="delete">Delete</div>
+      <div class="item" data-action="scale">Scale</div>
+      <div class="item" data-action="calibration">Calibration</div>
+      <div class="item" data-action="export">Export</div>
+    </div>
+
+    <!-- Shared config + APIs -->
+    <script src="assets/config.js"></script>
+    <script src="assets/api/channels.js"></script>
+    <script src="assets/api/ftpBackup.js"></script>
+    <script src="assets/api/systemStatus.js"></script>
+    <script src="assets/api/systemUpdate.js"></script>
+    <script src="assets/ui/systemStatusFormatter.js"></script>
+
+    <!-- Index bootstrap -->
+    <script src="assets/index.js"></script>
+  </body>
+
+</html>

@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>IOBOX Monitor</title>
+  <link rel="stylesheet" href="../../assets/app.css" />
+
+  <style>
+    body {
+      background: #f6f8fa;
+    }
+
+    .wrap {
+      max-width: 1220px;
+      margin: 10px auto;
+      padding: 0 10px 14px;
+    }
+
+    .bar {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 220px;
+    }
+
+    .title strong {
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #5b6472;
+      font-size: 13px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      border: 1px solid #d8dee6;
+      background: #f6f8fa;
+      color: #243244;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .badge.ok {
+      background: #edf9f0;
+      border-color: #b5e3c1;
+      color: #1f6b36;
+    }
+
+    .badge.bad {
+      background: #fff1f0;
+      border-color: #ffccc7;
+      color: #a8071a;
+    }
+
+    .badge.warn {
+      background: #fff7e6;
+      border-color: #ffd591;
+      color: #874d00;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .section {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 900;
+      font-size: 16px;
+      background: #fbfcfd;
+    }
+
+    .section-note {
+      color: #5b6472;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .section-body {
+      padding: 10px 12px 12px;
+    }
+
+    .power-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+    }
+
+    .metric-card,
+    .channel-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 7px;
+      background: #fff;
+      min-width: 0;
+    }
+
+    .metric-card {
+      padding: 9px 10px;
+    }
+
+    .metric-label,
+    .channel-label {
+      color: #5b6472;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .metric-value,
+    .channel-value {
+      margin-top: 4px;
+      color: #061224;
+      font-weight: 900;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .rx-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    .rx-tab {
+      min-width: 132px;
+      border: 1px solid #d8dee6;
+      background: #fff;
+      border-radius: 7px;
+      padding: 8px 9px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .rx-tab.active {
+      border-color: #1677ff;
+      box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.14);
+    }
+
+    .rx-tab-title {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 900;
+    }
+
+    .rx-tab .badge + .badge {
+      margin-left: 5px;
+    }
+
+    .rx-detail {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .rx-detail-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #f3f4f6;
+      border-bottom: 1px solid #e5e7eb;
+      flex-wrap: wrap;
+    }
+
+    .rx-detail-head strong {
+      font-size: 16px;
+    }
+
+    .channel-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 10px;
+    }
+
+    .channel-card {
+      padding: 8px 9px;
+      min-height: 58px;
+    }
+
+    .message {
+      padding: 12px 14px;
+      border: 1px solid #ffd591;
+      background: #fff7e6;
+      color: #874d00;
+      border-radius: 8px;
+      font-weight: 800;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    @media (max-width: 520px) {
+      .channel-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <div class="title">
+        <strong id="deviceTitle">IOBOX Monitor</strong>
+        <div class="meta">
+          <span id="deviceIp">IPv4: -</span>
+          <span id="lastUpdate">Last update: -</span>
+        </div>
+      </div>
+      <span id="connectionBadge" class="badge">Unknown</span>
+    </div>
+
+    <div class="stack">
+      <div id="message" class="message" hidden></div>
+
+      <section id="powerSection" class="section" hidden>
+        <div class="section-head">
+          <span>Receiver Power</span>
+          <span class="section-note">Vin plus four output voltage/current pairs</span>
+        </div>
+        <div class="section-body">
+          <div id="powerGrid" class="power-grid" aria-label="IOBOX supply power"></div>
+        </div>
+      </section>
+
+      <section id="rxSection" class="section" hidden>
+        <div class="section-head">
+          <span>Receivers</span>
+          <span class="section-note">Select one RX to inspect all 16 channels</span>
+        </div>
+        <div class="section-body">
+          <div id="rxTabs" class="rx-tabs" role="tablist" aria-label="IOBOX receivers"></div>
+          <div id="rxPanel"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="../../assets/config.js"></script>
+  <script src="../../assets/api/iobox.js"></script>
+  <script src="./iobox_monitor.js?v=20260629-tabs"></script>
+  <script>
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });
+  </script>
+</body>
+
+</html>

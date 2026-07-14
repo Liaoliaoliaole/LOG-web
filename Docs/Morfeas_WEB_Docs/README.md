@@ -1,21 +1,19 @@
-# Documentation of Morfeas-Core
-This directory contains the source for the Documentation of the Morfeas WEB Project. The source is written in LaTex.
+# Archived Legacy Morfeas WEB Documentation
 
-### Requirements
-For compilation of this project the following dependencies required.
-* [GNU Make](https://www.gnu.org/software/make/) - GNU make utility
-* [TeX Live](https://www.tug.org/texlive/) - Libre(free) software distribution for the TeX typesetting system.
-* [LaTex-mk](http://latex-mk.sourceforge.net/) - Complete system for simplifying the management of small to large sized LaTeX documents.
+This directory contains the historical LaTeX documentation for the legacy Morfeas web implementation.
 
-## Compilation of the documentation
-```
-$ make tree
-$ make -j$(nproc)
-```
-The compiled documentation located under the **./build-doc** directory.
+It is kept as archived reference only.
 
-## Authors
-* **Sam Harry Tzavaras** - *Initial work*
+## Active user manual
 
-## License
-The source code of the Documentation of Morfeas project is licensed under FDLv1.3 or later - see the [License](../../fdl-1.3.md) file for details.
+The maintained user manual for the current new web UI now lives under:
+
+- `LOG-web/Morfeas_WEB/docs/manual/`
+
+The generated PDF delivered by the web Help menu is:
+
+- `LOG-web/Morfeas_WEB/docs/help_manual.pdf`
+
+## Legacy status
+
+The files in this directory describe the older legacy architecture and PHP endpoints. They should not be treated as the active operator manual for the current web interface.

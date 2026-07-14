@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>System Backup & Restore</title>
+
+  <!-- Shared site theme -->
+  <link rel="stylesheet" href="../../assets/app.css" />
+
+  <style>
+    /* =========================================================================
+       * Local layout (popup-sized card). Visuals inherit from the shared theme.
+       * ========================================================================= */
+    .wrap {
+      max-width: 720px;
+      margin: 16px auto;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 900;
+      font-size: 20px;
+    }
+
+    .card-body {
+      padding: 12px 18px 18px;
+    }
+
+    /* Sections */
+    .section {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 14px;
+      background: #fff;
+    }
+
+    .section-title {
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    /* Field rows */
+    .field {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 10px 0;
+    }
+
+    .label {
+      width: 180px;
+      font-weight: 800;
+    }
+
+    /* File list */
+    .list {
+      width: 100%;
+      min-height: 220px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px;
+      background: #fff;
+    }
+
+    /* Section actions */
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    /* Status text (color matches main theme palette) */
+    .status {
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .status.ok {
+      color: #16a34a;
+    }
+
+    /* green */
+    .status.err {
+      color: #dc2626;
+    }
+
+    /* red */
+
+    /* ---- Folder Browser ---- */
+    .folder-browser {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-top: 12px;
+      background: #f9fafb;
+    }
+
+    .fb-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .fb-path {
+      flex: 1;
+      font-size: 13px;
+      font-family: monospace;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .fb-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .fb-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .fb-item:last-child {
+      border-bottom: none;
+    }
+
+    .fb-name {
+      flex: 1;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .fb-name:hover {
+      color: var(--accent, #2563eb);
+      text-decoration: underline;
+    }
+
+    .fb-empty {
+      padding: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <!-- =======================================================================
+           Card container
+           ======================================================================= -->
+    <div class="card">
+      <div class="card-head">System Backup & Restore (FTP)</div>
+      <div class="card-body">
+
+        <!-- ================================================================
+               1) FTP SERVER SETUP
+               - Connect populates the list from the configured FTP server
+               - Disconnect clears UI
+               ================================================================ -->
+        <div class="section" aria-labelledby="ftp-setup-title">
+          <div id="ftp-setup-title" class="section-title">FTP Server Setup</div>
+
+          <div class="field">
+            <label for="ftpHost" class="label">Host IP</label>
+            <input id="ftpHost" class="input" type="text" placeholder="10.193.135.70" />
+          </div>
+
+          <div class="field">
+            <label for="engineNo" class="label">Engine Number</label>
+            <input id="engineNo" class="input" type="text" placeholder="Enter the engine number" />
+            <button id="browseBtn" class="btn" title="Browse FTP folders to find the engine number">Browse</button>
+          </div>
+
+          <!-- Folder browser panel (hidden until Browse is clicked) -->
+          <div id="folderBrowser" class="folder-browser" hidden>
+            <div class="fb-header">
+              <button id="fbBackBtn" class="btn" disabled>&#8592; Back</button>
+              <span id="fbPath" class="fb-path">/</span>
+              <button id="fbCloseBtn" class="btn">&#x2715;</button>
+            </div>
+            <div id="fbStatus" class="status" aria-live="polite"></div>
+            <ul id="fbList" class="fb-list" aria-label="FTP folders"></ul>
+          </div>
+
+          <div class="actions">
+            <button id="connectBtn" class="btn primary">Connect & Fetch</button>
+            <button id="disconnectBtn" class="btn">Disconnect</button>
+          </div>
+
+          <div id="ftpStatus" class="status" aria-live="polite"></div>
+        </div>
+
+        <!-- ================================================================
+               2) BACKUP TO FTP
+               - Creates an archive and refreshes the list
+               ================================================================ -->
+        <div class="section" aria-labelledby="backup-title">
+          <div id="backup-title" class="section-title">Backup to FTP</div>
+
+          <div class="actions">
+            <button id="backupBtn" class="btn primary">Backup Now</button>
+          </div>
+
+          <div id="backupStatus" class="status" aria-live="polite"></div>
+        </div>
+
+        <!-- ================================================================
+               3) RESTORE FROM FTP
+               - Select an item from the list and restore
+               ================================================================ -->
+        <div class="section" aria-labelledby="restore-title">
+          <div id="restore-title" class="section-title">Restore from FTP</div>
+
+          <select id="backupList" size="7" class="list" aria-label="Available backup files"></select>
+
+          <div class="actions">
+            <button id="restoreBtn" class="btn">Restore Selected</button>
+          </div>
+
+          <div id="restoreStatus" class="status" aria-live="polite"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../../assets/config.js"></script>
+  <script src="../../assets/api/ftpBackup.js"></script>
+  <script src="./ftpbackup.js"></script>
+  <script>
+    // Close popup with ESC (consistent with other popups)
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.close(); });
+  </script>
+</body>
+
+</html>

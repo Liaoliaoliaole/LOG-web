@@ -1,0 +1,8 @@
+/mnt/ramdisk/Morfeas_Loggers/*.log {
+    daily
+    rotate 7
+    missingok
+    notifempty
+    copytruncate
+    su root root
+}

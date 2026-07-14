@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>System Update · Morfeas WEB</title>
+  <link rel="stylesheet" href="../../assets/app.css">
+  <style>
+    .panel {
+      max-width: 860px;
+      margin: 24px auto;
+      background: #fff;
+      border: 1px solid var(--color-border);
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .desc {
+      margin: 0 0 14px;
+      color: #4b5563;
+    }
+
+    .status {
+      margin-top: 12px;
+      border-radius: 10px;
+      border: 1px solid #d9dde3;
+      background: #f7f9fb;
+      padding: 12px;
+      font-weight: 700;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+
+    .status.progress {
+      background: #e6f4ff;
+      border-color: #91caff;
+      color: #003a8c;
+    }
+
+    .status.success {
+      background: #f6ffed;
+      border-color: #b7eb8f;
+      color: #135200;
+    }
+
+    .status.warning {
+      background: #fffbe6;
+      border-color: #ffe58f;
+      color: #874d00;
+    }
+
+    .status.error {
+      background: #fff1f0;
+      border-color: #ffccc7;
+      color: #a8071a;
+    }
+
+    .progress-wrap {
+      margin-top: 10px;
+    }
+
+    .progress-track {
+      height: 10px;
+      width: 100%;
+      border-radius: 999px;
+      background: #e5e7eb;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #1677ff, #13c2c2);
+      transition: width 0.35s ease;
+    }
+
+    .progress-meta {
+      margin-top: 6px;
+      color: #6b7280;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .muted {
+      color: #6b7280;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="top-inner">
+      <div class="brand"><img src="../../assets/logo.png" alt="Logo">
+        <div class="page-title">System Update</div>
+      </div>
+      <div class="info">
+        <div class="chip">System Control</div>
+      </div>
+      <div class="menu-wrap"><button id="menuBtn" class="menu-btn"><span class="burger"></span> Menu</button>
+        <div id="mainMenu" class="dropdown">
+          <div class="group">Back</div><a id="linkerBack" class="menu-item" href="../../index.html">ISO Channels Linker</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Update Device Software</h2>
+    <p class="desc">This checks and applies updates for both Morfeas web and Morfeas core using the system update script.</p>
+    <div class="actions">
+      <button id="checkBtn" class="btn">Check Again</button>
+      <button id="updateNowBtn" class="btn primary" hidden>Update Now</button>
+      <button id="updateLaterBtn" class="btn" hidden>Update Later</button>
+      <button id="reloadBtn" class="btn" hidden>Reload Page</button>
+    </div>
+    <div id="statusBox" class="status">Checking for updates...</div>
+    <div id="progressWrap" class="progress-wrap" hidden>
+      <div class="progress-track">
+        <div id="progressFill" class="progress-fill"></div>
+      </div>
+      <div id="progressMeta" class="progress-meta">Elapsed: 0s</div>
+    </div>
+    <div class="muted">If services restart during update, temporary disconnection is expected.</div>
+  </div>
+
+  <script src="../../assets/config.js"></script>
+  <script src="../../assets/api/systemUpdate.js"></script>
+  <script src="./system_update.js"></script>
+</body>
+
+</html>

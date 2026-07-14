@@ -1,0 +1,140 @@
+<?php
+
+require __DIR__ . '/core/request.php';
+require __DIR__ . '/services/ftp_backup_service.php';
+
+header('Content-Type: application/json; charset=utf-8');
+
+function ftp_backup_first_restore_blocker(): ?array
+{
+    return backend_session_registry_first_active_lock(
+        ['channel_edit', 'device_config', 'sdaq_edit'],
+        static function (array $record): bool {
+            return (string)($record['mode'] ?? '') === 'edit';
+        }
+    );
+}
+
+function ftp_backup_api_respond(bool $ok, ?array $data = null, ?string $message = null, int $status = 200): void
+{
+    http_response_code($status);
+    echo json_encode([
+        'ok' => $ok,
+        'data' => $data,
+        'message' => $message,
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+try {
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+    if ($method === 'GET') {
+        $action = strtolower(trim((string) ($_GET['action'] ?? '')));
+        if ($action !== 'config_if_updated') {
+            ftp_backup_api_respond(false, null, 'action must be config_if_updated for GET', 400);
+        }
+
+        $data = ftp_backup_config_if_updated(2);
+        ftp_backup_api_respond(true, $data, 'Config status read');
+    }
+
+    if ($method !== 'POST') {
+        header('Allow: GET, POST');
+        ftp_backup_api_respond(false, null, 'Method not allowed', 405);
+    }
+
+    $body = read_json_body();
+    $action = strtolower(trim((string) ($body['action'] ?? '')));
+
+    switch ($action) {
+        case 'saveconfig':
+            $host = trim((string) ($body['host'] ?? ''));
+            $dir = trim((string) ($body['dir'] ?? ''));
+            if ($host === '' || $dir === '') {
+                throw new InvalidArgumentException('host and dir are required');
+            }
+            $config = ftp_backup_save_config($host, $dir);
+            ftp_backup_api_respond(true, ['config' => $config], 'Config saved');
+
+        case 'testconnect':
+            ftp_backup_test_connection();
+            ftp_backup_api_respond(true, null, 'FTP connection is valid');
+
+        case 'clearconfig':
+            ftp_backup_clear_config();
+            ftp_backup_api_respond(true, null, 'Config cleared');
+
+        case 'listdirs':
+            $host = trim((string) ($body['host'] ?? ''));
+            $path = trim((string) ($body['path'] ?? '/'));
+            if ($host === '') {
+                // Fall back to saved config host if available
+                try {
+                    $cfg = ftp_backup_load_config_raw();
+                    $host = $cfg['host'];
+                } catch (Throwable $ignored) {
+                    throw new InvalidArgumentException('host is required');
+                }
+            }
+            $dirs = ftp_backup_list_dirs($host, $path);
+            ftp_backup_api_respond(true, $dirs, 'Directories listed');
+
+        case 'list':
+            $files = ftp_backup_list_files();
+            ftp_backup_api_respond(true, ['files' => $files], 'Backup list loaded');
+
+        case 'backup':
+            $result = ftp_backup_run_backup();
+            ftp_backup_api_respond(true, $result, 'Backup uploaded');
+
+        case 'restore':
+            $file = trim((string) ($body['file'] ?? ''));
+            if ($file === '') {
+                throw new InvalidArgumentException("file is required for restore action");
+            }
+            $sessionId = backend_require_session_token('Missing session token for restore action');
+            $acquire = backend_session_registry_acquire_lock(
+                'system_action',
+                'restore',
+                $sessionId,
+                300,
+                'running',
+                ['action' => 'restore']
+            );
+            if (!$acquire['acquired']) {
+                throw new RuntimeException('Restore is already running in another session.', 409);
+            }
+
+            $restoreResult = null;
+            try {
+                $blocker = ftp_backup_first_restore_blocker();
+                if (is_array($blocker)) {
+                    throw new RuntimeException(backend_restore_blocking_lock_message($blocker), 409);
+                }
+
+                $restoreResult = ftp_backup_run_restore($file);
+            } finally {
+                backend_session_registry_release_lock('system_action', 'restore', $sessionId);
+            }
+
+            ftp_backup_api_respond(true, $restoreResult, "Restored from: $file");
+
+        case 'uploadlog':
+            $result = ftp_backup_upload_logs();
+            ftp_backup_api_respond(true, $result, 'Log files uploaded');
+
+        default:
+            throw new InvalidArgumentException("Unknown action: $action");
+    }
+} catch (InvalidArgumentException $e) {
+    api_fail_response($e->getMessage(), 400, 'api_ftp_backup.validation', $e);
+} catch (RuntimeException $e) {
+    $status = (int) $e->getCode();
+    if ($status < 400 || $status > 599) {
+        $status = 500;
+    }
+    api_fail_response($e->getMessage(), $status, 'api_ftp_backup.runtime', $e);
+} catch (Throwable $e) {
+    api_fail_response('Failed to process FTP backup request', 500, 'api_ftp_backup', $e);
+}

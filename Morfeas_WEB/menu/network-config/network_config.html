@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Network Configuration</title>
+
+  <!-- Shared theme -->
+  <link rel="stylesheet" href="../../assets/app.css" />
+
+  <style>
+    /* Local card layout (kept minimal — relies on global theme) */
+    .card {
+      max-width: 720px;
+      margin: 16px auto;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 900;
+      font-size: var(--fz);
+    }
+
+    .card-body {
+      padding: 12px 18px 16px;
+    }
+
+    .grid {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    .grid th,
+    .grid td {
+      border-bottom: 1px solid #eef0f3;
+      padding: 10px 8px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .grid th.section {
+      background: #f7f8fa;
+      font-size: var(--fz);
+      font-weight: 900;
+      color: var(--text);
+    }
+
+    .label {
+      width: 210px;
+      font-weight: 800;
+    }
+
+    .input {
+      min-width: 80px;
+    }
+
+    .ip,
+    .gw,
+    .dns {
+      width: 72px;
+      text-align: center;
+    }
+
+    .presets {
+      max-width: 720px;
+      margin: 12px auto 0;
+      padding: 0 4px;
+    }
+
+    .presets .title {
+      display: block;
+      font-weight: 800;
+      margin: 0 0 8px 0;
+    }
+
+    .presets .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .presets .btn {
+      font-weight: 700;
+    }
+
+    .presets .btn.active {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: #fff;
+      box-shadow: 0 0 0 3px rgba(255, 232, 163, 0.75);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      padding-top: 8px;
+    }
+
+    .right {
+      margin-left: auto;
+      display: flex;
+      gap: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- =======================================================================
+         1) PRESET BUTTONS
+         - LOG1…LOG10 set Hostname + IP/GW/DNS quickly
+         ======================================================================= -->
+  <div class="presets">
+    <span class="title">Presets:</span>
+    <div class="buttons">
+      <button class="btn" data-preset="LOG1">LOG1</button>
+      <button class="btn" data-preset="LOG2">LOG2</button>
+      <button class="btn" data-preset="LOG3">LOG3</button>
+      <button class="btn" data-preset="LOG4">LOG4</button>
+      <button class="btn" data-preset="LOG5">LOG5</button>
+      <button class="btn" data-preset="LOG6">LOG6</button>
+      <button class="btn" data-preset="LOG7">LOG7</button>
+      <button class="btn" data-preset="LOG8">LOG8</button>
+      <button class="btn" data-preset="LOG9">LOG9</button>
+      <button class="btn" data-preset="LOG10">LOG10</button>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+         2) CONFIG CARD (Machine Identifier + Internet Configuration)
+         ======================================================================= -->
+  <div class="card">
+    <div class="card-head">Network Configuration</div>
+    <div class="card-body">
+      <table class="grid" aria-label="Network configuration">
+        <tbody>
+          <!-- Machine Identifier -->
+          <tr>
+            <th class="section" colspan="4">Machine Identifier</th>
+          </tr>
+          <tr class="row">
+            <td class="label">Hostname</td>
+            <td colspan="3">
+              <input id="host" class="input" style="min-width:280px" type="text" placeholder="Demo-0-32" />
+            </td>
+          </tr>
+
+          <!-- Internet Configuration -->
+          <tr>
+            <th class="section" colspan="4">Internet Configuration</th>
+          </tr>
+          <tr class="row">
+            <td class="label">Mode</td>
+            <td colspan="3">
+              <select id="modeSel" class="input" style="height:42px;min-width:160px">
+                <option value="Static" selected>Static</option>
+                <option value="DHCP">DHCP</option>
+              </select>
+            </td>
+          </tr>
+
+          <!-- Network IP (CIDR) -->
+          <tr class="row">
+            <td class="label">Network IP</td>
+            <td colspan="3">
+              <input class="input ip" type="number" inputmode="numeric" min="0" max="255" /> .
+              <input class="input ip" type="number" inputmode="numeric" min="0" max="255" /> .
+              <input class="input ip" type="number" inputmode="numeric" min="0" max="255" /> .
+              <input class="input ip" type="number" inputmode="numeric" min="0" max="255" /> /
+              <input id="mask" class="input" type="number" inputmode="numeric" min="0" max="32" style="width:72px"
+                placeholder="24" />
+            </td>
+          </tr>
+
+          <!-- Gateway -->
+          <tr class="row">
+            <td class="label">Gateway</td>
+            <td colspan="3">
+              <input class="input gw" type="number" inputmode="numeric" min="0" max="255" /> .
+              <input class="input gw" type="number" inputmode="numeric" min="0" max="255" /> .
+              <input class="input gw" type="number" inputmode="numeric" min="0" max="255" /> .
+              <input class="input gw" type="number" inputmode="numeric" min="0" max="255" />
+            </td>
+          </tr>
+
+          <!-- DNS -->
+          <tr class="row">
+            <td class="label">DNS addr</td>
+            <td colspan="3">
+              <input class="input dns" type="number" inputmode="numeric" min="0" max="255" /> .
+              <input class="input dns" type="number" inputmode="numeric" min="0" max="255" /> .
+              <input class="input dns" type="number" inputmode="numeric" min="0" max="255" /> .
+              <input class="input dns" type="number" inputmode="numeric" min="0" max="255" />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Actions -->
+      <div class="actions">
+        <div><button id="resetBtn" class="btn" title="Restore the form to the last loaded configuration">Reset</button></div>
+        <div class="right">
+          <button id="commitBtn" class="btn primary">Set</button>
+          <button id="closeBtn" class="btn">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../../assets/config.js"></script>
+  <script src="../../assets/api/networkConfig.js"></script>
+  <script src="./netconf.js"></script>
+  <script>
+    // Close popup by pressing ESC (parity with other popups)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') window.close();
+    });
+  </script>
+</body>
+
+</html>
