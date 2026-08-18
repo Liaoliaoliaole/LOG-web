@@ -12,28 +12,9 @@ $isoStandardDir = backend_iso_standard_dir();
 $ramdisk = backend_ramdisk_dir();
 $xmlPath = backend_opcua_config_path();
 
-class ChannelRuleException extends RuntimeException
-{
-    private int $status;
-    private string $apiCode;
-
-    public function __construct(string $message, int $status = 409, string $apiCode = 'channel_rule_violation')
-    {
-        parent::__construct($message);
-        $this->status = $status;
-        $this->apiCode = $apiCode;
-    }
-
-    public function status(): int
-    {
-        return $this->status;
-    }
-
-    public function apiCode(): string
-    {
-        return $this->apiCode;
-    }
-}
+// ChannelRuleException lives in channel_service.php alongside the TC16
+// business logic that throws it, so that logic can be unit-tested without
+// pulling in this file's top-level HTTP request dispatch.
 
 function channels_fail(string $error, int $status = 400, ?string $code = null): void
 {
@@ -66,415 +47,10 @@ function channels_fail_from_runtime(RuntimeException $e): void
     channels_fail($message, 400, 'channel_config_error');
 }
 
-function channel_status_offline(string $status): bool
-{
-    $s = strtolower(trim($status));
-    return in_array($s, ['off-line', 'offline', 'disconnected'], true);
-}
-
-function channel_normalize_tc16_subtype(?string $raw): string
-{
-    $text = strtoupper(trim((string)$raw));
-    if ($text === '') {
-        return '';
-    }
-    $text = preg_replace('/\s*\(.*$/', '', $text) ?? $text;
-    return trim($text);
-}
-
-function channel_is_tc16_compatible(?string $raw): bool
-{
-    return channel_normalize_tc16_subtype($raw) === 'SDAQ-TC16';
-}
-
-function channel_row_has_known_non_tc16_subtype(array $row): bool
-{
-    $subtype = channel_normalize_tc16_subtype((string)($row['dev_type_display'] ?? ($row['dev_type'] ?? '')));
-    if ($subtype === 'SDAQ-TC16') {
-        return false;
-    }
-
-    $known = !empty($row['dev_type_known']);
-    return $known && $subtype !== '' && $subtype !== 'SDAQ';
-}
-
-function channel_parse_sn_channel(?string $anchor): ?array
-{
-    $raw = trim((string)$anchor);
-    if ($raw === '') {
-        return null;
-    }
-
-    if (preg_match('/^(\d+)\.CH:?(\d{1,3})$/i', $raw, $m)) {
-        return [
-            'sn' => (string)$m[1],
-            'ch' => (int)$m[2],
-        ];
-    }
-
-    return null;
-}
-
-function channel_row_is_sdaq(array $row): bool
-{
-    $family = channel_normalize_family($row['interface_type'] ?? ($row['dev_type'] ?? ''));
-    if ($family === 'SDAQ') {
-        return true;
-    }
-    return str_starts_with(channel_normalize_subtype($row['dev_type'] ?? ''), 'SDAQ');
-}
-
-function channel_row_sn_info(array $row): ?array
-{
-    $raw = channel_parse_sn_channel((string)($row['anchor'] ?? ''));
-    if ($raw !== null) {
-        return $raw;
-    }
-    return channel_parse_sn_channel((string)($row['display_anchor'] ?? ''));
-}
-
-function channel_group_is_full16(array $group): bool
-{
-    for ($ch = 1; $ch <= 16; $ch++) {
-        if (!isset($group[$ch])) {
-            return false;
-        }
-    }
-    return true;
-}
-
-function channel_group_by_sn(array $rows, string $sn): array
-{
-    $group = [];
-    foreach ($rows as $row) {
-        if (!channel_row_is_sdaq($row)) {
-            continue;
-        }
-        $snInfo = channel_row_sn_info($row);
-        if ($snInfo === null || (string)$snInfo['sn'] !== (string)$sn) {
-            continue;
-        }
-        $ch = (int)($snInfo['ch'] ?? 0);
-        if ($ch < 1 || $ch > 16) {
-            continue;
-        }
-        if (!isset($group[$ch])) {
-            $group[$ch] = $row;
-        }
-    }
-    return $group;
-}
-
-function channel_group_to_source_map(array $group, string $mode, string $sourceKey): array
-{
-    ksort($group, SORT_NUMERIC);
-    $items = [];
-    foreach ($group as $ch => $row) {
-        $items[] = [
-            'ch_no' => (int)$ch,
-            'iso_channel' => (string)($row['iso_channel'] ?? ''),
-            'anchor' => (string)($row['anchor'] ?? ''),
-            'display_anchor' => (string)($row['display_anchor'] ?? ($row['anchor'] ?? '')),
-            'source_mode' => $mode,
-            'source_key' => $sourceKey,
-        ];
-    }
-    return $items;
-}
-
-function channel_tc16_source_serial(array $sourceGroup): string
-{
-    $sourceKey = trim((string)($sourceGroup['source_key'] ?? ''));
-    if (preg_match('/^SN:(.+)$/i', $sourceKey, $m)) {
-        return strtoupper(trim((string)$m[1]));
-    }
-    return '';
-}
-
-function channel_collect_sdaq_capabilities(array $sdaqLogFiles): array
-{
-    $devices = [];
-
-    foreach ($sdaqLogFiles as $path) {
-        if (!is_file($path)) {
-            continue;
-        }
-        $raw = file_get_contents($path);
-        if ($raw === false || trim($raw) === '') {
-            continue;
-        }
-        $data = json_decode($raw, true);
-        if (!is_array($data)) {
-            continue;
-        }
-
-        $bus = strtoupper(sdaq_detect_bus($data, $path));
-        $sdaqs = $data['SDAQs_data'] ?? null;
-        if (!is_array($sdaqs)) {
-            continue;
-        }
-
-        foreach ($sdaqs as $dev) {
-            if (!is_array($dev)) {
-                continue;
-            }
-            $addr = $dev['Address'] ?? null;
-            if ($addr === null) {
-                continue;
-            }
-
-            $addrInt = (int)$addr;
-            $type = trim((string)($dev['SDAQ_type'] ?? ''));
-            $serial = trim((string)($dev['Serial_number'] ?? ''));
-            $numChannels = (int)($dev['SDAQ_info']['Number_of_channels'] ?? 0);
-            $deviceKey = sprintf('%s.ADDR:%02d', $bus, $addrInt);
-
-            $devices[$deviceKey] = [
-                'device_key' => $deviceKey,
-                'bus' => $bus,
-                'address' => $addrInt,
-                'serial' => $serial,
-                'sdaq_type' => $type,
-                'number_of_channels' => $numChannels,
-            ];
-        }
-    }
-
-    ksort($devices, SORT_STRING);
-    return $devices;
-}
-
-function channel_target_aliases_for_channel(array $device, int $ch): array
-{
-    $bus = strtoupper((string)($device['bus'] ?? ''));
-    $addr = (int)($device['address'] ?? 0);
-    $serial = trim((string)($device['serial'] ?? ''));
-
-    $aliases = [
-        sprintf('%s.ADDR:%02d.CH:%02d', $bus, $addr, $ch),
-        sprintf('%s.ADDR:%d.CH:%d', $bus, $addr, $ch),
-        sprintf('%s.ADDR:%d.CH%d', $bus, $addr, $ch),
-        sprintf('%s.%d.CH%d', $bus, $addr, $ch),
-        sprintf('%s.%d.CH:%d', $bus, $addr, $ch),
-    ];
-
-    if ($serial !== '') {
-        $aliases[] = sprintf('%s.CH%d', $serial, $ch);
-    }
-
-    return array_values(array_unique(array_filter($aliases)));
-}
-
-function channel_target_anchor_for_channel(array $device, int $ch): string
-{
-    $serial = trim((string)($device['serial'] ?? ''));
-    if ($serial !== '') {
-        return sprintf('%s.CH%d', $serial, $ch);
-    }
-
-    $bus = strtolower((string)($device['bus'] ?? 'can0'));
-    $addr = (int)($device['address'] ?? 0);
-    return sprintf('%s.%d.CH%d', $bus, $addr, $ch);
-}
-
-function channel_anchor_usage_from_rows(array $rows): array
-{
-    $usage = [];
-    foreach ($rows as $row) {
-        $iso = strtoupper(trim((string)($row['iso_channel'] ?? '')));
-        if ($iso === '') {
-            continue;
-        }
-
-        $tokens = channel_anchor_tokens((string)($row['anchor'] ?? ''));
-        foreach ($tokens as $token) {
-            if (!isset($usage[$token])) {
-                $usage[$token] = [];
-            }
-            $usage[$token][$iso] = true;
-        }
-    }
-
-    return $usage;
-}
-
-function channel_target_channel_is_unlinked(array $usage, array $device, int $ch, array $ignoreIsoSet = []): bool
-{
-    $aliases = channel_target_aliases_for_channel($device, $ch);
-    foreach ($aliases as $alias) {
-        $tokens = channel_anchor_tokens($alias);
-        foreach ($tokens as $token) {
-            if (empty($usage[$token])) {
-                continue;
-            }
-
-            foreach (array_keys($usage[$token]) as $iso) {
-                if (!isset($ignoreIsoSet[$iso])) {
-                    return false;
-                }
-            }
-        }
-    }
-
-    return true;
-}
-
-function channel_resolve_tc16_source_group(array $rows, string $sourceIso): array
-{
-    $sourceIsoNorm = iso_normalize_iso_channel($sourceIso);
-    if ($sourceIsoNorm === null || $sourceIsoNorm === '') {
-        throw new ChannelRuleException('Missing source ISO', 400, 'missing_source_iso');
-    }
-
-    $source = channel_find_by_iso($rows, $sourceIsoNorm);
-    if ($source === null) {
-        throw new ChannelRuleException('Source channel not found', 404, 'tc16_source_unresolvable');
-    }
-
-    if (!channel_status_offline((string)($source['status'] ?? ''))) {
-        throw new ChannelRuleException('Source channel must be offline for Replace TC16', 409, 'tc16_source_not_offline');
-    }
-
-    if (!channel_row_is_sdaq($source)) {
-        throw new ChannelRuleException('Source channel must be SDAQ for Replace TC16', 409, 'tc16_source_not_sdaq');
-    }
-
-    if (channel_row_has_known_non_tc16_subtype($source)) {
-        throw new ChannelRuleException('Source channel subtype is not SDAQ-TC16', 409, 'tc16_subtype_mismatch');
-    }
-
-    $snInfo = channel_row_sn_info($source);
-    if ($snInfo !== null) {
-        $snGroup = channel_group_by_sn($rows, (string)$snInfo['sn']);
-        if (channel_group_is_full16($snGroup)) {
-            foreach ($snGroup as $row) {
-                if (channel_row_has_known_non_tc16_subtype($row)) {
-                    throw new ChannelRuleException('SN group contains non TC16-compatible channels', 409, 'tc16_subtype_mismatch');
-                }
-            }
-
-            return [
-                'source' => $source,
-                'mode' => 'sn',
-                'source_key' => 'SN:' . (string)$snInfo['sn'],
-                'channels' => $snGroup,
-            ];
-        }
-    }
-
-    throw new ChannelRuleException('Source TC16 serial anchor group is not full CH1..CH16', 409, 'tc16_source_not_full');
-}
-
-function channel_collect_tc16_target_candidates(array $rows, array $devices, array $sourceGroup): array
-{
-    $usage = channel_anchor_usage_from_rows($rows);
-    $sourceKey = strtoupper((string)($sourceGroup['source_key'] ?? ''));
-    $sourceSerial = channel_tc16_source_serial($sourceGroup);
-
-    $items = [];
-    foreach ($devices as $deviceKey => $device) {
-        $key = strtoupper((string)$deviceKey);
-        if ($key === $sourceKey) {
-            continue;
-        }
-
-        $deviceSerial = strtoupper(trim((string)($device['serial'] ?? '')));
-        if ($sourceSerial !== '' && $deviceSerial !== '' && $deviceSerial === $sourceSerial) {
-            continue;
-        }
-
-        if (!channel_is_tc16_compatible((string)($device['sdaq_type'] ?? ''))) {
-            continue;
-        }
-
-        if ((int)($device['number_of_channels'] ?? 0) !== 16) {
-            continue;
-        }
-
-        $allFree = true;
-        for ($ch = 1; $ch <= 16; $ch++) {
-            if (!channel_target_channel_is_unlinked($usage, $device, $ch)) {
-                $allFree = false;
-                break;
-            }
-        }
-
-        if (!$allFree) {
-            continue;
-        }
-
-        $items[] = [
-            'device_key' => (string)$device['device_key'],
-            'bus' => (string)$device['bus'],
-            'address' => (int)$device['address'],
-            'serial' => (string)($device['serial'] ?? ''),
-            'sdaq_type' => (string)$device['sdaq_type'],
-            'number_of_channels' => (int)$device['number_of_channels'],
-            'available_channels' => range(1, 16),
-        ];
-    }
-
-    usort($items, static function ($a, $b) {
-        return strcmp((string)$a['device_key'], (string)$b['device_key']);
-    });
-
-    return $items;
-}
-
-function channel_validate_tc16_target(array $rows, array $device, array $sourceGroup): void
-{
-    $sourceSerial = channel_tc16_source_serial($sourceGroup);
-    $targetSerial = strtoupper(trim((string)($device['serial'] ?? '')));
-    if ($sourceSerial !== '' && $targetSerial !== '' && $targetSerial === $sourceSerial) {
-        throw new ChannelRuleException('Target device matches source TC16 serial', 409, 'tc16_target_is_source');
-    }
-
-    if (!channel_is_tc16_compatible((string)($device['sdaq_type'] ?? ''))) {
-        throw new ChannelRuleException('Target device subtype is not SDAQ-TC16', 409, 'tc16_subtype_mismatch');
-    }
-
-    if ((int)($device['number_of_channels'] ?? 0) !== 16) {
-        throw new ChannelRuleException('Target device is not full 16-channel capable', 409, 'tc16_target_not_full');
-    }
-
-    $usage = channel_anchor_usage_from_rows($rows);
-    $ignoreIsoSet = [];
-    foreach ($sourceGroup['channels'] as $row) {
-        $iso = strtoupper(trim((string)($row['iso_channel'] ?? '')));
-        if ($iso !== '') {
-            $ignoreIsoSet[$iso] = true;
-        }
-    }
-
-    for ($ch = 1; $ch <= 16; $ch++) {
-        if (!channel_target_channel_is_unlinked($usage, $device, $ch, $ignoreIsoSet)) {
-            throw new ChannelRuleException('Target device has linked channels in CH1..CH16', 409, 'tc16_target_not_unlinked');
-        }
-    }
-}
-
-function channel_build_tc16_anchor_updates(array $sourceGroup, array $targetDevice): array
-{
-    if (!channel_group_is_full16($sourceGroup['channels'] ?? [])) {
-        throw new ChannelRuleException('Source group is incomplete', 409, 'tc16_source_not_full');
-    }
-
-    $updates = [];
-    for ($ch = 1; $ch <= 16; $ch++) {
-        $row = $sourceGroup['channels'][$ch] ?? null;
-        if (!is_array($row)) {
-            throw new ChannelRuleException('Source group is incomplete', 409, 'tc16_source_not_full');
-        }
-        $iso = (string)($row['iso_channel'] ?? '');
-        if ($iso === '') {
-            throw new ChannelRuleException('Invalid source ISO in TC16 group', 409, 'tc16_source_unresolvable');
-        }
-        $updates[$iso] = channel_target_anchor_for_channel($targetDevice, $ch);
-    }
-
-    return $updates;
-}
-
+// TC16 Replace All's business logic (source resolution, target
+// lookup/validation, canonical anchor generation, atomic write) lives in
+// channel_service.php's channel_replace_tc16_from_pool(), alongside every
+// other write path.
 
 if (isset($_GET['include']) && $_GET['include'] === 'iso_standard_upload') {
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
@@ -567,6 +143,41 @@ $ioboxLogFiles     = logstat_collect_paths('logstat_IOBOX*.json', $ramdisk);
 $mtiLogFiles       = logstat_collect_paths('logstat_MTI*.json', $ramdisk);
 $sdaqDeviceTypes   = sdaq_collect_device_types($sdaqLogFiles);
 
+if (isset($_GET['include']) && $_GET['include'] === 'range_add') {
+    try {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            channels_fail('Method not allowed', 405, 'range_add_method_not_allowed');
+        }
+
+        $data = read_json_body();
+        $items = is_array($data['items'] ?? null) ? $data['items'] : null;
+        if ($items === null || count($items) === 0) {
+            channels_fail('Missing items array', 400, 'missing_field');
+        }
+
+        try {
+            channel_add_sdaq_range_from_pool(
+                $xmlPath,
+                $items,
+                $sdaqLogFiles,
+                $ioboxLogFiles,
+                $mtiLogFiles,
+                $noxLogFiles,
+                $sdaqDeviceTypes
+            );
+        } catch (RuntimeException $e) {
+            channels_fail_from_runtime($e);
+        }
+
+        echo json_encode(['ok' => true, 'data' => ['added_count' => count($items)]], JSON_PRETTY_PRINT);
+        exit;
+    } catch (ChannelRuleException $e) {
+        channels_fail($e->getMessage(), $e->status(), $e->apiCode());
+    } catch (Throwable $e) {
+        api_fail_response('Failed to process channel request', 500, 'api_channels.range_add', $e);
+    }
+}
+
 if (isset($_GET['include']) && $_GET['include'] === 'tc16_candidates') {
     try {
         if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
@@ -628,43 +239,24 @@ if (isset($_GET['include']) && $_GET['include'] === 'tc16_replace') {
             channels_fail('Missing target_key', 400, 'missing_target_key');
         }
 
-        [$rows, $extras] = channel_collect_rows_and_extras(
-            $xmlPath,
-            $sdaqLogFiles,
-            $ioboxLogFiles,
-            $mtiLogFiles,
-            $noxLogFiles,
-            $sdaqDeviceTypes
-        );
-
-        $sourceGroup = channel_resolve_tc16_source_group($rows, $sourceIso);
-        $devices = channel_collect_sdaq_capabilities($sdaqLogFiles);
-
-        if (!isset($devices[$targetKey])) {
-            throw new ChannelRuleException('Target device not found', 409, 'tc16_target_not_found');
-        }
-
-        $targetDevice = $devices[$targetKey];
-        channel_validate_tc16_target($rows, $targetDevice, $sourceGroup);
-
-        $updates = channel_build_tc16_anchor_updates($sourceGroup, $targetDevice);
-        if (count($updates) !== 16) {
-            throw new ChannelRuleException('TC16 replace payload must contain 16 channels', 409, 'tc16_apply_conflict');
-        }
-
         try {
-            iso_batch_update_anchors($xmlPath, $updates);
+            $result = channel_replace_tc16_from_pool(
+                $xmlPath,
+                $sourceIso,
+                $targetKey,
+                $sdaqLogFiles,
+                $ioboxLogFiles,
+                $mtiLogFiles,
+                $noxLogFiles,
+                $sdaqDeviceTypes
+            );
         } catch (RuntimeException $e) {
             channels_fail_from_runtime($e);
         }
 
         echo json_encode([
             'ok' => true,
-            'data' => [
-                'replaced_count' => count($updates),
-                'source_key' => (string)$sourceGroup['source_key'],
-                'target_key' => (string)$targetDevice['device_key'],
-            ],
+            'data' => $result,
         ], JSON_PRETTY_PRINT);
         exit;
     } catch (ChannelRuleException $e) {

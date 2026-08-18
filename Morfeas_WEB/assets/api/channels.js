@@ -62,6 +62,11 @@
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(payload),
     }),
+    createChannelsBatch: (items) => fetchJson({ include: 'range_add' }, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ items }),
+    }),
     updateChannel: (iso, payload) => fetchJson({ iso }, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },

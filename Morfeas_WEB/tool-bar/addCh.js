@@ -582,9 +582,18 @@
 
     btnSave.disabled = true;
     try {
-      for (const rec of records) {
-        if (!channelsApi) throw new Error('Channels API unavailable');
-        const json = await channelsApi.createChannel(rec);
+      if (!channelsApi) throw new Error('Channels API unavailable');
+      if (records.length === 1) {
+        const json = await channelsApi.createChannel(records[0]);
+        if (json && json.ok === false) {
+          throw new Error(json.error || 'Operation failed');
+        }
+      } else {
+        // Range Add: one atomic batch request, not a POST-per-record loop.
+        // The backend re-validates and writes all-or-nothing inside a
+        // single XML lock; a mid-batch failure here never leaves a partial
+        // write (e.g. CH1 saved, CH2 rejected).
+        const json = await channelsApi.createChannelsBatch(records);
         if (json && json.ok === false) {
           throw new Error(json.error || 'Operation failed');
         }
