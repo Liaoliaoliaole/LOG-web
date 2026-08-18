@@ -1,0 +1,188 @@
+<?php
+/*
+ * tests/php/addChannelPoolTest.php
+ *
+ * Regression test for the Phase B1 generalization of the incident fix:
+ * channel_add_channel_from_pool() (formerly channel_add_sdaq_from_pool(),
+ * SDAQ-only) now enforces the same live-Unlinked-pool authorization for
+ * IOBOX, MTI and NOX that channel_add_sdaq_from_pool() already enforced for
+ * SDAQ. Before this change, api_channels.php routed non-SDAQ Add POSTs
+ * through iso_add_channel(), which trusted the client-submitted anchor
+ * directly (only checking for a duplicate ISO_CHANNEL/ANCHOR conflict, not
+ * whether the target was ever actually detected). Per the fix plan, section
+ * 10.0.1 / Phase A1: "所有 interface 都不信任浏览器提交的 raw/display anchor" --
+ * this must hold for every family reachable through this endpoint, not just
+ * SDAQ.
+ *
+ * This does not require physical IOBOX/MTI/NOX hardware: it constructs the
+ * same shape of logstat_*.json fixtures the real producer processes would
+ * write, exactly like replaceCandidateTest.php already does for its IOBOX
+ * scenarios.
+ *
+ * Run: php tests/php/addChannelPoolTest.php   (from Morfeas_WEB/)
+ */
+
+require __DIR__ . '/../../backend/services/channel_service.php';
+
+$g_checks = 0;
+$g_failures = 0;
+
+function check(bool $cond, string $msg): void
+{
+    global $g_checks, $g_failures;
+    $g_checks++;
+    if ($cond) {
+        echo "PASS: $msg\n";
+    } else {
+        $g_failures++;
+        echo "FAIL: $msg\n";
+    }
+}
+
+function make_tmp_dir(string $prefix): string
+{
+    $dir = sys_get_temp_dir() . '/' . $prefix . '_' . uniqid();
+    mkdir($dir, 0700, true);
+    return $dir;
+}
+
+$dir = make_tmp_dir('add_pool_test');
+
+// --- Fixtures: one detected IOBOX, one detected MTI (TC16), one detected NOX sensor. ---
+$ioboxJson = $dir . '/logstat_IOBOX_iobox1.json';
+file_put_contents($ioboxJson, json_encode([
+    'Identifier' => '555555555',
+    'IPv4_address' => '7.2.2.10',
+    'Connection_status' => 'Okay',
+    'RX1' => ['1' => 23.5, 'Status' => 1, 'Success' => 98],
+]));
+
+$mtiJson = $dir . '/logstat_MTI_mti1.json';
+file_put_contents($mtiJson, json_encode([
+    'Identifier' => '222222',
+    'IPv4_address' => '7.2.2.20',
+    'Connection_status' => 'Okay',
+    'MTI_status' => ['Tele_Device_type' => 'Tele_TC16'],
+    'Tele_data' => ['IsValid' => true, 'CHs' => [12.3, 45.6]],
+]));
+
+$noxJson = $dir . '/logstat_NOX_nox1.json';
+file_put_contents($noxJson, json_encode([
+    'CANBus_interface' => 'CAN2',
+    'NOx_sensors' => [[
+        'addr' => 3,
+        'NOx_value_avg' => 12.3,
+        'O2_value_avg' => 4.5,
+        'status' => ['is_NOx_value_valid' => true, 'is_O2_value_valid' => true],
+    ]],
+]));
+
+$xmlPath = $dir . '/OPC_UA_Config.xml';
+file_put_contents($xmlPath, "<?xml version=\"1.0\"?>\n<NODESet>\n</NODESet>\n");
+
+function add_payload(string $type, string $iso, string $anchor): array
+{
+    return ['iso_channel' => $iso, 'interface_type' => $type, 'anchor' => $anchor, 'description' => 'd', 'min' => '0', 'max' => '1'];
+}
+
+function written_anchor(string $xmlPath, string $iso): ?string
+{
+    $xml = simplexml_load_file($xmlPath);
+    foreach ($xml->CHANNEL as $ch) {
+        if ((string)$ch->ISO_CHANNEL === $iso) {
+            return (string)$ch->ANCHOR;
+        }
+    }
+    return null;
+}
+
+// --- 1) IOBOX Add: client submits a non-canonical (lowercase) text; the
+//        persisted ANCHOR must be the pool's own canonical form. ---
+channel_add_channel_from_pool(
+    $xmlPath,
+    add_payload('IOBOX', '_IOBOX_A', '555555555.rx1.ch1'),
+    [], [$ioboxJson], [], [], []
+);
+check(written_anchor($xmlPath, '_IOBOX_A') === '555555555.RX1.CH1', 'IOBOX Add persists the pool\'s canonical anchor, not the client\'s literal text (got ' . var_export(written_anchor($xmlPath, '_IOBOX_A'), true) . ')');
+
+// --- 2) IOBOX Add: a fabricated anchor that matches no current candidate
+//        must be rejected, not written verbatim (this is the same incident
+//        entry point as SDAQ's address fallback, just for IOBOX). ---
+$beforeHash = sha1_file($xmlPath);
+try {
+    channel_add_channel_from_pool(
+        $xmlPath,
+        add_payload('IOBOX', '_IOBOX_Fake', '999999999.RX1.CH1'),
+        [], [$ioboxJson], [], [], []
+    );
+    check(false, 'IOBOX Add of a fabricated anchor must throw');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'candidate_not_available', 'IOBOX Add rejects a fabricated anchor with candidate_not_available (got ' . $e->apiCode() . ')');
+}
+check(sha1_file($xmlPath) === $beforeHash, 'XML file is unchanged after rejecting a fabricated IOBOX Add');
+
+// --- 3) IOBOX Add: the now-linked candidate cannot be Add-ed a second time. ---
+try {
+    channel_add_channel_from_pool(
+        $xmlPath,
+        add_payload('IOBOX', '_IOBOX_B', '555555555.RX1.CH1'),
+        [], [$ioboxJson], [], [], []
+    );
+    check(false, 'IOBOX Add of an already-linked candidate must throw');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'candidate_not_available', 'IOBOX Add rejects an already-linked candidate with candidate_not_available (got ' . $e->apiCode() . ')');
+}
+
+// --- 4) Cross-family: a real, currently-available IOBOX anchor must not be
+//        Add-able by requesting a different interface_type. ---
+try {
+    channel_add_channel_from_pool(
+        $xmlPath,
+        add_payload('MTI', '_Wrong_Family', '555555555.RX1.Status'),
+        [], [$ioboxJson], [], [], []
+    );
+    check(false, 'Add of an IOBOX anchor under interface_type=MTI must throw');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'candidate_not_available', 'Add rejects a real candidate requested under the wrong family (got ' . $e->apiCode() . ')');
+}
+
+// --- 5) MTI Add: canonical anchor persisted. ---
+channel_add_channel_from_pool(
+    $xmlPath,
+    add_payload('MTI', '_MTI_A', '222222.tc16.ch1'),
+    [], [], [$mtiJson], [], []
+);
+check(written_anchor($xmlPath, '_MTI_A') === '222222.TC16.CH1', 'MTI Add persists the pool\'s canonical anchor (got ' . var_export(written_anchor($xmlPath, '_MTI_A'), true) . ')');
+
+// --- 6) NOX Add: client submits the legacy CAN-address-style alias; the
+//        persisted ANCHOR must be the canonical addr_ form, and the O2
+//        measurement on the same physical sensor must remain a distinct,
+//        independently Add-able candidate (not merged into one source). ---
+channel_add_channel_from_pool(
+    $xmlPath,
+    add_payload('NOX', '_NOX_NOx', 'CAN2.ADDR:3.NOx'),
+    [], [], [], [$noxJson], []
+);
+check(written_anchor($xmlPath, '_NOX_NOx') === 'can2.addr_3.NOx', 'NOX Add persists the canonical addr_ form, not the ADDR: alias (got ' . var_export(written_anchor($xmlPath, '_NOX_NOx'), true) . ')');
+
+channel_add_channel_from_pool(
+    $xmlPath,
+    add_payload('NOX', '_NOX_O2', 'can2.addr_3.O2'),
+    [], [], [], [$noxJson], []
+);
+check(written_anchor($xmlPath, '_NOX_O2') === 'can2.addr_3.O2', 'NOX Add of the O2 measurement on the same sensor succeeds as a distinct source (got ' . var_export(written_anchor($xmlPath, '_NOX_O2'), true) . ')');
+
+// --- 7) Missing interface_type must be a clean 400, not a crash/notice. ---
+try {
+    channel_add_channel_from_pool(
+        $xmlPath,
+        ['iso_channel' => '_No_Type', 'interface_type' => '', 'anchor' => '555555555.RX1.CH1', 'description' => 'd', 'min' => '0', 'max' => '1'],
+        [], [$ioboxJson], [], [], []
+    );
+    check(false, 'Add with an empty interface_type must throw');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'missing_field', 'Add rejects an empty interface_type with missing_field (got ' . $e->apiCode() . ')');
+}
+
+echo "\n{$g_checks} checks, " . ($g_checks - $g_failures) . " passed, {$g_failures} failed\n";
+exit($g_failures === 0 ? 0 : 1);

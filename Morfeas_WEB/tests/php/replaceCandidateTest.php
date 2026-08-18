@@ -5,7 +5,7 @@
  * Standalone regression test for the Replace fix in channel_service.php:
  *   - channel_replace_channel_from_pool() re-derives the canonical target
  *     anchor server-side inside the XML lock (never persists the client's
- *     raw submission), mirroring channel_add_sdaq_from_pool().
+ *     raw submission), mirroring channel_add_channel_from_pool().
  *   - The previous silent pass-through ("source SDAQ subtype unknown and no
  *     candidate found -> allow anyway") is removed: an unresolved target is
  *     now always rejected with replace_target_not_detected.

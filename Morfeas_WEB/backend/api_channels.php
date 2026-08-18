@@ -726,21 +726,20 @@ try {
                 }
             }
             try {
-                if (strtoupper(trim((string)$data['interface_type'])) === 'SDAQ') {
-                    // SDAQ Add never trusts the client anchor directly; it is
-                    // re-derived from a freshly rebuilt, lock-protected candidate pool.
-                    channel_add_sdaq_from_pool(
-                        $xmlPath,
-                        $data,
-                        $sdaqLogFiles,
-                        $ioboxLogFiles,
-                        $mtiLogFiles,
-                        $noxLogFiles,
-                        $sdaqDeviceTypes
-                    );
-                } else {
-                    iso_add_channel($xmlPath, $data);
-                }
+                // Add never trusts the client-submitted anchor directly, for any
+                // interface family; it is always re-derived from a freshly
+                // rebuilt, lock-protected candidate pool (Phase B1: Manual Add
+                // is not a Web-only-SDAQ carve-out, it is closed for every
+                // interface reachable through this endpoint).
+                channel_add_channel_from_pool(
+                    $xmlPath,
+                    $data,
+                    $sdaqLogFiles,
+                    $ioboxLogFiles,
+                    $mtiLogFiles,
+                    $noxLogFiles,
+                    $sdaqDeviceTypes
+                );
             } catch (RuntimeException $e) {
                 channels_fail_from_runtime($e);
             }

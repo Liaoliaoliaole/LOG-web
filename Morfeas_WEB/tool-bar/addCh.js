@@ -49,7 +49,6 @@
     selectedDevice: null,
     searchWin: null,
     suppressIsoSuggestions: false,
-    manualPath: false,
   };
 
   const SEARCH_POOL_REFRESH_MS = 1000; // legacy logstat polling cadence
@@ -308,7 +307,6 @@
     }
 
     state.selectedDevice = null;
-    state.manualPath = false;
     pathInput.value = '';
     pathInput.placeholder = placeholders[t] || 'Select from search';
     setStatus(t === '-' ? 'Select Type' : `Type selected: ${t}`);
@@ -404,19 +402,6 @@
     return true;
   }
 
-  function setManualPath(anchor) {
-    if (!anchor) {
-      state.selectedDevice = null;
-      state.manualPath = false;
-      updateRangeValidity();
-      return;
-    }
-    state.selectedDevice = { anchor, display_anchor: anchor, manual: true };
-    state.manualPath = true;
-    setStatus(`Manual path: ${anchor} (offline)`);
-    updateRangeValidity();
-  }
-
   function isAvailableEntry(entry, type) {
     if (!entry) return false;
     if (entry.link_state && entry.link_state.toLowerCase() !== 'unlinked') return false;
@@ -468,7 +453,6 @@
 
     const type = typeSel.value;
     const pool = state.searchPool[type] || [];
-    const manual = state.selectedDevice?.manual;
     const anchors = [];
     if (!selectedAnchorMatchesType(state.selectedDevice, type)) {
       setStatus(`Sensor path does not match ${type}`, 'error');
@@ -483,10 +467,10 @@
       }
       const entry = pool.find((p) => (p.anchor || '').toUpperCase() === anchor.toUpperCase());
       if (!entry) {
-        if (type === 'SDAQ' && manual && range === 1) {
-          anchors.push(anchor);
-          continue;
-        }
+        // No manual/offline fallback: a target that isn't in the current
+        // Unlinked pool can never be selected, syntax notwithstanding. The
+        // backend re-verifies this independently and is the real boundary;
+        // this is the first line of defense.
         setStatus(`Channel ${anchor} is not available`, 'error');
         return null;
       }
@@ -699,44 +683,11 @@
     window.close();
   });
 
-  pathInput.addEventListener('input', (e) => {
-    const val = e.target.value.trim();
-    if (!val) {
-      state.selectedDevice = null;
-      state.manualPath = false;
-      updateRangeValidity();
-      return;
-    }
-    const entry = findPoolEntry(typeSel.value, val);
-    if (entry) {
-      state.selectedDevice = entry;
-      state.manualPath = false;
-      if (!unitInput.dataset.userEdited && entry.unit) {
-        unitInput.value = entry.unit;
-      }
-      setStatus(`Selected ${entry.display_anchor || entry.anchor || val}`);
-    } else {
-      setManualPath(val);
-    }
-  });
-
-  pathInput.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter') return;
-    e.preventDefault();
-    const val = pathInput.value.trim();
-    if (!val) return;
-    const entry = findPoolEntry(typeSel.value, val);
-    if (entry) {
-      state.selectedDevice = entry;
-      state.manualPath = false;
-      if (!unitInput.dataset.userEdited && entry.unit) {
-        unitInput.value = entry.unit;
-      }
-      setStatus(`Selected ${entry.display_anchor || entry.anchor || val}`);
-    } else {
-      setManualPath(val);
-    }
-  });
+  // Path is a read-only display of the current Search-popup selection (see
+  // add_channel.html): no input/keydown/paste handling is attached to it, so
+  // keyboard input, paste, and Enter can never establish a selection. The
+  // only way to set state.selectedDevice is the 'device-selected' message
+  // from the Search popup below.
 
   if (rangeHelp && rangeHelpPopup) {
     rangeHelp.addEventListener('click', (e) => {
@@ -781,7 +732,6 @@
     }
 
     state.selectedDevice = localEntry || selected;
-    state.manualPath = false;
     if (state.selectedDevice) {
       pathInput.value = state.selectedDevice.display_anchor || state.selectedDevice.anchor || '';
       if (!unitInput.dataset.userEdited && state.selectedDevice.unit) {

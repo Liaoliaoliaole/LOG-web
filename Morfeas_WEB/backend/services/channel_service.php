@@ -742,16 +742,34 @@ function channel_find_candidate_by_anchor(array $searchPool, string $anchor): ?a
 }
 
 /*
- * Server-side re-derivation for SDAQ Add: the client-submitted `anchor` is
- * never trusted as the identity to persist. It is only used to locate a
- * currently-detected, registered, not-yet-linked SDAQ candidate in a search
- * pool rebuilt inside the XML lock; the anchor actually written is always
- * the candidate's own canonical serial anchor. This closes the incident
- * entry point: a display/CAN-address string can no longer be written to
- * OPC_UA_Config.xml as if it were the device identity, even via a direct
- * API call.
+ * The canonical identity actually written for a resolved candidate: SDAQ
+ * uses its stable serial anchor, every other family uses the anchor already
+ * canonicalized by the search-pool builder (channel_build_rows_with_logstat()).
+ * Shared by Add and Replace so both paths can never drift from each other.
  */
-function channel_add_sdaq_from_pool(
+function channel_candidate_canonical_anchor(array $candidate): string
+{
+    if (channel_candidate_family($candidate) === 'SDAQ') {
+        return trim((string)($candidate['serial_anchor'] ?? ''));
+    }
+    return trim((string)($candidate['anchor'] ?? ''));
+}
+
+/*
+ * Server-side re-derivation for Add, for every interface family (SDAQ,
+ * IOBOX, MTI, NOX): the client-submitted `anchor` is never trusted as the
+ * identity to persist. It is only used to locate a currently-detected,
+ * not-yet-linked candidate of the requested family in a search pool rebuilt
+ * inside the XML lock; the anchor actually written is always the
+ * candidate's own canonical identity. This closes the incident entry point
+ * for every interface, not just SDAQ: a display/CAN-address string, or any
+ * other syntactically-valid-but-undetected anchor, can no longer be written
+ * to OPC_UA_Config.xml as if it were the device identity, even via a direct
+ * API call. The normal Search-popup flow already only ever submits an
+ * anchor that is already in the live pool, so this is a no-op for the
+ * legitimate UI path and only closes the direct-API bypass.
+ */
+function channel_add_channel_from_pool(
     string $xmlPath,
     array $data,
     array $sdaqLogFiles,
@@ -767,6 +785,10 @@ function channel_add_sdaq_from_pool(
         if ($anchorInput === '') {
             throw new ChannelConfigException('Missing field: anchor', 400, 'missing_field');
         }
+        $requestedFamily = channel_normalize_family($data['interface_type'] ?? '');
+        if ($requestedFamily === '') {
+            throw new ChannelConfigException('Missing field: interface_type', 400, 'missing_field');
+        }
 
         [, $extras] = channel_collect_rows_and_extras(
             $xmlPath,
@@ -779,39 +801,46 @@ function channel_add_sdaq_from_pool(
         $searchPool = is_array($extras['search_pool'] ?? null) ? $extras['search_pool'] : [];
         $candidate = channel_find_candidate_by_anchor($searchPool, $anchorInput);
 
-        if ($candidate === null || channel_candidate_family($candidate) !== 'SDAQ') {
+        if ($candidate === null || channel_candidate_family($candidate) !== $requestedFamily) {
             throw new ChannelConfigException(
-                'SDAQ candidate is not currently available: ' . $anchorInput,
+                "$requestedFamily candidate is not currently available: " . $anchorInput,
                 409,
                 'candidate_not_available'
             );
         }
         if (!empty($candidate['linked_in_xml'])) {
             throw new ChannelConfigException(
-                'SDAQ candidate is already linked: ' . $anchorInput,
+                "$requestedFamily candidate is already linked: " . $anchorInput,
                 409,
                 'candidate_not_available'
             );
         }
 
-        $serialAnchor = trim((string)($candidate['serial_anchor'] ?? ''));
-        if (!iso_sdaq_anchor_is_valid($serialAnchor)) {
+        $canonicalAnchor = channel_candidate_canonical_anchor($candidate);
+        if ($requestedFamily === 'SDAQ' && !iso_sdaq_anchor_is_valid($canonicalAnchor)) {
             throw new ChannelConfigException(
                 'SDAQ candidate does not have a valid serial anchor yet: ' . $anchorInput,
                 409,
                 'candidate_not_available'
             );
         }
+        if ($canonicalAnchor === '') {
+            throw new ChannelConfigException(
+                "$requestedFamily candidate does not have a resolvable anchor: " . $anchorInput,
+                409,
+                'candidate_not_available'
+            );
+        }
 
         $serverData = $data;
-        $serverData['anchor'] = $serialAnchor;
+        $serverData['anchor'] = $canonicalAnchor;
         iso_add_channel_body($xmlPath, $serverData);
     });
 }
 
 /*
  * Server-side re-derivation for Replace: same principle as
- * channel_add_sdaq_from_pool(), applied to the PATCH replace_mode path. The
+ * channel_add_channel_from_pool(), applied to the PATCH replace_mode path. The
  * client-submitted `anchor` is only used to locate a currently-detected,
  * compatible, not-already-linked candidate in a search pool rebuilt inside
  * the XML lock; the value actually written is always the candidate's own
@@ -946,9 +975,7 @@ function channel_replace_channel_from_pool(
 
         // Never persist the client-submitted display/address text: always
         // resolve to the candidate's own canonical identity, exactly like Add.
-        $canonicalAnchor = $candidateFamily === 'SDAQ'
-            ? trim((string)($candidate['serial_anchor'] ?? ''))
-            : trim((string)($candidate['anchor'] ?? ''));
+        $canonicalAnchor = channel_candidate_canonical_anchor($candidate);
 
         if ($candidateFamily === 'SDAQ' && !iso_sdaq_anchor_is_valid($canonicalAnchor)) {
             throw new ChannelConfigException(

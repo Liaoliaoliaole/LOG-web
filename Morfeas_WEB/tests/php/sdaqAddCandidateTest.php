@@ -7,7 +7,7 @@
  *     preferred/connection anchor.
  *   - channel_service.php's SDAQ Add/Replace candidate pool only contains
  *     channels with a valid serial anchor and registration=Done.
- *   - channel_add_sdaq_from_pool() re-derives the canonical serial anchor
+ *   - channel_add_channel_from_pool() re-derives the canonical serial anchor
  *     server-side inside the XML lock and rejects anything that isn't a
  *     currently-available SDAQ candidate (closing the incident entry point).
  *
@@ -130,12 +130,12 @@ foreach ($reject as $r) {
     check(iso_sdaq_anchor_is_valid($r) === false, "iso_sdaq_anchor_is_valid(): rejects \"$r\"");
 }
 
-// --- 4) channel_add_sdaq_from_pool(): the actual incident reproduction ---
+// --- 4) channel_add_channel_from_pool(): the actual incident reproduction ---
 $beforeHash = sha1_file($xmlPath);
 
 // 4a) Reject: submitting the unregistered device's CAN address (the exact incident anchor).
 try {
-    channel_add_sdaq_from_pool(
+    channel_add_channel_from_pool(
         $xmlPath,
         ['iso_channel' => '_Protea_NH3', 'interface_type' => 'SDAQ', 'anchor' => 'CAN1.ADDR:05.CH:01', 'description' => 'd', 'min' => '0', 'max' => '1'],
         [$sdaqJson], [], [], [], []
@@ -148,7 +148,7 @@ check(sha1_file($xmlPath) === $beforeHash, 'XML file is byte-for-byte unchanged 
 
 // 4b) Accept: submitting the registered device's CURRENT CAN address must still
 //     resolve to and persist the canonical serial anchor, never the address.
-channel_add_sdaq_from_pool(
+channel_add_channel_from_pool(
     $xmlPath,
     ['iso_channel' => '_Test_Serial', 'interface_type' => 'SDAQ', 'anchor' => 'CAN1.ADDR:08.CH:01', 'description' => 'd', 'min' => '0', 'max' => '1'],
     [$sdaqJson], [], [], [], []
@@ -164,7 +164,7 @@ check($writtenAnchor === '796834087.CH1', 'Add persists the canonical serial anc
 
 // 4c) Reject: the now-linked candidate cannot be Add-ed a second time.
 try {
-    channel_add_sdaq_from_pool(
+    channel_add_channel_from_pool(
         $xmlPath,
         ['iso_channel' => '_Test_Serial_2', 'interface_type' => 'SDAQ', 'anchor' => '796834087.CH1', 'description' => 'd', 'min' => '0', 'max' => '1'],
         [$sdaqJson], [], [], [], []
@@ -177,7 +177,7 @@ try {
 // 4d) Reject: a syntactically well-formed but wholly fabricated serial anchor
 //     that matches no current candidate must be rejected, not written verbatim.
 try {
-    channel_add_sdaq_from_pool(
+    channel_add_channel_from_pool(
         $xmlPath,
         ['iso_channel' => '_Fabricated', 'interface_type' => 'SDAQ', 'anchor' => '999999999.CH1', 'description' => 'd', 'min' => '0', 'max' => '1'],
         [$sdaqJson], [], [], [], []

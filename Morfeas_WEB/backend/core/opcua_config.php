@@ -259,9 +259,10 @@ function iso_add_channel(string $xmlPath, array $data): void
 
 /*
  * Lock-free core of Add. Callers that need to combine candidate-pool
- * revalidation with the write (see channel_add_sdaq_from_pool() in
- * api_channels.php) must already hold the XML lock and call this directly,
- * instead of iso_add_channel(), to avoid re-entering iso_with_xml_lock().
+ * revalidation with the write (see channel_add_channel_from_pool() in
+ * channel_service.php) must already hold the XML lock and call this
+ * directly, instead of iso_add_channel(), to avoid re-entering
+ * iso_with_xml_lock().
  */
 function iso_add_channel_body(string $xmlPath, array $data): void
 {
