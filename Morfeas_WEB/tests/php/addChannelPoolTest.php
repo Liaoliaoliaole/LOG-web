@@ -98,7 +98,15 @@ file_put_contents($xmlPath, "<?xml version=\"1.0\"?>\n<NODESet>\n</NODESet>\n");
 
 function add_payload(string $type, string $iso, string $anchor): array
 {
-    return ['iso_channel' => $iso, 'interface_type' => $type, 'anchor' => $anchor, 'description' => 'd', 'min' => '0', 'max' => '1'];
+    $payload = ['iso_channel' => $iso, 'interface_type' => $type, 'anchor' => $anchor, 'description' => 'd', 'min' => '0', 'max' => '1'];
+    // IOBOX/MTI/NOX own UNIT statically from the XML (plan §6.0.2, C-7);
+    // since Phase A4 (2026-08-19) the write-time whole-document gate
+    // enforces this on every Add, so every non-SDAQ fixture here needs one.
+    // SDAQ's Unit is runtime-owned and must not be set here.
+    if ($type !== 'SDAQ') {
+        $payload['unit'] = 'C';
+    }
+    return $payload;
 }
 
 function written_anchor(string $xmlPath, string $iso): ?string

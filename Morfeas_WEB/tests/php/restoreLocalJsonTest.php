@@ -149,6 +149,25 @@ check($r['result'] === 'Invalid entry' && $r['code'] === 'missing_required_unit'
 $r = classify_one($xmlPath3, $logCfg3, legacy_entry('_A', 'SDAQ', '117440522.CH1')); // SDAQ never needs UNIT
 check($r['result'] === 'Ready to restore', 'SDAQ entry with no UNIT is fine (Unit is runtime-owned, not restorable) (got ' . $r['result'] . ')');
 
+// Plan §6.0.2 C-1/C-4/C-5, checked at preflight time so the report matches
+// what commit will actually do (2026-08-19: these were reproduced live via
+// restore_commit() -- preflight said "Ready to restore" for all three right
+// up until commit, silently, past the report a reviewer would actually read).
+$r = classify_one($xmlPath3, $logCfg3, legacy_entry('_A', 'SDAQ', '117440522.CH1', ['DESCRIPTION' => '']));
+check($r['result'] === 'Invalid entry' && $r['code'] === 'missing_field', 'Empty DESCRIPTION -> Invalid entry / missing_field at preflight, not just at commit (got ' . $r['result'] . '/' . $r['code'] . ')');
+
+$r = classify_one($xmlPath3, $logCfg3, legacy_entry('_A', 'SDAQ', '117440522.CH1', ['MIN' => '']));
+check($r['result'] === 'Invalid entry' && $r['code'] === 'missing_field', 'Empty MIN -> Invalid entry / missing_field at preflight (got ' . $r['result'] . '/' . $r['code'] . ')');
+
+$r = classify_one($xmlPath3, $logCfg3, legacy_entry('_A', 'SDAQ', '117440522.CH1', ['MAX' => '']));
+check($r['result'] === 'Invalid entry' && $r['code'] === 'missing_field', 'Empty MAX -> Invalid entry / missing_field at preflight (got ' . $r['result'] . '/' . $r['code'] . ')');
+
+$r = classify_one($xmlPath3, $logCfg3, legacy_entry('_AAAAAAAAAAAAAAAAAAA', 'SDAQ', '117440522.CH1')); // 20 bytes, at ISO_channel_name_size
+check($r['result'] === 'Invalid entry' && $r['code'] === 'invalid_iso_channel', 'ISO_CHANNEL >= 20 bytes -> Invalid entry / invalid_iso_channel at preflight (got ' . $r['result'] . '/' . $r['code'] . ')');
+
+$r = classify_one($xmlPath3, $logCfg3, legacy_entry('_Bad.Name', 'SDAQ', '117440522.CH1'));
+check($r['result'] === 'Invalid entry' && $r['code'] === 'invalid_iso_channel', 'ISO_CHANNEL containing "." -> Invalid entry / invalid_iso_channel at preflight (got ' . $r['result'] . '/' . $r['code'] . ')');
+
 // ============================================================
 // 4) IOBOX/MTI cross-file device-handler matching
 // ============================================================

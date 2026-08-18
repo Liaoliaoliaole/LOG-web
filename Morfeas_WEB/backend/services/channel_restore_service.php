@@ -213,7 +213,15 @@ function restore_classify_entries(array $rawEntries, array $existingRows, array 
             }
         }
         if (!$missing) {
-            foreach (['ISO_CHANNEL', 'INTERFACE_TYPE', 'ANCHOR'] as $field) {
+            // Plan §6.0.2 C-1: every CHANNEL element that is actually
+            // written must be non-empty, not just present in the source
+            // JSON. All six required fields land in the document
+            // unconditionally, so all six must be checked here, not only
+            // the three identity fields -- previously DESCRIPTION/MIN/MAX
+            // were allowed through blank (2026-08-19 code review, F-1),
+            // which iso_save_xml()'s write-time gate now also refuses, but
+            // silently, past this preflight report.
+            foreach (RESTORE_LEGACY_REQUIRED_FIELDS as $field) {
                 if (trim((string)$raw[$field]) === '') {
                     $missing[] = $field;
                 }
@@ -231,6 +239,23 @@ function restore_classify_entries(array $rawEntries, array $existingRows, array 
         if (!in_array($interfaceType, RESTORE_KNOWN_INTERFACES, true)) {
             $report['reason'] = "Unsupported interface: $interfaceType";
             $report['code'] = 'unsupported_interface';
+            $rows[] = $report;
+            continue;
+        }
+
+        // Plan §6.0.2 C-4/C-5, checked against the value as it will
+        // actually be stored (after the "_" prefix iso_normalize_iso_channel()
+        // adds), matching the write-time gate exactly.
+        $isoNormForLength = iso_normalize_iso_channel((string)$raw['ISO_CHANNEL']);
+        if (strlen($isoNormForLength) >= 20) { // ISO_channel_name_size
+            $report['reason'] = "ISO_CHANNEL is too long (>= 20 bytes once prefixed): $isoNormForLength";
+            $report['code'] = 'invalid_iso_channel';
+            $rows[] = $report;
+            continue;
+        }
+        if (strpos($isoNormForLength, '.') !== false) {
+            $report['reason'] = "ISO_CHANNEL contains an illegal '.': $isoNormForLength";
+            $report['code'] = 'invalid_iso_channel';
             $rows[] = $report;
             continue;
         }
@@ -408,6 +433,19 @@ function restore_preflight(string $xmlPath, string $logConfigPath, string $fileC
  * since preflight) is reported explicitly before even re-classifying.
  */
 function restore_commit(string $xmlPath, string $logConfigPath, string $fileContent, string $expectedDigest): array
+{
+    // Plan §6: IOBOX/MTI handler matching reads Morfeas_Config.xml, so this
+    // must hold log_config before opcua_config, in that fixed order, so the
+    // digest/device-identifier snapshot and the eventual write are read
+    // from a single consistent point in time -- closing the TOCTOU where a
+    // device handler could be deleted between digest computation and the
+    // handler-matching re-check below (2026-08-19 code review, F-6).
+    return log_config_with_xml_lock($logConfigPath, function () use ($xmlPath, $logConfigPath, $fileContent, $expectedDigest) {
+        return restore_commit_locked($xmlPath, $logConfigPath, $fileContent, $expectedDigest);
+    });
+}
+
+function restore_commit_locked(string $xmlPath, string $logConfigPath, string $fileContent, string $expectedDigest): array
 {
     return iso_with_xml_lock($xmlPath, function () use ($xmlPath, $logConfigPath, $fileContent, $expectedDigest) {
         $actualDigest = restore_compute_digest($xmlPath, $logConfigPath);

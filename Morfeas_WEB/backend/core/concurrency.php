@@ -36,8 +36,24 @@ function backend_named_lock_file(string $name): string
     return backend_runtime_locks_dir() . '/.internal_' . sha1($name) . '.lck';
 }
 
+/*
+ * flock() is bound to the open file description, not the process: a second
+ * fopen()+flock() on the same name from deeper in the same call stack would
+ * simply block until PHP's max_execution_time kills the request, instead of
+ * failing fast. The lock/unlock discipline elsewhere in this codebase (the
+ * "_body" vs. locked-wrapper naming convention) is what actually prevents
+ * that today, but it only works as long as every caller remembers it; this
+ * guard turns a violation into an immediate, diagnosable exception instead
+ * of a silent hang (2026-08-19 code review, F-9).
+ */
 function backend_with_named_lock(string $name, callable $fn)
 {
+    static $held = [];
+
+    if (isset($held[$name])) {
+        throw new RuntimeException("Lock re-entrancy detected: '$name' is already held by this request");
+    }
+
     $path = backend_named_lock_file($name);
     $fp = @fopen($path, 'c+');
     if (!is_resource($fp)) {
@@ -49,9 +65,11 @@ function backend_with_named_lock(string $name, callable $fn)
         throw new RuntimeException("Unable to acquire lock: $name");
     }
 
+    $held[$name] = true;
     try {
         return $fn();
     } finally {
+        unset($held[$name]);
         @flock($fp, LOCK_UN);
         @fclose($fp);
     }

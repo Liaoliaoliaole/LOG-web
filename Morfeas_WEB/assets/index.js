@@ -475,7 +475,16 @@
       if (!ok) return;
 
       const failures = [];
-      const undoCandidates = await collectDeleteUndoEntries(rows, isoList);
+      // The undo snapshot is a convenience feature; a bug in collecting it
+      // must never block the delete itself (2026-08-19 code review, F-7:
+      // an uncaught error here previously aborted deleteSelectedRows()
+      // before a single DELETE request was even sent).
+      let undoCandidates = [];
+      try {
+        undoCandidates = await collectDeleteUndoEntries(rows, isoList);
+      } catch (err) {
+        console.error('Failed to collect delete-undo snapshot (delete will proceed without Ctrl+Z support):', err);
+      }
       const undoCandidateMap = new Map(undoCandidates.map((entry) => [normalizeIsoKey(entry.iso), entry]));
       const successfulUndoEntries = [];
 

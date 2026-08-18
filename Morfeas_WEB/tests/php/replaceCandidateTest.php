@@ -177,6 +177,7 @@ $liveNode->addChild('ANCHOR', '444444444.RX1.CH1'); // matches the online candid
 $liveNode->addChild('DESCRIPTION', 'live');
 $liveNode->addChild('MIN', '-40');
 $liveNode->addChild('MAX', '150');
+$liveNode->addChild('UNIT', 'C'); // IOBOX owns UNIT statically (plan §6.0.2, C-7); required since Phase A4's whole-document gate.
 
 $blankTypeNode = $xml2->addChild('CHANNEL');
 $blankTypeNode->addChild('ISO_CHANNEL', '_Blank_Type');
@@ -237,6 +238,24 @@ try {
         'Replace rejects a source with an unresolvable interface type (got ' . $e->apiCode() . ')'
     );
 }
+
+// _Blank_Type's Replace attempt above always failed, so it is still sitting
+// in the file with its empty INTERFACE_TYPE. Since Phase A4's whole-document
+// gate (plan §6.0.2, C-1) now rejects *any* write to a file containing an
+// empty element -- not just an operation targeting that row -- it has to be
+// removed before section 7 can write anything else, exactly like an
+// operator would have to Delete a genuinely broken row in production before
+// continuing to use the rest of the config.
+$xmlCleanup = simplexml_load_file($xmlPath);
+$cleanupIdx = 0;
+foreach ($xmlCleanup->CHANNEL as $ch) {
+    if ((string)$ch->ISO_CHANNEL === '_Blank_Type') {
+        unset($xmlCleanup->CHANNEL[$cleanupIdx]);
+        break;
+    }
+    $cleanupIdx++;
+}
+file_put_contents($xmlPath, $xmlCleanup->asXML());
 
 // --- 7) Field allowlist (plan 5.4: "Replace only changes anchor, preserves
 //        ISO/description/min/max/unit/alarms/build date"): a replace_mode

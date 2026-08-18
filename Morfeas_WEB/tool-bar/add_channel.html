@@ -262,7 +262,7 @@
         <div class="label">ISO Code</div>
         <div class="inline iso-field">
           <div class="iso-input-wrap">
-            <input id="iso" class="input w-110" placeholder="Search..." />
+            <input id="iso" class="input w-110" placeholder="Search..." maxlength="18" title="Max 18 characters; a leading &quot;_&quot; is added automatically and must not exceed 19 bytes total" />
             <div id="isoDropdown" class="iso-suggestions hidden"></div>
           </div>
           <span class="muted">_</span>
@@ -271,7 +271,7 @@
 
         <!-- Description -->
         <div class="label">Description</div>
-        <div><input id="desc" class="input" placeholder="Description" /></div>
+        <div><input id="desc" class="input" placeholder="Description" required /></div>
 
         <!-- Multilinking Range (only for SDAQ) -->
         <div class="label" id="rangeLabel">
@@ -290,11 +290,11 @@
 
         <!-- Min -->
         <div class="label">Min</div>
-        <div><input id="min" type="number" class="input w-120" /></div>
+        <div><input id="min" type="number" class="input w-120" required /></div>
 
         <!-- Max -->
         <div class="label">Max</div>
-        <div><input id="max" type="number" class="input w-120" /></div>
+        <div><input id="max" type="number" class="input w-120" required /></div>
 
         <!-- Alarm Low -->
         <div class="label">Alarm Low</div>

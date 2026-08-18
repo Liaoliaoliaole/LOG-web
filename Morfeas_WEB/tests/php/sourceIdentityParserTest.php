@@ -263,7 +263,48 @@ check(
 // 6) iso_add_channel_body()/iso_update_channel_body(): every interface now
 //    gated through iso_require_valid_source_identity(), always persisting
 //    the canonical form, using duplicate_source/invalid_anchor.
+//
+// This section needs its own clean fixture rather than reusing $xmlPath
+// from section 5: since Phase A4 (2026-08-19), every write validates the
+// *whole* document, not just the row being touched, so a file containing
+// the pre-existing _Legacy_Bad row would now reject every one of 6a-6c/6e
+// too, not just an edit of that specific row -- 6d below is exactly the
+// scenario where that whole-document rejection is what's under test.
 // ============================================================
+$xmlPath = $dir . '/OPC_UA_Config_section6.xml';
+file_put_contents($xmlPath, <<<XML
+<?xml version="1.0"?>
+<NODESet>
+    <CHANNEL>
+        <ISO_CHANNEL>_SDAQ_A</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>111111111.CH1</ANCHOR>
+        <DESCRIPTION>d</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>1</MAX>
+    </CHANNEL>
+    <CHANNEL>
+        <ISO_CHANNEL>_IOBOX_A</ISO_CHANNEL>
+        <INTERFACE_TYPE>IOBOX</INTERFACE_TYPE>
+        <ANCHOR>222222222.RX1.CH1</ANCHOR>
+        <DESCRIPTION>d</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>1</MAX>
+        <UNIT>C</UNIT>
+    </CHANNEL>
+    <CHANNEL>
+        <ISO_CHANNEL>_NOX_A</ISO_CHANNEL>
+        <INTERFACE_TYPE>NOX</INTERFACE_TYPE>
+        <ANCHOR>can0.addr_1.NOx</ANCHOR>
+        <DESCRIPTION>d</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>1</MAX>
+        <UNIT>ppm</UNIT>
+    </CHANNEL>
+</NODESet>
+XML
+);
+
 function written_anchor(string $xmlPath, string $iso): ?string
 {
     $xml = simplexml_load_file($xmlPath);
@@ -330,14 +371,44 @@ try {
 check(sha1_file($xmlPath) === $beforeHash2, 'XML file is unchanged after rejecting a duplicate-source Add');
 
 // 6d) iso_update_channel_body(): a plain metadata Edit on the pre-existing
-//     legacy-bad-anchor row must still be rejected (this generalizes the
-//     pre-existing SDAQ-only behaviour uniformly across interfaces; it is
-//     not a new category of risk introduced by this round).
+//     legacy-bad-anchor row must still be rejected -- and, since Phase A4's
+//     whole-document validator (plan §6.0.2), any write to a file that
+//     still contains that row is rejected, not just an edit targeting it
+//     specifically. This is Core's actual behaviour (a single invalid row
+//     fails the *entire* document on every reload, confirmed live against
+//     Morfeas_opc_ua_config_valid()) and matches the plan's Delete
+//     authorization note: the operator's way out is to delete the one bad
+//     channel, not edit around it. Isolated in its own fixture so it does
+//     not interfere with 6a-6c/6e above.
+$legacyBadPath = $dir . '/OPC_UA_Config_legacy_bad.xml';
+file_put_contents($legacyBadPath, <<<XML
+<?xml version="1.0"?>
+<NODESet>
+    <CHANNEL>
+        <ISO_CHANNEL>_Legacy_Bad</ISO_CHANNEL>
+        <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+        <ANCHOR>CAN1.ADDR:05.CH:01</ANCHOR>
+        <DESCRIPTION>a pre-existing/hand-edited row with an unparseable legacy anchor</DESCRIPTION>
+        <MIN>0</MIN>
+        <MAX>1</MAX>
+    </CHANNEL>
+</NODESet>
+XML
+);
 try {
-    iso_update_channel_body($xmlPath, '_Legacy_Bad', ['description' => 'trying to just edit description']);
+    iso_update_channel_body($legacyBadPath, '_Legacy_Bad', ['description' => 'trying to just edit description']);
     check(false, 'Editing metadata on a channel with a legacy unparseable anchor must still throw (unchanged anchor is re-validated)');
 } catch (ChannelConfigException $e) {
     check($e->apiCode() === 'invalid_anchor', 'Metadata-only Edit on a legacy-bad-anchor row is rejected with invalid_anchor (got ' . $e->apiCode() . ')');
+}
+try {
+    iso_add_channel_body($legacyBadPath, [
+        'iso_channel' => '_Unrelated_New', 'interface_type' => 'SDAQ', 'anchor' => '999999999.CH1',
+        'description' => 'd', 'min' => '0', 'max' => '1',
+    ]);
+    check(false, 'Even an unrelated, otherwise-valid Add must throw while a legacy-bad row remains in the file (Phase A4 whole-document gate)');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'invalid_anchor', 'An unrelated Add is blocked by the pre-existing legacy-bad row, matching Core (got ' . $e->apiCode() . ')');
 }
 
 // 6e) iso_update_channel_body(): a plain metadata Edit on a channel with a

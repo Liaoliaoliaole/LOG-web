@@ -59,8 +59,181 @@ function iso_load_channels(string $xmlPath): array
     return $out;
 }
 
+/*
+ * The single Core-equivalence gate for OPC_UA_Config.xml (plan §6.0.2,
+ * rules C-1 through C-10, cross-checked against every EXIT_FAILURE branch
+ * in Morfeas_opc_ua_config_valid() / Morfeas_XML.c -- 12 branches, all
+ * covered here). Every write path serializes through iso_save_xml(), and
+ * this function runs first inside it, so no writer can bypass it -- that
+ * is the point: a per-writer field checklist is exactly what let F-1/F-2/
+ * F-3 (2026-08-19 code review) slip through undetected. Structural checks
+ * (D-1/D-2/D-3) mirror Morfeas.dtd's CHANNEL content model and stay even
+ * though every current writer already goes through iso_set_channel_contents()
+ * in the right order, because this function's whole purpose is to verify
+ * the final document rather than trust the writer.
+ *
+ * Deliberately re-checks C-2/C-3/C-6/C-8/C-9, which individual write paths
+ * already enforce via iso_require_valid_source_identity()/
+ * iso_find_anchor_conflict() against the anchor being written -- this
+ * function instead re-derives them against the *whole* final document, so
+ * it does not depend on every future writer remembering to call those
+ * helpers correctly.
+ */
+function iso_validate_document(SimpleXMLElement $xml): void
+{
+    $dtdOrder = ['ISO_CHANNEL', 'INTERFACE_TYPE', 'ANCHOR', 'DESCRIPTION', 'MIN', 'MAX',
+        'UNIT', 'CAL_DATE', 'CAL_PERIOD', 'BUILD_DATE', 'MOD_DATE',
+        'ALARM_HIGH_VAL', 'ALARM_LOW_VAL', 'ALARM_HIGH', 'ALARM_LOW'];
+    $requiredElements = array_slice($dtdOrder, 0, 6); // ISO_CHANNEL..MAX, per Morfeas.dtd
+    $orderIndex = array_flip($dtdOrder);
+    $knownInterfaces = ['SDAQ', 'IOBOX', 'MTI', 'NOX'];
+
+    $seenIso = [];
+    $seenSemanticKey = [];
+
+    foreach ($xml->CHANNEL as $ch) {
+        $childNames = [];
+        foreach ($ch->children() as $child) {
+            $childNames[] = $child->getName();
+        }
+        $isoForError = trim((string)$ch->ISO_CHANNEL) ?: '(unknown)';
+
+        // D-3: no element name outside the DTD's CHANNEL content model.
+        foreach ($childNames as $name) {
+            if (!isset($orderIndex[$name])) {
+                throw new ChannelConfigException(
+                    "CHANNEL \"$isoForError\" contains an element not in Morfeas.dtd: $name",
+                    500,
+                    'invalid_document_structure'
+                );
+            }
+        }
+        // D-1: the six required elements must all be present.
+        foreach ($requiredElements as $name) {
+            if (!in_array($name, $childNames, true)) {
+                throw new ChannelConfigException(
+                    "CHANNEL \"$isoForError\" is missing required element: $name",
+                    500,
+                    'invalid_document_structure'
+                );
+            }
+        }
+        // D-2: elements that are present must appear in DTD sequence order.
+        $lastIdx = -1;
+        foreach ($childNames as $name) {
+            if ($orderIndex[$name] < $lastIdx) {
+                throw new ChannelConfigException(
+                    "CHANNEL \"$isoForError\" has elements out of Morfeas.dtd order (at $name)",
+                    500,
+                    'invalid_document_structure'
+                );
+            }
+            $lastIdx = $orderIndex[$name];
+        }
+
+        // C-1: no present element's content may be empty (applies to all
+        // fifteen elements, not just the six required ones -- an optional
+        // element that is present but empty is just as fatal to Core).
+        foreach ($ch->children() as $child) {
+            if (trim((string)$child) === '') {
+                throw new ChannelConfigException(
+                    "CHANNEL \"$isoForError\" element " . $child->getName() . " must not be empty",
+                    409,
+                    'empty_element'
+                );
+            }
+        }
+
+        $isoChannel = trim((string)$ch->ISO_CHANNEL);
+        $interfaceType = strtoupper(trim((string)$ch->INTERFACE_TYPE));
+        $anchor = trim((string)$ch->ANCHOR);
+
+        // C-4: ISO_CHANNEL length, on the actual stored (already "_"-prefixed) value.
+        if (strlen($isoChannel) >= 20) { // ISO_channel_name_size
+            throw new ChannelConfigException(
+                "ISO_CHANNEL is too long (>= 20 bytes): $isoChannel",
+                409,
+                'invalid_iso_channel'
+            );
+        }
+        // C-5: ISO_CHANNEL must not contain '.'.
+        if (strpos($isoChannel, '.') !== false) {
+            throw new ChannelConfigException(
+                "ISO_CHANNEL contains an illegal '.': $isoChannel",
+                409,
+                'invalid_iso_channel'
+            );
+        }
+
+        // C-2: INTERFACE_TYPE must be a known, supported interface (this
+        // also covers C-9: MDAQ is not in the known list, so it lands here
+        // with a distinct code rather than being folded into C-6's grammar
+        // failure).
+        if (!in_array($interfaceType, $knownInterfaces, true)) {
+            throw new ChannelConfigException(
+                "CHANNEL \"$isoChannel\" has an unsupported INTERFACE_TYPE: $interfaceType",
+                409,
+                'unsupported_interface'
+            );
+        }
+
+        // C-6: ANCHOR must satisfy the interface's strict grammar.
+        $identity = iso_parse_source_identity($interfaceType, $anchor);
+        if ($identity === null) {
+            throw new ChannelConfigException(
+                "CHANNEL \"$isoChannel\" has an invalid ANCHOR for interface $interfaceType: $anchor",
+                409,
+                'invalid_anchor'
+            );
+        }
+
+        // C-7: IOBOX/MTI/NOX must carry a non-empty XML-owned UNIT; SDAQ's
+        // Unit is runtime-owned and not read from XML.
+        if ($interfaceType !== 'SDAQ' && trim((string)$ch->UNIT) === '') {
+            throw new ChannelConfigException(
+                "CHANNEL \"$isoChannel\" ($interfaceType) is missing a non-empty UNIT",
+                409,
+                'missing_required_unit'
+            );
+        }
+
+        // C-3: ISO_CHANNEL must be unique across the document.
+        if (isset($seenIso[$isoChannel])) {
+            throw new ChannelConfigException(
+                "ISO_CHANNEL \"$isoChannel\" appears more than once",
+                409,
+                'channel_conflict'
+            );
+        }
+        $seenIso[$isoChannel] = true;
+
+        // C-8: the parsed source identity must be unique across the
+        // document, per interface (compared on decoded fields, never on
+        // raw ANCHOR text -- iso_parse_source_identity()'s semantic_key
+        // already encodes the interface, so cross-interface collisions
+        // cannot occur here by construction).
+        $key = $identity['semantic_key'];
+        if (isset($seenSemanticKey[$key])) {
+            throw new ChannelConfigException(
+                "ANCHOR \"$anchor\" of ISO_CHANNEL \"$isoChannel\" duplicates the source already used by ISO_CHANNEL \"{$seenSemanticKey[$key]}\"",
+                409,
+                'duplicate_source'
+            );
+        }
+        $seenSemanticKey[$key] = $isoChannel;
+    }
+
+    // C-10 is not implemented here: it only fails when the document has at
+    // least one CHANNEL but zero of them ever set an INTERFACE_TYPE/
+    // ISO_CHANNEL/ANCHOR node, which iso_set_channel_contents() cannot
+    // produce, and an empty NODESet returns EXIT_SUCCESS in Core. See
+    // plan §6.0.2 for the full derivation.
+}
+
 function iso_save_xml(SimpleXMLElement $xml, string $xmlPath): void
 {
+    iso_validate_document($xml);
+
     $dom = new DOMDocument('1.0');
     $dom->encoding = 'UTF-8';
     $dom->preserveWhiteSpace = false;
