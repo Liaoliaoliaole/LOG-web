@@ -1647,9 +1647,34 @@
     }
 
     function buildCreatePayloadFromChannel(channel) {
-      const entry = buildExportEntry(channel);
-      if (!entry) return null;
-      return mapImportEntry(entry);
+      if (!channel) return null;
+      const interfaceType = channel.interface_type || channel.dev_type || '';
+      const payload = {
+        iso_channel: channel.iso_channel,
+        interface_type: interfaceType,
+        anchor: channel.anchor || '',
+        description: channel.description || '',
+        min: channel.min ?? '',
+        max: channel.max ?? '',
+      };
+
+      if (channel.alarm_high_val !== undefined) {
+        payload.alarm_high_val = channel.alarm_high_val;
+      }
+      if (channel.alarm_low_val !== undefined) {
+        payload.alarm_low_val = channel.alarm_low_val;
+      }
+      if (channel.alarm_high !== undefined) {
+        payload.alarm_high = channel.alarm_high;
+      }
+      if (channel.alarm_low !== undefined) {
+        payload.alarm_low = channel.alarm_low;
+      }
+      if (interfaceType && interfaceType !== 'SDAQ') {
+        payload.unit = channel.unit || '';
+      }
+
+      return payload;
     }
 
     async function createChannelFromPayload(payload) {
