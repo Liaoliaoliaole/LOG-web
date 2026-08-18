@@ -235,11 +235,16 @@ function sdaq_load_anchor_map(string $jsonPath, array $xmlAnchors = []): array
                 $map['anchors'][$alias] = $entry;
             }
 
-            $preferred = $serialAnchor ?: $sensorPathLower;
+            $preferred = $serialAnchor;
 
             $map['channels'][] = [
+                // Add/Replace candidate identity must only ever be the stable serial
+                // anchor. A temporary CAN address is never a valid preferred/connection
+                // anchor, even for display: falling back to it here was the exact
+                // defect that let a moved SDAQ's CAN address be persisted into
+                // OPC_UA_Config.xml as if it were the device identity.
                 'preferred_anchor'  => $preferred,
-                'display_anchor'    => $preferred,
+                'display_anchor'    => $preferred ?? $sensorPathLower,
                 'connection_anchor' => $preferred,
                 'serial_anchor'     => $serialAnchor,
                 'address_anchor'    => $canonical,

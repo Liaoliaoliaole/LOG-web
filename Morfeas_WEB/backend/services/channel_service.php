@@ -459,11 +459,19 @@ function channel_build_rows_with_logstat(
     }
 
     foreach ($sdaqChannels as $chMeta) {
-        $anchor = $chMeta['connection_anchor'] ?? ($chMeta['preferred_anchor'] ?? ($chMeta['aliases'][0] ?? null));
-        $display = $chMeta['display_anchor'] ?? $anchor;
-        if (!$anchor || !$display) {
+        // Add/Replace candidates must be keyed by the stable serial anchor and a
+        // completed registration; a detected-but-not-yet-registered SDAQ (or one
+        // whose serial hasn't arrived yet) never becomes selectable here. It can
+        // still appear elsewhere as a diagnostic row via $anchorsInXmlUpper/$rows.
+        $serialAnchor = $chMeta['serial_anchor'] ?? null;
+        $regStatus    = $chMeta['registration'] ?? null;
+        $regDone      = is_string($regStatus) && strcasecmp($regStatus, 'Done') === 0;
+        if (!$serialAnchor || !$regDone) {
             continue;
         }
+
+        $anchor = $serialAnchor;
+        $display = $chMeta['display_anchor'] ?? $anchor;
 
         $upper = strtoupper($anchor);
         $searchPool['SDAQ'][] = [
@@ -595,6 +603,376 @@ function channel_build_rows_with_logstat(
     }
 
     return $rows;
+}
+
+function channel_collect_rows_and_extras(
+    string $xmlPath,
+    array $sdaqLogFiles,
+    array $ioboxLogFiles,
+    array $mtiLogFiles,
+    array $noxLogFiles,
+    array $sdaqDeviceTypes
+): array {
+    $extras = [];
+    $rows = channel_build_rows_with_logstat(
+        $xmlPath,
+        $sdaqLogFiles,
+        $ioboxLogFiles,
+        $mtiLogFiles,
+        $noxLogFiles,
+        $sdaqDeviceTypes,
+        $extras
+    );
+
+    if (!is_array($extras)) {
+        $extras = [];
+    }
+
+
+    return [$rows, $extras];
+}
+
+function channel_normalize_family(?string $raw): string
+{
+    return strtoupper(trim((string)$raw));
+}
+
+function channel_normalize_subtype(?string $raw): string
+{
+    return strtoupper(trim((string)$raw));
+}
+
+function channel_anchor_tokens(?string $anchor): array
+{
+    $raw = trim((string)$anchor);
+    if ($raw === '') {
+        return [];
+    }
+
+    $tokens = [];
+    $tokens[] = strtoupper($raw);
+    $tokens[] = strtoupper(preg_replace('/\s+/', '', $raw) ?? $raw);
+
+    if (preg_match('/^(CAN\w+)\.(\d+)\.CH(\d+)$/i', $raw, $m)) {
+        $tokens[] = sprintf('%s.ADDR:%02d.CH:%02d', strtoupper($m[1]), (int)$m[2], (int)$m[3]);
+        $tokens[] = sprintf('%s.ADDR:%d.CH:%d', strtoupper($m[1]), (int)$m[2], (int)$m[3]);
+    }
+
+    return array_values(array_unique(array_filter($tokens)));
+}
+
+function channel_search_pool_all_candidates(array $searchPool): array
+{
+    $all = [];
+    foreach ($searchPool as $family => $items) {
+        if (!is_array($items)) {
+            continue;
+        }
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            if (empty($item['interface_type'])) {
+                $item['interface_type'] = strtoupper((string)$family);
+            }
+            $all[] = $item;
+        }
+    }
+    return $all;
+}
+
+function channel_candidate_family(array $candidate): string
+{
+    $family = channel_normalize_family($candidate['interface_type'] ?? '');
+    if ($family !== '') {
+        return $family;
+    }
+
+    $deviceType = channel_normalize_subtype($candidate['device_type'] ?? '');
+    if (str_starts_with($deviceType, 'SDAQ')) {
+        return 'SDAQ';
+    }
+    if (str_starts_with($deviceType, 'IOBOX')) {
+        return 'IOBOX';
+    }
+    if (str_starts_with($deviceType, 'MTI')) {
+        return 'MTI';
+    }
+    if (str_starts_with($deviceType, 'NOX')) {
+        return 'NOX';
+    }
+    return '';
+}
+
+function channel_find_candidate_by_anchor(array $searchPool, string $anchor): ?array
+{
+    $tokens = channel_anchor_tokens($anchor);
+    if (empty($tokens)) {
+        return null;
+    }
+
+    $candidates = channel_search_pool_all_candidates($searchPool);
+    foreach ($candidates as $candidate) {
+        $keys = [];
+        foreach (['anchor', 'display_anchor', 'address_anchor', 'serial_anchor'] as $field) {
+            if (!empty($candidate[$field])) {
+                $keys = array_merge($keys, channel_anchor_tokens((string)$candidate[$field]));
+            }
+        }
+
+        if (!empty($candidate['aliases']) && is_array($candidate['aliases'])) {
+            foreach ($candidate['aliases'] as $alias) {
+                $keys = array_merge($keys, channel_anchor_tokens((string)$alias));
+            }
+        }
+
+        if (empty($keys)) {
+            continue;
+        }
+
+        $keys = array_values(array_unique($keys));
+        foreach ($tokens as $needle) {
+            if (in_array($needle, $keys, true)) {
+                return $candidate;
+            }
+        }
+    }
+
+    return null;
+}
+
+/*
+ * Server-side re-derivation for SDAQ Add: the client-submitted `anchor` is
+ * never trusted as the identity to persist. It is only used to locate a
+ * currently-detected, registered, not-yet-linked SDAQ candidate in a search
+ * pool rebuilt inside the XML lock; the anchor actually written is always
+ * the candidate's own canonical serial anchor. This closes the incident
+ * entry point: a display/CAN-address string can no longer be written to
+ * OPC_UA_Config.xml as if it were the device identity, even via a direct
+ * API call.
+ */
+function channel_add_sdaq_from_pool(
+    string $xmlPath,
+    array $data,
+    array $sdaqLogFiles,
+    array $ioboxLogFiles,
+    array $mtiLogFiles,
+    array $noxLogFiles,
+    array $sdaqDeviceTypes
+): void {
+    iso_with_xml_lock($xmlPath, function () use (
+        $xmlPath, $data, $sdaqLogFiles, $ioboxLogFiles, $mtiLogFiles, $noxLogFiles, $sdaqDeviceTypes
+    ) {
+        $anchorInput = trim((string)($data['anchor'] ?? ''));
+        if ($anchorInput === '') {
+            throw new ChannelConfigException('Missing field: anchor', 400, 'missing_field');
+        }
+
+        [, $extras] = channel_collect_rows_and_extras(
+            $xmlPath,
+            $sdaqLogFiles,
+            $ioboxLogFiles,
+            $mtiLogFiles,
+            $noxLogFiles,
+            $sdaqDeviceTypes
+        );
+        $searchPool = is_array($extras['search_pool'] ?? null) ? $extras['search_pool'] : [];
+        $candidate = channel_find_candidate_by_anchor($searchPool, $anchorInput);
+
+        if ($candidate === null || channel_candidate_family($candidate) !== 'SDAQ') {
+            throw new ChannelConfigException(
+                'SDAQ candidate is not currently available: ' . $anchorInput,
+                409,
+                'candidate_not_available'
+            );
+        }
+        if (!empty($candidate['linked_in_xml'])) {
+            throw new ChannelConfigException(
+                'SDAQ candidate is already linked: ' . $anchorInput,
+                409,
+                'candidate_not_available'
+            );
+        }
+
+        $serialAnchor = trim((string)($candidate['serial_anchor'] ?? ''));
+        if (!iso_sdaq_anchor_is_valid($serialAnchor)) {
+            throw new ChannelConfigException(
+                'SDAQ candidate does not have a valid serial anchor yet: ' . $anchorInput,
+                409,
+                'candidate_not_available'
+            );
+        }
+
+        $serverData = $data;
+        $serverData['anchor'] = $serialAnchor;
+        iso_add_channel_body($xmlPath, $serverData);
+    });
+}
+
+/*
+ * Server-side re-derivation for Replace: same principle as
+ * channel_add_sdaq_from_pool(), applied to the PATCH replace_mode path. The
+ * client-submitted `anchor` is only used to locate a currently-detected,
+ * compatible, not-already-linked candidate in a search pool rebuilt inside
+ * the XML lock; the value actually written is always the candidate's own
+ * canonical identity (serial anchor for SDAQ, pool anchor otherwise), never
+ * the client-submitted display/address text. This also removes the previous
+ * silent pass-through for "source SDAQ subtype unknown and no candidate
+ * found": that case is now blocked with a stable error, matching the rule
+ * that an unverifiable target must never be written.
+ */
+function channel_replace_channel_from_pool(
+    string $xmlPath,
+    string $iso,
+    array $data,
+    array $sdaqLogFiles,
+    array $ioboxLogFiles,
+    array $mtiLogFiles,
+    array $noxLogFiles,
+    array $sdaqDeviceTypes
+): void {
+    iso_with_xml_lock($xmlPath, function () use (
+        $xmlPath, $iso, $data, $sdaqLogFiles, $ioboxLogFiles, $mtiLogFiles, $noxLogFiles, $sdaqDeviceTypes
+    ) {
+        $targetAnchorInput = trim((string)($data['anchor'] ?? ''));
+        if ($targetAnchorInput === '') {
+            throw new ChannelConfigException('Missing replacement anchor', 400, 'replace_target_missing');
+        }
+
+        $extras = [];
+        $rows = channel_build_rows_with_logstat(
+            $xmlPath,
+            $sdaqLogFiles,
+            $ioboxLogFiles,
+            $mtiLogFiles,
+            $noxLogFiles,
+            $sdaqDeviceTypes,
+            $extras
+        );
+        if (!is_array($extras)) {
+            $extras = [];
+        }
+
+        $source = channel_find_by_iso($rows, $iso);
+        if ($source === null) {
+            throw new ChannelConfigException('Source channel not found for replace', 404, 'replace_source_not_found');
+        }
+
+        // Replace is an identity migration, not a metadata edit: the backend
+        // must re-confirm the source is actually offline at write time, using
+        // the same freshly rebuilt runtime rows as the candidate pool below.
+        // The frontend only ever shows Replace for an offline source, but that
+        // is not a security boundary; a direct API call must be re-checked
+        // here, inside the same lock as the write, or a live/connected
+        // channel's identity could be silently reassigned.
+        if (!channel_status_is_offline((string)($source['status'] ?? ''))) {
+            throw new ChannelConfigException(
+                'Source channel must be offline for Replace: ' . $iso,
+                409,
+                'replace_source_not_offline'
+            );
+        }
+
+        $sourceFamily = channel_normalize_family($source['interface_type'] ?? ($source['dev_type'] ?? ''));
+        if ($sourceFamily === '') {
+            // An unresolvable source family must never silently skip the
+            // cross-family check below; it must be rejected outright.
+            throw new ChannelConfigException(
+                'Source channel interface type is unknown; cannot verify Replace compatibility: ' . $iso,
+                409,
+                'replace_source_family_unknown'
+            );
+        }
+        $sourceSubtype = trim((string)($source['dev_type'] ?? ''));
+        $sourceKnown = !empty($source['dev_type_known']);
+
+        $searchPool = is_array($extras['search_pool'] ?? null) ? $extras['search_pool'] : [];
+        $candidate = channel_find_candidate_by_anchor($searchPool, $targetAnchorInput);
+
+        // Unlike the pre-fix behaviour, an unresolved target is always
+        // rejected, even when the source subtype was never known: syntax
+        // matching a pool token is not authorization, and a target that
+        // cannot be verified must never be written, silently or otherwise.
+        if ($candidate === null) {
+            throw new ChannelConfigException(
+                'Replacement target type cannot be verified from current device pool',
+                409,
+                'replace_target_not_detected'
+            );
+        }
+
+        // $sourceFamily is already known non-empty (checked above). An
+        // unresolvable candidate family must be rejected, not silently
+        // treated as a match: family compatibility can only be waived when
+        // there is nothing to compare, and here there always is.
+        $candidateFamily = channel_candidate_family($candidate);
+        if ($candidateFamily === '' || $candidateFamily !== $sourceFamily) {
+            throw new ChannelConfigException(
+                sprintf('Replace type mismatch: expected %s, got %s', $sourceFamily, $candidateFamily !== '' ? $candidateFamily : 'unknown'),
+                409,
+                'replace_type_mismatch'
+            );
+        }
+
+        if ($sourceFamily === 'SDAQ') {
+            if (!$sourceKnown) {
+                throw new ChannelConfigException(
+                    'Source SDAQ subtype is unknown; cannot enforce compatibility',
+                    409,
+                    'replace_sdaq_subtype_unknown'
+                );
+            }
+
+            $sourceSubtypeNorm = channel_normalize_subtype($sourceSubtype);
+            $candidateSubtypeRaw = trim((string)($candidate['device_type'] ?? ''));
+            $candidateSubtypeNorm = channel_normalize_subtype($candidateSubtypeRaw);
+
+            if ($candidateSubtypeNorm === '') {
+                throw new ChannelConfigException(
+                    'Replacement SDAQ subtype is unknown; choose a detected SDAQ device',
+                    409,
+                    'replace_sdaq_subtype_unknown'
+                );
+            }
+
+            if ($sourceSubtypeNorm !== $candidateSubtypeNorm) {
+                throw new ChannelConfigException(
+                    sprintf('Replace SDAQ subtype mismatch: expected %s, got %s', $sourceSubtype, $candidateSubtypeRaw),
+                    409,
+                    'replace_sdaq_subtype_mismatch'
+                );
+            }
+        }
+
+        // Never persist the client-submitted display/address text: always
+        // resolve to the candidate's own canonical identity, exactly like Add.
+        $canonicalAnchor = $candidateFamily === 'SDAQ'
+            ? trim((string)($candidate['serial_anchor'] ?? ''))
+            : trim((string)($candidate['anchor'] ?? ''));
+
+        if ($candidateFamily === 'SDAQ' && !iso_sdaq_anchor_is_valid($canonicalAnchor)) {
+            throw new ChannelConfigException(
+                'Replacement SDAQ candidate does not have a valid serial anchor: ' . $targetAnchorInput,
+                409,
+                'replace_target_not_detected'
+            );
+        }
+        if ($canonicalAnchor === '') {
+            throw new ChannelConfigException(
+                'Replacement candidate does not have a resolvable anchor: ' . $targetAnchorInput,
+                409,
+                'replace_target_not_detected'
+            );
+        }
+
+        // Replace only ever changes identity (anchor) and mod_date; per plan
+        // 5.4 it must preserve ISO/description/min/max/unit/alarms/build_date
+        // unconditionally. Do not forward the raw client PATCH body here: a
+        // replace_mode request that also carries iso_channel/description/etc.
+        // must not be able to smuggle an Edit through the Replace path.
+        // iso_update_channel_body() keeps every field it does not receive.
+        iso_update_channel_body($xmlPath, $iso, ['anchor' => $canonicalAnchor]);
+    });
 }
 
 function channel_find_by_iso(array $rows, ?string $iso): ?array

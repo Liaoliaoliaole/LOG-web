@@ -48,7 +48,7 @@ function channels_fail(string $error, int $status = 400, ?string $code = null): 
 
 function channels_fail_from_runtime(RuntimeException $e): void
 {
-    if ($e instanceof ChannelConfigException) {
+    if ($e instanceof ChannelConfigException || $e instanceof ChannelRuleException) {
         channels_fail($e->getMessage(), $e->status(), $e->apiCode());
     }
 
@@ -64,212 +64,6 @@ function channels_fail_from_runtime(RuntimeException $e): void
     }
 
     channels_fail($message, 400, 'channel_config_error');
-}
-
-function channel_collect_rows_and_extras(
-    string $xmlPath,
-    array $sdaqLogFiles,
-    array $ioboxLogFiles,
-    array $mtiLogFiles,
-    array $noxLogFiles,
-    array $sdaqDeviceTypes
-): array {
-    $extras = [];
-    $rows = channel_build_rows_with_logstat(
-        $xmlPath,
-        $sdaqLogFiles,
-        $ioboxLogFiles,
-        $mtiLogFiles,
-        $noxLogFiles,
-        $sdaqDeviceTypes,
-        $extras
-    );
-
-    if (!is_array($extras)) {
-        $extras = [];
-    }
-
-
-    return [$rows, $extras];
-}
-
-function channel_normalize_family(?string $raw): string
-{
-    return strtoupper(trim((string)$raw));
-}
-
-function channel_normalize_subtype(?string $raw): string
-{
-    return strtoupper(trim((string)$raw));
-}
-
-function channel_anchor_tokens(?string $anchor): array
-{
-    $raw = trim((string)$anchor);
-    if ($raw === '') {
-        return [];
-    }
-
-    $tokens = [];
-    $tokens[] = strtoupper($raw);
-    $tokens[] = strtoupper(preg_replace('/\s+/', '', $raw) ?? $raw);
-
-    if (preg_match('/^(CAN\w+)\.(\d+)\.CH(\d+)$/i', $raw, $m)) {
-        $tokens[] = sprintf('%s.ADDR:%02d.CH:%02d', strtoupper($m[1]), (int)$m[2], (int)$m[3]);
-        $tokens[] = sprintf('%s.ADDR:%d.CH:%d', strtoupper($m[1]), (int)$m[2], (int)$m[3]);
-    }
-
-    return array_values(array_unique(array_filter($tokens)));
-}
-
-function channel_search_pool_all_candidates(array $searchPool): array
-{
-    $all = [];
-    foreach ($searchPool as $family => $items) {
-        if (!is_array($items)) {
-            continue;
-        }
-        foreach ($items as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-            if (empty($item['interface_type'])) {
-                $item['interface_type'] = strtoupper((string)$family);
-            }
-            $all[] = $item;
-        }
-    }
-    return $all;
-}
-
-function channel_candidate_family(array $candidate): string
-{
-    $family = channel_normalize_family($candidate['interface_type'] ?? '');
-    if ($family !== '') {
-        return $family;
-    }
-
-    $deviceType = channel_normalize_subtype($candidate['device_type'] ?? '');
-    if (str_starts_with($deviceType, 'SDAQ')) {
-        return 'SDAQ';
-    }
-    if (str_starts_with($deviceType, 'IOBOX')) {
-        return 'IOBOX';
-    }
-    if (str_starts_with($deviceType, 'MTI')) {
-        return 'MTI';
-    }
-    if (str_starts_with($deviceType, 'NOX')) {
-        return 'NOX';
-    }
-    return '';
-}
-
-function channel_find_candidate_by_anchor(array $searchPool, string $anchor): ?array
-{
-    $tokens = channel_anchor_tokens($anchor);
-    if (empty($tokens)) {
-        return null;
-    }
-
-    $candidates = channel_search_pool_all_candidates($searchPool);
-    foreach ($candidates as $candidate) {
-        $keys = [];
-        foreach (['anchor', 'display_anchor', 'address_anchor', 'serial_anchor'] as $field) {
-            if (!empty($candidate[$field])) {
-                $keys = array_merge($keys, channel_anchor_tokens((string)$candidate[$field]));
-            }
-        }
-
-        if (!empty($candidate['aliases']) && is_array($candidate['aliases'])) {
-            foreach ($candidate['aliases'] as $alias) {
-                $keys = array_merge($keys, channel_anchor_tokens((string)$alias));
-            }
-        }
-
-        if (empty($keys)) {
-            continue;
-        }
-
-        $keys = array_values(array_unique($keys));
-        foreach ($tokens as $needle) {
-            if (in_array($needle, $keys, true)) {
-                return $candidate;
-            }
-        }
-    }
-
-    return null;
-}
-
-function channel_enforce_replace_rules(array $rows, array $extras, string $iso, array $data): void
-{
-    $source = channel_find_by_iso($rows, $iso);
-    if ($source === null) {
-        throw new ChannelRuleException('Source channel not found for replace', 404, 'replace_source_not_found');
-    }
-
-    $sourceFamily = channel_normalize_family($source['interface_type'] ?? ($source['dev_type'] ?? ''));
-    $sourceSubtype = trim((string)($source['dev_type'] ?? ''));
-    $sourceKnown = !empty($source['dev_type_known']);
-
-    $targetAnchor = trim((string)($data['anchor'] ?? ''));
-    if ($targetAnchor === '') {
-        throw new ChannelRuleException('Missing replacement anchor', 400, 'replace_target_missing');
-    }
-
-    $searchPool = is_array($extras['search_pool'] ?? null) ? $extras['search_pool'] : [];
-    $candidate = channel_find_candidate_by_anchor($searchPool, $targetAnchor);
-
-    if ($candidate === null) {
-        if ($sourceFamily === 'SDAQ' && !$sourceKnown) {
-            return;
-        }
-        throw new ChannelRuleException(
-            'Replacement target type cannot be verified from current device pool',
-            409,
-            'replace_target_not_detected'
-        );
-    }
-
-    $candidateFamily = channel_candidate_family($candidate);
-    if ($candidateFamily !== '' && $sourceFamily !== '' && $candidateFamily !== $sourceFamily) {
-        throw new ChannelRuleException(
-            sprintf('Replace type mismatch: expected %s, got %s', $sourceFamily, $candidateFamily),
-            409,
-            'replace_type_mismatch'
-        );
-    }
-
-    if ($sourceFamily === 'SDAQ' && $sourceKnown) {
-        $sourceSubtypeNorm = channel_normalize_subtype($sourceSubtype);
-        $candidateSubtypeRaw = trim((string)($candidate['device_type'] ?? ''));
-        $candidateSubtypeNorm = channel_normalize_subtype($candidateSubtypeRaw);
-
-        if ($sourceSubtypeNorm === '') {
-            throw new ChannelRuleException(
-                'Source SDAQ subtype is unknown; cannot enforce compatibility',
-                409,
-                'replace_sdaq_subtype_unknown'
-            );
-        }
-
-        if ($candidateSubtypeNorm === '') {
-            throw new ChannelRuleException(
-                'Replacement SDAQ subtype is unknown; choose a detected SDAQ device',
-                409,
-                'replace_sdaq_subtype_unknown'
-            );
-        }
-
-        if ($sourceSubtypeNorm !== $candidateSubtypeNorm) {
-            throw new ChannelRuleException(
-                sprintf('Replace SDAQ subtype mismatch: expected %s, got %s', $sourceSubtype, $candidateSubtypeRaw),
-                409,
-                'replace_sdaq_subtype_mismatch'
-            );
-        }
-    }
 }
 
 function channel_status_offline(string $status): bool
@@ -932,7 +726,21 @@ try {
                 }
             }
             try {
-                iso_add_channel($xmlPath, $data);
+                if (strtoupper(trim((string)$data['interface_type'])) === 'SDAQ') {
+                    // SDAQ Add never trusts the client anchor directly; it is
+                    // re-derived from a freshly rebuilt, lock-protected candidate pool.
+                    channel_add_sdaq_from_pool(
+                        $xmlPath,
+                        $data,
+                        $sdaqLogFiles,
+                        $ioboxLogFiles,
+                        $mtiLogFiles,
+                        $noxLogFiles,
+                        $sdaqDeviceTypes
+                    );
+                } else {
+                    iso_add_channel($xmlPath, $data);
+                }
             } catch (RuntimeException $e) {
                 channels_fail_from_runtime($e);
             }
@@ -949,20 +757,24 @@ try {
                 channels_fail('Empty PATCH body', 400, 'empty_body');
             }
 
-            if (!empty($data['replace_mode'])) {
-                [$rows, $extras] = channel_collect_rows_and_extras(
-                    $xmlPath,
-                    $sdaqLogFiles,
-                    $ioboxLogFiles,
-                    $mtiLogFiles,
-                    $noxLogFiles,
-                    $sdaqDeviceTypes
-                );
-                channel_enforce_replace_rules($rows, $extras, $iso, $data);
-            }
-
             try {
-                iso_update_channel($xmlPath, $iso, $data);
+                if (!empty($data['replace_mode'])) {
+                    // Replace re-derives the target anchor server-side inside the
+                    // XML lock, exactly like Add; the client-submitted anchor is
+                    // only used to locate a candidate, never persisted as-is.
+                    channel_replace_channel_from_pool(
+                        $xmlPath,
+                        $iso,
+                        $data,
+                        $sdaqLogFiles,
+                        $ioboxLogFiles,
+                        $mtiLogFiles,
+                        $noxLogFiles,
+                        $sdaqDeviceTypes
+                    );
+                } else {
+                    iso_update_channel($xmlPath, $iso, $data);
+                }
             } catch (RuntimeException $e) {
                 channels_fail_from_runtime($e);
             }
