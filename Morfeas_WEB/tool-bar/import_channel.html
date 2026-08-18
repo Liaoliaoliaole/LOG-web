@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8" />
+    <title>Restore Channels (JSON)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../assets/app.css" />
+    <style>
+    .dialog {
+      max-width: 1040px;
+      margin: 24px auto;
+      padding: 20px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, .08);
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(22px, 2.4vw, 28px);
+      font-weight: 900;
+    }
+
+    .subtitle {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .statusbar {
+      margin: 10px 0 16px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg-weak);
+      font-weight: 700;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .summary {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid var(--border);
+      background: var(--bg-weak);
+    }
+
+    .pill.ready { color: #0f7b3f; border-color: #0f7b3f55; }
+    .pill.nochange { color: #556; }
+    .pill.update { color: #a15c00; border-color: #a15c0055; }
+    .pill.invalid { color: #e11d48; border-color: #e11d4855; }
+    .pill.conflict { color: #e11d48; border-color: #e11d4855; }
+
+    .table-wrap {
+      max-height: 46vh;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 14px;
+    }
+
+    table.report {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    table.report th, table.report td {
+      padding: 7px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    table.report td.reason {
+      white-space: normal;
+      min-width: 260px;
+    }
+
+    table.report th {
+      position: sticky;
+      top: 0;
+      background: var(--bg-weak);
+      z-index: 1;
+    }
+
+    tr.result-ready td.result { color: #0f7b3f; font-weight: 800; }
+    tr.result-nochange td.result { color: #556; font-weight: 800; }
+    tr.result-update td.result { color: #a15c00; font-weight: 800; }
+    tr.result-invalid td.result,
+    tr.result-conflict td.result { color: #e11d48; font-weight: 800; }
+
+    .row-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 6px;
+    }
+
+    .hidden { display: none; }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+  </style>
+  </head>
+
+  <body>
+    <main class="dialog">
+      <h1>Restore Channels (JSON)</h1>
+      <p class="subtitle">Atomic channel-set merge from a Legacy Local JSON export. Every row is checked before anything is written; if any row cannot be restored, nothing in this file is written.</p>
+
+      <div id="status" class="statusbar">Select a JSON file to begin.</div>
+
+      <div class="step">
+        <input id="fileInput" type="file" accept=".json,application/json" class="input" />
+        <button id="btnRunPreflight" class="btn" disabled>Run Preflight</button>
+      </div>
+
+      <div id="summaryRow" class="summary hidden">
+        <span class="pill ready" id="pillReady">Ready to restore: 0</span>
+        <span class="pill nochange" id="pillNoChange">No change: 0</span>
+        <span class="pill update" id="pillUpdate">Update metadata: 0</span>
+        <span class="pill invalid" id="pillInvalid">Invalid: 0</span>
+        <span class="pill conflict" id="pillConflict">Conflict: 0</span>
+      </div>
+
+      <p id="reportHint" class="hint hidden">Offline channels are not an error -- Restore does not require the device to be currently detected. Only rows marked Invalid or Conflict block the whole file from being restored.</p>
+
+      <div id="tableWrap" class="table-wrap hidden">
+        <table class="report">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>ISO_CHANNEL</th>
+              <th>Interface</th>
+              <th>Anchor (file)</th>
+              <th>Canonical anchor</th>
+              <th>Result</th>
+              <th class="reason">Reason</th>
+            </tr>
+          </thead>
+          <tbody id="reportBody"></tbody>
+        </table>
+      </div>
+
+      <div class="row-actions">
+        <button id="btnDownloadReport" class="btn hidden">Download Report</button>
+        <button id="btnConfirm" class="btn primary hidden" disabled>Confirm Restore</button>
+        <button id="btnCancel" class="btn">Close</button>
+      </div>
+    </main>
+
+    <script src="../assets/config.js" defer></script>
+    <script src="../assets/api/channels.js" defer></script>
+    <script src="./import_channel.js" defer></script>
+  </body>
+
+</html>

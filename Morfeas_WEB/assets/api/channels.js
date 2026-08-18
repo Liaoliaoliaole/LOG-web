@@ -101,6 +101,16 @@
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(payload),
     }),
+    restorePreflight: (fileContent) => fetchJson({ include: 'restore_preflight' }, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ file_content: fileContent }),
+    }),
+    restoreCommit: (fileContent, digest) => fetchJson({ include: 'restore_commit' }, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ file_content: fileContent, digest }),
+    }),
   };
 
   root.api = root.api || {};

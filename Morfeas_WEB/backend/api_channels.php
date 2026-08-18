@@ -5,12 +5,14 @@ require __DIR__ . '/core/system_info.php';
 require __DIR__ . '/repositories/iso_repository.php';
 require __DIR__ . '/repositories/logstat_repository.php';
 require __DIR__ . '/services/channel_service.php';
+require __DIR__ . '/services/channel_restore_service.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
 $isoStandardDir = backend_iso_standard_dir();
 $ramdisk = backend_ramdisk_dir();
 $xmlPath = backend_opcua_config_path();
+$logConfigPath = backend_log_config_path();
 
 // ChannelRuleException lives in channel_service.php alongside the TC16
 // business logic that throws it, so that logic can be unit-tested without
@@ -142,6 +144,57 @@ $noxLogFiles       = logstat_collect_paths('logstat_NOX*.json', $ramdisk);
 $ioboxLogFiles     = logstat_collect_paths('logstat_IOBOX*.json', $ramdisk);
 $mtiLogFiles       = logstat_collect_paths('logstat_MTI*.json', $ramdisk);
 $sdaqDeviceTypes   = sdaq_collect_device_types($sdaqLogFiles);
+
+if (isset($_GET['include']) && $_GET['include'] === 'restore_preflight') {
+    try {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            channels_fail('Method not allowed', 405, 'restore_method_not_allowed');
+        }
+
+        $data = read_json_body();
+        $fileContent = (string)($data['file_content'] ?? '');
+        if (trim($fileContent) === '') {
+            channels_fail('Missing file_content', 400, 'missing_field');
+        }
+
+        try {
+            $result = restore_preflight($xmlPath, $logConfigPath, $fileContent);
+        } catch (RuntimeException $e) {
+            channels_fail_from_runtime($e);
+        }
+
+        echo json_encode(['ok' => true, 'data' => $result], JSON_PRETTY_PRINT);
+        exit;
+    } catch (Throwable $e) {
+        api_fail_response('Failed to process channel request', 500, 'api_channels.restore_preflight', $e);
+    }
+}
+
+if (isset($_GET['include']) && $_GET['include'] === 'restore_commit') {
+    try {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            channels_fail('Method not allowed', 405, 'restore_method_not_allowed');
+        }
+
+        $data = read_json_body();
+        $fileContent = (string)($data['file_content'] ?? '');
+        $digest = (string)($data['digest'] ?? '');
+        if (trim($fileContent) === '' || $digest === '') {
+            channels_fail('Missing file_content or digest', 400, 'missing_field');
+        }
+
+        try {
+            $result = restore_commit($xmlPath, $logConfigPath, $fileContent, $digest);
+        } catch (RuntimeException $e) {
+            channels_fail_from_runtime($e);
+        }
+
+        echo json_encode(['ok' => true, 'data' => $result], JSON_PRETTY_PRINT);
+        exit;
+    } catch (Throwable $e) {
+        api_fail_response('Failed to process channel request', 500, 'api_channels.restore_commit', $e);
+    }
+}
 
 if (isset($_GET['include']) && $_GET['include'] === 'range_add') {
     try {
