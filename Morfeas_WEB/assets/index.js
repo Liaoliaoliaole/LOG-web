@@ -1739,6 +1739,28 @@
       return entries;
     }
 
+    // Undo restores a deleted channel by calling the same live Add endpoint a
+    // user clicking "Add Channel" would use. For IOBOX/MTI, Add requires the
+    // device to report Connection_status=Okay *right now* (see
+    // channel_service.php / logstat_iobox.php / logstat_mti.php) -- so if the
+    // device happens to be offline at the moment Undo runs (a coincidence
+    // unrelated to the user's own Delete action), the candidate simply isn't
+    // in the pool and the restore fails with candidate_not_available. This is
+    // intentional on the Add side (an unreachable device's identity can't be
+    // reverified), but the resulting error is opaque unless it names the
+    // actual cause. NOX is unaffected: its candidates stay selectable while
+    // offline (see logstat_nox.php); only IOBOX/MTI have this restriction.
+    function describeUndoFailure(err, payload) {
+      const message = err?.message || String(err);
+      const code = err?.payload?.code;
+      const family = String(payload?.interface_type || '').toUpperCase();
+      const isOfflineGatedFamily = family === 'IOBOX' || family === 'MTI';
+      if (code === 'candidate_not_available' && isOfflineGatedFamily && /not currently available/i.test(message)) {
+        return `${message} (${family} channels can only be restored while their device currently reports Connection_status=Okay; SDAQ and NOX do not have this restriction. Reconnect the device and click Undo again, or use Restore Channels (JSON) later, which does not require the device to be online.)`;
+      }
+      return message;
+    }
+
     async function undoLastDelete() {
       const undoState = getActiveDeleteUndo();
       if (!undoState?.entries?.length || lastDeleteUndoInFlight) return;
@@ -1762,7 +1784,7 @@
             const snapshot = buildSnapshotChannelFromPayload(entry.payload);
             if (snapshot) liveChannels.push(snapshot);
           } catch (err) {
-            failures.push(`${entry.iso}: ${err?.message || err}`);
+            failures.push(`${entry.iso}: ${describeUndoFailure(err, entry.payload)}`);
           }
         }
 
