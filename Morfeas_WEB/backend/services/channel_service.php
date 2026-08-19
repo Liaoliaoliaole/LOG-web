@@ -1038,6 +1038,33 @@ function channel_replace_channel_from_pool(
             throw new ChannelConfigException('Source channel not found for replace', 404, 'replace_source_not_found');
         }
 
+        $sourceFamily = channel_normalize_family($source['interface_type'] ?? ($source['dev_type'] ?? ''));
+        if ($sourceFamily === '') {
+            // An unresolvable source family must never silently skip the
+            // cross-family check below; it must be rejected outright.
+            throw new ChannelConfigException(
+                'Source channel interface type is unknown; cannot verify Replace compatibility: ' . $iso,
+                409,
+                'replace_source_family_unknown'
+            );
+        }
+
+        // Replace is only offered by the UI for SDAQ (the device-relocation
+        // scenario this operation exists for); IOBOX/MTI/NOX identity moves
+        // go through Devices + Add/Delete instead. Re-enforce that here, and
+        // ahead of the offline check below, so a direct API call cannot reach
+        // a code path the UI never exposes, and so an online IOBOX/MTI/NOX
+        // channel is rejected for the real reason ("not SDAQ") rather than a
+        // misleading "must be offline" that has nothing to do with why
+        // Replace refuses it.
+        if ($sourceFamily !== 'SDAQ') {
+            throw new ChannelConfigException(
+                'Replace is only available for SDAQ channels: ' . $iso,
+                409,
+                'replace_source_not_sdaq'
+            );
+        }
+
         // Replace is an identity migration, not a metadata edit: the backend
         // must re-confirm the source is actually offline at write time, using
         // the same freshly rebuilt runtime rows as the candidate pool below.
@@ -1053,16 +1080,6 @@ function channel_replace_channel_from_pool(
             );
         }
 
-        $sourceFamily = channel_normalize_family($source['interface_type'] ?? ($source['dev_type'] ?? ''));
-        if ($sourceFamily === '') {
-            // An unresolvable source family must never silently skip the
-            // cross-family check below; it must be rejected outright.
-            throw new ChannelConfigException(
-                'Source channel interface type is unknown; cannot verify Replace compatibility: ' . $iso,
-                409,
-                'replace_source_family_unknown'
-            );
-        }
         $sourceSubtype = trim((string)($source['dev_type'] ?? ''));
         $sourceKnown = !empty($source['dev_type_known']);
 

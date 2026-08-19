@@ -19,7 +19,8 @@
   const sourceKnown = params.get('source_known') === '1';
 
   if (isReplaceFlow) {
-    typeLabel.textContent = 'Replace Mode: all candidate types';
+    // Replace only ever exists for SDAQ (device-relocation) sources.
+    typeLabel.textContent = 'Replace Mode: SDAQ';
   } else {
     typeLabel.textContent = requestedType ? 'Type: ' + requestedType : 'Type not set';
   }
@@ -158,7 +159,13 @@
       if (item.linked_in_xml) return false;
       if (item.link_state && item.link_state.toLowerCase() !== 'unlinked') return false;
 
-      if (!isReplaceFlow) {
+      if (isReplaceFlow) {
+        // Replace only ever exists for SDAQ sources; never offer a
+        // cross-family candidate here even though the backend would also
+        // reject it (replace_type_mismatch/replace_source_not_sdaq).
+        const family = normalizedFamily(item);
+        if (family && family !== 'SDAQ') return false;
+      } else {
         // Add Channel must stay inside the selected device family. This guards
         // against stale/mixed search-pool data showing IOBOX candidates for MTI
         // or the reverse when the backend logstat files are changing.
