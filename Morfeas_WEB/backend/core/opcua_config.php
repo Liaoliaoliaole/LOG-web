@@ -732,7 +732,24 @@ function iso_build_new_channel_payload(string $isoChannel, array $data): array
  * from that list is not a separate wire field -- the browser composes it
  * into iso_channel -- so rejecting iso_channel covers it.
  */
-const ISO_EDIT_FORBIDDEN_FIELDS = ['interface_type', 'anchor', 'iso_channel', 'build_date'];
+const ISO_EDIT_FORBIDDEN_FIELDS = [
+    'interface_type',
+    'anchor',
+    'iso_channel',
+    'build_date',
+    // mod_date is not in §5.3's list, but it is the same class of field as
+    // build_date: an audit timestamp the server owns. iso_update_channel_body()
+    // accepts a client-supplied value ($modDate ?? $now), so without this a
+    // caller could backdate or freeze "last modified" and make an identity
+    // change look older than it is. Safe to reject: the Edit popup never
+    // sends it, and Local JSON Restore sets mod_date itself rather than
+    // passing one through this path.
+    'mod_date',
+    'mod_date_unix',
+    'Mod_date_UNIX',
+    'build_date_unix',
+    'Build_date_UNIX',
+];
 
 /*
  * Enforces plan §5.3's plain-Edit field allowlist server-side.

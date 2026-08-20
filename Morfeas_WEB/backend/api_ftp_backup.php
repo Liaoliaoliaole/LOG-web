@@ -134,7 +134,8 @@ try {
                     $digest,
                     backend_opcua_config_path(),
                     backend_log_config_path(),
-                    dirname(backend_log_config_path())
+                    dirname(backend_log_config_path()),
+                    !empty($body['acknowledge_warnings'])
                 );
             } finally {
                 backend_session_registry_release_lock('system_action', 'restore', $sessionId);

@@ -99,6 +99,13 @@ expect_rejected('anchor rewrite to a fabricated identity (999999999.CH1)', ['anc
 expect_rejected('iso_channel rename', ['iso_channel' => '_RENAMED']);
 expect_rejected('interface_type change', ['interface_type' => 'IOBOX']);
 expect_rejected('build_date overwrite (audit field)', ['build_date' => '1234567890']);
+// mod_date is the same class of server-owned audit field: without this a
+// caller could backdate "last modified" so an identity change looks older
+// than it is. Aliases are rejected too, because iso_pick_value() accepts
+// all of them.
+expect_rejected('mod_date overwrite (audit field)', ['mod_date' => '1234567890']);
+expect_rejected('mod_date_unix alias overwrite', ['mod_date_unix' => '1234567890']);
+expect_rejected('Build_date_UNIX alias overwrite', ['Build_date_UNIX' => '1234567890']);
 
 // Mixed payload: a legitimate metadata field alongside a forbidden one must
 // still be rejected as a whole -- no partial application.
@@ -151,6 +158,9 @@ check((string)$sdaq->ANCHOR === '111111111.CH1', 'anchor is unchanged by a metad
 check((string)$sdaq->ISO_CHANNEL === '_TE101', 'iso_channel is unchanged by a metadata-only edit');
 check((string)$sdaq->INTERFACE_TYPE === 'SDAQ', 'interface_type is unchanged by a metadata-only edit');
 check((string)$sdaq->BUILD_DATE === '1700000000', 'build_date is preserved across a metadata-only edit');
+// Rejecting a client-supplied mod_date must not stop the SERVER from
+// maintaining it -- the audit trail still has to advance on a real edit.
+check((int)$sdaq->MOD_DATE > 1700000000, 'mod_date is still advanced by the server on a legitimate edit (got ' . (string)$sdaq->MOD_DATE . ')');
 
 // Non-SDAQ interfaces DO own their Unit in XML and must stay editable --
 // this is the case an over-broad "reject unit everywhere" rule would break.

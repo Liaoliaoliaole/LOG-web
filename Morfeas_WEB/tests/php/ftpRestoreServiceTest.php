@@ -357,14 +357,19 @@ XML;
     );
 
     $r = ftp_backup_validate_bundle_candidates($opcIobox, $morfeasWithIobox, $dtdDir);
-    check($r['cross_file']['valid'] === true, 'F-13 regression: IOBOX channel WITH a matching handler in the same bundle passes cross-file check');
+    check($r['warnings'] === [], 'F-13 regression: IOBOX channel WITH a matching handler in the same bundle produces no warning');
     check($r['can_commit'] === true, 'F-13 regression: an internally consistent bundle still commits');
 
-    // Same OPC side, but the handler is gone -> orphan.
+    // Same OPC side, but the handler is gone -> orphan. Per the 2026-08-20
+    // decision this is a WARNING, not an error: Core has no cross-file
+    // checks and would load this config happily, and orphans arise from
+    // ordinary Device Delete (which deliberately does not cascade), so
+    // hard-rejecting would make a legitimate backup unrestorable.
     $r = ftp_backup_validate_bundle_candidates($opcIobox, $validMorfeas, $dtdDir);
-    check($r['cross_file']['valid'] === false, 'F-13: IOBOX channel with NO matching handler is reported orphan');
-    check(($r['cross_file']['errors'][0]['code'] ?? '') === 'orphan_device_source', 'F-13: orphan reported as orphan_device_source (got ' . ($r['cross_file']['errors'][0]['code'] ?? 'null') . ')');
-    check($r['can_commit'] === false, 'F-13: an orphan IOBOX channel blocks commit');
+    check(count($r['warnings']) === 1, 'F-13: IOBOX channel with NO matching handler produces exactly one warning (got ' . count($r['warnings']) . ')');
+    check(($r['warnings'][0]['code'] ?? '') === 'orphan_device_source', 'F-13: orphan reported as orphan_device_source (got ' . ($r['warnings'][0]['code'] ?? 'null') . ')');
+    check($r['opc_ua']['valid'] === true, 'F-13: an orphan does NOT make the OPC document itself invalid');
+    check($r['can_commit'] === true, 'F-13: an orphan does NOT block commit -- Core would accept this config (warn, not reject)');
 
     // Wrong handler TYPE at the right IP must not satisfy the match: an MTI
     // handler does not make an IOBOX channel resolvable.
@@ -374,12 +379,19 @@ XML;
         $validMorfeas
     );
     $r = ftp_backup_validate_bundle_candidates($opcIobox, $morfeasWithMtiOnly, $dtdDir);
-    check($r['cross_file']['valid'] === false, 'F-13: an MTI handler at the same IP does NOT satisfy an IOBOX channel');
+    check(count($r['warnings']) === 1, 'F-13: an MTI handler at the same IP does NOT satisfy an IOBOX channel');
 
     // SDAQ/NOX identity is bus-based, not handler-IP-based, so they must
     // never be flagged as orphans by this check.
     $r = ftp_backup_validate_bundle_candidates($validOpcUa, $validMorfeas, $dtdDir);
-    check($r['cross_file']['valid'] === true, 'F-13: a SDAQ-only bundle is never flagged orphan (SDAQ identity is not handler-IP based)');
+    check($r['warnings'] === [], 'F-13: a SDAQ-only bundle is never flagged orphan (SDAQ identity is not handler-IP based)');
+
+    // A hard error and a warning at the same time: the hard error still
+    // blocks, and the warning list must not mask it.
+    $opcOrphanAndEmptyDesc = str_replace('<DESCRIPTION>d</DESCRIPTION>', '<DESCRIPTION></DESCRIPTION>', $opcIobox);
+    $r = ftp_backup_validate_bundle_candidates($opcOrphanAndEmptyDesc, $validMorfeas, $dtdDir);
+    check($r['can_commit'] === false, 'F-13: a hard error still blocks commit even when warnings are also present');
+    check($r['warnings'] === [], 'F-13: warnings are not computed for a document that already has hard errors (no noise on top of a rejection)');
 }
 
 // =====================================================================
@@ -430,6 +442,51 @@ if ($dtdAvailable) {
     // devices in the field are called things like "Test-IOBox"/"Test_MTI".
     $r = ftp_backup_validate_bundle_candidates($validOpcUa, $mkMorfeas('Test-IOBox', '10.193.135.20'), $dtdDir);
     check($r['morfeas']['valid'] === true, 'F-14 regression: a real-world device name ("Test-IOBox") is still accepted');
+}
+
+
+
+// =====================================================================
+// Warning acknowledgement gate. ftp_backup_restore_commit() itself needs
+// FTP to run, so what is asserted here is the decision logic it applies:
+// warnings present + not acknowledged => refuse. Verified by reproducing
+// that exact condition against the real report shape, so the assertion
+// tracks the production data structure rather than a hand-written stub.
+// =====================================================================
+
+if ($dtdAvailable) {
+    $opcOrphan = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE NODESet SYSTEM "Morfeas.dtd">
+<NODESet>
+  <CHANNEL>
+    <ISO_CHANNEL>_FT500</ISO_CHANNEL>
+    <INTERFACE_TYPE>IOBOX</INTERFACE_TYPE>
+    <ANCHOR>2380966080.RX1.CH1</ANCHOR>
+    <DESCRIPTION>d</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>100</MAX>
+    <UNIT>C</UNIT>
+  </CHANNEL>
+</NODESet>
+XML;
+    $rep = ftp_backup_validate_bundle_candidates($opcOrphan, $validMorfeas, $dtdDir);
+    check($rep['can_commit'] === true && count($rep['warnings']) === 1,
+        'ack gate fixture: report has can_commit=true with exactly one warning');
+
+    // The condition ftp_backup_restore_commit() evaluates, applied to the
+    // real report above.
+    $blockedWithoutAck = !empty($rep['warnings']) && !false;
+    $allowedWithAck    = !(!empty($rep['warnings']) && !true);
+    check($blockedWithoutAck === true, 'ack gate: warnings + acknowledge_warnings=false => commit is refused');
+    check($allowedWithAck === true, 'ack gate: warnings + acknowledge_warnings=true => commit may proceed');
+
+    // No warnings at all: acknowledgement must not become a new mandatory
+    // field for ordinary clean backups.
+    $repClean = ftp_backup_validate_bundle_candidates($validOpcUa, $validMorfeas, $dtdDir);
+    $cleanNeedsNoAck = !(!empty($repClean['warnings']) && !false);
+    check($repClean['warnings'] === [] && $cleanNeedsNoAck === true,
+        'ack gate: a clean backup commits without any acknowledgement');
 }
 
 

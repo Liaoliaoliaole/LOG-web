@@ -315,10 +315,27 @@
     }
 
     const channelCount = data.opc_ua?.channel_count;
+    const warnings = Array.isArray(data.warnings) ? data.warnings : [];
+
+    // Warnings mean "Core will load this, but something in it is
+    // inconsistent" -- currently orphan IOBOX/MTI channels, whose device
+    // handler is missing from the same backup. They are shown in full (up
+    // to a readable limit) rather than summarised away, because the whole
+    // point of not hard-rejecting is that the operator gets to make an
+    // informed call.
+    let warningText = '';
+    if (warnings.length) {
+      const shown = warnings.slice(0, 10).map((w) => `  • ${w.message}`).join('\n');
+      const more = warnings.length > 10 ? `\n  ...and ${warnings.length - 10} more` : '';
+      warningText = `\n\nWARNING - ${warnings.length} issue(s) found in this backup:\n${shown}${more}\n\n`
+        + `These channels will be restored but stay permanently offline until their device handler is re-added. `
+        + `The system will otherwise run normally.`;
+    }
+
     const confirmed = window.confirm(
       `This will REPLACE the entire current configuration (all ISO channels and device handlers) `
       + `with the contents of "${file}"${Number.isFinite(channelCount) ? ` (${channelCount} channel(s))` : ''}. `
-      + `This cannot be undone from this dialog. Continue?`
+      + `This cannot be undone from this dialog.${warningText}\n\nContinue?`
     );
     if (!confirmed) {
       setMsg(resMsg, 'Restore cancelled.', '');
@@ -328,7 +345,9 @@
 
     try {
       setMsg(resMsg, 'Restoring backup...');
-      const payload = await api.restoreCommit(file, data.digest);
+      // The operator has now seen and accepted the warnings above; the
+      // backend requires this to be explicit rather than assumed.
+      const payload = await api.restoreCommit(file, data.digest, warnings.length > 0);
       setMsg(resMsg, payload?.message || `Restored from: ${file}`, 'ok');
     } catch (err) {
       setMsg(resMsg, `Restore failed: ${err.message || err}`, 'err');

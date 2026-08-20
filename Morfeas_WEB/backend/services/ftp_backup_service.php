@@ -594,15 +594,29 @@ function ftp_backup_restore_digest(string $filename, string $rawBytes): string
  */
 /*
  * Cross-file (candidate-to-candidate) handler matching, plan §6.2's FTP row:
- * an IOBOX/MTI channel in the backup's OPC_UA_Config.xml must have a
+ * an IOBOX/MTI channel in the backup's OPC_UA_Config.xml should have a
  * matching same-type handler in the SAME backup's Morfeas_Config.xml. Both
  * sides come from the bundle, never from the live config -- FTP is a full
  * replace, so what matters is that the pair being installed is internally
  * consistent, not how it relates to what is on disk now.
  *
- * Without this, a Legacy .mbl carrying orphan IOBOX/MTI channels (their
- * device handler deleted at some point, the channels never cleaned up)
- * restores those channels as permanently unresolvable sources (F-13).
+ * These are reported as WARNINGS, not errors (2026-08-20 decision). The
+ * dividing line for FTP Restore is "would Core accept this document?", not
+ * "did a human edit this bundle?" -- the latter is not even detectable,
+ * since the bundle's CRC32 proves integrity, not provenance, and anyone
+ * editing it can recompute the checksum.
+ *
+ * Core has no cross-file checks at all, so it loads an orphan-carrying
+ * config happily; the orphan channels simply stay permanently offline. And
+ * orphans arise from ordinary supported UI use, not tampering: Device
+ * Delete deliberately does not cascade into ISO channels (plan §12.4), so
+ * "delete a handler, don't clean up its channels, take a backup" produces
+ * one. Hard-rejecting would therefore be stricter than Core and would make
+ * a legitimate historical backup permanently unrestorable -- exactly the
+ * false-rejection failure mode F-14 was deliberately shaped to avoid.
+ * Plan §12.4's own wording is that orphans are "可定位报告" (locatable and
+ * reported), which is what this now does.
+ *
  * Reuses restore_ipv4_to_core_identifier() so the IP -> identifier byte
  * order matches Core exactly, the same helper Local JSON Restore uses.
  */
@@ -699,16 +713,20 @@ function ftp_backup_validate_bundle_candidates(string $opcUa, string $morfeas, s
     // Cross-file check runs only when both sides are individually valid --
     // otherwise its findings would be noise on top of a document that is
     // already being rejected for a more fundamental reason.
-    $crossErrors = [];
+    $warnings = [];
     if (empty($opcUaErrors) && empty($morfeasErrors) && $xml !== false) {
-        $crossErrors = ftp_backup_check_bundle_handler_matching($xml, $dom);
+        $warnings = ftp_backup_check_bundle_handler_matching($xml, $dom);
     }
 
+    // can_commit reflects only hard errors -- documents Core itself would
+    // refuse to load. Warnings do not block, but ftp_backup_restore_commit()
+    // requires them to be explicitly acknowledged, so "warn + confirm" is a
+    // real API contract rather than a browser-only courtesy.
     return [
         'opc_ua' => ['valid' => empty($opcUaErrors), 'errors' => $opcUaErrors, 'channel_count' => $xml !== false ? count($xml->CHANNEL) : null],
         'morfeas' => ['valid' => empty($morfeasErrors), 'errors' => $morfeasErrors],
-        'cross_file' => ['valid' => empty($crossErrors), 'errors' => $crossErrors],
-        'can_commit' => empty($opcUaErrors) && empty($morfeasErrors) && empty($crossErrors),
+        'warnings' => $warnings,
+        'can_commit' => empty($opcUaErrors) && empty($morfeasErrors),
     ];
 }
 
@@ -821,10 +839,10 @@ function ftp_backup_restore_preflight(string $filename, string $dtdDir): array
  * TOCTOU reason -- handler/config reads must come from one consistent
  * locked snapshot).
  */
-function ftp_backup_restore_commit(string $filename, string $expectedDigest, string $xmlPath, string $logConfigPath, string $dtdDir): array
+function ftp_backup_restore_commit(string $filename, string $expectedDigest, string $xmlPath, string $logConfigPath, string $dtdDir, bool $acknowledgeWarnings = false): array
 {
-    return log_config_with_xml_lock($logConfigPath, function () use ($filename, $expectedDigest, $xmlPath, $logConfigPath, $dtdDir) {
-        return iso_with_xml_lock($xmlPath, function () use ($filename, $expectedDigest, $xmlPath, $logConfigPath, $dtdDir) {
+    return log_config_with_xml_lock($logConfigPath, function () use ($filename, $expectedDigest, $xmlPath, $logConfigPath, $dtdDir, $acknowledgeWarnings) {
+        return iso_with_xml_lock($xmlPath, function () use ($filename, $expectedDigest, $xmlPath, $logConfigPath, $dtdDir, $acknowledgeWarnings) {
             $config = ftp_backup_load_config_raw();
             $raw = ftp_backup_download_raw($config, $filename);
 
@@ -845,6 +863,23 @@ function ftp_backup_restore_commit(string $filename, string $expectedDigest, str
                     'Backup candidate failed validation: ' . ($firstError['message'] ?? 'unknown error'),
                     409,
                     $firstError['code'] ?? 'invalid_document_structure'
+                );
+            }
+
+            // Warnings (currently: orphan IOBOX/MTI channels) do not make the
+            // candidate invalid -- Core would load it -- but they must not be
+            // restored silently. The browser confirm dialog listing them is
+            // not a boundary any more than a greyed-out field is (cf. F-11):
+            // a direct API call must opt in explicitly, so a scripted caller
+            // cannot restore a known-inconsistent backup without saying so.
+            if (!empty($report['warnings']) && !$acknowledgeWarnings) {
+                $count = count($report['warnings']);
+                $first = $report['warnings'][0]['message'] ?? '';
+                throw new ChannelConfigException(
+                    "This backup has $count warning(s) that must be acknowledged before restoring. First: $first"
+                        . ' Re-submit with acknowledge_warnings=true to proceed.',
+                    409,
+                    'ftp_restore_warnings_not_acknowledged'
                 );
             }
 
