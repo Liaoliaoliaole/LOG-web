@@ -1,16 +1,104 @@
 <?php
 
 require_once __DIR__ . '/../core/concurrency.php';
+require_once __DIR__ . '/../core/log_config_validation.php';
+
+/*
+ * F-15: until 2026-08-20 log_config_validate_document() was reachable only
+ * from FTP Restore, so the ordinary Device Add and CAN role writers could
+ * put a document on disk that Core refuses to start on -- and then restart
+ * Core into it. Every writer below that ADDS a component now re-validates
+ * the exact bytes it is about to write, inside the same lock, against the
+ * same Core-equivalence rules an FTP candidate has to pass.
+ *
+ * Deliberately not applied to the removal paths (log_config_delete_devices(),
+ * and the FREE branch of log_config_set_can_role()). Removing a component
+ * cannot introduce a violation, and a config that is already invalid -- a
+ * hand-edited file, or one written before these rules existed -- must not
+ * become impossible to repair through the UI. Blocking the fix for the
+ * problem would be worse than the problem.
+ *
+ * Validation runs on a re-parse of the serialized string rather than on the
+ * live DOMDocument, so what is checked is byte for byte what
+ * backend_atomic_write_file() then writes.
+ */
+function log_config_validate_before_write(string $xmlString, string $xmlPath): void
+{
+    $dtdDir = dirname($xmlPath);
+    if (!is_file(rtrim($dtdDir, '/') . '/Morfeas.dtd')) {
+        // Distinguished from a real structural failure on purpose: this is
+        // a broken installation, not a bad edit, and the two need very
+        // different responses from whoever reads the error.
+        throw new ChannelConfigException(
+            "Cannot validate the new Morfeas_Config.xml: Morfeas.dtd is missing from $dtdDir",
+            500,
+            'dtd_unavailable'
+        );
+    }
+
+    $check = new DOMDocument('1.0');
+    libxml_use_internal_errors(true);
+    $loaded = $check->loadXML($xmlString);
+    libxml_clear_errors();
+    if (!$loaded) {
+        throw new ChannelConfigException(
+            'The updated Morfeas_Config.xml is not well-formed XML; nothing was written',
+            500,
+            'invalid_document_structure'
+        );
+    }
+
+    log_config_validate_document($check, $dtdDir);
+}
+
+/*
+ * Uniqueness for a device being CREATED, evaluated against the DOM already
+ * loaded inside the log_config lock.
+ *
+ * This used to live in api_devices.php, outside the lock, while the in-lock
+ * check compared only the fully composed id ("IOBOX:-:Name") -- so two
+ * requests could both pass the outside check and the second would still
+ * satisfy the in-lock one whenever the ids differed (same name, different
+ * IP, or vice versa), writing a config Core rejects and then restarting
+ * Core into it (F-15). There is now exactly one implementation of the rule
+ * and it runs where it can actually hold.
+ *
+ * Names are compared case-INSENSITIVELY, which is stricter than Core's
+ * strcmp(). That is deliberate and specific to creation: the Web's own
+ * runtime map keys handlers by strtoupper(identifier)
+ * (device_build_runtime_maps()), so "Box" and "box" would be one entry
+ * there and the two devices would shadow each other's connection status.
+ * log_config_validate_document(), which judges documents that already
+ * exist, stays case-sensitive like Core.
+ */
+function log_config_find_device_conflict(DOMElement $components, string $name, string $ip): ?string
+{
+    foreach ($components->childNodes as $node) {
+        if (!$node instanceof DOMElement) {
+            continue;
+        }
+        if (!in_array(strtoupper($node->tagName), ['IOBOX_HANDLER', 'MTI_HANDLER'], true)) {
+            continue;
+        }
+
+        $existingName = log_config_dom_text_or_empty($node, 'DEV_NAME');
+        $existingIp = log_config_dom_text_or_empty($node, 'IPv4_ADDR');
+
+        if ($existingName !== '' && strcasecmp($existingName, $name) === 0) {
+            return "Device name already exists: $name";
+        }
+        if ($existingIp !== '' && $existingIp === $ip) {
+            return "Device IPv4 already exists: $ip";
+        }
+    }
+
+    return null;
+}
 
 function log_config_dom_text_or_empty(DOMElement $parent, string $tag): string
 {
     $node = $parent->getElementsByTagName($tag)->item(0);
     return $node ? trim($node->nodeValue) : '';
-}
-
-function log_config_node_disabled(DOMElement $node): bool
-{
-    return strtolower((string) $node->getAttribute('Disable')) === 'true';
 }
 
 /**
@@ -396,6 +484,9 @@ function log_config_set_can_role(string $xmlPath, string $bus, string $role): ar
         if (!is_string($xmlString) || $xmlString === '') {
             throw new RuntimeException('Failed to serialize LOG config XML');
         }
+        if ($normalizedRole !== 'FREE') {
+            log_config_validate_before_write($xmlString, $xmlPath);
+        }
         backend_atomic_write_file($xmlPath, $xmlString, 0644);
 
         return [
@@ -428,11 +519,9 @@ function log_config_append_device(string $xmlPath, array $data): array
         $type = strtoupper(str_replace('-', '', $data['type']));
         $id   = log_config_build_manual_id($type, '-', $data['name'], $data['ip']);
 
-        $existing = log_config_load_manual_devices($xmlPath);
-        foreach ($existing as $dev) {
-            if ($dev['id'] === $id) {
-                throw new RuntimeException("Device already exists: $id");
-            }
+        $conflict = log_config_find_device_conflict($components, (string)$data['name'], (string)$data['ip']);
+        if ($conflict !== null) {
+            throw new ChannelConfigException($conflict, 409, 'duplicate_device');
         }
 
         switch ($type) {
@@ -453,6 +542,7 @@ function log_config_append_device(string $xmlPath, array $data): array
         if (!is_string($xmlString) || $xmlString === '') {
             throw new RuntimeException('Failed to serialize LOG config XML');
         }
+        log_config_validate_before_write($xmlString, $xmlPath);
         backend_atomic_write_file($xmlPath, $xmlString, 0644);
 
         return [

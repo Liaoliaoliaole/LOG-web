@@ -91,6 +91,12 @@ function write_empty_opcua_xml(string $dir): string
 $dir = make_tmp_dir('sdaq_add_test');
 $sdaqJson = write_sdaq_fixture($dir);
 $xmlPath = write_empty_opcua_xml($dir);
+// SDAQ identity is bus/serial-based, so Add never reads Morfeas_Config.xml
+// for it and never takes the log_config lock (F-16). The path is passed
+// anyway, and deliberately points at a file that does not exist: if the
+// SDAQ path ever starts consulting it, these tests fail rather than
+// silently acquiring a second lock.
+$logConfigPath = $dir . '/Morfeas_config_absent.xml';
 
 // --- 1) sdaq_load_anchor_map(): no address fallback into preferred/connection anchor ---
 $map = sdaq_load_anchor_map($sdaqJson, []);
@@ -137,6 +143,7 @@ $beforeHash = sha1_file($xmlPath);
 try {
     channel_add_channel_from_pool(
         $xmlPath,
+        $logConfigPath,
         ['iso_channel' => '_Protea_NH3', 'interface_type' => 'SDAQ', 'anchor' => 'CAN1.ADDR:05.CH:01', 'description' => 'd', 'min' => '0', 'max' => '1'],
         [$sdaqJson], [], [], [], []
     );
@@ -150,6 +157,7 @@ check(sha1_file($xmlPath) === $beforeHash, 'XML file is byte-for-byte unchanged 
 //     resolve to and persist the canonical serial anchor, never the address.
 channel_add_channel_from_pool(
     $xmlPath,
+    $logConfigPath,
     ['iso_channel' => '_Test_Serial', 'interface_type' => 'SDAQ', 'anchor' => 'CAN1.ADDR:08.CH:01', 'description' => 'd', 'min' => '0', 'max' => '1'],
     [$sdaqJson], [], [], [], []
 );
@@ -166,6 +174,7 @@ check($writtenAnchor === '796834087.CH1', 'Add persists the canonical serial anc
 try {
     channel_add_channel_from_pool(
         $xmlPath,
+        $logConfigPath,
         ['iso_channel' => '_Test_Serial_2', 'interface_type' => 'SDAQ', 'anchor' => '796834087.CH1', 'description' => 'd', 'min' => '0', 'max' => '1'],
         [$sdaqJson], [], [], [], []
     );
@@ -179,6 +188,7 @@ try {
 try {
     channel_add_channel_from_pool(
         $xmlPath,
+        $logConfigPath,
         ['iso_channel' => '_Fabricated', 'interface_type' => 'SDAQ', 'anchor' => '999999999.CH1', 'description' => 'd', 'min' => '0', 'max' => '1'],
         [$sdaqJson], [], [], [], []
     );

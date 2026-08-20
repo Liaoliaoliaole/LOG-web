@@ -63,12 +63,19 @@
   const popupRegistry = new Map();
 
   const IP_REGEX = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-  const DEV_NAME_REGEX = /^[A-Za-z0-9_-]{1,64}$/;
-  // D-Bus interface name element rules (RFC / D-Bus spec):
-  // only [A-Za-z0-9_], must not start with a digit.
-  // D-Bus spec: interface names max 255 chars total. Prefix "Morfeas.MTI." is 12 chars,
-  // leaving 243 chars for the element: first char [A-Za-z_], remainder [A-Za-z0-9_]{0,242}.
-  const MTI_DBUS_ELEMENT_REGEX = /^[A-Za-z_][A-Za-z0-9_]{0,242}$/;
+  // 15 = IFNAMSIZ-1. Core's Dev_or_Bus_name buffer is 16 bytes and the three
+  // components that read it disagree at exactly 16: the daemon-config
+  // validator accepts it, the IOBOX handler exits, the MTI handler truncates
+  // the name to 15 bytes in its IPC messages. 15 is the longest name that
+  // means the same thing everywhere, and it is what the backend enforces
+  // (devices_validate_name()); this field used to allow 64 and 243, so the
+  // server had to reject names the UI had told the user were fine (F-15).
+  const DEV_NAME_MAX = 15;
+  const DEV_NAME_REGEX = /^[A-Za-z0-9_-]{1,15}$/;
+  // MTI names carry the additional D-Bus interface name element rules
+  // (only [A-Za-z0-9_], must not start with a digit). D-Bus itself would
+  // allow 243 characters here; DEV_NAME_MAX is the binding constraint.
+  const MTI_DBUS_ELEMENT_REGEX = /^[A-Za-z_][A-Za-z0-9_]{0,14}$/;
 
   function stripSpaces(el) {
     el.value = el.value.replace(/\s+/g, '');
@@ -94,7 +101,8 @@
           'MTI Device Name must satisfy D-Bus interface name element rules:\n' +
           '\u2022 Allowed characters: A\u2013Z  a\u2013z  0\u20139  _\n' +
           '\u2022 No hyphens or other special characters\n' +
-          '\u2022 Must not start with a digit'
+          '\u2022 Must not start with a digit\n' +
+          '\u2022 Max ' + DEV_NAME_MAX + ' characters'
         );
         return false;
       }
@@ -102,7 +110,7 @@
     }
     if (!DEV_NAME_REGEX.test(val)) {
       el.value = '';
-      alert('DEV_NAME may contain only letters, numbers, "_" or "-"');
+      alert('DEV_NAME may contain only letters, numbers, "_" or "-", and must be at most ' + DEV_NAME_MAX + ' characters');
       return false;
     }
     return true;

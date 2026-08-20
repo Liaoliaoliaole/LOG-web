@@ -6,6 +6,11 @@ require_once __DIR__ . '/../core/logstat_iobox.php';
 require_once __DIR__ . '/../core/logstat_mti.php';
 require_once __DIR__ . '/../core/logstat_nox.php';
 require_once __DIR__ . '/../core/sdaq_type_cache.php';
+// For restore_load_device_identifiers()/restore_check_device_handler(): the
+// handler-matching rule F-16 needs on the Add path is the one Local JSON
+// Restore already implements correctly, so Add reuses it rather than
+// growing a third copy (FTP Restore's cross-file check is the second).
+require_once __DIR__ . '/channel_restore_service.php';
 
 function channel_status_is_offline(string $status): bool
 {
@@ -771,6 +776,7 @@ function channel_candidate_canonical_anchor(array $candidate): string
  */
 function channel_add_channel_from_pool(
     string $xmlPath,
+    string $logConfigPath,
     array $data,
     array $sdaqLogFiles,
     array $ioboxLogFiles,
@@ -778,18 +784,26 @@ function channel_add_channel_from_pool(
     array $noxLogFiles,
     array $sdaqDeviceTypes
 ): void {
-    iso_with_xml_lock($xmlPath, function () use (
-        $xmlPath, $data, $sdaqLogFiles, $ioboxLogFiles, $mtiLogFiles, $noxLogFiles, $sdaqDeviceTypes
-    ) {
-        $anchorInput = trim((string)($data['anchor'] ?? ''));
-        if ($anchorInput === '') {
-            throw new ChannelConfigException('Missing field: anchor', 400, 'missing_field');
-        }
-        $requestedFamily = channel_normalize_family($data['interface_type'] ?? '');
-        if ($requestedFamily === '') {
-            throw new ChannelConfigException('Missing field: interface_type', 400, 'missing_field');
-        }
+    // Resolved before any lock is taken: a malformed request should not
+    // queue behind a write, and the requested family decides which locks
+    // this call needs. The family is only a *request* here -- it is checked
+    // against the resolved candidate's real family below, so an IOBOX
+    // candidate can never be reached through a path that declared SDAQ and
+    // skipped the log_config lock.
+    $anchorInput = trim((string)($data['anchor'] ?? ''));
+    if ($anchorInput === '') {
+        throw new ChannelConfigException('Missing field: anchor', 400, 'missing_field');
+    }
+    $requestedFamily = channel_normalize_family($data['interface_type'] ?? '');
+    if ($requestedFamily === '') {
+        throw new ChannelConfigException('Missing field: interface_type', 400, 'missing_field');
+    }
+    $needsLogConfig = in_array($requestedFamily, ['IOBOX', 'MTI'], true);
 
+    $body = function () use (
+        $xmlPath, $logConfigPath, $data, $anchorInput, $requestedFamily, $needsLogConfig,
+        $sdaqLogFiles, $ioboxLogFiles, $mtiLogFiles, $noxLogFiles, $sdaqDeviceTypes
+    ) {
         [, $extras] = channel_collect_rows_and_extras(
             $xmlPath,
             $sdaqLogFiles,
@@ -832,10 +846,64 @@ function channel_add_channel_from_pool(
             );
         }
 
+        // F-16: the candidate pool above is rebuilt from ramdisk logstat
+        // only. Deleting an IOBOX/MTI device handler does not remove the
+        // logstat file it left behind, so between the delete and the next
+        // Core restart a stale logstat still presents that device as an
+        // available candidate -- and Add would write an ISO channel
+        // anchored to a handler that no longer exists, permanently offline
+        // and invisible to the delete that caused it.
+        //
+        // The static side is therefore re-read here, under the log_config
+        // lock held around this whole closure, with the same rule Local
+        // JSON Restore applies. That rule asks only whether a handler is
+        // CONFIGURED, not whether it is enabled or online; the liveness
+        // half is already covered, because the candidate had to appear in
+        // the freshly rebuilt runtime pool to get this far. The two
+        // conditions compose into "configured AND currently detected",
+        // which is what Add has always meant.
+        if ($needsLogConfig) {
+            $identity = iso_parse_source_identity($requestedFamily, $canonicalAnchor);
+            if ($identity === null) {
+                throw new ChannelConfigException(
+                    "$requestedFamily candidate anchor could not be parsed: $canonicalAnchor",
+                    409,
+                    'candidate_not_available'
+                );
+            }
+            $problem = restore_check_device_handler(
+                $requestedFamily,
+                $identity,
+                restore_load_device_identifiers($logConfigPath)
+            );
+            if ($problem !== null) {
+                throw new ChannelConfigException(
+                    "$requestedFamily candidate has no matching handler in Morfeas_Config.xml: "
+                        . $problem['detail'],
+                    409,
+                    $problem['code']
+                );
+            }
+        }
+
         $serverData = $data;
         $serverData['anchor'] = $canonicalAnchor;
         iso_add_channel_body($xmlPath, $serverData);
-    });
+    };
+
+    // Fixed lock order, plan §6.0.1: log_config outward, opcua_config
+    // inward, never the reverse -- the same order ftp_backup_restore_commit()
+    // takes, so the two can never deadlock against each other. SDAQ and NOX
+    // Add does not consult Morfeas_Config.xml at all and does not take the
+    // outer lock, which keeps channel Add on a CAN bus independent of
+    // whatever the Devices page is doing.
+    if ($needsLogConfig) {
+        log_config_with_xml_lock($logConfigPath, function () use ($xmlPath, $body) {
+            iso_with_xml_lock($xmlPath, $body);
+        });
+        return;
+    }
+    iso_with_xml_lock($xmlPath, $body);
 }
 
 /*

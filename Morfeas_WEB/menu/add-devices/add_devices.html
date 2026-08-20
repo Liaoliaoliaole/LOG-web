@@ -305,12 +305,12 @@
 
           <div class="label">Device Name</div>
           <div>
-            <input id="devName" class="input" style="min-width:280px" placeholder="e.g. IOBOX_01" />
+            <input id="devName" class="input" style="min-width:280px" placeholder="e.g. IOBOX_01" maxlength="15" title="Max 15 characters (Core's device name buffer is 16 bytes and its handlers disagree at exactly 16)" />
             <div id="devNameHint" hidden style="color:#a8071a;font-size:12px;font-weight:700;margin-top:4px;">
               D-Bus interface name element rules &mdash;
               allowed: <code>A&ndash;Z&nbsp; a&ndash;z&nbsp; 0&ndash;9&nbsp; _</code>
               &nbsp;&middot;&nbsp; No hyphens &nbsp;&middot;&nbsp; Must not start with a digit
-              &nbsp;&middot;&nbsp; Max 243 chars (D-Bus interface names must not exceed 255 chars)
+              &nbsp;&middot;&nbsp; Max 15 chars (Core's DEV_NAME buffer is IFNAMSIZ = 16 bytes)
             </div>
           </div>
 

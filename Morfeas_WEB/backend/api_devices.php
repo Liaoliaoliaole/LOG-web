@@ -35,55 +35,6 @@ function devices_normalize_bus($raw): string
     return strtolower(trim((string) $raw));
 }
 
-function devices_validate_name(string $name): bool
-{
-    if ($name === '') {
-        return false;
-    }
-    if (strlen($name) > 64) {
-        return false;
-    }
-    return preg_match('/^[A-Za-z0-9_-]{1,64}$/', $name) === 1;
-}
-
-function devices_validate_ipv4(string $ip): bool
-{
-    if ($ip === '') {
-        return false;
-    }
-    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
-        return false;
-    }
-    if ($ip === '0.0.0.0' || $ip === '255.255.255.255') {
-        return false;
-    }
-    return true;
-}
-
-function devices_find_conflict(
-    string $name,
-    string $ip,
-    array $manualDevices
-): ?string {
-    foreach ($manualDevices as $dev) {
-        $existingType = devices_normalize_type($dev['type'] ?? '');
-        if (!in_array($existingType, ['IOBOX', 'MTI'], true)) {
-            continue;
-        }
-        $existingName = trim((string) ($dev['name'] ?? ''));
-        $existingIp = trim((string) ($dev['ip'] ?? ''));
-
-        if (strcasecmp($existingName, $name) === 0) {
-            return "Device name already exists: $name";
-        }
-        if ($existingIp !== '' && $existingIp === $ip) {
-            return "Device IPv4 already exists: $ip";
-        }
-    }
-
-    return null;
-}
-
 function devices_normalize_delete_ids($rawIds): array
 {
     if (!is_array($rawIds)) {
@@ -125,19 +76,27 @@ try {
                 devices_fail("unsupported type: $type", 400);
             }
 
-            if (!devices_validate_name($name)) {
-                devices_fail('name must be 1..64 chars and contain only letters, numbers, "_" or "-"', 400);
+            if (!devices_validate_name($name, $type)) {
+                devices_fail(
+                    $type === 'MTI'
+                        ? 'name must be 1..' . log_config_dev_name_safe_max_length()
+                            . ' chars, contain only letters, numbers and "_", and not start with a digit'
+                            . ' (Core builds the MTI D-Bus interface name from it)'
+                        : 'name must be 1..' . log_config_dev_name_safe_max_length()
+                            . ' chars and contain only letters, numbers, "_" or "-"',
+                    400
+                );
             }
             if (!devices_validate_ipv4($ip)) {
                 devices_fail('ip must be a valid IPv4 address', 400);
             }
 
-            $manualDevices = log_config_load_manual_devices($logConfig);
-            $conflict = devices_find_conflict($name, $ip, $manualDevices);
-            if ($conflict !== null) {
-                devices_fail($conflict, 409);
-            }
-
+            // Name/IP uniqueness is NOT checked here any more. It used to be,
+            // against a snapshot read outside the log_config lock, which is
+            // the F-15 race: two Adds could both pass it. The single
+            // authoritative check now runs inside the lock in
+            // log_config_append_device(), against the same DOM that is about
+            // to be written, and raises the 409 from there.
             $device = device_add($logConfig, [
                 'type' => $type,
                 'bus'  => $bus,
@@ -168,6 +127,17 @@ try {
             header('Allow: GET, POST, DELETE');
             echo json_encode(['ok' => false, 'error' => 'Method not allowed'], JSON_PRETTY_PRINT);
     }
+} catch (ChannelConfigException $e) {
+    // The in-lock validation and uniqueness failures added by F-15 carry
+    // their own status and code; without this they would surface as a bare
+    // 500 "Failed to process device request" and the operator would have no
+    // idea which rule the name or IP broke.
+    http_response_code($e->status());
+    echo json_encode([
+        'ok' => false,
+        'error' => $e->getMessage(),
+        'code' => $e->apiCode(),
+    ], JSON_PRETTY_PRINT);
 } catch (Throwable $e) {
     api_fail_response('Failed to process device request', 500, 'api_devices', $e);
 }

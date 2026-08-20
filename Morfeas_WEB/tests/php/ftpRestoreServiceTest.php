@@ -442,6 +442,36 @@ if ($dtdAvailable) {
     // devices in the field are called things like "Test-IOBox"/"Test_MTI".
     $r = ftp_backup_validate_bundle_candidates($validOpcUa, $mkMorfeas('Test-IOBox', '10.193.135.20'), $dtdDir);
     check($r['morfeas']['valid'] === true, 'F-14 regression: a real-world device name ("Test-IOBox") is still accepted');
+
+    // The rules completed on 2026-08-20 -- asserted here at the bundle
+    // level, not just at the validator level, because these are the codes
+    // the preflight report actually shows the operator. Per-rule coverage
+    // (including every "must still pass" counterpart) is in
+    // logConfigValidationTest.php.
+    $badDisable = str_replace('<SDAQ_HANDLER Disable="false">', '<SDAQ_HANDLER Disable="maybe">', $validMorfeas);
+    $r = ftp_backup_validate_bundle_candidates($validOpcUa, $badDisable, $dtdDir);
+    check($r['morfeas']['valid'] === false, 'F-14: Disable="maybe" is rejected (DTD declares Disable as CDATA, so only this check catches it)');
+    check(($r['morfeas']['errors'][0]['code'] ?? '') === 'invalid_disable_attribute', 'F-14: out-of-range Disable reported as invalid_disable_attribute (got ' . ($r['morfeas']['errors'][0]['code'] ?? 'null') . ')');
+
+    $dupBus = str_replace(
+        '</COMPONENTS>',
+        '<NOX_HANDLER Disable="false"><CANBUS_IF>can0</CANBUS_IF></NOX_HANDLER></COMPONENTS>',
+        $validMorfeas
+    );
+    $r = ftp_backup_validate_bundle_candidates($validOpcUa, $dupBus, $dtdDir);
+    check($r['morfeas']['valid'] === false, 'F-14: a NOX_HANDLER claiming a bus an enabled SDAQ_HANDLER already owns is rejected');
+    check(($r['morfeas']['errors'][0]['code'] ?? '') === 'duplicate_can_bus', 'F-14: cross-type CAN bus collision reported as duplicate_can_bus (got ' . ($r['morfeas']['errors'][0]['code'] ?? 'null') . ')');
+
+    $r = ftp_backup_validate_bundle_candidates($validOpcUa, $mkMorfeas('Test-IOBox ', '10.193.135.20'), $dtdDir);
+    check($r['morfeas']['valid'] === false, 'F-14: a DEV_NAME whose only defect is a trailing space is rejected (Core scans the raw bytes, so the validator must not trim first)');
+
+    // A 16-byte DEV_NAME must NOT block the restore -- Core's index-based
+    // loop accepts it -- but it must not pass silently either.
+    $r = ftp_backup_validate_bundle_candidates($validOpcUa, $mkMorfeas(str_repeat('A', 16), '10.193.135.20'), $dtdDir);
+    check($r['morfeas']['valid'] === true, 'F-14: a 16-byte DEV_NAME does not block the restore (Core accepts it, so rejecting would false-reject a loadable backup)');
+    check($r['can_commit'] === true, 'F-14: a 16-byte DEV_NAME leaves can_commit true');
+    $codes = array_column($r['warnings'], 'code');
+    check(in_array('dev_name_at_ifnamsiz', $codes, true), 'F-14: a 16-byte DEV_NAME is surfaced as a dev_name_at_ifnamsiz warning, so commit requires explicit acknowledgement');
 }
 
 

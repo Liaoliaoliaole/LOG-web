@@ -710,12 +710,18 @@ function ftp_backup_validate_bundle_candidates(string $opcUa, string $morfeas, s
         }
     }
 
-    // Cross-file check runs only when both sides are individually valid --
-    // otherwise its findings would be noise on top of a document that is
-    // already being rejected for a more fundamental reason.
+    // Warning passes run only when both sides are individually valid --
+    // otherwise their findings would be noise on top of a document that is
+    // already being rejected for a more fundamental reason. Two sources:
+    // the cross-file handler matching below, and the single-document
+    // findings log_config_validate_document() deliberately does not raise
+    // as errors because Core accepts them (F-14's 16-byte DEV_NAME).
     $warnings = [];
     if (empty($opcUaErrors) && empty($morfeasErrors) && $xml !== false) {
-        $warnings = ftp_backup_check_bundle_handler_matching($xml, $dom);
+        $warnings = array_merge(
+            log_config_collect_document_warnings($dom),
+            ftp_backup_check_bundle_handler_matching($xml, $dom)
+        );
     }
 
     // can_commit reflects only hard errors -- documents Core itself would

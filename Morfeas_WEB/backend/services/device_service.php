@@ -6,6 +6,65 @@ require_once __DIR__ . '/../core/nox_runtime.php';
 
 const DEVICE_LEGACY_MDAQ_MESSAGE = 'Legacy MDAQ config found in XML. Remove it manually before using this page.';
 
+/*
+ * F-15: this accepted 64 characters, four times what any Core component can
+ * hold, so the Web happily wrote a DEV_NAME that Core's own daemon-config
+ * validator rejects outright (>16) and then restarted Core into it.
+ *
+ * The limit for a name being CREATED is IFNAMSIZ-1 = 15, one byte tighter
+ * than the >16 that Morfeas_XML.c actually enforces, because 16 is the
+ * length the three Core components disagree on: the config validator
+ * accepts it, Morfeas_IOBOX_if.c:110 exits at >=16, and
+ * Morfeas_MTI_if.c:169 admits it and then truncates the name to 15 bytes in
+ * every IPC message. 15 is the largest length that means the same thing
+ * everywhere. See log_config_dev_name_safe_max_length(), which is where the
+ * number comes from; existing 16-byte names in a restored backup are
+ * warned about rather than rejected, since Core does load them.
+ *
+ * The base character class is unchanged and is stricter than Core's "no
+ * space, no quote" scan -- a pre-existing Web policy for new names, not
+ * something F-15 introduced.
+ *
+ * MTI names carry one more rule, and it is a genuine Core constraint rather
+ * than a policy: Morfeas_MTI_DBus.c:115/134 builds the handler's D-Bus
+ * names by concatenation --
+ *
+ *     sprintf(dbus_server_name_if, "%s%s", "Morfeas.MTI.", stats->dev_name);
+ *
+ * -- so the device name becomes a D-Bus interface name ELEMENT, which D-Bus
+ * requires to match [A-Za-z_][A-Za-z0-9_]*: no hyphen, no leading digit. An
+ * MTI called "IO-Box" or "1Box" produces an invalid interface name and the
+ * handler's D-Bus registration fails. devices.js has enforced this in the
+ * browser all along (MTI_DBUS_ELEMENT_REGEX) while the server accepted it,
+ * so a direct API call could still create one -- the same shape of gap as
+ * the rest of F-15, found while fixing it.
+ */
+function devices_validate_name(string $name, string $type): bool
+{
+    $max = log_config_dev_name_safe_max_length();
+    if ($name === '' || strlen($name) > $max) {
+        return false;
+    }
+    if (strtoupper($type) === 'MTI') {
+        return preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $name) === 1;
+    }
+    return preg_match('/^[A-Za-z0-9_-]+$/', $name) === 1;
+}
+
+function devices_validate_ipv4(string $ip): bool
+{
+    if ($ip === '') {
+        return false;
+    }
+    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
+        return false;
+    }
+    if ($ip === '0.0.0.0' || $ip === '255.255.255.255') {
+        return false;
+    }
+    return true;
+}
+
 function device_restart_morfeas_core(): void
 {
     $output = [];

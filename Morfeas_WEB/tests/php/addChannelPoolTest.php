@@ -96,6 +96,39 @@ file_put_contents($noxJsonOutOfRange, json_encode([
 $xmlPath = $dir . '/OPC_UA_Config.xml';
 file_put_contents($xmlPath, "<?xml version=\"1.0\"?>\n<NODESet>\n</NODESet>\n");
 
+// Since F-16, an IOBOX/MTI Add also has to find a matching handler in
+// Morfeas_Config.xml, so the fixture needs the static side of the pair. The
+// IPs are the ones that map to the logstat Identifiers above under Core's
+// little-endian byte order (restore_ipv4_to_core_identifier()):
+// 227.26.29.33 -> 555555555 and 14.100.3.0 -> 222222. They do not match the
+// IPv4_address fields in the logstat fixtures, and that is fine -- Core
+// derives the channel identifier from the Identifier field, which is what
+// the anchor carries and what the handler lookup compares.
+$logConfigPath = $dir . '/Morfeas_config.xml';
+$logConfigWithBothHandlers = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE CONFIG SYSTEM "Morfeas.dtd">
+<CONFIG>
+  <CONFIGS_DIR>/home/morfeas/configuration</CONFIGS_DIR>
+  <LOGGERS_DIR>/mnt/ramdisk/Morfeas_Loggers/</LOGGERS_DIR>
+  <LOGSTAT_DIR>/mnt/ramdisk/</LOGSTAT_DIR>
+  <COMPONENTS>
+    <OPC_UA_SERVER>
+      <APP_NAME>Morfeas_Default_app_32</APP_NAME>
+    </OPC_UA_SERVER>
+    <IOBOX_HANDLER Disable="false">
+      <DEV_NAME>IOBox-A</DEV_NAME>
+      <IPv4_ADDR>227.26.29.33</IPv4_ADDR>
+    </IOBOX_HANDLER>
+    <MTI_HANDLER Disable="false">
+      <DEV_NAME>MTI-A</DEV_NAME>
+      <IPv4_ADDR>14.100.3.0</IPv4_ADDR>
+    </MTI_HANDLER>
+  </COMPONENTS>
+</CONFIG>
+XML;
+file_put_contents($logConfigPath, $logConfigWithBothHandlers);
+
 function add_payload(string $type, string $iso, string $anchor): array
 {
     $payload = ['iso_channel' => $iso, 'interface_type' => $type, 'anchor' => $anchor, 'description' => 'd', 'min' => '0', 'max' => '1'];
@@ -124,6 +157,7 @@ function written_anchor(string $xmlPath, string $iso): ?string
 //        persisted ANCHOR must be the pool's own canonical form. ---
 channel_add_channel_from_pool(
     $xmlPath,
+    $logConfigPath,
     add_payload('IOBOX', '_IOBOX_A', '555555555.rx1.ch1'),
     [], [$ioboxJson], [], [], []
 );
@@ -136,6 +170,7 @@ $beforeHash = sha1_file($xmlPath);
 try {
     channel_add_channel_from_pool(
         $xmlPath,
+        $logConfigPath,
         add_payload('IOBOX', '_IOBOX_Fake', '999999999.RX1.CH1'),
         [], [$ioboxJson], [], [], []
     );
@@ -149,6 +184,7 @@ check(sha1_file($xmlPath) === $beforeHash, 'XML file is unchanged after rejectin
 try {
     channel_add_channel_from_pool(
         $xmlPath,
+        $logConfigPath,
         add_payload('IOBOX', '_IOBOX_B', '555555555.RX1.CH1'),
         [], [$ioboxJson], [], [], []
     );
@@ -162,6 +198,7 @@ try {
 try {
     channel_add_channel_from_pool(
         $xmlPath,
+        $logConfigPath,
         add_payload('MTI', '_Wrong_Family', '555555555.RX1.Status'),
         [], [$ioboxJson], [], [], []
     );
@@ -173,6 +210,7 @@ try {
 // --- 5) MTI Add: canonical anchor persisted. ---
 channel_add_channel_from_pool(
     $xmlPath,
+    $logConfigPath,
     add_payload('MTI', '_MTI_A', '222222.tc16.ch1'),
     [], [], [$mtiJson], [], []
 );
@@ -184,6 +222,7 @@ check(written_anchor($xmlPath, '_MTI_A') === '222222.TC16.CH1', 'MTI Add persist
 //        independently Add-able candidate (not merged into one source). ---
 channel_add_channel_from_pool(
     $xmlPath,
+    $logConfigPath,
     add_payload('NOX', '_NOX_NOx', 'CAN2.ADDR:1.NOx'),
     [], [], [], [$noxJson], []
 );
@@ -191,6 +230,7 @@ check(written_anchor($xmlPath, '_NOX_NOx') === 'can2.addr_1.NOx', 'NOX Add persi
 
 channel_add_channel_from_pool(
     $xmlPath,
+    $logConfigPath,
     add_payload('NOX', '_NOX_O2', 'can2.addr_1.O2'),
     [], [], [], [$noxJson], []
 );
@@ -210,6 +250,7 @@ $beforeNoxHash = sha1_file($xmlPath);
 try {
     channel_add_channel_from_pool(
         $xmlPath,
+        $logConfigPath,
         add_payload('NOX', '_NOX_OutOfRange', 'can3.addr_3.NOx'),
         [], [], [], [$noxJsonOutOfRange], []
     );
@@ -223,6 +264,7 @@ check(sha1_file($xmlPath) === $beforeNoxHash, 'XML file is unchanged after rejec
 try {
     channel_add_channel_from_pool(
         $xmlPath,
+        $logConfigPath,
         ['iso_channel' => '_No_Type', 'interface_type' => '', 'anchor' => '555555555.RX1.CH1', 'description' => 'd', 'min' => '0', 'max' => '1'],
         [], [$ioboxJson], [], [], []
     );
@@ -230,6 +272,94 @@ try {
 } catch (ChannelConfigException $e) {
     check($e->apiCode() === 'missing_field', 'Add rejects an empty interface_type with missing_field (got ' . $e->apiCode() . ')');
 }
+
+// =====================================================================
+// F-16 (plan §10.0.9): an IOBOX/MTI Add must re-verify, inside the
+// log_config lock, that the device still has a handler in
+// Morfeas_Config.xml.
+//
+// The candidate pool above is built from ramdisk logstat alone. Device
+// Delete deliberately does not cascade (plan §12.4) and does not clean up
+// the ramdisk, so between deleting a handler and Core's next restart the
+// stale logstat still advertises the device as available -- and Add would
+// write an ISO channel anchored to a handler that no longer exists.
+//
+// This is the one scenario the 2026-08-20 hardware session could not
+// construct without disturbing the live configuration, which is why it is
+// pinned here as well as in the E4 hardware item.
+// =====================================================================
+
+$mtiOnly = str_replace(
+    '    <IOBOX_HANDLER Disable="false">
+      <DEV_NAME>IOBox-A</DEV_NAME>
+      <IPv4_ADDR>227.26.29.33</IPv4_ADDR>
+    </IOBOX_HANDLER>
+',
+    '',
+    $logConfigWithBothHandlers
+);
+file_put_contents($logConfigPath, $mtiOnly);
+
+$isoBefore = file_get_contents($xmlPath);
+try {
+    channel_add_channel_from_pool(
+        $xmlPath,
+        $logConfigPath,
+        add_payload('IOBOX', '_IOBOX_Orphan', '555555555.RX1.Status'),
+        [], [$ioboxJson], [], [], []
+    );
+    check(false, 'F-16: an IOBOX Add whose handler has been deleted must throw, even while its logstat is still on the ramdisk');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'orphan_device_source', 'F-16: an IOBOX Add whose handler has been deleted is refused with orphan_device_source (got ' . $e->apiCode() . ')');
+}
+check(file_get_contents($xmlPath) === $isoBefore, 'F-16: nothing is written to OPC_UA_Config.xml when the handler check fails');
+
+// The same identifier configured under the WRONG handler type must not
+// satisfy the check either -- restore_check_device_handler() reports that
+// case separately so the operator is told what is actually wrong.
+$wrongType = str_replace('MTI_HANDLER', 'IOBOX_HANDLER', $logConfigWithBothHandlers);
+file_put_contents($logConfigPath, $wrongType);
+try {
+    channel_add_channel_from_pool(
+        $xmlPath,
+        $logConfigPath,
+        add_payload('MTI', '_MTI_WrongType', '222222.TC16.CH2'),
+        [], [], [$mtiJson], [], []
+    );
+    check(false, 'F-16: an MTI Add matched only by an IOBOX handler must throw');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'device_source_type_mismatch', 'F-16: an MTI Add whose identifier is configured as an IOBOX handler is refused as a type mismatch, not a generic orphan (got ' . $e->apiCode() . ')');
+}
+
+// MUST STILL PASS: with the handler restored, the same Add succeeds. This
+// is what proves the check is a real gate and not a blanket rejection --
+// the positive IOBOX/MTI paths at the top of this file all run against the
+// full fixture, and this one runs after the removal and restore.
+file_put_contents($logConfigPath, $logConfigWithBothHandlers);
+channel_add_channel_from_pool(
+    $xmlPath,
+    $logConfigPath,
+    add_payload('IOBOX', '_IOBOX_Restored', '555555555.RX1.Status'),
+    [], [$ioboxJson], [], [], []
+);
+check(written_anchor($xmlPath, '_IOBOX_Restored') === '555555555.RX1.Status', 'F-16: the same IOBOX Add succeeds once the handler is back in Morfeas_Config.xml');
+
+// SDAQ and NOX identity is bus-based, not handler-IP-based, so they must
+// not be gated by Morfeas_Config.xml contents at all -- and must not even
+// need the file to exist. A NOX Add against a deleted log config proves
+// both halves at once. It runs against its own empty NODESet because the
+// only NOX candidate in the fixture was linked by the tests above.
+$freshXmlPath = $dir . '/OPC_UA_Config_nox.xml';
+file_put_contents($freshXmlPath, "<?xml version=\"1.0\"?>\n<NODESet>\n</NODESet>\n");
+unlink($logConfigPath);
+channel_add_channel_from_pool(
+    $freshXmlPath,
+    $logConfigPath,
+    add_payload('NOX', '_NOX_NoLogConfig', 'can2.addr_1.NOx'),
+    [], [], [], [$noxJson], []
+);
+check(written_anchor($freshXmlPath, '_NOX_NoLogConfig') === 'can2.addr_1.NOx', 'F-16: a NOX Add is not gated on Morfeas_Config.xml (bus-based identity), so it succeeds even with no log config present');
+file_put_contents($logConfigPath, $logConfigWithBothHandlers);
 
 echo "\n{$g_checks} checks, " . ($g_checks - $g_failures) . " passed, {$g_failures} failed\n";
 exit($g_failures === 0 ? 0 : 1);

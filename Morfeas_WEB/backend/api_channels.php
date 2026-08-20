@@ -378,6 +378,7 @@ try {
                 // interface reachable through this endpoint).
                 channel_add_channel_from_pool(
                     $xmlPath,
+                    $logConfigPath,
                     $data,
                     $sdaqLogFiles,
                     $ioboxLogFiles,
