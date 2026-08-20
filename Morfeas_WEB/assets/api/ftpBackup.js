@@ -60,8 +60,10 @@
       requestJson('POST', { action: 'listDirs', host, path }, null, timeoutMs),
     backup: (timeoutMs = 120000) =>
       requestJson('POST', { action: 'backup' }, null, timeoutMs),
-    restore: (file, timeoutMs = 120000) =>
-      requestJson('POST', { action: 'restore', file }, null, timeoutMs),
+    restorePreflight: (file, timeoutMs = 120000) =>
+      requestJson('POST', { action: 'restore_preflight', file }, null, timeoutMs),
+    restoreCommit: (file, digest, timeoutMs = 120000) =>
+      requestJson('POST', { action: 'restore_commit', file, digest }, null, timeoutMs),
     uploadLog: (timeoutMs = 60000) =>
       requestJson('POST', { action: 'uploadLog' }, null, timeoutMs),
   };

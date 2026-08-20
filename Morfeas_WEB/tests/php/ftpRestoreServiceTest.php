@@ -1,0 +1,293 @@
+<?php
+/*
+ * tests/php/ftpRestoreServiceTest.php
+ *
+ * Standalone regression test for the FTP Restore rewrite in
+ * ftp_backup_service.php (plan §10.0.3). FTP Restore's actual network I/O
+ * (ftp_backup_download_raw()) needs a real FTP server and is intentionally
+ * NOT covered here -- everything it feeds into is decomposed into pure
+ * functions and IS covered:
+ *
+ *   - ftp_backup_decode_bundle(): gzip/JSON/checksum decoding, no network.
+ *   - ftp_backup_restore_digest(): deterministic hashing of (filename, bytes).
+ *   - ftp_backup_validate_bundle_candidates(): runs iso_validate_document()
+ *     on the OPC_UA_Config candidate and log_config_validate_document() on
+ *     the Morfeas_Config candidate, reporting both files' errors.
+ *   - ftp_backup_apply_ordered_replace(): the actual dual-file write +
+ *     rollback-on-second-write-failure mechanics, exercised here with a
+ *     real forced second-write failure (not just code review).
+ *
+ * Run: php tests/php/ftpRestoreServiceTest.php   (from Morfeas_WEB/)
+ */
+
+require __DIR__ . '/../../backend/services/ftp_backup_service.php';
+
+$g_checks = 0;
+$g_failures = 0;
+
+function check(bool $cond, string $msg): void
+{
+    global $g_checks, $g_failures;
+    $g_checks++;
+    if ($cond) {
+        echo "PASS: $msg\n";
+    } else {
+        $g_failures++;
+        echo "FAIL: $msg\n";
+    }
+}
+
+function make_tmp_dir(string $prefix): string
+{
+    $dir = sys_get_temp_dir() . '/' . $prefix . '_' . uniqid();
+    mkdir($dir, 0700, true);
+    return $dir;
+}
+
+$dtdDir = realpath(__DIR__ . '/../../../../LOG-core/configuration');
+$dtdAvailable = $dtdDir !== false && is_file($dtdDir . '/Morfeas.dtd');
+if (!$dtdAvailable) {
+    echo "NOTE: LOG-core/configuration/Morfeas.dtd not found -- Morfeas_Config validation checks will be skipped, everything else still runs\n";
+}
+
+function make_bundle(string $opcUa, string $morfeas): string
+{
+    $json = json_encode([
+        'OPC_UA_Config' => $opcUa,
+        'Morfeas_Config' => $morfeas,
+        'Checksum' => ftp_backup_payload_checksum($opcUa, $morfeas),
+    ], JSON_UNESCAPED_SLASHES);
+    return gzencode($json);
+}
+
+$validOpcUa = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE NODESet SYSTEM "Morfeas.dtd">
+<NODESet>
+  <CHANNEL>
+    <ISO_CHANNEL>_TE101</ISO_CHANNEL>
+    <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+    <ANCHOR>111111111.CH1</ANCHOR>
+    <DESCRIPTION>d</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>100</MAX>
+  </CHANNEL>
+</NODESet>
+XML;
+
+$validMorfeas = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE CONFIG SYSTEM "Morfeas.dtd">
+<CONFIG>
+  <CONFIGS_DIR>/home/morfeas/configuration</CONFIGS_DIR>
+  <LOGGERS_DIR>/mnt/ramdisk/Morfeas_Loggers/</LOGGERS_DIR>
+  <LOGSTAT_DIR>/mnt/ramdisk/</LOGSTAT_DIR>
+  <COMPONENTS>
+    <OPC_UA_SERVER>
+      <APP_NAME>Morfeas_Default_app_32</APP_NAME>
+    </OPC_UA_SERVER>
+    <SDAQ_HANDLER Disable="false">
+      <CANBUS_IF>can0</CANBUS_IF>
+    </SDAQ_HANDLER>
+  </COMPONENTS>
+</CONFIG>
+XML;
+
+// =====================================================================
+// ftp_backup_decode_bundle()
+// =====================================================================
+
+// --- 1) A well-formed bundle with a matching checksum decodes cleanly. ---
+try {
+    $decoded = ftp_backup_decode_bundle(make_bundle($validOpcUa, $validMorfeas));
+    check($decoded['opc_ua'] === $validOpcUa, 'decode_bundle returns the OPC_UA_Config content unchanged');
+    check($decoded['morfeas'] === $validMorfeas, 'decode_bundle returns the Morfeas_Config content unchanged');
+} catch (Throwable $e) {
+    check(false, 'A well-formed bundle decodes cleanly (threw: ' . $e->getMessage() . ')');
+}
+
+// --- 2) Empty bytes are rejected. ---
+try {
+    ftp_backup_decode_bundle('');
+    check(false, 'Empty bytes must throw');
+} catch (RuntimeException $e) {
+    check(true, 'Empty bytes rejected (' . $e->getMessage() . ')');
+}
+
+// --- 3) Non-gzip garbage is rejected. ---
+try {
+    ftp_backup_decode_bundle('not gzip data at all');
+    check(false, 'Non-gzip bytes must throw');
+} catch (RuntimeException $e) {
+    check(true, 'Non-gzip bytes rejected (' . $e->getMessage() . ')');
+}
+
+// --- 4) Valid gzip but non-JSON content inside is rejected. ---
+try {
+    ftp_backup_decode_bundle(gzencode('not json'));
+    check(false, 'Gzip-wrapped non-JSON must throw');
+} catch (RuntimeException $e) {
+    check(true, 'Gzip-wrapped non-JSON rejected (' . $e->getMessage() . ')');
+}
+
+// --- 5) Valid JSON but missing required fields is rejected. ---
+try {
+    ftp_backup_decode_bundle(gzencode(json_encode(['OPC_UA_Config' => 'x'])));
+    check(false, 'Bundle missing Morfeas_Config must throw');
+} catch (RuntimeException $e) {
+    check(true, 'Bundle missing Morfeas_Config rejected (' . $e->getMessage() . ')');
+}
+
+// --- 6) Checksum mismatch (content tampered with after the checksum was
+//        computed, or corrupted in transit) is rejected. ---
+try {
+    $json = json_encode([
+        'OPC_UA_Config' => $validOpcUa,
+        'Morfeas_Config' => $validMorfeas,
+        'Checksum' => '1', // deliberately wrong
+    ], JSON_UNESCAPED_SLASHES);
+    ftp_backup_decode_bundle(gzencode($json));
+    check(false, 'Checksum mismatch must throw');
+} catch (RuntimeException $e) {
+    check(str_contains($e->getMessage(), 'checksum'), 'Checksum mismatch rejected with a checksum-specific message (' . $e->getMessage() . ')');
+}
+
+// =====================================================================
+// ftp_backup_restore_digest()
+// =====================================================================
+
+// --- 7) Same filename + bytes -> same digest (deterministic). ---
+$d1 = ftp_backup_restore_digest('a.mbl', 'bytes');
+$d2 = ftp_backup_restore_digest('a.mbl', 'bytes');
+check($d1 === $d2, 'restore_digest is deterministic for identical inputs');
+
+// --- 8) Different bytes -> different digest (detects "the remote file
+//        changed between preflight and commit"). ---
+$d3 = ftp_backup_restore_digest('a.mbl', 'different-bytes');
+check($d1 !== $d3, 'restore_digest changes when the underlying bytes change');
+
+// --- 9) Different filename, same bytes -> different digest (a same-content
+//        re-upload under a different name is not silently treated as "the
+//        same reviewed candidate"). ---
+$d4 = ftp_backup_restore_digest('b.mbl', 'bytes');
+check($d1 !== $d4, 'restore_digest changes when the filename changes, even with identical bytes');
+
+// =====================================================================
+// ftp_backup_validate_bundle_candidates()
+// =====================================================================
+
+// --- 10) A valid pair passes both sides. ---
+$report = ftp_backup_validate_bundle_candidates($validOpcUa, $validMorfeas, $dtdDir ?: '/nonexistent');
+check($report['opc_ua']['valid'] === true, 'validate_bundle_candidates: a valid OPC_UA_Config candidate passes');
+check($report['opc_ua']['channel_count'] === 1, 'validate_bundle_candidates: reports the correct channel_count');
+if ($dtdAvailable) {
+    check($report['morfeas']['valid'] === true, 'validate_bundle_candidates: a valid Morfeas_Config candidate passes');
+    check($report['can_commit'] === true, 'validate_bundle_candidates: can_commit is true when both sides are valid');
+}
+
+// --- 11) Malformed XML on the OPC_UA side is reported without crashing,
+//         and does not block evaluation of the Morfeas side. ---
+$reportBadOpcUa = ftp_backup_validate_bundle_candidates('<not even xml', $validMorfeas, $dtdDir ?: '/nonexistent');
+check($reportBadOpcUa['opc_ua']['valid'] === false, 'validate_bundle_candidates: malformed OPC_UA_Config XML is reported invalid, not a fatal error');
+check($reportBadOpcUa['opc_ua']['errors'][0]['code'] === 'invalid_document_structure', 'validate_bundle_candidates: malformed OPC_UA_Config XML uses invalid_document_structure');
+check($reportBadOpcUa['can_commit'] === false, 'validate_bundle_candidates: can_commit is false when the OPC_UA side is invalid');
+
+// --- 12) An OPC_UA_Config candidate that fails semantic validation (F-1
+//         class: empty DESCRIPTION) is reported via iso_validate_document(),
+//         proving the real production validator is wired in, not a stub. ---
+$emptyDescOpcUa = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE NODESet SYSTEM "Morfeas.dtd">
+<NODESet>
+  <CHANNEL>
+    <ISO_CHANNEL>_TE102</ISO_CHANNEL>
+    <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+    <ANCHOR>222222222.CH1</ANCHOR>
+    <DESCRIPTION></DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>100</MAX>
+  </CHANNEL>
+</NODESet>
+XML;
+$reportEmptyDesc = ftp_backup_validate_bundle_candidates($emptyDescOpcUa, $validMorfeas, $dtdDir ?: '/nonexistent');
+check($reportEmptyDesc['opc_ua']['valid'] === false, 'validate_bundle_candidates: empty DESCRIPTION (F-1) is caught by the real iso_validate_document()');
+check($reportEmptyDesc['opc_ua']['errors'][0]['code'] === 'empty_element', 'validate_bundle_candidates: empty DESCRIPTION reported as empty_element (got ' . ($reportEmptyDesc['opc_ua']['errors'][0]['code'] ?? 'null') . ')');
+
+if ($dtdAvailable) {
+    // --- 13) Malformed XML on the Morfeas side. ---
+    $reportBadMorfeas = ftp_backup_validate_bundle_candidates($validOpcUa, '<not even xml', $dtdDir);
+    check($reportBadMorfeas['morfeas']['valid'] === false, 'validate_bundle_candidates: malformed Morfeas_Config XML is reported invalid, not a fatal error');
+    check($reportBadMorfeas['can_commit'] === false, 'validate_bundle_candidates: can_commit is false when the Morfeas side is invalid');
+
+    // --- 14) A Morfeas_Config candidate that fails the new
+    //         log_config_validate_document() (duplicate DEV_NAME). ---
+    $dupNameMorfeas = str_replace(
+        '</COMPONENTS>',
+        '<IOBOX_HANDLER Disable="false"><DEV_NAME>Dup</DEV_NAME><IPv4_ADDR>10.0.0.1</IPv4_ADDR></IOBOX_HANDLER>'
+            . '<MTI_HANDLER Disable="false"><DEV_NAME>Dup</DEV_NAME><IPv4_ADDR>10.0.0.2</IPv4_ADDR></MTI_HANDLER></COMPONENTS>',
+        $validMorfeas
+    );
+    $reportDupName = ftp_backup_validate_bundle_candidates($validOpcUa, $dupNameMorfeas, $dtdDir);
+    check($reportDupName['morfeas']['valid'] === false, 'validate_bundle_candidates: duplicate DEV_NAME is caught by the real log_config_validate_document()');
+    check($reportDupName['morfeas']['errors'][0]['code'] === 'duplicate_device_name', 'validate_bundle_candidates: duplicate DEV_NAME reported as duplicate_device_name');
+
+    // --- 15) Both sides invalid at once: both are reported, not just the
+    //         first one encountered. ---
+    $reportBothBad = ftp_backup_validate_bundle_candidates($emptyDescOpcUa, $dupNameMorfeas, $dtdDir);
+    check($reportBothBad['opc_ua']['valid'] === false && $reportBothBad['morfeas']['valid'] === false, 'validate_bundle_candidates: reports BOTH sides invalid, not just the first one hit');
+}
+
+// =====================================================================
+// ftp_backup_apply_ordered_replace()
+// =====================================================================
+
+// --- 16) Happy path: both files are written with their new content. ---
+$dir = make_tmp_dir('ftp_restore_apply');
+$xmlPath = $dir . '/OPC_UA_Config.xml';
+$logConfigPath = $dir . '/Morfeas_config.xml';
+file_put_contents($xmlPath, 'OLD_OPC_UA');
+file_put_contents($logConfigPath, 'OLD_MORFEAS');
+
+ftp_backup_apply_ordered_replace('NEW_OPC_UA', 'NEW_MORFEAS', $xmlPath, $logConfigPath);
+check(file_get_contents($xmlPath) === 'NEW_OPC_UA', 'apply_ordered_replace: OPC_UA_Config.xml content is replaced');
+check(file_get_contents($logConfigPath) === 'NEW_MORFEAS', 'apply_ordered_replace: Morfeas_Config.xml content is replaced');
+
+// --- 17) Write order: Morfeas_Config.xml's mtime must be <= OPC_UA_Config.xml's
+//         mtime (Morfeas first, since it does not hot-reload; OPC_UA last,
+//         since writing it is what triggers Core's hot reload). ---
+$dir2 = make_tmp_dir('ftp_restore_order');
+$xmlPath2 = $dir2 . '/OPC_UA_Config.xml';
+$logConfigPath2 = $dir2 . '/Morfeas_config.xml';
+file_put_contents($xmlPath2, 'OLD');
+file_put_contents($logConfigPath2, 'OLD');
+ftp_backup_apply_ordered_replace('NEW_OPC_UA', 'NEW_MORFEAS', $xmlPath2, $logConfigPath2);
+clearstatcache(true, $xmlPath2);
+clearstatcache(true, $logConfigPath2);
+check(filemtime($logConfigPath2) <= filemtime($xmlPath2), 'apply_ordered_replace: Morfeas_Config.xml is written no later than OPC_UA_Config.xml');
+
+// --- 18) Rollback: force the SECOND write (OPC_UA_Config.xml) to fail by
+//         pointing that path at an existing directory (rename onto a
+//         directory fails) -- Morfeas_Config.xml must already have been
+//         written by this point, and the function must roll it back to its
+//         PRIOR content and report ftp_restore_partial_failure, never a
+//         silent success. ---
+$dir3 = make_tmp_dir('ftp_restore_rollback');
+$logConfigPath3 = $dir3 . '/Morfeas_config.xml';
+$xmlPathIsADir = $dir3 . '/OPC_UA_Config.xml';
+mkdir($xmlPathIsADir); // renaming a temp file onto an existing directory fails
+file_put_contents($logConfigPath3, 'ORIGINAL_MORFEAS');
+
+try {
+    ftp_backup_apply_ordered_replace('NEW_OPC_UA', 'NEW_MORFEAS', $xmlPathIsADir, $logConfigPath3);
+    check(false, 'apply_ordered_replace must throw when the second write fails');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'ftp_restore_partial_failure', 'apply_ordered_replace: second-write failure reported as ftp_restore_partial_failure (got ' . $e->apiCode() . ')');
+    check($e->status() === 500, 'apply_ordered_replace: second-write failure uses HTTP 500 (got ' . $e->status() . ')');
+}
+check(
+    file_get_contents($logConfigPath3) === 'ORIGINAL_MORFEAS',
+    'apply_ordered_replace: Morfeas_Config.xml is rolled back to its PRIOR content after the second write fails (got ' . var_export(file_get_contents($logConfigPath3), true) . ')'
+);
+
+echo "\n{$g_checks} checks, " . ($g_checks - $g_failures) . " passed, {$g_failures} failed\n";
+exit($g_failures === 0 ? 0 : 1);

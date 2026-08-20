@@ -88,12 +88,28 @@ try {
             $result = ftp_backup_run_backup();
             ftp_backup_api_respond(true, $result, 'Backup uploaded');
 
-        case 'restore':
+        case 'restore_preflight':
             $file = trim((string) ($body['file'] ?? ''));
             if ($file === '') {
-                throw new InvalidArgumentException("file is required for restore action");
+                throw new InvalidArgumentException('file is required for restore_preflight action');
             }
-            $sessionId = backend_require_session_token('Missing session token for restore action');
+            // Read-only: downloads and validates the candidate, writes
+            // nothing, so it does not need the system_action 'restore' lock
+            // or the edit-mode blocker check -- those guard the write in
+            // restore_commit below.
+            $preflightResult = ftp_backup_restore_preflight($file, dirname(backend_log_config_path()));
+            ftp_backup_api_respond(true, $preflightResult, 'Preflight complete');
+
+        case 'restore_commit':
+            $file = trim((string) ($body['file'] ?? ''));
+            $digest = trim((string) ($body['digest'] ?? ''));
+            if ($file === '') {
+                throw new InvalidArgumentException('file is required for restore_commit action');
+            }
+            if ($digest === '') {
+                throw new InvalidArgumentException('digest is required for restore_commit action');
+            }
+            $sessionId = backend_require_session_token('Missing session token for restore_commit action');
             $acquire = backend_session_registry_acquire_lock(
                 'system_action',
                 'restore',
@@ -113,7 +129,13 @@ try {
                     throw new RuntimeException(backend_restore_blocking_lock_message($blocker), 409);
                 }
 
-                $restoreResult = ftp_backup_run_restore($file);
+                $restoreResult = ftp_backup_restore_commit(
+                    $file,
+                    $digest,
+                    backend_opcua_config_path(),
+                    backend_log_config_path(),
+                    dirname(backend_log_config_path())
+                );
             } finally {
                 backend_session_registry_release_lock('system_action', 'restore', $sessionId);
             }
@@ -129,6 +151,14 @@ try {
     }
 } catch (InvalidArgumentException $e) {
     api_fail_response($e->getMessage(), 400, 'api_ftp_backup.validation', $e);
+} catch (ChannelConfigException $e) {
+    // ChannelConfigException carries its own status()/apiCode() (used by
+    // ftp_backup_restore_preflight()/_commit() for validation failures,
+    // digest mismatches, and partial-write failures); it must not fall
+    // into the generic RuntimeException branch below, which reads
+    // getCode() (always 0 here, since the constructor never sets it) and
+    // would collapse every one of these into a bare HTTP 500 with no code.
+    ftp_backup_api_respond(false, ['code' => $e->apiCode()], $e->getMessage(), $e->status());
 } catch (RuntimeException $e) {
     $status = (int) $e->getCode();
     if ($status < 400 || $status > 599) {

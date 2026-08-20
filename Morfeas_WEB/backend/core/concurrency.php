@@ -122,3 +122,58 @@ function backend_atomic_write_file(string $path, string $contents, ?int $mode = 
         }
     }
 }
+
+/*
+ * Same same-directory-temp-then-rename atomicity as backend_atomic_write_file(),
+ * plus an actual fsync() of the temp file's contents before the rename --
+ * file_put_contents() only goes through PHP's stream buffering, it never
+ * forces the bytes to disk. This is for FTP Restore's ordered dual-file
+ * replace (plan §10.0.3): "两份 same-directory temp 完整写入并 fsync". Kept
+ * as a separate function from backend_atomic_write_file() rather than
+ * adding fsync there, so every other existing caller (Add/Edit/Delete/
+ * Replace/TC16/Local JSON Restore) keeps its current, already-tested
+ * behavior unchanged; only the one new caller that plan section actually
+ * names opts into the extra syscall cost.
+ */
+function backend_atomic_write_file_synced(string $path, string $contents, ?int $mode = null): void
+{
+    $dir = dirname($path);
+    if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+        throw new RuntimeException("Unable to create directory for file write: $dir");
+    }
+
+    $tmp = @tempnam($dir, basename($path) . '.tmp.');
+    if (!is_string($tmp) || $tmp === '') {
+        throw new RuntimeException("Unable to allocate temporary file for: $path");
+    }
+
+    $ok = false;
+    try {
+        $fp = @fopen($tmp, 'wb');
+        if (!is_resource($fp)) {
+            throw new RuntimeException("Unable to open temporary file for: $path");
+        }
+        try {
+            if (@fwrite($fp, $contents) === false) {
+                throw new RuntimeException("Unable to write temporary file for: $path");
+            }
+            if (!@fflush($fp) || !@fsync($fp)) {
+                throw new RuntimeException("Unable to fsync temporary file for: $path");
+            }
+        } finally {
+            @fclose($fp);
+        }
+        if ($mode !== null) {
+            @chmod($tmp, $mode);
+        }
+        if (!@rename($tmp, $path)) {
+            throw new RuntimeException("Unable to replace target file: $path");
+        }
+        $ok = true;
+        clearstatcache(true, $path);
+    } finally {
+        if (!$ok && is_file($tmp)) {
+            @unlink($tmp);
+        }
+    }
+}

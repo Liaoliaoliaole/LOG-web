@@ -268,6 +268,17 @@
     }
   };
 
+  // FTP Restore is a full-config replace (plan §10.0.3), not a per-channel
+  // merge like Local JSON Restore, so its preflight report is file-level
+  // (did OPC_UA_Config.xml / Morfeas_Config.xml validate, and why not if
+  // not) rather than a per-row matrix -- a summary + confirm() is
+  // proportionate here; it doesn't need Local JSON Restore's dedicated
+  // review popup and per-row table.
+  const describePreflightErrors = (side, label) => {
+    if (side.valid) return [];
+    return side.errors.map((e) => `  [${label}] ${e.code}: ${e.message}`);
+  };
+
   const restoreSelected = async () => {
     if (actionBusy || !connected) return;
     if (!api) {
@@ -282,9 +293,42 @@
     }
 
     setBusy(true);
+    let preflight;
+    try {
+      setMsg(resMsg, 'Checking backup...');
+      preflight = await api.restorePreflight(file);
+    } catch (err) {
+      setMsg(resMsg, `Preflight failed: ${err.message || err}`, 'err');
+      setBusy(false);
+      return;
+    }
+
+    const data = preflight?.data;
+    if (!data || !data.can_commit) {
+      const errorLines = [
+        ...describePreflightErrors(data?.opc_ua || { valid: false, errors: [] }, 'OPC_UA_Config.xml'),
+        ...describePreflightErrors(data?.morfeas || { valid: false, errors: [] }, 'Morfeas_Config.xml'),
+      ];
+      setMsg(resMsg, `Backup failed validation, nothing was changed:\n${errorLines.join('\n') || 'Unknown validation error'}`, 'err');
+      setBusy(false);
+      return;
+    }
+
+    const channelCount = data.opc_ua?.channel_count;
+    const confirmed = window.confirm(
+      `This will REPLACE the entire current configuration (all ISO channels and device handlers) `
+      + `with the contents of "${file}"${Number.isFinite(channelCount) ? ` (${channelCount} channel(s))` : ''}. `
+      + `This cannot be undone from this dialog. Continue?`
+    );
+    if (!confirmed) {
+      setMsg(resMsg, 'Restore cancelled.', '');
+      setBusy(false);
+      return;
+    }
+
     try {
       setMsg(resMsg, 'Restoring backup...');
-      const payload = await api.restore(file);
+      const payload = await api.restoreCommit(file, data.digest);
       setMsg(resMsg, payload?.message || `Restored from: ${file}`, 'ok');
     } catch (err) {
       setMsg(resMsg, `Restore failed: ${err.message || err}`, 'err');

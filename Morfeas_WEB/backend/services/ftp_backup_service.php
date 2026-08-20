@@ -2,6 +2,9 @@
 
 require_once __DIR__ . '/../core/paths.php';
 require_once __DIR__ . '/../core/concurrency.php';
+require_once __DIR__ . '/../core/opcua_config.php';
+require_once __DIR__ . '/../core/log_config_validation.php';
+require_once __DIR__ . '/../repositories/log_config_repository.php';
 
 function ftp_backup_default_host(): string
 {
@@ -529,13 +532,154 @@ function ftp_backup_restore_filename_is_valid(string $filename): bool
     return preg_match('/^[A-Za-z0-9_.-]+\.mbl$/', $filename) === 1;
 }
 
-function ftp_backup_run_restore(string $filename): array
+/*
+ * Pure decode step: gzdecode + JSON-decode + the bundle's own embedded
+ * CRC32 checksum. No network, no filesystem, no XML parsing -- separated
+ * out from the FTP download itself so it (and everything downstream of it)
+ * can be unit-tested with synthetic bytes, without a real FTP server.
+ */
+function ftp_backup_decode_bundle(string $rawBytes): array
+{
+    if ($rawBytes === '') {
+        throw new RuntimeException('Backup file content is empty', 500);
+    }
+
+    $json = @gzdecode($rawBytes);
+    $bundle = is_string($json) ? json_decode($json, true) : null;
+    if (!is_array($bundle)) {
+        throw new RuntimeException('Invalid backup file content', 500);
+    }
+
+    $opcUa = $bundle['OPC_UA_Config'] ?? null;
+    $morfeas = $bundle['Morfeas_Config'] ?? null;
+    if (!is_string($opcUa) || !is_string($morfeas)) {
+        throw new RuntimeException('Invalid backup payload', 500);
+    }
+    if (!ftp_backup_payload_checksum_matches($bundle['Checksum'] ?? null, $opcUa, $morfeas)) {
+        throw new RuntimeException('Backup checksum mismatch', 500);
+    }
+
+    return ['opc_ua' => $opcUa, 'morfeas' => $morfeas];
+}
+
+/*
+ * Ties a preflight report to the exact downloaded bytes it was computed
+ * from, so commit can detect "the remote .mbl changed between preflight and
+ * commit" (someone re-ran a backup with the same filename, a prune
+ * happened, etc.) the same way restore_compute_digest() catches a changed
+ * live config for Local JSON Restore. This one digests the SOURCE bytes,
+ * not the live target files -- FTP Restore is a full replace, not a merge,
+ * so there is no "conflicts with a concurrent unrelated edit" concept to
+ * detect against the live config the way Local JSON's merge has; what
+ * matters here is committing the same candidate the user actually reviewed.
+ */
+function ftp_backup_restore_digest(string $filename, string $rawBytes): string
+{
+    return hash('sha256', $filename . "\0" . $rawBytes);
+}
+
+/*
+ * Pure validation: given two already-decoded candidate document strings,
+ * runs each through its own whole-document validator and reports both
+ * files' errors (not stop-at-first). No network, no filesystem writes, no
+ * locks -- shared by preflight (report only) and commit (re-checked fresh,
+ * never trusting preflight's report). $dtdDir is passed through to
+ * log_config_validate_document(); see that function for why the DTD file
+ * itself is not bundled with the backup.
+ */
+function ftp_backup_validate_bundle_candidates(string $opcUa, string $morfeas, string $dtdDir): array
+{
+    $opcUaErrors = [];
+    $xml = @simplexml_load_string($opcUa);
+    if ($xml === false) {
+        $opcUaErrors[] = ['code' => 'invalid_document_structure', 'message' => 'OPC_UA_Config.xml is not well-formed XML'];
+    } else {
+        try {
+            iso_validate_document($xml);
+        } catch (ChannelConfigException $e) {
+            $opcUaErrors[] = ['code' => $e->apiCode(), 'message' => $e->getMessage()];
+        }
+    }
+
+    $morfeasErrors = [];
+    $dom = new DOMDocument('1.0');
+    libxml_use_internal_errors(true);
+    $loaded = $dom->loadXML($morfeas);
+    libxml_clear_errors();
+    if (!$loaded) {
+        $morfeasErrors[] = ['code' => 'invalid_document_structure', 'message' => 'Morfeas_Config.xml is not well-formed XML'];
+    } else {
+        try {
+            log_config_validate_document($dom, $dtdDir);
+        } catch (ChannelConfigException $e) {
+            $morfeasErrors[] = ['code' => $e->apiCode(), 'message' => $e->getMessage()];
+        }
+    }
+
+    return [
+        'opc_ua' => ['valid' => empty($opcUaErrors), 'errors' => $opcUaErrors, 'channel_count' => $xml !== false ? count($xml->CHANNEL) : null],
+        'morfeas' => ['valid' => empty($morfeasErrors), 'errors' => $morfeasErrors],
+        'can_commit' => empty($opcUaErrors) && empty($morfeasErrors),
+    ];
+}
+
+/*
+ * The ordered dual-file replace itself (plan §10.0.3), with no locking and
+ * no network/download concerns -- callable directly with plain file paths,
+ * so its rollback behavior can be unit-tested (including forcing the
+ * second write to fail) without any FTP server or lock plumbing involved.
+ * Morfeas_Config.xml is written first since it does not hot-reload,
+ * OPC_UA_Config.xml last since writing it is what triggers Core's hot
+ * reload -- so hot reload only ever fires once both files already reflect
+ * the new pair. If the second write fails after the first succeeded, this
+ * makes one best-effort attempt to restore the first file's prior content
+ * and then reports failure; it never claims success and never restarts
+ * Core. A crash between the two renames is an accepted, documented
+ * residual window (plan §10.0.3) -- recovery is re-running this same
+ * Restore, not automatic reconciliation. Caller (ftp_backup_restore_commit())
+ * is responsible for holding both file locks around this call.
+ */
+function ftp_backup_apply_ordered_replace(string $opcUaContent, string $morfeasContent, string $xmlPath, string $logConfigPath): void
+{
+    $oldMorfeas = is_file($logConfigPath) ? @file_get_contents($logConfigPath) : '';
+    if ($oldMorfeas === false) {
+        $oldMorfeas = '';
+    }
+
+    backend_atomic_write_file_synced($logConfigPath, $morfeasContent, 0644);
+    try {
+        backend_atomic_write_file_synced($xmlPath, $opcUaContent, 0644);
+    } catch (Throwable $e) {
+        $rolledBack = false;
+        try {
+            backend_atomic_write_file_synced($logConfigPath, $oldMorfeas, 0644);
+            $rolledBack = true;
+        } catch (Throwable $ignored) {
+            // best-effort only; fall through to the failure below either way
+        }
+        throw new ChannelConfigException(
+            'Failed to write OPC_UA_Config.xml after Morfeas_Config.xml was already replaced'
+                . ($rolledBack ? '; Morfeas_Config.xml was rolled back to its prior content' : '; Morfeas_Config.xml could NOT be rolled back and now reflects the new backup while OPC_UA_Config.xml does not')
+                . '. Re-run this Restore to retry.',
+            500,
+            'ftp_restore_partial_failure'
+        );
+    }
+    @shell_exec('sync'); // directory-entry durability for both renames; best-effort, not load-bearing for correctness
+}
+
+/*
+ * Downloads one .mbl over FTP and returns its raw bytes. The only piece of
+ * FTP restore that actually needs a real FTP server -- everything it feeds
+ * into (ftp_backup_decode_bundle(), ftp_backup_validate_bundle_candidates(),
+ * ftp_backup_apply_ordered_replace()) is unit-tested independently of this.
+ */
+function ftp_backup_download_raw(array $config, string $filename): string
 {
     if (!ftp_backup_restore_filename_is_valid($filename)) {
         throw new InvalidArgumentException('Invalid restore file name');
     }
 
-    $config = ftp_backup_load_config_raw();
     $conn = ftp_backup_open_connection($config);
     $localFile = '/tmp/' . $filename;
 
@@ -552,37 +696,77 @@ function ftp_backup_run_restore(string $filename): array
     }
 
     $raw = @file_get_contents($localFile);
-    $json = is_string($raw) ? @gzdecode($raw) : false;
-    $bundle = is_string($json) ? json_decode($json, true) : null;
-
     @unlink($localFile);
-
-    if (!is_array($bundle)) {
-        throw new RuntimeException('Invalid backup file content', 500);
+    if (!is_string($raw) || $raw === '') {
+        throw new RuntimeException('Downloaded backup file is empty or unreadable', 500);
     }
 
-    $opcUa = $bundle['OPC_UA_Config'] ?? null;
-    $morfeas = $bundle['Morfeas_Config'] ?? null;
-    if (!is_string($opcUa) || !is_string($morfeas)) {
-        throw new RuntimeException('Invalid backup payload', 500);
-    }
-    if (!ftp_backup_payload_checksum_matches($bundle['Checksum'] ?? null, $opcUa, $morfeas)) {
-        throw new RuntimeException('Backup checksum mismatch', 500);
-    }
+    return $raw;
+}
 
-    backend_with_resource_file_lock('opcua_config', backend_opcua_config_path(), function () use ($opcUa) {
-        backend_atomic_write_file(backend_opcua_config_path(), $opcUa, 0644);
-    });
-    backend_with_resource_file_lock('log_config', backend_log_config_path(), function () use ($morfeas) {
-        backend_atomic_write_file(backend_log_config_path(), $morfeas, 0644);
-    });
+/*
+ * Read-only: downloads, decodes and validates both candidate documents
+ * without writing anything. Mirrors Local JSON Restore's preflight/commit
+ * split, at whole-file granularity since FTP is a full-config replace, not
+ * a per-channel merge.
+ */
+function ftp_backup_restore_preflight(string $filename, string $dtdDir): array
+{
+    $config = ftp_backup_load_config_raw();
+    $raw = ftp_backup_download_raw($config, $filename);
+    $bundle = ftp_backup_decode_bundle($raw);
+    $report = ftp_backup_validate_bundle_candidates($bundle['opc_ua'], $bundle['morfeas'], $dtdDir);
 
-    @touch(ftp_backup_config_file());
-    ftp_backup_log('INFO', "Restored from backup: $filename");
-
-    return [
+    return array_merge($report, [
         'filename' => $filename,
-    ];
+        'digest' => ftp_backup_restore_digest($filename, $raw),
+    ]);
+}
+
+/*
+ * Re-downloads and re-validates from scratch (never trusts the preflight
+ * report the client hands back), checks the digest to catch a changed
+ * remote file, then performs the ordered dual-file replace under a fixed
+ * lock order: log_config lock held outer / opcua_config lock inner (same
+ * order restore_commit() uses in channel_restore_service.php, for the same
+ * TOCTOU reason -- handler/config reads must come from one consistent
+ * locked snapshot).
+ */
+function ftp_backup_restore_commit(string $filename, string $expectedDigest, string $xmlPath, string $logConfigPath, string $dtdDir): array
+{
+    return log_config_with_xml_lock($logConfigPath, function () use ($filename, $expectedDigest, $xmlPath, $logConfigPath, $dtdDir) {
+        return iso_with_xml_lock($xmlPath, function () use ($filename, $expectedDigest, $xmlPath, $logConfigPath, $dtdDir) {
+            $config = ftp_backup_load_config_raw();
+            $raw = ftp_backup_download_raw($config, $filename);
+
+            $actualDigest = ftp_backup_restore_digest($filename, $raw);
+            if (!hash_equals($actualDigest, $expectedDigest)) {
+                throw new ChannelConfigException(
+                    'The backup file on the FTP server changed since this was reviewed; please re-run the preflight check',
+                    409,
+                    'ftp_restore_candidate_changed'
+                );
+            }
+
+            $bundle = ftp_backup_decode_bundle($raw);
+            $report = ftp_backup_validate_bundle_candidates($bundle['opc_ua'], $bundle['morfeas'], $dtdDir);
+            if (!$report['can_commit']) {
+                $firstError = $report['opc_ua']['errors'][0] ?? $report['morfeas']['errors'][0] ?? null;
+                throw new ChannelConfigException(
+                    'Backup candidate failed validation: ' . ($firstError['message'] ?? 'unknown error'),
+                    409,
+                    $firstError['code'] ?? 'invalid_document_structure'
+                );
+            }
+
+            ftp_backup_apply_ordered_replace($bundle['opc_ua'], $bundle['morfeas'], $xmlPath, $logConfigPath);
+
+            @touch(ftp_backup_config_file());
+            ftp_backup_log('INFO', "Restored from backup: $filename");
+
+            return ['filename' => $filename];
+        });
+    });
 }
 
 function ftp_backup_upload_logs(): array
