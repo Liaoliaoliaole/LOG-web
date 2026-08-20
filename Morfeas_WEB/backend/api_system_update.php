@@ -1,6 +1,6 @@
 <?php
 
-require __DIR__ . '/core/request.php';
+require_once __DIR__ . '/core/request.php';
 
 header('Content-Type: application/json; charset=utf-8');
 

@@ -1,7 +1,7 @@
 <?php
 
-require __DIR__ . '/core/paths.php';
-require __DIR__ . '/core/request.php';
+require_once __DIR__ . '/core/paths.php';
+require_once __DIR__ . '/core/request.php';
 require_once __DIR__ . '/repositories/logstat_repository.php';
 
 header('Cache-Control: no-cache, no-store, must-revalidate');

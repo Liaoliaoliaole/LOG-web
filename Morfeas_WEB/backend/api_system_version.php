@@ -2,7 +2,7 @@
 // backend/api_system_version.php
 // Returns live system version info for About -> System Version page.
 
-require __DIR__ . '/core/request.php';
+require_once __DIR__ . '/core/request.php';
 
 header('Content-Type: application/json');
 

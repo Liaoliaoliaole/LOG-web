@@ -1,6 +1,6 @@
 <?php
 
-require __DIR__ . '/../services/ftp_backup_service.php';
+require_once __DIR__ . '/../services/ftp_backup_service.php';
 
 function ftp_backup_cli_out(array $payload): void
 {

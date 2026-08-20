@@ -2,9 +2,9 @@
 // backend/api_system_status.php
 // Provides System Status (Details) and System Loggers data.
 
-require __DIR__ . '/core/paths.php';
-require __DIR__ . '/core/request.php';
-require __DIR__ . '/services/system_status_service.php';
+require_once __DIR__ . '/core/paths.php';
+require_once __DIR__ . '/core/request.php';
+require_once __DIR__ . '/services/system_status_service.php';
 
 header('Content-Type: application/json; charset=utf-8');
 

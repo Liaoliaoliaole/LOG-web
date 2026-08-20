@@ -1,11 +1,11 @@
 <?php
-require __DIR__ . '/core/paths.php';
-require __DIR__ . '/core/request.php';
-require __DIR__ . '/core/system_info.php';
-require __DIR__ . '/repositories/iso_repository.php';
-require __DIR__ . '/repositories/logstat_repository.php';
-require __DIR__ . '/services/channel_service.php';
-require __DIR__ . '/services/channel_restore_service.php';
+require_once __DIR__ . '/core/paths.php';
+require_once __DIR__ . '/core/request.php';
+require_once __DIR__ . '/core/system_info.php';
+require_once __DIR__ . '/repositories/iso_repository.php';
+require_once __DIR__ . '/repositories/logstat_repository.php';
+require_once __DIR__ . '/services/channel_service.php';
+require_once __DIR__ . '/services/channel_restore_service.php';
 
 header('Content-Type: application/json; charset=utf-8');
 

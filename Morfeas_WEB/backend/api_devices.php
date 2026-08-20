@@ -1,8 +1,8 @@
 <?php
 
-require __DIR__ . '/core/paths.php';
-require __DIR__ . '/core/request.php';
-require __DIR__ . '/services/device_service.php';
+require_once __DIR__ . '/core/paths.php';
+require_once __DIR__ . '/core/request.php';
+require_once __DIR__ . '/services/device_service.php';
 
 header('Content-Type: application/json; charset=utf-8');
 

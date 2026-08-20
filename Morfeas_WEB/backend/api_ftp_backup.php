@@ -1,7 +1,7 @@
 <?php
 
-require __DIR__ . '/core/request.php';
-require __DIR__ . '/services/ftp_backup_service.php';
+require_once __DIR__ . '/core/request.php';
+require_once __DIR__ . '/services/ftp_backup_service.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
