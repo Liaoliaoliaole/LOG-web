@@ -726,9 +726,87 @@ function iso_build_new_channel_payload(string $isoChannel, array $data): array
     ];
 }
 
+/*
+ * Identity fields a plain Edit may never carry, for any interface (plan
+ * §5.3's read-only rows plus its explicit reject list). "postfix/cylinder"
+ * from that list is not a separate wire field -- the browser composes it
+ * into iso_channel -- so rejecting iso_channel covers it.
+ */
+const ISO_EDIT_FORBIDDEN_FIELDS = ['interface_type', 'anchor', 'iso_channel', 'build_date'];
+
+/*
+ * Enforces plan §5.3's plain-Edit field allowlist server-side.
+ *
+ * Greying the fields out in the browser is not a security boundary: before
+ * this check existed, a direct PATCH without replace_mode could rewrite
+ * ANCHOR to any syntactically valid but never-detected identity (verified:
+ * 111111111.CH1 -> 999999999.CH1), rename ISO_CHANNEL, or change
+ * INTERFACE_TYPE. That reopened exactly the incident entry point removing
+ * Manual Add was meant to close, and simultaneously bypassed Replace's
+ * source-offline/family/candidate-pool checks and the batch atomicity of
+ * Range Add / TC16 Replace All -- iso_require_valid_source_identity() only
+ * proves an anchor is well-formed, never that it corresponds to a real
+ * detected candidate (2026-08-19 second code review, F-11).
+ *
+ * §5.3 requires a present identity field to be REJECTED, not silently
+ * dropped: ignoring it would let the caller believe the change was applied.
+ *
+ * Replace is unaffected: it legitimately carries `anchor` and never goes
+ * through this wrapper -- channel_replace_channel_from_pool() calls
+ * iso_update_channel_body() directly, after re-deriving that anchor from the
+ * live candidate pool inside the same lock.
+ *
+ * Deliberate scope boundary: `cal_date`/`cal_period` are NOT checked here.
+ * They are XML-owned metadata for IOBOX/MTI/NOX (real field configs carry
+ * them), and plan §13.2 assigns the rest of the calibration-semantics work
+ * to a separate task; §5.3's reject list does not include them. The one
+ * calibration-adjacent rule §13.2 does require immediately -- rejecting a
+ * SDAQ `unit` override, because Core reads SDAQ Unit from runtime and never
+ * from XML -- is enforced below.
+ */
+function iso_require_edit_field_allowlist(string $xmlPath, string $isoChannel, array $data): void
+{
+    $offenders = [];
+    foreach (ISO_EDIT_FORBIDDEN_FIELDS as $field) {
+        if (array_key_exists($field, $data)) {
+            $offenders[] = $field;
+        }
+    }
+
+    // `unit` is interface-dependent (§5.3: read-only for SDAQ, editable for
+    // IOBOX/MTI/NOX), so it needs the stored interface type -- taken from the
+    // file, never from the request, precisely because interface_type is
+    // itself a forbidden field. Read inside the caller's lock.
+    if (array_key_exists('unit', $data) && is_file($xmlPath)) {
+        $xml = simplexml_load_file($xmlPath);
+        if ($xml !== false) {
+            $target = iso_normalize_iso_channel($isoChannel);
+            foreach ($xml->CHANNEL as $ch) {
+                if ((string)$ch->ISO_CHANNEL === $target) {
+                    if (strtoupper(trim((string)$ch->INTERFACE_TYPE)) === 'SDAQ') {
+                        $offenders[] = 'unit (SDAQ Unit is runtime-owned; Core never reads it from XML)';
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    if ($offenders !== []) {
+        throw new ChannelConfigException(
+            'Edit may only change metadata (description, min, max, alarms, and unit for non-SDAQ). '
+                . 'Rejected identity/read-only field(s): ' . implode(', ', $offenders)
+                . '. Use Replace to move a channel to a different source.',
+            400,
+            'edit_field_not_allowed'
+        );
+    }
+}
+
 function iso_update_channel(string $xmlPath, string $isoChannel, array $data): void
 {
     iso_with_xml_lock($xmlPath, function () use ($xmlPath, $isoChannel, $data) {
+        iso_require_edit_field_allowlist($xmlPath, $isoChannel, $data);
         iso_update_channel_body($xmlPath, $isoChannel, $data);
     });
 }

@@ -5,6 +5,11 @@ require_once __DIR__ . '/../core/concurrency.php';
 require_once __DIR__ . '/../core/opcua_config.php';
 require_once __DIR__ . '/../core/log_config_validation.php';
 require_once __DIR__ . '/../repositories/log_config_repository.php';
+// For restore_ipv4_to_core_identifier(): FTP's cross-file handler matching
+// must derive the Core identifier from an IPv4 with the exact same byte
+// order Local JSON Restore uses, so the two entry points cannot disagree
+// about whether a given handler matches a given channel.
+require_once __DIR__ . '/channel_restore_service.php';
 
 function ftp_backup_default_host(): string
 {
@@ -587,15 +592,90 @@ function ftp_backup_restore_digest(string $filename, string $rawBytes): string
  * log_config_validate_document(); see that function for why the DTD file
  * itself is not bundled with the backup.
  */
+/*
+ * Cross-file (candidate-to-candidate) handler matching, plan §6.2's FTP row:
+ * an IOBOX/MTI channel in the backup's OPC_UA_Config.xml must have a
+ * matching same-type handler in the SAME backup's Morfeas_Config.xml. Both
+ * sides come from the bundle, never from the live config -- FTP is a full
+ * replace, so what matters is that the pair being installed is internally
+ * consistent, not how it relates to what is on disk now.
+ *
+ * Without this, a Legacy .mbl carrying orphan IOBOX/MTI channels (their
+ * device handler deleted at some point, the channels never cleaned up)
+ * restores those channels as permanently unresolvable sources (F-13).
+ * Reuses restore_ipv4_to_core_identifier() so the IP -> identifier byte
+ * order matches Core exactly, the same helper Local JSON Restore uses.
+ */
+function ftp_backup_check_bundle_handler_matching(SimpleXMLElement $xml, DOMDocument $morfeasDom): array
+{
+    $identifiers = ['IOBOX' => [], 'MTI' => []];
+    $xpath = new DOMXPath($morfeasDom);
+    foreach (['IOBOX' => '//IOBOX_HANDLER', 'MTI' => '//MTI_HANDLER'] as $type => $query) {
+        foreach ($xpath->query($query) as $handler) {
+            /** @var DOMElement $handler */
+            $ipNode = $handler->getElementsByTagName('IPv4_ADDR')->item(0);
+            $ip = $ipNode ? trim($ipNode->textContent) : '';
+            $identifier = restore_ipv4_to_core_identifier($ip);
+            if ($identifier !== null) {
+                $identifiers[$type][$identifier] = true;
+            }
+        }
+    }
+
+    $errors = [];
+    foreach ($xml->CHANNEL as $ch) {
+        $type = strtoupper(trim((string)$ch->INTERFACE_TYPE));
+        if ($type !== 'IOBOX' && $type !== 'MTI') {
+            continue; // SDAQ/NOX identity is bus-based, not handler-IP-based
+        }
+        $iso = trim((string)$ch->ISO_CHANNEL);
+        $identity = iso_parse_source_identity($type, trim((string)$ch->ANCHOR));
+        if ($identity === null) {
+            continue; // already reported by iso_validate_document()
+        }
+        $identifier = (int)$identity['components']['identifier'];
+        if (!isset($identifiers[$type][$identifier])) {
+            $errors[] = [
+                'code' => 'orphan_device_source',
+                'message' => "ISO_CHANNEL \"$iso\" ($type, identifier $identifier) has no matching $type handler in the backup's Morfeas_Config.xml",
+            ];
+        }
+    }
+    return $errors;
+}
+
 function ftp_backup_validate_bundle_candidates(string $opcUa, string $morfeas, string $dtdDir): array
 {
+    // Both documents are loaded as DOM first, because DTD validation (what
+    // Core actually does, for both files) needs DOMDocument. SimpleXML is
+    // still used for the channel-level semantic pass so the exact same
+    // iso_validate_document() that guards every other write path runs here
+    // too, rather than a second, divergent implementation.
     $opcUaErrors = [];
-    $xml = @simplexml_load_string($opcUa);
-    if ($xml === false) {
+    $xml = false;
+    $opcDom = new DOMDocument('1.0');
+    libxml_use_internal_errors(true);
+    $opcLoaded = $opcDom->loadXML($opcUa);
+    libxml_clear_errors();
+
+    if (!$opcLoaded) {
         $opcUaErrors[] = ['code' => 'invalid_document_structure', 'message' => 'OPC_UA_Config.xml is not well-formed XML'];
     } else {
+        // F-12: iso_validate_document() only walks $xml->CHANNEL -- it never
+        // checks the root element or DOCTYPE, because on every other write
+        // path the document it inspects was built from an already-valid
+        // file. An FTP bundle is untrusted external input, so that
+        // assumption does not hold: <WRONG/> previously passed preflight
+        // with can_commit:true while Core would refuse to load it, leaving
+        // an empty ISO object list after the next restart.
         try {
-            iso_validate_document($xml);
+            log_config_validate_dtd_structure($opcDom, $dtdDir, 'NODESet', 'OPC_UA_Config.xml');
+            $xml = @simplexml_load_string($opcUa);
+            if ($xml === false) {
+                $opcUaErrors[] = ['code' => 'invalid_document_structure', 'message' => 'OPC_UA_Config.xml could not be read for semantic validation'];
+            } else {
+                iso_validate_document($xml);
+            }
         } catch (ChannelConfigException $e) {
             $opcUaErrors[] = ['code' => $e->apiCode(), 'message' => $e->getMessage()];
         }
@@ -616,10 +696,19 @@ function ftp_backup_validate_bundle_candidates(string $opcUa, string $morfeas, s
         }
     }
 
+    // Cross-file check runs only when both sides are individually valid --
+    // otherwise its findings would be noise on top of a document that is
+    // already being rejected for a more fundamental reason.
+    $crossErrors = [];
+    if (empty($opcUaErrors) && empty($morfeasErrors) && $xml !== false) {
+        $crossErrors = ftp_backup_check_bundle_handler_matching($xml, $dom);
+    }
+
     return [
         'opc_ua' => ['valid' => empty($opcUaErrors), 'errors' => $opcUaErrors, 'channel_count' => $xml !== false ? count($xml->CHANNEL) : null],
         'morfeas' => ['valid' => empty($morfeasErrors), 'errors' => $morfeasErrors],
-        'can_commit' => empty($opcUaErrors) && empty($morfeasErrors),
+        'cross_file' => ['valid' => empty($crossErrors), 'errors' => $crossErrors],
+        'can_commit' => empty($opcUaErrors) && empty($morfeasErrors) && empty($crossErrors),
     ];
 }
 

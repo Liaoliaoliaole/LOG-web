@@ -427,21 +427,31 @@
 
     const postfix = postfixSel && postfixSel.value !== 'N/A' ? postfixSel.value : '';
     const isoFull = postfix ? `${isoVal}_${postfix}` : isoVal;
+
+    // Plain Edit may only carry metadata. The identity fields below are
+    // display-only in this popup (Type/Path/ISO code/Cylinder are greyed
+    // out), and per plan §10.0.1 they must not enter the PATCH at all --
+    // the backend now rejects a plain Edit that carries any of them
+    // (edit_field_not_allowed), so sending them "just because the form has
+    // them" would fail every Edit. Replace mode adds `anchor` back below,
+    // where it is legitimate and is re-derived server-side from the live
+    // candidate pool.
     const body = {
-      iso_channel: isoFull,
-      interface_type: type,
-      anchor,
       description: descInput.value,
       min: minVal,
       max: maxVal,
-      unit: unitInput.value,
       alarm_high: alarmHighChk.checked ? 'yes' : 'no',
       alarm_high_val: alarmHighVal.value || maxVal,
       alarm_low: alarmLowChk.checked ? 'yes' : 'no',
       alarm_low_val: alarmLowVal.value || minVal,
     };
 
+    // SDAQ Unit is runtime-owned (Core reads it from the device, never from
+    // XML), so it is read-only here and the backend rejects it outright
+    // (plan §5.3 table, §13.2). Only non-SDAQ interfaces own their Unit in XML.
     if (type !== 'SDAQ') {
+      body.unit = unitInput.value;
+
       const calDate = calDateInput?.value || '';
       const calPeriod = calPeriodInput?.value || '';
       if (calDate && calPeriod) {
@@ -452,6 +462,11 @@
 
     if (isReplaceMode()) {
       body.replace_mode = true;
+      // Only Replace may carry an anchor. The backend does not trust this
+      // value as the thing to persist -- it re-resolves it against the live
+      // candidate pool inside the XML lock and writes that canonical form --
+      // but it does need it to locate the intended candidate.
+      body.anchor = anchor;
       if (state.selectedDevice) {
         const decision = evaluateReplaceCandidate(state.selectedDevice);
         if (!decision.allow) {

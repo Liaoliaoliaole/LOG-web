@@ -289,5 +289,149 @@ check(
     'apply_ordered_replace: Morfeas_Config.xml is rolled back to its PRIOR content after the second write fails (got ' . var_export(file_get_contents($logConfigPath3), true) . ')'
 );
 
+
+// =====================================================================
+// F-12: OPC candidate must pass real DTD/root validation, not just the
+// per-CHANNEL semantic pass. iso_validate_document() only walks
+// $xml->CHANNEL, so before this fix a document with the wrong root (or no
+// DOCTYPE) reported valid:true/can_commit:true while Core -- which parses
+// with XML_PARSE_DTDVALID -- would refuse to load it, leaving an empty ISO
+// object list after the next restart. That is the original incident.
+// =====================================================================
+
+if ($dtdAvailable) {
+    $wrongRoot = '<?xml version="1.0"?><WRONG/>';
+    $r = ftp_backup_validate_bundle_candidates($wrongRoot, $validMorfeas, $dtdDir);
+    check($r['opc_ua']['valid'] === false, 'F-12: wrong root element <WRONG/> is rejected');
+    check($r['can_commit'] === false, 'F-12: wrong root element makes can_commit false');
+
+    $noDoctype = '<?xml version="1.0"?><NODESet></NODESet>';
+    $r = ftp_backup_validate_bundle_candidates($noDoctype, $validMorfeas, $dtdDir);
+    check($r['opc_ua']['valid'] === false, 'F-12: correct root but missing DOCTYPE is rejected');
+
+    // DOCTYPE name disagreeing with the actual root element.
+    $mismatchedDoctype = '<?xml version="1.0"?><!DOCTYPE CONFIG SYSTEM "Morfeas.dtd"><NODESet></NODESet>';
+    $r = ftp_backup_validate_bundle_candidates($mismatchedDoctype, $validMorfeas, $dtdDir);
+    check($r['opc_ua']['valid'] === false, 'F-12: DOCTYPE name not matching the root element is rejected');
+
+    // The Morfeas side must get the same treatment.
+    $morfeasWrongRoot = '<?xml version="1.0"?><!DOCTYPE CONFIG SYSTEM "Morfeas.dtd"><NOTCONFIG/>';
+    $r = ftp_backup_validate_bundle_candidates($validOpcUa, $morfeasWrongRoot, $dtdDir);
+    check($r['morfeas']['valid'] === false, 'F-12: wrong root on the Morfeas_Config side is rejected too');
+
+    // MUST STILL PASS: a structurally correct pair. Guards against the new
+    // DTD gate false-rejecting legitimate documents -- the failure mode that
+    // would make real historical backups un-restorable.
+    $r = ftp_backup_validate_bundle_candidates($validOpcUa, $validMorfeas, $dtdDir);
+    check($r['opc_ua']['valid'] === true, 'F-12 regression: a valid NODESet document with correct DOCTYPE still passes');
+    check($r['can_commit'] === true, 'F-12 regression: a fully valid pair still commits');
+}
+
+// =====================================================================
+// F-13: candidate-to-candidate handler matching. An IOBOX/MTI channel in
+// the backup must have a matching same-type handler in the SAME backup.
+// =====================================================================
+
+if ($dtdAvailable) {
+    // 2380966080 == 192.168.234.141 in Core's byte order (the fixture the
+    // fix plan documents), so this pair is internally consistent.
+    $opcIobox = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE NODESet SYSTEM "Morfeas.dtd">
+<NODESet>
+  <CHANNEL>
+    <ISO_CHANNEL>_FT500</ISO_CHANNEL>
+    <INTERFACE_TYPE>IOBOX</INTERFACE_TYPE>
+    <ANCHOR>2380966080.RX1.CH1</ANCHOR>
+    <DESCRIPTION>d</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>100</MAX>
+    <UNIT>C</UNIT>
+  </CHANNEL>
+</NODESet>
+XML;
+    $morfeasWithIobox = str_replace(
+        '</COMPONENTS>',
+        '<IOBOX_HANDLER Disable="false"><DEV_NAME>Box1</DEV_NAME><IPv4_ADDR>192.168.234.141</IPv4_ADDR></IOBOX_HANDLER></COMPONENTS>',
+        $validMorfeas
+    );
+
+    $r = ftp_backup_validate_bundle_candidates($opcIobox, $morfeasWithIobox, $dtdDir);
+    check($r['cross_file']['valid'] === true, 'F-13 regression: IOBOX channel WITH a matching handler in the same bundle passes cross-file check');
+    check($r['can_commit'] === true, 'F-13 regression: an internally consistent bundle still commits');
+
+    // Same OPC side, but the handler is gone -> orphan.
+    $r = ftp_backup_validate_bundle_candidates($opcIobox, $validMorfeas, $dtdDir);
+    check($r['cross_file']['valid'] === false, 'F-13: IOBOX channel with NO matching handler is reported orphan');
+    check(($r['cross_file']['errors'][0]['code'] ?? '') === 'orphan_device_source', 'F-13: orphan reported as orphan_device_source (got ' . ($r['cross_file']['errors'][0]['code'] ?? 'null') . ')');
+    check($r['can_commit'] === false, 'F-13: an orphan IOBOX channel blocks commit');
+
+    // Wrong handler TYPE at the right IP must not satisfy the match: an MTI
+    // handler does not make an IOBOX channel resolvable.
+    $morfeasWithMtiOnly = str_replace(
+        '</COMPONENTS>',
+        '<MTI_HANDLER Disable="false"><DEV_NAME>Mti1</DEV_NAME><IPv4_ADDR>192.168.234.141</IPv4_ADDR></MTI_HANDLER></COMPONENTS>',
+        $validMorfeas
+    );
+    $r = ftp_backup_validate_bundle_candidates($opcIobox, $morfeasWithMtiOnly, $dtdDir);
+    check($r['cross_file']['valid'] === false, 'F-13: an MTI handler at the same IP does NOT satisfy an IOBOX channel');
+
+    // SDAQ/NOX identity is bus-based, not handler-IP-based, so they must
+    // never be flagged as orphans by this check.
+    $r = ftp_backup_validate_bundle_candidates($validOpcUa, $validMorfeas, $dtdDir);
+    check($r['cross_file']['valid'] === true, 'F-13: a SDAQ-only bundle is never flagged orphan (SDAQ identity is not handler-IP based)');
+}
+
+// =====================================================================
+// F-14: log_config validator must reject what Core's
+// Morfeas_daemon_config_valid() deterministically rejects.
+// =====================================================================
+
+if ($dtdAvailable) {
+    $mkMorfeas = function (string $name, string $ip) use ($validMorfeas) {
+        return str_replace(
+            '</COMPONENTS>',
+            "<IOBOX_HANDLER Disable=\"false\"><DEV_NAME>$name</DEV_NAME><IPv4_ADDR>$ip</IPv4_ADDR></IOBOX_HANDLER></COMPONENTS>",
+            $validMorfeas
+        );
+    };
+
+    foreach ([
+        ['Bad Name', '10.0.0.1', 'DEV_NAME containing a space', 'invalid_device_name'],
+        ["Bad'Name", '10.0.0.1', 'DEV_NAME containing a single quote', 'invalid_device_name'],
+        ['GoodName', 'not-an-ip', 'IPv4_ADDR that is not an address', 'invalid_device_ipv4'],
+        ['GoodName', '999.999.999.999', 'IPv4_ADDR out of range', 'invalid_device_ipv4'],
+    ] as [$name, $ip, $label, $expectedCode]) {
+        $r = ftp_backup_validate_bundle_candidates($validOpcUa, $mkMorfeas($name, $ip), $dtdDir);
+        check($r['morfeas']['valid'] === false, "F-14: $label is rejected (Core rejects it too)");
+        check(($r['morfeas']['errors'][0]['code'] ?? '') === $expectedCode, "F-14: $label reported as $expectedCode (got " . ($r['morfeas']['errors'][0]['code'] ?? 'null') . ')');
+    }
+
+    // APP_NAME with a space (Core: Morfeas_XML.c:1037).
+    $badAppName = str_replace('<APP_NAME>Morfeas_Default_app_32</APP_NAME>', '<APP_NAME>Bad App Name</APP_NAME>', $validMorfeas);
+    $r = ftp_backup_validate_bundle_candidates($validOpcUa, $badAppName, $dtdDir);
+    check($r['morfeas']['valid'] === false, 'F-14: APP_NAME containing whitespace is rejected');
+    check(($r['morfeas']['errors'][0]['code'] ?? '') === 'invalid_app_name', 'F-14: whitespace APP_NAME reported as invalid_app_name');
+
+    // MUST STILL PASS: names that are legal for Core. Core compares
+    // duplicates with strcmp() (case-sensitive), so two handlers differing
+    // only in case are legal and must NOT be rejected -- being stricter than
+    // Core here would false-reject a backup Core itself loads happily.
+    $caseDiffering = str_replace(
+        '</COMPONENTS>',
+        '<IOBOX_HANDLER Disable="false"><DEV_NAME>Box</DEV_NAME><IPv4_ADDR>10.0.0.1</IPv4_ADDR></IOBOX_HANDLER>'
+            . '<MTI_HANDLER Disable="false"><DEV_NAME>box</DEV_NAME><IPv4_ADDR>10.0.0.2</IPv4_ADDR></MTI_HANDLER></COMPONENTS>',
+        $validMorfeas
+    );
+    $r = ftp_backup_validate_bundle_candidates($validOpcUa, $caseDiffering, $dtdDir);
+    check($r['morfeas']['valid'] === true, 'F-14 regression: DEV_NAMEs differing only in case are legal (Core uses case-sensitive strcmp), not a false duplicate');
+
+    // Legal punctuation in a device name must keep working -- the real
+    // devices in the field are called things like "Test-IOBox"/"Test_MTI".
+    $r = ftp_backup_validate_bundle_candidates($validOpcUa, $mkMorfeas('Test-IOBox', '10.193.135.20'), $dtdDir);
+    check($r['morfeas']['valid'] === true, 'F-14 regression: a real-world device name ("Test-IOBox") is still accepted');
+}
+
+
 echo "\n{$g_checks} checks, " . ($g_checks - $g_failures) . " passed, {$g_failures} failed\n";
 exit($g_failures === 0 ? 0 : 1);

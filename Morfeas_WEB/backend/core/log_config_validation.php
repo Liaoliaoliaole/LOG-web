@@ -64,11 +64,39 @@ function log_config_dev_name_max_length(): int
     return 16;
 }
 
-function log_config_validate_document(DOMDocument $dom, string $dtdDir): void
+/*
+ * Shared DTD structural validation for either config document. Core's
+ * Morfeas_XML_parsing() parses BOTH files with XML_PARSE_DTDVALID and checks
+ * ctxt->valid (Morfeas_XML.c:176/184), so a document that fails here is one
+ * Core would refuse to load at all -- for OPC_UA_Config.xml that means an
+ * empty ISO object list after the next restart, i.e. the original incident.
+ *
+ * $expectedRoot is checked explicitly rather than left to the DTD: a
+ * document declaring a DOCTYPE whose name does not match its root element,
+ * or no DOCTYPE at all, must not slip through (F-12).
+ */
+function log_config_validate_dtd_structure(DOMDocument $dom, string $dtdDir, string $expectedRoot, string $label): void
 {
+    $rootName = $dom->documentElement !== null ? $dom->documentElement->nodeName : '';
+    if ($rootName !== $expectedRoot) {
+        throw new ChannelConfigException(
+            "$label has the wrong root element: expected <$expectedRoot>, got "
+                . ($rootName === '' ? '(none)' : "<$rootName>"),
+            409,
+            'invalid_document_structure'
+        );
+    }
+
     if ($dom->doctype === null || $dom->doctype->systemId === null || trim((string)$dom->doctype->systemId) === '') {
         throw new ChannelConfigException(
-            'Morfeas_Config.xml is missing its DOCTYPE declaration',
+            "$label is missing its DOCTYPE declaration",
+            409,
+            'invalid_document_structure'
+        );
+    }
+    if ($dom->doctype->name !== $expectedRoot) {
+        throw new ChannelConfigException(
+            "$label declares DOCTYPE {$dom->doctype->name} but its root element is <$expectedRoot>",
             409,
             'invalid_document_structure'
         );
@@ -88,11 +116,41 @@ function log_config_validate_document(DOMDocument $dom, string $dtdDir): void
         $first = $errors[0] ?? null;
         $detail = $first ? trim((string)$first->message) : 'unknown structural error';
         throw new ChannelConfigException(
-            "Morfeas_Config.xml failed DTD structural validation: $detail",
+            "$label failed DTD structural validation: $detail",
             409,
             'invalid_document_structure'
         );
     }
+}
+
+/*
+ * Core's is_valid_IPv4() equivalent (Morfeas_XML.c:1151 call site). Core
+ * rejects the whole config when an IOBOX/MTI/MDAQ handler's IPv4_ADDR is not
+ * a valid address, so accepting one here would let FTP Restore write a file
+ * Core refuses to start on (F-14).
+ */
+function log_config_ipv4_is_valid(string $ip): bool
+{
+    return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
+}
+
+/*
+ * Core scans DEV_NAME for space, single quote and double quote and rejects
+ * the whole config if any is present (Morfeas_XML.c:1160-1170).
+ */
+function log_config_dev_name_illegal_char(string $name): ?string
+{
+    foreach ([' ' => 'space', "'" => "single quote", '"' => 'double quote'] as $ch => $desc) {
+        if (strpos($name, $ch) !== false) {
+            return $desc;
+        }
+    }
+    return null;
+}
+
+function log_config_validate_document(DOMDocument $dom, string $dtdDir): void
+{
+    log_config_validate_dtd_structure($dom, $dtdDir, 'CONFIG', 'Morfeas_Config.xml');
 
     $xpath = new DOMXPath($dom);
 
@@ -110,9 +168,51 @@ function log_config_validate_document(DOMDocument $dom, string $dtdDir): void
         }
     }
 
+    // Core rejects an APP_NAME containing a space (Morfeas_XML.c:1037).
+    foreach ($xpath->query('//OPC_UA_SERVER/APP_NAME') as $node) {
+        if (strpos($node->textContent, ' ') !== false) {
+            throw new ChannelConfigException(
+                'APP_NAME must not contain whitespace: ' . trim($node->textContent),
+                409,
+                'invalid_app_name'
+            );
+        }
+    }
+
+    // Core scans MDAQ_HANDLER, IOBOX_HANDLER and MTI_HANDLER together for
+    // IPv4 validity, DEV_NAME legality/length and duplicates
+    // (Morfeas_XML.c:1147-1200). MDAQ is included here for the same reason
+    // Core includes it: the DTD still permits an MDAQ_HANDLER element, and a
+    // historical .mbl may well carry one -- retiring MDAQ removed it as a
+    // *channel anchor* interface, not as a daemon-config handler element.
     $maxNameLen = log_config_dev_name_max_length();
-    foreach ($xpath->query('//DEV_NAME') as $node) {
-        $name = trim($node->textContent);
+    $handlers = $xpath->query('//MDAQ_HANDLER | //IOBOX_HANDLER | //MTI_HANDLER');
+
+    $seenNames = [];
+    $seenIps = [];
+    foreach ($handlers as $handler) {
+        /** @var DOMElement $handler */
+        $nameNode = $handler->getElementsByTagName('DEV_NAME')->item(0);
+        $ipNode = $handler->getElementsByTagName('IPv4_ADDR')->item(0);
+        $name = $nameNode ? trim($nameNode->textContent) : '';
+        $ip = $ipNode ? trim($ipNode->textContent) : '';
+
+        if (!log_config_ipv4_is_valid($ip)) {
+            throw new ChannelConfigException(
+                "IPv4_ADDR is not a valid IPv4 address: " . ($ip === '' ? '(empty)' : $ip),
+                409,
+                'invalid_device_ipv4'
+            );
+        }
+
+        $illegal = log_config_dev_name_illegal_char($name);
+        if ($illegal !== null) {
+            throw new ChannelConfigException(
+                "DEV_NAME contains an illegal character ($illegal): $name",
+                409,
+                'invalid_device_name'
+            );
+        }
         if (strlen($name) >= $maxNameLen) {
             throw new ChannelConfigException(
                 "DEV_NAME is too long (>= $maxNameLen bytes): $name",
@@ -120,29 +220,21 @@ function log_config_validate_document(DOMDocument $dom, string $dtdDir): void
                 'invalid_device_name'
             );
         }
-    }
 
-    $seenNames = [];
-    $seenIps = [];
-    foreach ($xpath->query('//IOBOX_HANDLER | //MTI_HANDLER') as $handler) {
-        /** @var DOMElement $handler */
-        $nameNode = $handler->getElementsByTagName('DEV_NAME')->item(0);
-        $ipNode = $handler->getElementsByTagName('IPv4_ADDR')->item(0);
-        $name = $nameNode ? trim($nameNode->textContent) : '';
-        $ip = $ipNode ? trim($ipNode->textContent) : '';
-
-        $nameKey = strtolower($name);
+        // Core compares with strcmp(), i.e. case-SENSITIVE exact match. This
+        // deliberately mirrors that rather than folding case: this validator
+        // gates a *restore* of an existing configuration, so being stricter
+        // than Core would false-reject a backup Core itself would load
+        // happily -- the failure mode the E8 hardware check exists to catch.
         if ($name !== '') {
-            if (isset($seenNames[$nameKey])) {
+            if (isset($seenNames[$name])) {
                 throw new ChannelConfigException("Duplicate device DEV_NAME: $name", 409, 'duplicate_device_name');
             }
-            $seenNames[$nameKey] = true;
+            $seenNames[$name] = true;
         }
-        if ($ip !== '') {
-            if (isset($seenIps[$ip])) {
-                throw new ChannelConfigException("Duplicate device IPv4_ADDR: $ip", 409, 'duplicate_device_ipv4');
-            }
-            $seenIps[$ip] = true;
+        if (isset($seenIps[$ip])) {
+            throw new ChannelConfigException("Duplicate device IPv4_ADDR: $ip", 409, 'duplicate_device_ipv4');
         }
+        $seenIps[$ip] = true;
     }
 }
