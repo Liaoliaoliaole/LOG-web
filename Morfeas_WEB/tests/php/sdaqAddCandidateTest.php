@@ -98,7 +98,7 @@ $xmlPath = write_empty_opcua_xml($dir);
 // silently acquiring a second lock.
 $logConfigPath = $dir . '/Morfeas_config_absent.xml';
 
-// --- 1) sdaq_load_anchor_map(): no address fallback into preferred/connection anchor ---
+// --- 1) sdaq_load_anchor_map(): address is display-only, never identity ---
 $map = sdaq_load_anchor_map($sdaqJson, []);
 $byServial = null;
 $byNoSerial = null;
@@ -111,11 +111,9 @@ foreach ($map['channels'] as $ch) {
     }
 }
 check($byServial !== null, 'sdaq_load_anchor_map(): registered device produces serial_anchor 796834087.CH1');
-check($byServial !== null && $byServial['preferred_anchor'] === '796834087.CH1', 'sdaq_load_anchor_map(): preferred_anchor is the serial anchor, not the CAN address');
-check($byServial !== null && $byServial['connection_anchor'] === '796834087.CH1', 'sdaq_load_anchor_map(): connection_anchor is the serial anchor');
 check($byNoSerial !== null, 'sdaq_load_anchor_map(): unregistered device is still present for diagnostics');
-check($byNoSerial !== null && $byNoSerial['preferred_anchor'] === null, 'sdaq_load_anchor_map(): unregistered device has NO preferred_anchor fallback to its CAN address (the original bug)');
-check($byNoSerial !== null && $byNoSerial['connection_anchor'] === null, 'sdaq_load_anchor_map(): unregistered device has NO connection_anchor fallback either');
+check($byNoSerial !== null && $byNoSerial['display_anchor'] === 'can1.5.CH1', 'sdaq_load_anchor_map(): unregistered device may show its CAN location for diagnostics');
+check($byNoSerial !== null && $byNoSerial['serial_anchor'] === null, 'sdaq_load_anchor_map(): unregistered device has no serial identity candidate');
 
 // --- 2) channel_build_rows_with_logstat(): SDAQ search pool only contains the registered candidate ---
 $extras = [];
@@ -153,7 +151,22 @@ try {
 }
 check(sha1_file($xmlPath) === $beforeHash, 'XML file is byte-for-byte unchanged after the rejected incident-reproduction Add');
 
-// 4b) Accept: submitting the registered device's CURRENT CAN address must still
+// 4b) Reject Unit at the actual Add boundary even when the candidate is valid.
+$beforeUnitHash = sha1_file($xmlPath);
+try {
+    channel_add_channel_from_pool(
+        $xmlPath,
+        $logConfigPath,
+        ['iso_channel' => '_Unit_Rejected', 'interface_type' => 'SDAQ', 'anchor' => 'CAN1.ADDR:08.CH:01', 'description' => 'd', 'min' => '0', 'max' => '1', 'unit' => 'C'],
+        [$sdaqJson], [], [], [], []
+    );
+    check(false, 'SDAQ Add carrying Unit must throw at the production Add boundary');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'sdaq_unit_not_allowed', 'SDAQ Add carrying Unit rejects with sdaq_unit_not_allowed (got ' . $e->apiCode() . ')');
+}
+check(sha1_file($xmlPath) === $beforeUnitHash, 'SDAQ Unit rejection leaves the production XML byte-for-byte unchanged');
+
+// 4c) Accept: submitting the registered device's CURRENT CAN address must still
 //     resolve to and persist the canonical serial anchor, never the address.
 channel_add_channel_from_pool(
     $xmlPath,
@@ -170,7 +183,7 @@ foreach ($xmlAfter->CHANNEL as $ch) {
 }
 check($writtenAnchor === '796834087.CH1', 'Add persists the canonical serial anchor even though the client submitted the CAN address (got ' . var_export($writtenAnchor, true) . ')');
 
-// 4c) Reject: the now-linked candidate cannot be Add-ed a second time.
+// 4d) Reject: the now-linked candidate cannot be Add-ed a second time.
 try {
     channel_add_channel_from_pool(
         $xmlPath,
@@ -183,7 +196,7 @@ try {
     check($e->apiCode() === 'candidate_not_available', 'Add rejects an already-linked candidate with candidate_not_available (got ' . $e->apiCode() . ')');
 }
 
-// 4d) Reject: a syntactically well-formed but wholly fabricated serial anchor
+// 4e) Reject: a syntactically well-formed but wholly fabricated serial anchor
 //     that matches no current candidate must be rejected, not written verbatim.
 try {
     channel_add_channel_from_pool(

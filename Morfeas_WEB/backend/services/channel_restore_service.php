@@ -196,6 +196,7 @@ function restore_classify_entries(array $rawEntries, array $existingRows, array 
             'code' => null,
             'reason' => null,
             'canonical_anchor' => null,
+            'ignored_fields' => [],
             'payload' => null,
         ];
 
@@ -213,14 +214,11 @@ function restore_classify_entries(array $rawEntries, array $existingRows, array 
             }
         }
         if (!$missing) {
-            // Plan §6.0.2 C-1: every CHANNEL element that is actually
-            // written must be non-empty, not just present in the source
+            // Every required CHANNEL element that is written must be
+            // non-empty, not just present in the source
             // JSON. All six required fields land in the document
-            // unconditionally, so all six must be checked here, not only
-            // the three identity fields -- previously DESCRIPTION/MIN/MAX
-            // were allowed through blank (2026-08-19 code review, F-1),
-            // which iso_save_xml()'s write-time gate now also refuses, but
-            // silently, past this preflight report.
+            // unconditionally, so preflight checks all six and reports the
+            // error before the final-byte gate.
             foreach (RESTORE_LEGACY_REQUIRED_FIELDS as $field) {
                 if (trim((string)$raw[$field]) === '') {
                     $missing[] = $field;
@@ -243,9 +241,8 @@ function restore_classify_entries(array $rawEntries, array $existingRows, array 
             continue;
         }
 
-        // Plan §6.0.2 C-4/C-5, checked against the value as it will
-        // actually be stored (after the "_" prefix iso_normalize_iso_channel()
-        // adds), matching the write-time gate exactly.
+        // Check the value as it will be stored after the leading underscore
+        // is normalised, matching the write-time gate exactly.
         $isoNormForLength = iso_normalize_iso_channel((string)$raw['ISO_CHANNEL']);
         if (strlen($isoNormForLength) >= 20) { // ISO_channel_name_size
             $report['reason'] = "ISO_CHANNEL is too long (>= 20 bytes once prefixed): $isoNormForLength";
@@ -276,6 +273,14 @@ function restore_classify_entries(array $rawEntries, array $existingRows, array 
             $report['code'] = 'missing_required_unit';
             $rows[] = $report;
             continue;
+        }
+        if ($interfaceType === 'SDAQ') {
+            foreach (['UNIT', 'CAL_DATE', 'CAL_PERIOD'] as $runtimeField) {
+                if (array_key_exists($runtimeField, $raw)
+                    && trim((string)$raw[$runtimeField]) !== '') {
+                    $report['ignored_fields'][] = $runtimeField;
+                }
+            }
         }
 
         $deviceCheck = restore_check_device_handler($interfaceType, $identity, $deviceIdentifiers);
@@ -434,12 +439,12 @@ function restore_preflight(string $xmlPath, string $logConfigPath, string $fileC
  */
 function restore_commit(string $xmlPath, string $logConfigPath, string $fileContent, string $expectedDigest): array
 {
-    // Plan §6: IOBOX/MTI handler matching reads Morfeas_Config.xml, so this
-    // must hold log_config before opcua_config, in that fixed order, so the
+    // IOBOX/MTI handler matching reads Morfeas_Config.xml, so this must hold
+    // log_config before opcua_config, in that fixed order, so the
     // digest/device-identifier snapshot and the eventual write are read
     // from a single consistent point in time -- closing the TOCTOU where a
-    // device handler could be deleted between digest computation and the
-    // handler-matching re-check below (2026-08-19 code review, F-6).
+    // device handler cannot be deleted between digest computation and the
+    // handler-matching re-check below.
     return log_config_with_xml_lock($logConfigPath, function () use ($xmlPath, $logConfigPath, $fileContent, $expectedDigest) {
         return restore_commit_locked($xmlPath, $logConfigPath, $fileContent, $expectedDigest);
     });
@@ -506,12 +511,18 @@ function restore_commit_locked(string $xmlPath, string $logConfigPath, string $f
 
             if ($r['result'] === 'Ready to restore') {
                 $new = $xml->addChild('CHANNEL');
-                $payload = iso_build_new_channel_payload($data['iso_channel'], array_merge($data, [
+                $newData = array_merge($data, [
                     // Legacy JSON carries no build/mod timestamp; Restore
                     // generates the current audit time for both.
                     'build_date' => $now,
                     'mod_date' => $now,
-                ]));
+                ]);
+                if ($data['interface_type'] === 'SDAQ') {
+                    // Legacy JSON may carry a historical SDAQ Unit, but SDAQ
+                    // metadata is runtime-owned and is not restored to XML.
+                    unset($newData['unit']);
+                }
+                $payload = iso_build_new_channel_payload($data['iso_channel'], $newData);
                 iso_set_channel_contents($new, $payload);
                 $added++;
                 continue;
@@ -536,9 +547,9 @@ function restore_commit_locked(string $xmlPath, string $logConfigPath, string $f
                 'description'    => $data['description'],
                 'min'            => $data['min'],
                 'max'            => $data['max'],
-                'unit'           => $data['interface_type'] === 'SDAQ' ? $existingSnapshot['unit'] : iso_decode_xml_value($data['unit']),
-                'cal_date'       => $data['interface_type'] === 'SDAQ' ? $existingSnapshot['cal_date'] : $data['cal_date'],
-                'cal_period'     => $data['interface_type'] === 'SDAQ' ? $existingSnapshot['cal_period'] : $data['cal_period'],
+                'unit'           => $data['interface_type'] === 'SDAQ' ? null : $data['unit'],
+                'cal_date'       => $data['interface_type'] === 'SDAQ' ? null : $data['cal_date'],
+                'cal_period'     => $data['interface_type'] === 'SDAQ' ? null : $data['cal_period'],
                 'build_date'     => $existingSnapshot['build_date'],
                 'mod_date'       => $now,
                 'alarm_high_val' => $data['alarm_high_val'],

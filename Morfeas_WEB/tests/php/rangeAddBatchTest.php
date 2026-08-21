@@ -96,6 +96,19 @@ $dir = make_tmp_dir('range_add_test');
 $sdaqJson = write_sdaq_fixture($dir);
 $xmlPath = write_empty_opcua_xml($dir);
 
+// SDAQ runtime Unit must not enter a batch payload. Reject the complete
+// request before the first XML write.
+$unitBatch = [batch_item('555000111.CH1', '_Unit_A'), batch_item('555000111.CH2', '_Unit_B')];
+$unitBatch[1]['unit'] = 'C';
+$beforeUnitHash = sha1_file($xmlPath);
+try {
+    channel_add_sdaq_range_from_pool($xmlPath, $unitBatch, [$sdaqJson], [], [], [], []);
+    check(false, 'Range Add rejects any item carrying SDAQ Unit');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'sdaq_unit_not_allowed', 'Range Add rejects SDAQ Unit with sdaq_unit_not_allowed (got ' . $e->apiCode() . ')');
+}
+check(sha1_file($xmlPath) === $beforeUnitHash, 'SDAQ Unit contract failure leaves the range XML byte-for-byte unchanged');
+
 // --- 1) Happy path: 3 valid channels, one atomic batch, all persisted with
 //        canonical serial anchors. ---
 channel_add_sdaq_range_from_pool(

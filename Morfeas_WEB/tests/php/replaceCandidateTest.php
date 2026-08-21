@@ -339,9 +339,21 @@ foreach ($xmlCleanup->CHANNEL as $ch) {
 }
 file_put_contents($xmlPath, $xmlCleanup->asXML());
 
-// --- 8) Field allowlist (plan 5.4: "Replace only changes anchor, preserves
-//        ISO/description/min/max/unit/alarms/build date"): a replace_mode
-//        PATCH that also carries other fields must not apply them. ---
+// --- 8) SDAQ Unit is an explicit contract error on every write endpoint. ---
+try {
+    channel_replace_channel_from_pool(
+        $xmlPath,
+        '_Old_SDAQ_Known2',
+        ['replace_mode' => true, 'anchor' => '900000002.CH1', 'unit' => 'HACKED'],
+        [$sdaqJson, $sdaqJsonLive], [], [], [], []
+    );
+    check(false, 'Replace rejects a supplied SDAQ Unit');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'sdaq_unit_not_allowed', 'Replace rejects a supplied SDAQ Unit with sdaq_unit_not_allowed (got ' . $e->apiCode() . ')');
+}
+
+// --- 9) Field allowlist: other smuggled metadata is ignored and Replace
+//        changes only the server-resolved anchor. ---
 channel_replace_channel_from_pool(
     $xmlPath,
     '_Old_SDAQ_Known2',
@@ -352,7 +364,6 @@ channel_replace_channel_from_pool(
         'description' => 'HACKED VIA REPLACE',
         'min' => '-999',
         'max' => '999',
-        'unit' => 'HACKED',
     ],
     [$sdaqJson, $sdaqJsonLive], [], [], [], []
 );

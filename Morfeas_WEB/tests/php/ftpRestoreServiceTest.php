@@ -3,10 +3,9 @@
  * tests/php/ftpRestoreServiceTest.php
  *
  * Standalone regression test for the FTP Restore rewrite in
- * ftp_backup_service.php (plan §10.0.3). FTP Restore's actual network I/O
- * (ftp_backup_download_raw()) needs a real FTP server and is intentionally
- * NOT covered here -- everything it feeds into is decomposed into pure
- * functions and IS covered:
+ * ftp_backup_service.php. FTP socket I/O still needs a real server, but the
+ * production commit entry is exercised with an injected byte transport, so
+ * locking, digest recheck, validation and replacement are covered here:
  *
  *   - ftp_backup_decode_bundle(): gzip/JSON/checksum decoding, no network.
  *   - ftp_backup_restore_digest(): deterministic hashing of (filename, bytes).
@@ -183,6 +182,65 @@ check($report['opc_ua']['channel_count'] === 1, 'validate_bundle_candidates: rep
 if ($dtdAvailable) {
     check($report['morfeas']['valid'] === true, 'validate_bundle_candidates: a valid Morfeas_Config candidate passes');
     check($report['can_commit'] === true, 'validate_bundle_candidates: can_commit is true when both sides are valid');
+
+    $lowercaseType = str_replace('<INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>', '<INTERFACE_TYPE>sdaq</INTERFACE_TYPE>', $validOpcUa);
+    $rawReport = ftp_backup_validate_bundle_candidates($lowercaseType, $validMorfeas, $dtdDir);
+    check($rawReport['opc_ua']['valid'] === false, 'exact-byte FTP gate rejects lower-case INTERFACE_TYPE instead of validating a normalised copy');
+    check(($rawReport['opc_ua']['errors'][0]['code'] ?? '') === 'unsupported_interface', 'lower-case FTP identity is reported as unsupported_interface');
+
+    $spacedAnchor = str_replace('111111111.CH1</ANCHOR>', '111111111.CH1 </ANCHOR>', $validOpcUa);
+    $rawReport = ftp_backup_validate_bundle_candidates($spacedAnchor, $validMorfeas, $dtdDir);
+    check($rawReport['opc_ua']['valid'] === false, 'exact-byte FTP gate rejects trailing ANCHOR whitespace that Core rejects');
+
+    $legacySdaqUnit = str_replace('    <MAX>100</MAX>', "    <MAX>100</MAX>\n    <UNIT>legacy-C</UNIT>", $validOpcUa);
+    $legacyReport = ftp_backup_validate_bundle_candidates($legacySdaqUnit, $validMorfeas, $dtdDir);
+    check($legacyReport['opc_ua']['valid'] === true, 'FTP full Restore preserves compatibility with a valid Legacy SDAQ UNIT element');
+
+    // Exercise the production commit entry, including both file locks,
+    // digest recheck, exact-byte validation and ordered replacement. The
+    // injected transport returns the same bytes a real FTP download would;
+    // all commit behavior remains production code.
+    $commitDir = make_tmp_dir('ftp_restore_commit_entry');
+    $commitXml = $commitDir . '/OPC_UA_Config.xml';
+    $commitLog = $commitDir . '/Morfeas_config.xml';
+    file_put_contents($commitXml, $validOpcUa);
+    file_put_contents($commitLog, $validMorfeas);
+    $legacyBundle = make_bundle($legacySdaqUnit, $validMorfeas);
+    $legacyDigest = ftp_backup_restore_digest('legacy-unit.mbl', $legacyBundle);
+    ftp_backup_restore_commit(
+        'legacy-unit.mbl',
+        $legacyDigest,
+        $commitXml,
+        $commitLog,
+        $dtdDir,
+        false,
+        static fn(string $filename): string => $legacyBundle
+    );
+    check(file_get_contents($commitXml) === $legacySdaqUnit, 'FTP commit preserves historical SDAQ UNIT in the exact restored bytes');
+
+    $lowerBundle = make_bundle($lowercaseType, $validMorfeas);
+    $lowerDigest = ftp_backup_restore_digest('lowercase-type.mbl', $lowerBundle);
+    $beforeOpcHash = hash_file('sha256', $commitXml);
+    $beforeLogHash = hash_file('sha256', $commitLog);
+    try {
+        ftp_backup_restore_commit(
+            'lowercase-type.mbl',
+            $lowerDigest,
+            $commitXml,
+            $commitLog,
+            $dtdDir,
+            false,
+            static fn(string $filename): string => $lowerBundle
+        );
+        check(false, 'FTP commit entry must reject raw lower-case INTERFACE_TYPE');
+    } catch (ChannelConfigException $e) {
+        check($e->apiCode() === 'unsupported_interface', 'FTP commit entry rejects raw lower-case INTERFACE_TYPE before replacement');
+    }
+    check(
+        hash_file('sha256', $commitXml) === $beforeOpcHash
+            && hash_file('sha256', $commitLog) === $beforeLogHash,
+        'rejected FTP commit leaves both formal configuration files byte-for-byte unchanged'
+    );
 }
 
 // --- 11) Malformed XML on the OPC_UA side is reported without crashing,
@@ -477,8 +535,7 @@ if ($dtdAvailable) {
 
 
 // =====================================================================
-// Warning acknowledgement gate. ftp_backup_restore_commit() itself needs
-// FTP to run, so what is asserted here is the decision logic it applies:
+// Warning acknowledgement gate. The warning decision is asserted separately:
 // warnings present + not acknowledged => refuse. Verified by reproducing
 // that exact condition against the real report shape, so the assertion
 // tracks the production data structure rather than a hand-written stub.

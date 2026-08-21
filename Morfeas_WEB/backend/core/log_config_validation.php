@@ -3,15 +3,14 @@
 require_once __DIR__ . '/opcua_config.php'; // ChannelConfigException
 
 /*
- * Whole-document validator for a Morfeas_Config.xml candidate, built for
- * FTP Restore (plan §10.0.3) and, since F-15, also run over the result of
- * every write that ADDS a component (Device Add, CAN role change): the
+ * Whole-document validator for a Morfeas_Config.xml candidate. FTP Restore
+ * and every writer that adds a component run it before committing bytes: the
  * document must be provably safe to write before it is ever committed to
  * disk, the same standard iso_validate_document() already holds
  * OPC_UA_Config.xml to.
  *
- * Scope (plan §10.0.9 F-14, completed 2026-08-20): this now covers every
- * DETERMINISTIC rule in Core's Morfeas_daemon_config_valid()
+ * It covers every deterministic rule in Core's
+ * Morfeas_daemon_config_valid()
  * (Morfeas_XML.c:973-1210), rule for rule:
  *
  *   Core                                    | here
@@ -32,8 +31,8 @@ require_once __DIR__ . '/opcua_config.php'; // ChannelConfigException
  * operator sees in the preflight report and then has to reconcile against
  * Core's journal if they restore anyway.
  *
- * The remaining §10.0.1 items -- per-component supported/unsupported
- * enforcement and the runtime meaning of a Disable combination -- are NOT
+ * Per-component runtime support and the meaning of a Disable combination
+ * are not
  * deterministic document rules; they depend on what hardware answers, and
  * Core itself does not check them at config-validation time. They stay out
  * of scope here on purpose.
@@ -76,8 +75,7 @@ function log_config_dev_name_max_length(): int
 {
     // Dev_or_Bus_name_str_size == IFNAMSIZ (Morfeas_IPC.h:20), a POSIX
     // system constant (net/if.h), not something Core's own repo assigns a
-    // numeric value to -- see coreConstantsConsistencyTest.php's F-8 note
-    // for the same reasoning applied to the Web strict parsers. 16 has been
+    // numeric value to. 16 has been
     // unchanged across every glibc/Linux version this product targets.
     return 16;
 }
@@ -159,7 +157,7 @@ function log_config_child_text(DOMElement $parent, string $tag): ?string
  *
  * $expectedRoot is checked explicitly rather than left to the DTD: a
  * document declaring a DOCTYPE whose name does not match its root element,
- * or no DOCTYPE at all, must not slip through (F-12).
+ * or no DOCTYPE at all, must not slip through.
  */
 function log_config_validate_dtd_structure(DOMDocument $dom, string $dtdDir, string $expectedRoot, string $label): void
 {
@@ -413,8 +411,7 @@ function log_config_validate_can_bus_usage(DOMDocument $dom): void
  *
  *   - too loose: "IOBOX1 " (trailing space) trimmed to "IOBOX1" passes the
  *     illegal-character scan, while Core scans the raw bytes, finds the
- *     space, and refuses to start -- the exact class of divergence F-14 was
- *     opened for. Same for " 10.0.0.1", which trims into a valid address
+ *     space, and refuses to start. Same for " 10.0.0.1", which trims into a valid address
  *     but is not one to inet_pton().
  *   - too strict: "Box" and "Box " are one trimmed string and two distinct
  *     strings to strcmp(), so trimming invented a duplicate Core does not
@@ -480,8 +477,8 @@ function log_config_validate_ip_handlers(DOMDocument $dom): void
 /*
  * Non-blocking findings: things Core's daemon-config validator accepts, so
  * they must not stop a restore, but that produce a configuration which does
- * not do what its author wrote down. Same treatment as F-13's orphan
- * channels -- reported, and ftp_backup_restore_commit() requires explicit
+ * not do what its author wrote down. They are reported, and
+ * ftp_backup_restore_commit() requires explicit
  * acknowledgement before it will proceed.
  *
  * Currently one rule: a DEV_NAME of exactly IFNAMSIZ bytes. See

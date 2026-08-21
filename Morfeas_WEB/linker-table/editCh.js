@@ -2,7 +2,7 @@
  * Edit Link popup (LOG WEB v2)
  * - Mirrors Link Creator behaviors for path search and ISO suggestions.
  * - Prefills fields from the selected row; Type stays locked/disabled.
- * - Allows editing path, ISO, description, min/max, alarms, and unit.
+ * - Edit changes metadata only; Replace separately selects a new SDAQ source.
  * ========================================================================== */
 
 (() => {
@@ -115,8 +115,8 @@
 
     if (sourceFamily === "SDAQ" && !sourceKnown) {
       return {
-        allow: true,
-        warning: "Subtype unknown, make sure replace within same type.",
+        allow: false,
+        message: "Source SDAQ subtype is unknown; compatibility cannot be verified.",
       };
     }
 
@@ -430,7 +430,7 @@
 
     // Plain Edit may only carry metadata. The identity fields below are
     // display-only in this popup (Type/Path/ISO code/Cylinder are greyed
-    // out), and per plan §10.0.1 they must not enter the PATCH at all --
+    // out), and they must not enter the PATCH at all --
     // the backend now rejects a plain Edit that carries any of them
     // (edit_field_not_allowed), so sending them "just because the form has
     // them" would fail every Edit. Replace mode adds `anchor` back below,
@@ -448,7 +448,7 @@
 
     // SDAQ Unit is runtime-owned (Core reads it from the device, never from
     // XML), so it is read-only here and the backend rejects it outright
-    // (plan §5.3 table, §13.2). Only non-SDAQ interfaces own their Unit in XML.
+    // XML). Only non-SDAQ interfaces own their Unit in XML.
     if (type !== 'SDAQ') {
       body.unit = unitInput.value;
 
@@ -477,7 +477,8 @@
           setStatus(decision.warning, 'warn');
         }
       } else if (state.sourceFamily === 'SDAQ' && !state.sourceSubtypeKnown) {
-        setStatus('Subtype unknown, make sure replace within same type.', 'warn');
+        setStatus('Source SDAQ subtype is unknown; compatibility cannot be verified.', 'error');
+        return;
       }
     }
 
@@ -627,6 +628,10 @@
       descInput.classList.remove('ro');
       setDisabled(pathInput, true);
       setDisabled(btnSearch, true);
+      const sdaqRuntimeMetadata = state.sourceFamily === 'SDAQ';
+      setDisabled(unitInput, sdaqRuntimeMetadata);
+      if (calDateInput) setDisabled(calDateInput, sdaqRuntimeMetadata);
+      if (calPeriodInput) setDisabled(calPeriodInput, sdaqRuntimeMetadata);
     }
     await Promise.all([loadIsoCatalog(), loadSearchPool()]);
     if (isoInput.value) {

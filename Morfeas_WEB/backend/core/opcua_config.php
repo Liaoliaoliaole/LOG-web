@@ -60,24 +60,9 @@ function iso_load_channels(string $xmlPath): array
 }
 
 /*
- * The single Core-equivalence gate for OPC_UA_Config.xml (plan §6.0.2,
- * rules C-1 through C-10, cross-checked against every EXIT_FAILURE branch
- * in Morfeas_opc_ua_config_valid() / Morfeas_XML.c -- 12 branches, all
- * covered here). Every write path serializes through iso_save_xml(), and
- * this function runs first inside it, so no writer can bypass it -- that
- * is the point: a per-writer field checklist is exactly what let F-1/F-2/
- * F-3 (2026-08-19 code review) slip through undetected. Structural checks
- * (D-1/D-2/D-3) mirror Morfeas.dtd's CHANNEL content model and stay even
- * though every current writer already goes through iso_set_channel_contents()
- * in the right order, because this function's whole purpose is to verify
- * the final document rather than trust the writer.
- *
- * Deliberately re-checks C-2/C-3/C-6/C-8/C-9, which individual write paths
- * already enforce via iso_require_valid_source_identity()/
- * iso_find_anchor_conflict() against the anchor being written -- this
- * function instead re-derives them against the *whole* final document, so
- * it does not depend on every future writer remembering to call those
- * helpers correctly.
+ * Whole-document semantic gate matching Core's OPC UA configuration rules.
+ * It intentionally rechecks identity grammar and duplicates across the
+ * final document instead of trusting individual writer paths.
  */
 function iso_validate_document(SimpleXMLElement $xml): void
 {
@@ -98,7 +83,7 @@ function iso_validate_document(SimpleXMLElement $xml): void
         }
         $isoForError = trim((string)$ch->ISO_CHANNEL) ?: '(unknown)';
 
-        // D-3: no element name outside the DTD's CHANNEL content model.
+        // No element name outside the DTD's CHANNEL content model.
         foreach ($childNames as $name) {
             if (!isset($orderIndex[$name])) {
                 throw new ChannelConfigException(
@@ -108,7 +93,7 @@ function iso_validate_document(SimpleXMLElement $xml): void
                 );
             }
         }
-        // D-1: the six required elements must all be present.
+        // The six required elements must all be present.
         foreach ($requiredElements as $name) {
             if (!in_array($name, $childNames, true)) {
                 throw new ChannelConfigException(
@@ -118,7 +103,7 @@ function iso_validate_document(SimpleXMLElement $xml): void
                 );
             }
         }
-        // D-2: elements that are present must appear in DTD sequence order.
+        // Elements that are present must appear in DTD sequence order.
         $lastIdx = -1;
         foreach ($childNames as $name) {
             if ($orderIndex[$name] < $lastIdx) {
@@ -131,7 +116,7 @@ function iso_validate_document(SimpleXMLElement $xml): void
             $lastIdx = $orderIndex[$name];
         }
 
-        // C-1: no present element's content may be empty (applies to all
+        // No present element's content may be empty (applies to all
         // fifteen elements, not just the six required ones -- an optional
         // element that is present but empty is just as fatal to Core).
         foreach ($ch->children() as $child) {
@@ -144,11 +129,24 @@ function iso_validate_document(SimpleXMLElement $xml): void
             }
         }
 
-        $isoChannel = trim((string)$ch->ISO_CHANNEL);
-        $interfaceType = strtoupper(trim((string)$ch->INTERFACE_TYPE));
-        $anchor = trim((string)$ch->ANCHOR);
+        /*
+         * Validate identity text exactly as stored. Core compares
+         * INTERFACE_TYPE with strcmp() and its strict anchor decoders do not
+         * trim, so normalising here would validate a different document.
+         */
+        $isoChannel = (string)$ch->ISO_CHANNEL;
+        $interfaceType = (string)$ch->INTERFACE_TYPE;
+        $anchor = (string)$ch->ANCHOR;
 
-        // C-4: ISO_CHANNEL length, on the actual stored (already "_"-prefixed) value.
+        if ($isoChannel !== trim($isoChannel)) {
+            throw new ChannelConfigException(
+                'ISO_CHANNEL must not contain leading or trailing whitespace',
+                409,
+                'invalid_iso_channel'
+            );
+        }
+
+        // Check ISO_CHANNEL as stored, including the leading underscore.
         if (strlen($isoChannel) >= 20) { // ISO_channel_name_size
             throw new ChannelConfigException(
                 "ISO_CHANNEL is too long (>= 20 bytes): $isoChannel",
@@ -156,7 +154,7 @@ function iso_validate_document(SimpleXMLElement $xml): void
                 'invalid_iso_channel'
             );
         }
-        // C-5: ISO_CHANNEL must not contain '.'.
+        // ISO_CHANNEL must not contain '.'.
         if (strpos($isoChannel, '.') !== false) {
             throw new ChannelConfigException(
                 "ISO_CHANNEL contains an illegal '.': $isoChannel",
@@ -165,10 +163,7 @@ function iso_validate_document(SimpleXMLElement $xml): void
             );
         }
 
-        // C-2: INTERFACE_TYPE must be a known, supported interface (this
-        // also covers C-9: MDAQ is not in the known list, so it lands here
-        // with a distinct code rather than being folded into C-6's grammar
-        // failure).
+        // MDAQ is intentionally absent because its channel implementation is retired.
         if (!in_array($interfaceType, $knownInterfaces, true)) {
             throw new ChannelConfigException(
                 "CHANNEL \"$isoChannel\" has an unsupported INTERFACE_TYPE: $interfaceType",
@@ -177,7 +172,7 @@ function iso_validate_document(SimpleXMLElement $xml): void
             );
         }
 
-        // C-6: ANCHOR must satisfy the interface's strict grammar.
+        // ANCHOR must satisfy the interface's strict full-string grammar.
         $identity = iso_parse_source_identity($interfaceType, $anchor);
         if ($identity === null) {
             throw new ChannelConfigException(
@@ -187,7 +182,7 @@ function iso_validate_document(SimpleXMLElement $xml): void
             );
         }
 
-        // C-7: IOBOX/MTI/NOX must carry a non-empty XML-owned UNIT; SDAQ's
+        // IOBOX/MTI/NOX must carry a non-empty XML-owned Unit; SDAQ's
         // Unit is runtime-owned and not read from XML.
         if ($interfaceType !== 'SDAQ' && trim((string)$ch->UNIT) === '') {
             throw new ChannelConfigException(
@@ -197,7 +192,7 @@ function iso_validate_document(SimpleXMLElement $xml): void
             );
         }
 
-        // C-3: ISO_CHANNEL must be unique across the document.
+        // ISO_CHANNEL must be unique across the document.
         if (isset($seenIso[$isoChannel])) {
             throw new ChannelConfigException(
                 "ISO_CHANNEL \"$isoChannel\" appears more than once",
@@ -207,7 +202,7 @@ function iso_validate_document(SimpleXMLElement $xml): void
         }
         $seenIso[$isoChannel] = true;
 
-        // C-8: the parsed source identity must be unique across the
+        // The parsed source identity must be unique across the
         // document, per interface (compared on decoded fields, never on
         // raw ANCHOR text -- iso_parse_source_identity()'s semantic_key
         // already encodes the interface, so cross-interface collisions
@@ -223,17 +218,134 @@ function iso_validate_document(SimpleXMLElement $xml): void
         $seenSemanticKey[$key] = $isoChannel;
     }
 
-    // C-10 is not implemented here: it only fails when the document has at
-    // least one CHANNEL but zero of them ever set an INTERFACE_TYPE/
-    // ISO_CHANNEL/ANCHOR node, which iso_set_channel_contents() cannot
-    // produce, and an empty NODESet returns EXIT_SUCCESS in Core. See
-    // plan §6.0.2 for the full derivation.
+    // DTD validation already makes the Core aggregate "no identity fields"
+    // failure unreachable for a non-empty document; Core accepts an empty
+    // NODESet.
+}
+
+/*
+ * Validate the exact bytes that are about to be written. Object-level
+ * validation alone cannot detect a serializer or post-processing bug that
+ * changes valid data after the check.
+ */
+function iso_validate_final_xml_bytes(
+    string $xmlBytes,
+    ?string $dtdDir = null,
+    bool $requireDtd = false
+): SimpleXMLElement {
+    $dom = new DOMDocument('1.0');
+    libxml_use_internal_errors(true);
+    try {
+        $loaded = $dom->loadXML($xmlBytes, LIBXML_NONET);
+        $loadErrors = libxml_get_errors();
+        libxml_clear_errors();
+    } finally {
+        libxml_use_internal_errors(false);
+    }
+
+    if (!$loaded || $dom->documentElement === null) {
+        $first = $loadErrors[0] ?? null;
+        $detail = $first ? trim((string)$first->message) : 'unknown XML parse error';
+        throw new ChannelConfigException(
+            'Final OPC_UA_Config.xml bytes are not well-formed XML: ' . $detail,
+            409,
+            'invalid_document_structure'
+        );
+    }
+    if ($dom->documentElement->nodeName !== 'NODESet') {
+        throw new ChannelConfigException(
+            'OPC_UA_Config.xml has the wrong root element: expected <NODESet>, got <'
+                . $dom->documentElement->nodeName . '>',
+            409,
+            'invalid_document_structure'
+        );
+    }
+
+    $hasDtd = $dom->doctype !== null;
+    if ($requireDtd || $hasDtd) {
+        if ($dom->doctype === null
+            || $dom->doctype->name !== 'NODESet'
+            || trim((string)$dom->doctype->systemId) === '') {
+            throw new ChannelConfigException(
+                'OPC_UA_Config.xml is missing a matching NODESet DOCTYPE declaration',
+                409,
+                'invalid_document_structure'
+            );
+        }
+        $dtdPath = $dtdDir !== null ? rtrim($dtdDir, '/') . '/Morfeas.dtd' : '';
+        if (!is_file($dtdPath)) {
+            throw new ChannelConfigException(
+                'Morfeas.dtd is unavailable for final OPC_UA_Config.xml validation',
+                500,
+                'channel_config_validation_unavailable'
+            );
+        }
+
+        libxml_set_external_entity_loader(static function (?string $public, ?string $system, array $context) use ($dtdPath) {
+            if (is_string($system) && basename($system) === 'Morfeas.dtd') {
+                return fopen($dtdPath, 'r');
+            }
+            return null;
+        });
+        libxml_use_internal_errors(true);
+        try {
+            $valid = $dom->validate();
+            $dtdErrors = libxml_get_errors();
+            libxml_clear_errors();
+        } finally {
+            libxml_set_external_entity_loader(null);
+            libxml_use_internal_errors(false);
+        }
+        if (!$valid) {
+            $first = $dtdErrors[0] ?? null;
+            $detail = $first ? trim((string)$first->message) : 'unknown DTD validation error';
+            throw new ChannelConfigException(
+                'Final OPC_UA_Config.xml bytes failed DTD validation: ' . $detail,
+                409,
+                'invalid_document_structure'
+            );
+        }
+    }
+
+    foreach ($dom->documentElement->childNodes as $child) {
+        if ($child instanceof DOMElement && $child->nodeName !== 'CHANNEL') {
+            throw new ChannelConfigException(
+                'NODESet contains an element not allowed by Morfeas.dtd: ' . $child->nodeName,
+                409,
+                'invalid_document_structure'
+            );
+        }
+    }
+
+    $xml = simplexml_import_dom($dom);
+    if (!$xml instanceof SimpleXMLElement) {
+        throw new ChannelConfigException(
+            'Final OPC_UA_Config.xml bytes could not be converted for semantic validation',
+            500,
+            'channel_config_parse_failed'
+        );
+    }
+    iso_validate_document($xml);
+    return $xml;
+}
+
+function iso_resolve_dtd_dir(string $xmlPath): ?string
+{
+    $candidates = [
+        dirname($xmlPath),
+        __DIR__ . '/../../../../LOG-core/configuration',
+    ];
+    foreach ($candidates as $candidate) {
+        $resolved = realpath($candidate);
+        if ($resolved !== false && is_file($resolved . '/Morfeas.dtd')) {
+            return $resolved;
+        }
+    }
+    return null;
 }
 
 function iso_save_xml(SimpleXMLElement $xml, string $xmlPath): void
 {
-    iso_validate_document($xml);
-
     $dom = new DOMDocument('1.0');
     $dom->encoding = 'UTF-8';
     $dom->preserveWhiteSpace = false;
@@ -243,14 +355,35 @@ function iso_save_xml(SimpleXMLElement $xml, string $xmlPath): void
         throw new ChannelConfigException('Failed to format XML output', 500, 'channel_config_format_failed');
     }
 
+    $dtdDir = iso_resolve_dtd_dir($xmlPath);
+    if ($dtdDir === null) {
+        throw new ChannelConfigException(
+            'Morfeas.dtd is unavailable for final OPC_UA_Config.xml validation',
+            500,
+            'channel_config_validation_unavailable'
+        );
+    }
+
+    // Old test/config files may omit the declaration, but Core always
+    // parses OPC_UA_Config.xml with XML_PARSE_DTDVALID. Canonical Web output
+    // therefore restores the declaration before validating and writing.
+    if ($dom->doctype === null) {
+        $implementation = new DOMImplementation();
+        $doctype = $implementation->createDocumentType('NODESet', '', 'Morfeas.dtd');
+        $withDtd = $implementation->createDocument(null, '', $doctype);
+        $withDtd->encoding = 'UTF-8';
+        $withDtd->preserveWhiteSpace = false;
+        $withDtd->formatOutput = true;
+        $withDtd->appendChild($withDtd->importNode($dom->documentElement, true));
+        $dom = $withDtd;
+    }
+
     $xmlString = $dom->saveXML();
     if ($xmlString === false) {
         throw new ChannelConfigException('Failed to serialize XML', 500, 'channel_config_serialize_failed');
     }
 
-    $xmlString = preg_replace_callback('/<UNIT>(.*?)<\\/UNIT>/s', static function ($matches) {
-        return '<UNIT>' . html_entity_decode($matches[1], ENT_QUOTES | ENT_XML1, 'UTF-8') . '</UNIT>';
-    }, $xmlString);
+    iso_validate_final_xml_bytes($xmlString, $dtdDir, true);
 
     try {
         backend_atomic_write_file($xmlPath, $xmlString, 0644);
@@ -273,7 +406,7 @@ function iso_channel_snapshot(SimpleXMLElement $ch): array
         'description'    => trim((string)$ch->DESCRIPTION),
         'min'            => (string)$ch->MIN,
         'max'            => (string)$ch->MAX,
-        'unit'           => iso_decode_xml_value(trim((string)$ch->UNIT)),
+        'unit'           => trim((string)$ch->UNIT),
         'cal_date'       => trim((string)$ch->CAL_DATE),
         'cal_period'     => (string)$ch->CAL_PERIOD,
         'build_date'     => (string)$ch->BUILD_DATE,
@@ -295,18 +428,6 @@ function iso_normalize_iso_channel($value): ?string
         return '';
     }
     return $value[0] === '_' ? $value : '_' . $value;
-}
-
-function iso_decode_xml_value($value): ?string
-{
-    if ($value === null) {
-        return null;
-    }
-    $value = (string)$value;
-    if ($value === '') {
-        return '';
-    }
-    return html_entity_decode($value, ENT_QUOTES | ENT_XML1, 'UTF-8');
 }
 
 /*
@@ -576,45 +697,61 @@ function iso_find_anchor_conflict(SimpleXMLElement $xml, string $semanticKey, ?s
     return null;
 }
 
+function iso_add_text_child(SimpleXMLElement $parent, string $name, $value): void
+{
+    $parentNode = dom_import_simplexml($parent);
+    if (!$parentNode instanceof DOMElement || $parentNode->ownerDocument === null) {
+        throw new ChannelConfigException(
+            'Failed to access XML document while writing ' . $name,
+            500,
+            'channel_config_serialize_failed'
+        );
+    }
+
+    $element = $parentNode->ownerDocument->createElement($name);
+    $element->appendChild($parentNode->ownerDocument->createTextNode((string)$value));
+    $parentNode->appendChild($element);
+}
+
 function iso_set_channel_contents(SimpleXMLElement $ch, array $data): void
 {
     foreach ($ch->xpath('*') as $child) {
         unset($child[0]);
     }
 
-    $ch->addChild('ISO_CHANNEL', $data['iso_channel']);
-    $ch->addChild('INTERFACE_TYPE', $data['interface_type']);
-    $ch->addChild('ANCHOR', $data['anchor']);
-    $ch->addChild('DESCRIPTION', $data['description']);
-    $ch->addChild('MIN', $data['min']);
-    $ch->addChild('MAX', $data['max']);
+    iso_add_text_child($ch, 'ISO_CHANNEL', $data['iso_channel']);
+    iso_add_text_child($ch, 'INTERFACE_TYPE', $data['interface_type']);
+    iso_add_text_child($ch, 'ANCHOR', $data['anchor']);
+    iso_add_text_child($ch, 'DESCRIPTION', $data['description']);
+    iso_add_text_child($ch, 'MIN', $data['min']);
+    iso_add_text_child($ch, 'MAX', $data['max']);
 
     if ($data['unit'] !== null && $data['unit'] !== '') {
-        $ch->addChild('UNIT', $data['unit']);
+        iso_add_text_child($ch, 'UNIT', $data['unit']);
     }
     if ($data['cal_date'] !== null && $data['cal_date'] !== '') {
-        $ch->addChild('CAL_DATE', $data['cal_date']);
+        iso_add_text_child($ch, 'CAL_DATE', $data['cal_date']);
     }
     if ($data['cal_period'] !== null && $data['cal_period'] !== '') {
-        $ch->addChild('CAL_PERIOD', $data['cal_period']);
+        iso_add_text_child($ch, 'CAL_PERIOD', $data['cal_period']);
     }
     if ($data['build_date'] !== null && $data['build_date'] !== '') {
-        $ch->addChild('BUILD_DATE', $data['build_date']);
+        iso_add_text_child($ch, 'BUILD_DATE', $data['build_date']);
     }
     if ($data['mod_date'] !== null && $data['mod_date'] !== '') {
-        $ch->addChild('MOD_DATE', $data['mod_date']);
+        iso_add_text_child($ch, 'MOD_DATE', $data['mod_date']);
     }
     if ($data['alarm_high_val'] !== null && $data['alarm_high_val'] !== '') {
-        $ch->addChild('ALARM_HIGH_VAL', $data['alarm_high_val']);
+        iso_add_text_child($ch, 'ALARM_HIGH_VAL', $data['alarm_high_val']);
     }
     if ($data['alarm_low_val'] !== null && $data['alarm_low_val'] !== '') {
-        $ch->addChild('ALARM_LOW_VAL', $data['alarm_low_val']);
+        iso_add_text_child($ch, 'ALARM_LOW_VAL', $data['alarm_low_val']);
     }
     if ($data['alarm_high'] !== null && $data['alarm_high'] !== '') {
-        $ch->addChild('ALARM_HIGH', $data['alarm_high']);
+        iso_add_text_child($ch, 'ALARM_HIGH', $data['alarm_high']);
     }
     if ($data['alarm_low'] !== null && $data['alarm_low'] !== '') {
-        $ch->addChild('ALARM_LOW', $data['alarm_low']);
+        iso_add_text_child($ch, 'ALARM_LOW', $data['alarm_low']);
     }
 }
 
@@ -638,19 +775,9 @@ function iso_sdaq_anchor_is_valid(string $anchor): bool
     return iso_parse_sdaq_identity($anchor) !== null;
 }
 
-function iso_add_channel(string $xmlPath, array $data): void
-{
-    iso_with_xml_lock($xmlPath, function () use ($xmlPath, $data) {
-        iso_add_channel_body($xmlPath, $data);
-    });
-}
-
 /*
- * Lock-free core of Add. Callers that need to combine candidate-pool
- * revalidation with the write (see channel_add_channel_from_pool() in
- * channel_service.php) must already hold the XML lock and call this
- * directly, instead of iso_add_channel(), to avoid re-entering
- * iso_with_xml_lock().
+ * Lock-free core of Add. The production caller revalidates the live
+ * candidate pool while holding the XML lock, then calls this function.
  */
 function iso_add_channel_body(string $xmlPath, array $data): void
 {
@@ -706,15 +833,24 @@ function iso_build_new_channel_payload(string $isoChannel, array $data): array
     $now = time();
     $buildDate = iso_pick_value($data, ['build_date', 'build_date_unix', 'Build_date_UNIX']);
     $modDate = iso_pick_value($data, ['mod_date', 'mod_date_unix', 'Mod_date_UNIX']);
+    $interfaceType = strtoupper(trim((string)($data['interface_type'] ?? '')));
+
+    if ($interfaceType === 'SDAQ' && array_key_exists('unit', $data)) {
+        throw new ChannelConfigException(
+            'SDAQ Unit is supplied by live runtime metadata and must not be stored in OPC_UA_Config.xml',
+            400,
+            'sdaq_unit_not_allowed'
+        );
+    }
 
     return [
         'iso_channel'    => $isoChannel,
-        'interface_type' => $data['interface_type'],
+        'interface_type' => $interfaceType,
         'anchor'         => $data['anchor'],
         'description'    => $data['description'] ?? '',
         'min'            => $data['min'] ?? '0',
         'max'            => $data['max'] ?? '0',
-        'unit'           => iso_decode_xml_value($data['unit'] ?? null),
+        'unit'           => $interfaceType === 'SDAQ' ? null : ($data['unit'] ?? null),
         'cal_date'       => $data['cal_date'] ?? null,
         'cal_period'     => $data['cal_period'] ?? null,
         'build_date'     => $buildDate ?? $now,
@@ -752,34 +888,11 @@ const ISO_EDIT_FORBIDDEN_FIELDS = [
 ];
 
 /*
- * Enforces plan §5.3's plain-Edit field allowlist server-side.
- *
- * Greying the fields out in the browser is not a security boundary: before
- * this check existed, a direct PATCH without replace_mode could rewrite
- * ANCHOR to any syntactically valid but never-detected identity (verified:
- * 111111111.CH1 -> 999999999.CH1), rename ISO_CHANNEL, or change
- * INTERFACE_TYPE. That reopened exactly the incident entry point removing
- * Manual Add was meant to close, and simultaneously bypassed Replace's
- * source-offline/family/candidate-pool checks and the batch atomicity of
- * Range Add / TC16 Replace All -- iso_require_valid_source_identity() only
- * proves an anchor is well-formed, never that it corresponds to a real
- * detected candidate (2026-08-19 second code review, F-11).
- *
- * §5.3 requires a present identity field to be REJECTED, not silently
- * dropped: ignoring it would let the caller believe the change was applied.
- *
- * Replace is unaffected: it legitimately carries `anchor` and never goes
- * through this wrapper -- channel_replace_channel_from_pool() calls
- * iso_update_channel_body() directly, after re-deriving that anchor from the
- * live candidate pool inside the same lock.
- *
- * Deliberate scope boundary: `cal_date`/`cal_period` are NOT checked here.
- * They are XML-owned metadata for IOBOX/MTI/NOX (real field configs carry
- * them), and plan §13.2 assigns the rest of the calibration-semantics work
- * to a separate task; §5.3's reject list does not include them. The one
- * calibration-adjacent rule §13.2 does require immediately -- rejecting a
- * SDAQ `unit` override, because Core reads SDAQ Unit from runtime and never
- * from XML -- is enforced below.
+ * Enforce the plain-Edit allowlist on the server. Browser-disabled identity
+ * fields are not an authority; Replace is the only flow allowed to carry an
+ * anchor, and it re-derives that anchor from the live candidate pool.
+ * Calibration fields remain XML-owned for non-SDAQ interfaces. SDAQ Unit is
+ * runtime-owned and therefore rejected below.
  */
 function iso_require_edit_field_allowlist(string $xmlPath, string $isoChannel, array $data): void
 {
@@ -881,9 +994,7 @@ function iso_update_channel_body(string $xmlPath, string $isoChannel, array $dat
         'description'    => array_key_exists('description', $data) ? $data['description'] : $existing['description'],
         'min'            => array_key_exists('min', $data) ? $data['min'] : $existing['min'],
         'max'            => array_key_exists('max', $data) ? $data['max'] : $existing['max'],
-        'unit'           => array_key_exists('unit', $data)
-            ? iso_decode_xml_value($data['unit'])
-            : $existing['unit'],
+        'unit'           => array_key_exists('unit', $data) ? $data['unit'] : $existing['unit'],
         'cal_date'       => array_key_exists('cal_date', $data) ? $data['cal_date'] : $existing['cal_date'],
         'cal_period'     => array_key_exists('cal_period', $data) ? $data['cal_period'] : $existing['cal_period'],
         'build_date'     => $buildDate ?? $existing['build_date'],
@@ -895,6 +1006,12 @@ function iso_update_channel_body(string $xmlPath, string $isoChannel, array $dat
     ];
 
     $interfaceType = strtoupper(trim((string)($payload['interface_type'] ?? '')));
+    $payload['interface_type'] = $interfaceType;
+    if ($interfaceType === 'SDAQ') {
+        // SDAQ Unit is runtime-owned. This also removes historical XML UNIT
+        // values when a SDAQ channel is replaced or otherwise rewritten.
+        $payload['unit'] = null;
+    }
     // Defense in depth, for every interface: even a server-derived
     // replacement anchor must satisfy the Core-equivalent grammar before it
     // is ever written, and it is always persisted in canonical form. This
@@ -945,4 +1062,3 @@ function iso_delete_channel(string $xmlPath, string $isoChannel): void
         iso_save_xml($xml, $xmlPath);
     });
 }
-

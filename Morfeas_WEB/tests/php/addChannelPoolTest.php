@@ -7,7 +7,7 @@
  * SDAQ-only) now enforces the same live-Unlinked-pool authorization for
  * IOBOX, MTI and NOX that channel_add_sdaq_from_pool() already enforced for
  * SDAQ. Before this change, api_channels.php routed non-SDAQ Add POSTs
- * through iso_add_channel(), which trusted the client-submitted anchor
+ * through the old direct Add helper, which trusted the client-submitted anchor
  * directly (only checking for a duplicate ISO_CHANNEL/ANCHOR conflict, not
  * whether the target was ever actually detected). Per the fix plan, section
  * 10.0.1 / Phase A1: "所有 interface 都不信任浏览器提交的 raw/display anchor" --

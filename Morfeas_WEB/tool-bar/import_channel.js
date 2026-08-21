@@ -67,7 +67,12 @@
     $('#pillInvalid').textContent = `Invalid: ${summary.invalid}`;
     $('#pillConflict').textContent = `Conflict: ${summary.conflict}`;
 
-    reportBody.innerHTML = rows.map((r) => `
+    reportBody.innerHTML = rows.map((r) => {
+      const ignored = Array.isArray(r.ignored_fields) && r.ignored_fields.length
+        ? `Ignored: ${r.ignored_fields.join(', ')} (SDAQ runtime-owned)`
+        : '';
+      const detail = [r.reason || '', ignored].filter(Boolean).join('; ');
+      return `
       <tr class="${resultRowClass(r.result)}">
         <td>${r.row}</td>
         <td>${escapeHtml(r.iso_channel)}</td>
@@ -75,9 +80,10 @@
         <td>${escapeHtml(r.anchor)}</td>
         <td>${escapeHtml(r.canonical_anchor || '')}</td>
         <td class="result">${escapeHtml(r.result)}</td>
-        <td class="reason">${escapeHtml(r.reason || '')}</td>
+        <td class="reason">${escapeHtml(detail)}</td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
 
     btnConfirm.disabled = !canCommit;
 

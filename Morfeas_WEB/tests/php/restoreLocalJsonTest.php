@@ -258,6 +258,53 @@ check(count($written) === 3, '6: file now has exactly 3 channels (1 pre-existing
 check(($written['_New_1']['anchor'] ?? null) === '700000002.CH1', '6: _New_1 persisted with its canonical anchor');
 check(($written['_Existing']['description'] ?? null) === 'keep me', '6: No-change row left untouched');
 
+// Legacy JSON and existing Legacy XML may both carry SDAQ UNIT. Restore
+// accepts those historical files, but canonicalises every SDAQ row it
+// creates or updates by omitting UNIT because Core reads runtime metadata.
+$dir6b = make_tmp_dir('restore_sdaq_unit_test');
+$legacyExistingRow = channel_xml('_Legacy_Existing', 'SDAQ', '710000001.CH1', 'old', '0', '1', 'legacy-C');
+$legacyExistingRow = str_replace(
+    '<UNIT>legacy-C</UNIT>',
+    '<UNIT>legacy-C</UNIT><CAL_DATE>2020/01/01</CAL_DATE><CAL_PERIOD>12</CAL_PERIOD>',
+    $legacyExistingRow
+);
+$xmlPath6b = write_xml($dir6b, $legacyExistingRow);
+$logCfg6b = write_log_config($dir6b, []);
+$fileContent6b = json_encode([
+    legacy_entry('_Legacy_New', 'SDAQ', '710000002.CH1', [
+        'UNIT' => 'legacy-F',
+        'CAL_DATE' => '2021/02/03',
+        'CAL_PERIOD' => '24',
+    ]),
+    legacy_entry('_Legacy_Existing', 'SDAQ', '710000001.CH1', ['DESCRIPTION' => 'updated', 'UNIT' => 'legacy-K']),
+]);
+$preflight6b = restore_preflight($xmlPath6b, $logCfg6b, $fileContent6b);
+check($preflight6b['can_commit'] === true, '6b: Legacy SDAQ UNIT does not make Local JSON Restore invalid');
+check(
+    ($preflight6b['rows'][0]['ignored_fields'] ?? []) === ['UNIT', 'CAL_DATE', 'CAL_PERIOD'],
+    '6b: preflight explicitly reports Legacy SDAQ Unit/calibration as ignored runtime-owned metadata'
+);
+restore_commit($xmlPath6b, $logCfg6b, $fileContent6b, $preflight6b['digest']);
+$xml6b = simplexml_load_file($xmlPath6b);
+$units6b = [];
+foreach ($xml6b->CHANNEL as $ch) {
+    $units6b[(string)$ch->ISO_CHANNEL] = isset($ch->UNIT);
+}
+check(($units6b['_Legacy_New'] ?? true) === false, '6b: new restored SDAQ omits historical UNIT');
+check(($units6b['_Legacy_Existing'] ?? true) === false, '6b: updated existing SDAQ removes historical XML UNIT');
+
+$legacyExisting = null;
+foreach ($xml6b->CHANNEL as $ch) {
+    if ((string)$ch->ISO_CHANNEL === '_Legacy_Existing') {
+        $legacyExisting = $ch;
+        break;
+    }
+}
+check(
+    $legacyExisting !== null && !isset($legacyExisting->CAL_DATE) && !isset($legacyExisting->CAL_PERIOD),
+    '6b: updated existing SDAQ also removes historical XML calibration fields'
+);
+
 // ============================================================
 // 7) Commit is atomic: any invalid/conflicting row rejects the WHOLE batch,
 //    including otherwise-valid rows, with zero writes.

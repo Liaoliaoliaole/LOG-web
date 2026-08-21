@@ -399,6 +399,17 @@ function can_role_restore_network(array $beforeState, array $beforeRows): void
     network_apply_staged($payload, 0, true);
 }
 
+function can_role_restore_owned_xml(string $logConfig, string $beforeXml, string $committedDigest): void
+{
+    log_config_with_xml_lock($logConfig, static function () use ($logConfig, $beforeXml, $committedDigest): void {
+        $current = @file_get_contents($logConfig);
+        if (!is_string($current) || !hash_equals($committedDigest, hash('sha256', $current))) {
+            throw new RuntimeException('LOG config changed after this CAN transition; refusing to overwrite the newer configuration');
+        }
+        backend_atomic_write_file($logConfig, $beforeXml, 0644);
+    });
+}
+
 function can_role_transition(string $ramdisk, string $logConfig, string $bus, string $targetMode): array
 {
     $normalizedBus = can_role_validate_bus($bus);
@@ -407,57 +418,105 @@ function can_role_transition(string $ramdisk, string $logConfig, string $bus, st
         throw new InvalidArgumentException('target mode must be NOX or SDAQ');
     }
 
-    $beforeXml = file_get_contents($logConfig);
-    if (!is_string($beforeXml)) {
-        throw new RuntimeException('Failed to read current LOG config XML');
-    }
-
-    $beforeSnapshot = can_role_list($ramdisk, $logConfig);
-    $beforeState = $beforeSnapshot['network_state'] ?? network_get_state();
     $targetBitrate = can_role_expected_bitrate($normalizedMode);
     if (!is_int($targetBitrate)) {
         throw new RuntimeException('Unsupported target mode');
     }
 
-    try {
-        log_config_set_can_role($logConfig, $normalizedBus, $normalizedMode);
-        $networkResult = can_role_apply_bitrate($normalizedBus, $targetBitrate, $beforeSnapshot['rows']);
-        device_restart_morfeas_core();
+    return backend_with_named_lock('operation:can-role-transition', function () use (
+        $ramdisk, $logConfig, $normalizedBus, $normalizedMode, $targetBitrate
+    ): array {
+        $beforeXml = '';
+        $beforeSnapshot = [];
+        $beforeState = [];
+        $committedDigest = '';
+        $xmlCommitted = false;
+        $networkAttempted = false;
 
-        return [
-            'bus'     => $normalizedBus,
-            'mode'    => $normalizedMode,
-            'bitrate' => $targetBitrate,
-            'network' => $networkResult,
-            'before'  => $beforeSnapshot,
-            'pending' => true,
-        ];
-    } catch (Throwable $e) {
-        $rollbackErrors = [];
         try {
-            log_config_with_xml_lock($logConfig, static function () use ($logConfig, $beforeXml): void {
-                backend_atomic_write_file($logConfig, $beforeXml, 0644);
+            // Baseline and XML commit are one ownership step. Other config
+            // writers may run after this short lock is released; the digest
+            // below prevents rollback from overwriting any such newer write.
+            log_config_with_xml_lock($logConfig, function () use (
+                $ramdisk,
+                $logConfig,
+                $normalizedBus,
+                $normalizedMode,
+                &$beforeXml,
+                &$beforeSnapshot,
+                &$beforeState,
+                &$committedDigest,
+                &$xmlCommitted
+            ): void {
+                $beforeXml = @file_get_contents($logConfig);
+                if (!is_string($beforeXml)) {
+                    throw new RuntimeException('Failed to read current LOG config XML');
+                }
+                $beforeSnapshot = can_role_list($ramdisk, $logConfig);
+                $beforeState = $beforeSnapshot['network_state'] ?? network_get_state();
+
+                log_config_set_can_role_body($logConfig, $normalizedBus, $normalizedMode);
+                $xmlCommitted = true;
+                $committed = @file_get_contents($logConfig);
+                if (!is_string($committed)) {
+                    throw new RuntimeException('Failed to read committed LOG config XML');
+                }
+                $committedDigest = hash('sha256', $committed);
             });
-        } catch (Throwable $rollbackXmlError) {
-            $rollbackErrors[] = 'xml rollback failed: ' . $rollbackXmlError->getMessage();
-        }
 
-        try {
-            can_role_restore_network($beforeState, $beforeSnapshot['rows']);
-        } catch (Throwable $rollbackNetworkError) {
-            $rollbackErrors[] = 'network rollback failed: ' . $rollbackNetworkError->getMessage();
-        }
-
-        try {
+            $networkAttempted = true;
+            $networkResult = can_role_apply_bitrate($normalizedBus, $targetBitrate, $beforeSnapshot['rows']);
             device_restart_morfeas_core();
-        } catch (Throwable $restartError) {
-            $rollbackErrors[] = 'service restart failed: ' . $restartError->getMessage();
-        }
 
-        if (!empty($rollbackErrors)) {
-            throw new RuntimeException($e->getMessage() . ' | rollback: ' . implode(' ; ', $rollbackErrors), 0, $e);
-        }
+            return [
+                'bus'     => $normalizedBus,
+                'mode'    => $normalizedMode,
+                'bitrate' => $targetBitrate,
+                'network' => $networkResult,
+                'before'  => $beforeSnapshot,
+                'pending' => true,
+            ];
+        } catch (Throwable $e) {
+            // Validation/read failures happen before either side is touched.
+            if (!$xmlCommitted && !$networkAttempted) {
+                throw $e;
+            }
 
-        throw $e;
-    }
+            $rollbackErrors = [];
+            $stillOwnsConfig = true;
+            if ($xmlCommitted) {
+                try {
+                    can_role_restore_owned_xml($logConfig, $beforeXml, $committedDigest);
+                } catch (Throwable $rollbackXmlError) {
+                    $stillOwnsConfig = false;
+                    $rollbackErrors[] = 'xml rollback failed: ' . $rollbackXmlError->getMessage();
+                }
+            }
+
+            if ($networkAttempted && $stillOwnsConfig) {
+                try {
+                    can_role_restore_network($beforeState, $beforeSnapshot['rows']);
+                } catch (Throwable $rollbackNetworkError) {
+                    $rollbackErrors[] = 'network rollback failed: ' . $rollbackNetworkError->getMessage();
+                }
+            } elseif ($networkAttempted) {
+                // A newer configuration now owns both the desired CAN role
+                // and any subsequent network reconciliation. Reverting only
+                // the network here could corrupt that newer operation.
+                $rollbackErrors[] = 'network rollback skipped because this transition no longer owns the configuration';
+            }
+
+            try {
+                device_restart_morfeas_core();
+            } catch (Throwable $restartError) {
+                $rollbackErrors[] = 'service restart failed: ' . $restartError->getMessage();
+            }
+
+            if (!empty($rollbackErrors)) {
+                throw new RuntimeException($e->getMessage() . ' | rollback: ' . implode(' ; ', $rollbackErrors), 0, $e);
+            }
+
+            throw $e;
+        }
+    });
 }

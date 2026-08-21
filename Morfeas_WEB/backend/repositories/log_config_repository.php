@@ -4,12 +4,8 @@ require_once __DIR__ . '/../core/concurrency.php';
 require_once __DIR__ . '/../core/log_config_validation.php';
 
 /*
- * F-15: until 2026-08-20 log_config_validate_document() was reachable only
- * from FTP Restore, so the ordinary Device Add and CAN role writers could
- * put a document on disk that Core refuses to start on -- and then restart
- * Core into it. Every writer below that ADDS a component now re-validates
- * the exact bytes it is about to write, inside the same lock, against the
- * same Core-equivalence rules an FTP candidate has to pass.
+ * Every writer that adds a component validates its final bytes inside the
+ * lock against the same Core-equivalent rules as FTP Restore.
  *
  * Deliberately not applied to the removal paths (log_config_delete_devices(),
  * and the FREE branch of log_config_set_can_role()). Removing a component
@@ -55,13 +51,9 @@ function log_config_validate_before_write(string $xmlString, string $xmlPath): v
  * Uniqueness for a device being CREATED, evaluated against the DOM already
  * loaded inside the log_config lock.
  *
- * This used to live in api_devices.php, outside the lock, while the in-lock
- * check compared only the fully composed id ("IOBOX:-:Name") -- so two
- * requests could both pass the outside check and the second would still
- * satisfy the in-lock one whenever the ids differed (same name, different
- * IP, or vice versa), writing a config Core rejects and then restarting
- * Core into it (F-15). There is now exactly one implementation of the rule
- * and it runs where it can actually hold.
+ * There is one implementation of this rule, inside the lock and against the
+ * DOM that will be written. This prevents two concurrent creates from both
+ * validating against a stale outside snapshot.
  *
  * Names are compared case-INSENSITIVELY, which is stricter than Core's
  * strcmp(). That is deliberate and specific to creation: the Web's own
@@ -105,10 +97,7 @@ function log_config_dom_text_or_empty(DOMElement $parent, string $tag): string
  * Parse the XML once and return all derived views together.
  *
  * Returns:
- *   manual_devices   — same shape as log_config_load_manual_devices()
- *   can_handlers     — same shape as log_config_load_can_handlers()
- *   component_count  — same value as log_config_count_components()
- *   has_legacy_mdaq  — same value as log_config_has_legacy_mdaq()
+ *   manual_devices, can_handlers, component_count, has_legacy_mdaq
  */
 function log_config_read_all(string $xmlPath): array
 {
@@ -306,71 +295,6 @@ function log_config_load_manual_devices(string $xmlPath): array
     return $out;
 }
 
-function log_config_load_can_handlers(string $xmlPath): array
-{
-    if (!is_file($xmlPath)) {
-        return [];
-    }
-
-    $xml = simplexml_load_file($xmlPath);
-    if ($xml === false) {
-        throw new RuntimeException('Failed to parse LOG config XML');
-    }
-
-    $components = $xml->COMPONENTS ?? null;
-    if ($components === null) {
-        return [];
-    }
-
-    $out = [];
-    foreach ($components->children() as $comp) {
-        $tag = strtoupper($comp->getName());
-        if (!in_array($tag, ['SDAQ_HANDLER', 'NOX_HANDLER'], true)) {
-            continue;
-        }
-
-        $bus = strtolower(trim((string) $comp->CANBUS_IF));
-        if ($bus === '') {
-            continue;
-        }
-
-        $disabled = strtolower((string) $comp['Disable']) === 'true';
-        $out[] = [
-            'tag' => $tag,
-            'mode' => str_replace('_HANDLER', '', $tag),
-            'bus' => $bus,
-            'enabled' => !$disabled,
-            'status' => $disabled ? 'Disabled' : 'Okay',
-        ];
-    }
-
-    return $out;
-}
-
-function log_config_count_components(string $xmlPath): int
-{
-    if (!is_file($xmlPath)) {
-        return 0;
-    }
-
-    $xml = simplexml_load_file($xmlPath);
-    if ($xml === false) {
-        return 0;
-    }
-
-    $components = $xml->COMPONENTS ?? null;
-    if ($components === null) {
-        return 0;
-    }
-
-    $count = 0;
-    foreach ($components->children() as $_) {
-        $count++;
-    }
-
-    return $count;
-}
-
 function log_config_build_manual_id(string $type, string $bus, string $name, string $ip): string
 {
     $type = strtoupper($type);
@@ -446,55 +370,61 @@ function log_config_remove_can_role_nodes(DOMElement $components, string $bus): 
 function log_config_set_can_role(string $xmlPath, string $bus, string $role): array
 {
     return log_config_with_xml_lock($xmlPath, function () use ($xmlPath, $bus, $role) {
-        if (!is_file($xmlPath)) {
-            throw new RuntimeException("XML not found: $xmlPath");
-        }
-
-        $normalizedBus = strtolower(trim($bus));
-        $normalizedRole = strtoupper(trim($role));
-        if ($normalizedBus === '') {
-            throw new RuntimeException('bus is required');
-        }
-        if (!in_array($normalizedRole, ['SDAQ', 'NOX', 'FREE'], true)) {
-            throw new RuntimeException('role must be SDAQ, NOX, or FREE');
-        }
-
-        $doc = new DOMDocument();
-        $doc->preserveWhiteSpace = false;
-        $doc->formatOutput = true;
-        if (!$doc->load($xmlPath)) {
-            throw new RuntimeException('Failed to parse LOG config XML');
-        }
-
-        $components = $doc->getElementsByTagName('COMPONENTS')->item(0);
-        if (!$components instanceof DOMElement) {
-            throw new RuntimeException('Invalid LOG config XML');
-        }
-
-        log_config_remove_can_role_nodes($components, $normalizedBus);
-
-        if ($normalizedRole !== 'FREE') {
-            $node = $doc->createElement($normalizedRole . '_HANDLER');
-            $node->setAttribute('Disable', 'false');
-            $node->appendChild($doc->createElement('CANBUS_IF', $normalizedBus));
-            log_config_insert_component_ordered($components, $node);
-        }
-
-        $xmlString = $doc->saveXML();
-        if (!is_string($xmlString) || $xmlString === '') {
-            throw new RuntimeException('Failed to serialize LOG config XML');
-        }
-        if ($normalizedRole !== 'FREE') {
-            log_config_validate_before_write($xmlString, $xmlPath);
-        }
-        backend_atomic_write_file($xmlPath, $xmlString, 0644);
-
-        return [
-            'bus' => $normalizedBus,
-            'mode' => $normalizedRole,
-            'enabled' => $normalizedRole !== 'FREE',
-        ];
+        return log_config_set_can_role_body($xmlPath, $bus, $role);
     });
+}
+
+/* Caller must hold the log-config lock. */
+function log_config_set_can_role_body(string $xmlPath, string $bus, string $role): array
+{
+    if (!is_file($xmlPath)) {
+        throw new RuntimeException("XML not found: $xmlPath");
+    }
+
+    $normalizedBus = strtolower(trim($bus));
+    $normalizedRole = strtoupper(trim($role));
+    if ($normalizedBus === '') {
+        throw new RuntimeException('bus is required');
+    }
+    if (!in_array($normalizedRole, ['SDAQ', 'NOX', 'FREE'], true)) {
+        throw new RuntimeException('role must be SDAQ, NOX, or FREE');
+    }
+
+    $doc = new DOMDocument();
+    $doc->preserveWhiteSpace = false;
+    $doc->formatOutput = true;
+    if (!$doc->load($xmlPath)) {
+        throw new RuntimeException('Failed to parse LOG config XML');
+    }
+
+    $components = $doc->getElementsByTagName('COMPONENTS')->item(0);
+    if (!$components instanceof DOMElement) {
+        throw new RuntimeException('Invalid LOG config XML');
+    }
+
+    log_config_remove_can_role_nodes($components, $normalizedBus);
+
+    if ($normalizedRole !== 'FREE') {
+        $node = $doc->createElement($normalizedRole . '_HANDLER');
+        $node->setAttribute('Disable', 'false');
+        $node->appendChild($doc->createElement('CANBUS_IF', $normalizedBus));
+        log_config_insert_component_ordered($components, $node);
+    }
+
+    $xmlString = $doc->saveXML();
+    if (!is_string($xmlString) || $xmlString === '') {
+        throw new RuntimeException('Failed to serialize LOG config XML');
+    }
+    if ($normalizedRole !== 'FREE') {
+        log_config_validate_before_write($xmlString, $xmlPath);
+    }
+    backend_atomic_write_file($xmlPath, $xmlString, 0644);
+
+    return [
+        'bus' => $normalizedBus,
+        'mode' => $normalizedRole,
+        'enabled' => $normalizedRole !== 'FREE',
+    ];
 }
 
 function log_config_append_device(string $xmlPath, array $data): array

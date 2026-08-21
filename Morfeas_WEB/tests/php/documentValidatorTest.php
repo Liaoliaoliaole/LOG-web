@@ -130,10 +130,14 @@ expect_rejected(valid_channel_xml('_Bad.Name'), 'invalid_iso_channel', 'an ISO_C
 // code, not folded into C-6's anchor-grammar failure.
 expect_rejected(valid_channel_xml('TE1', 'MDAQ', '1.CH1.Val1'), 'unsupported_interface', 'INTERFACE_TYPE=MDAQ (retired)');
 expect_rejected(valid_channel_xml('TE1', 'BOGUS', 'whatever'), 'unsupported_interface', 'an unrecognized INTERFACE_TYPE');
+expect_rejected(valid_channel_xml('TE1', 'sdaq', '796834087.CH1'), 'unsupported_interface', 'lower-case INTERFACE_TYPE that Core strcmp() rejects');
+expect_rejected(valid_channel_xml('TE1', ' SDAQ', '796834087.CH1'), 'unsupported_interface', 'INTERFACE_TYPE with leading whitespace that Core strcmp() rejects');
+expect_rejected(valid_channel_xml(' TE1', 'SDAQ', '796834087.CH1'), 'invalid_iso_channel', 'ISO_CHANNEL with leading whitespace');
 
 // C-6: ANCHOR must satisfy the interface's strict grammar.
 expect_rejected(valid_channel_xml('TE1', 'SDAQ', 'CAN1.ADDR:05.CH:01'), 'invalid_anchor', 'an address-style SDAQ anchor (the 2026-08-13 incident pattern)');
 expect_rejected(valid_channel_xml('TE1', 'SDAQ', '0.CH1'), 'invalid_anchor', 'a zero SDAQ serial');
+expect_rejected(valid_channel_xml('TE1', 'SDAQ', '796834087.CH1 '), 'invalid_anchor', 'an ANCHOR with trailing whitespace that Core rejects');
 
 // C-7: IOBOX/MTI/NOX must carry a non-empty XML-owned UNIT; SDAQ must not
 // require one (its Unit is runtime-owned, never read from XML).

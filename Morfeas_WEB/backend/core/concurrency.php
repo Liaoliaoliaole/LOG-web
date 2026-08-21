@@ -43,8 +43,7 @@ function backend_named_lock_file(string $name): string
  * failing fast. The lock/unlock discipline elsewhere in this codebase (the
  * "_body" vs. locked-wrapper naming convention) is what actually prevents
  * that today, but it only works as long as every caller remembers it; this
- * guard turns a violation into an immediate, diagnosable exception instead
- * of a silent hang (2026-08-19 code review, F-9).
+ * guard turns a violation into an immediate, diagnosable exception.
  */
 function backend_with_named_lock(string $name, callable $fn)
 {
@@ -128,7 +127,7 @@ function backend_atomic_write_file(string $path, string $contents, ?int $mode = 
  * plus an actual fsync() of the temp file's contents before the rename --
  * file_put_contents() only goes through PHP's stream buffering, it never
  * forces the bytes to disk. This is for FTP Restore's ordered dual-file
- * replace (plan §10.0.3): "两份 same-directory temp 完整写入并 fsync". Kept
+ * replacement. Kept
  * as a separate function from backend_atomic_write_file() rather than
  * adding fsync there, so every other existing caller (Add/Edit/Delete/
  * Replace/TC16/Local JSON Restore) keeps its current, already-tested

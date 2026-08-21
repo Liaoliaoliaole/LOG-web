@@ -476,7 +476,7 @@
 
       const failures = [];
       // The undo snapshot is a convenience feature; a bug in collecting it
-      // must never block the delete itself (2026-08-19 code review, F-7:
+      // must never block the delete itself:
       // an uncaught error here previously aborted deleteSelectedRows()
       // before a single DELETE request was even sent).
       let undoCandidates = [];

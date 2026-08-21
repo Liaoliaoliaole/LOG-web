@@ -6,10 +6,7 @@ require_once __DIR__ . '/../core/logstat_iobox.php';
 require_once __DIR__ . '/../core/logstat_mti.php';
 require_once __DIR__ . '/../core/logstat_nox.php';
 require_once __DIR__ . '/../core/sdaq_type_cache.php';
-// For restore_load_device_identifiers()/restore_check_device_handler(): the
-// handler-matching rule F-16 needs on the Add path is the one Local JSON
-// Restore already implements correctly, so Add reuses it rather than
-// growing a third copy (FTP Restore's cross-file check is the second).
+// Add and Local JSON Restore share the same device-handler identity check.
 require_once __DIR__ . '/channel_restore_service.php';
 
 function channel_status_is_offline(string $status): bool
@@ -798,6 +795,13 @@ function channel_add_channel_from_pool(
     if ($requestedFamily === '') {
         throw new ChannelConfigException('Missing field: interface_type', 400, 'missing_field');
     }
+    if ($requestedFamily === 'SDAQ' && array_key_exists('unit', $data)) {
+        throw new ChannelConfigException(
+            'SDAQ Unit is supplied by live runtime metadata and must not be stored in OPC_UA_Config.xml',
+            400,
+            'sdaq_unit_not_allowed'
+        );
+    }
     $needsLogConfig = in_array($requestedFamily, ['IOBOX', 'MTI'], true);
 
     $body = function () use (
@@ -846,8 +850,8 @@ function channel_add_channel_from_pool(
             );
         }
 
-        // F-16: the candidate pool above is rebuilt from ramdisk logstat
-        // only. Deleting an IOBOX/MTI device handler does not remove the
+        // The candidate pool above is rebuilt from ramdisk logstat only.
+        // Deleting an IOBOX/MTI device handler does not remove the
         // logstat file it left behind, so between the delete and the next
         // Core restart a stale logstat still presents that device as an
         // available candidate -- and Add would write an ISO channel
@@ -887,11 +891,12 @@ function channel_add_channel_from_pool(
         }
 
         $serverData = $data;
+        $serverData['interface_type'] = $requestedFamily;
         $serverData['anchor'] = $canonicalAnchor;
         iso_add_channel_body($xmlPath, $serverData);
     };
 
-    // Fixed lock order, plan §6.0.1: log_config outward, opcua_config
+    // Fixed lock order: log_config outward, opcua_config
     // inward, never the reverse -- the same order ftp_backup_restore_commit()
     // takes, so the two can never deadlock against each other. SDAQ and NOX
     // Add does not consult Morfeas_Config.xml at all and does not take the
@@ -962,6 +967,13 @@ function channel_add_sdaq_range_from_pool(
         foreach ($items as $idx => $item) {
             if (!is_array($item)) {
                 throw new ChannelConfigException("Invalid batch item at index $idx", 400, 'missing_field');
+            }
+            if (array_key_exists('unit', $item)) {
+                throw new ChannelConfigException(
+                    "SDAQ Unit is runtime-owned and is not accepted for batch item #$idx",
+                    400,
+                    'sdaq_unit_not_allowed'
+                );
             }
             $anchorInput = trim((string)($item['anchor'] ?? ''));
             $isoChannelRaw = (string)($item['iso_channel'] ?? '');
@@ -1079,6 +1091,14 @@ function channel_replace_channel_from_pool(
     array $noxLogFiles,
     array $sdaqDeviceTypes
 ): void {
+    if (array_key_exists('unit', $data)) {
+        throw new ChannelConfigException(
+            'SDAQ Unit is runtime-owned and cannot be supplied during Replace',
+            400,
+            'sdaq_unit_not_allowed'
+        );
+    }
+
     iso_with_xml_lock($xmlPath, function () use (
         $xmlPath, $iso, $data, $sdaqLogFiles, $ioboxLogFiles, $mtiLogFiles, $noxLogFiles, $sdaqDeviceTypes
     ) {

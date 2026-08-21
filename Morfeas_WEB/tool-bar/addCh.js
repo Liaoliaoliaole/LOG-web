@@ -262,8 +262,9 @@
   }
 
   function toggleMultiLock(isMulti) {
-    [descInput, minInput, maxInput, alarmLowChk, alarmHighChk, unitInput]
+    [descInput, minInput, maxInput, alarmLowChk, alarmHighChk]
       .forEach((el) => setDisabled(el, isMulti));
+    setDisabled(unitInput, isMulti || typeSel.value === 'SDAQ');
     syncAlarmInputs();
   }
 
@@ -526,12 +527,15 @@
       description: desc,
       min,
       max,
-      unit,
       alarm_high: alarmHigh ? 'yes' : 'no',
       alarm_high_val: resolvedAlarmHighVal,
       alarm_low: alarmLow ? 'yes' : 'no',
       alarm_low_val: resolvedAlarmLowVal,
     };
+
+    if (type !== 'SDAQ') {
+      payload.unit = unit;
+    }
 
     if (type !== 'SDAQ' && calDate && calPeriod) {
       payload.cal_date = calDate.replaceAll('-', '/');

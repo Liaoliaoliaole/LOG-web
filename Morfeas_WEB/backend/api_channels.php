@@ -371,11 +371,8 @@ try {
                 }
             }
             try {
-                // Add never trusts the client-submitted anchor directly, for any
-                // interface family; it is always re-derived from a freshly
-                // rebuilt, lock-protected candidate pool (Phase B1: Manual Add
-                // is not a Web-only-SDAQ carve-out, it is closed for every
-                // interface reachable through this endpoint).
+                // Add re-derives every interface anchor from the current,
+                // lock-protected candidate pool; typed text is only a selector.
                 channel_add_channel_from_pool(
                     $xmlPath,
                     $logConfigPath,

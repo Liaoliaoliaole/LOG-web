@@ -160,6 +160,7 @@
       if (item.link_state && item.link_state.toLowerCase() !== 'unlinked') return false;
 
       if (isReplaceFlow) {
+        if (!sourceKnown) return false;
         // Replace only ever exists for SDAQ sources; never offer a
         // cross-family candidate here even though the backend would also
         // reject it (replace_type_mismatch/replace_source_not_sdaq).

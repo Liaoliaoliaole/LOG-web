@@ -234,13 +234,15 @@ The Add Channel popup uses device search to choose runtime source paths for new 
 Search results are limited to the selected device family and to paths that are not already linked in the current OPC UA channel configuration.
 
 \begin{itemize}
-\item \textbf{SDAQ}: search lists detected SDAQ channels that are not already linked. Single-channel manual offline anchors are allowed when needed.
+\item \textbf{SDAQ}: search lists real channels from detected, registration-complete SDAQ devices that are not already linked. The saved identity is the canonical \texttt{serial.CHn}; the current CAN bus/address is display-only and is never saved as channel identity. A real device channel may be linked even when it currently reports \textbf{No sensor}.
 \item \textbf{IOBOX}: search lists channels from IOBOX devices whose runtime connection status is \textbf{Okay}. A receiver marked \textbf{Disconnected} is not listed. Individual channels under an online receiver may still be listed even when their current status is \textbf{No sensor} or otherwise invalid, matching the current channel-selection contract. Each IOBOX receiver also exposes \texttt{RXn.Status} and \texttt{RXn.Success} link metrics. \texttt{RXn.Status} reports \texttt{1} when the receiver link is okay and \texttt{0} when it is not okay, with no unit. \texttt{RXn.Success} reports the receiver packet success ratio from \texttt{0} to \texttt{100\%}. If the IOBOX device itself is unreachable after an ISO channel has already been linked, these mapped values follow the normal missing-source error path and may report \texttt{-905}.
 \item \textbf{MTI}: search lists channels only when the MTI runtime connection status is \textbf{Okay} and the radio/telemetry mode provides channel data. Modes \textbf{TC4}, \textbf{TC8}, \textbf{TC16}, and \textbf{QUAD} expose their channel list. \textbf{RMSW/MUX} exposes detected \textbf{Mini\_RMSW} measurement channels. \textbf{Disabled} does not expose Add Channel candidates.
 \item \textbf{NOX}: search lists \textbf{NOx} and \textbf{O2} entries for detected UniNOx sensor objects. The current measurement does not need to be valid; for example, heater-off, warming-up, or previously detected \textbf{OFF-Line} sensors may still be linked and controlled later. OFF-Line historical candidates are marked with \texttt{(OFF-Line)} in the search result.
 \end{itemize}
 
 The search popup and save validation both enforce device-family matching. IOBOX candidates are not accepted as MTI links, and MTI candidates are not accepted as IOBOX links, even if the physical equipment connected behind the device can be similar.
+
+Typing in the Path field only searches the current candidate list. A typed value must resolve to an available candidate before Save; it is not a Manual or offline channel-entry path. SDAQ Unit is read-only and comes from live device metadata, so Add does not store an SDAQ Unit in the OPC UA XML configuration.
 
 \subsection{Add Channel ISO and Multilinking Rules}
 With \textbf{Range = 1}, the entered ISO code may be saved even when it is not present in the selected ISOstandard.
@@ -250,6 +252,44 @@ With \textbf{Range greater than 1}, every generated base ISO code must exist in 
 A selected cylinder postfix is applied only after the batch ISO sequence is validated. For example, the ISOstandard lookup uses \texttt{TEMP1}, \texttt{TEMP2}, and \texttt{TEMP3}, while cylinder 5 is saved as \texttt{TEMP1\_5}, \texttt{TEMP2\_5}, and \texttt{TEMP3\_5}.
 
 The multilinking naming and rejection rules follow \emph{Rules for how to name channels in Laboratory measurement systems}, Document ID \texttt{DMTA00018532}.
+
+Range Add is one all-or-nothing operation. LOG WEB rechecks every selected channel immediately before writing; if any source, ISO name, or identity conflicts, no channel in the range is written.
+
+\section{SDAQ Link and Gateway Mapping}
+Adding a channel in LOG WEB and mapping it in the Lab OPC UA Gateway Configuration Tool are separate operations. LOG WEB creates the link; the Gateway discovers it during browse and stores its own metadata snapshot when the point is configured and saved.
+
+\subsection{Online Add and First Mapping}
+For a new point:
+
+\begin{enumerate}
+\item In LOG WEB, confirm the SDAQ channel is online and that Unit, device Type, CAN location, and calibration information are correct.
+\item Add the channel from the current Unlinked search results.
+\item In the Gateway Configuration Tool, perform a complete browse or rebrowse of the LOG endpoint.
+\item Confirm the Lab OPC UA Gateway mapper shows the expected Unit, Type, Address, and SDAQnet values.
+\item Configure and save the point.
+\end{enumerate}
+
+\subsection{Device Goes Offline Before First Mapping}
+The XML link and ISO object remain, but Current Core hides the required Unit browse reference while current runtime metadata is incomplete. A fresh Gateway browse therefore should not offer the point for first mapping.
+
+Do not force \textbf{Configured} or save empty or uncertain metadata. Reconnect the device, wait for registration and metadata to complete, confirm the values in LOG WEB, and then perform a complete rebrowse before the first Configure/Save.
+
+\subsection{Restored Historical Channel Is Currently Offline}
+Local JSON or FTP Restore may restore a valid canonical \texttt{serial.CHn} identity while that SDAQ is offline. This preserves the link so the same serial and channel can recover automatically if it later appears on this LOG; it does not prove that the device is currently detected, and it does not configure the Gateway.
+
+Before the device is ready, a fresh Gateway browse should not map the point. After the same serial/channel is online and its metadata is correct, perform a complete rebrowse and, if the point has never been configured on this endpoint, configure and save it. A serial that never appears on this LOG remains offline and is never silently moved to another address or device.
+
+\subsection{Previously Mapped Device Goes Offline}
+Do not delete an existing saved Gateway point merely because a fresh browse temporarily shows it as missing or not mappable. The Gateway keeps its saved metadata and Value NodeId. Value may become \texttt{-905} and status may show offline/unregistered; when the same \texttt{serial.CHn} returns to the same LOG, Value recovers without remapping.
+
+If the SDAQ is moved to another LOG, the old LOG mapping remains offline. Add the device from the new LOG's Unlinked list and perform first mapping against the new LOG endpoint.
+
+\subsection{Browse Cache, No Sensor, and Unclassified Unit}
+The Core browse gate affects new browse results; it cannot clear a point tree already cached by the Gateway Configuration Tool. A device can go offline after browse but before Save, so confirm that it is still online and perform the tool's complete browse/rebrowse operation immediately before first Configure/Save. A normal page refresh is not guaranteed to clear the Gateway's internal browse cache.
+
+The Gateway does not automatically discover a new ISO object and does not automatically refresh metadata it has already saved. After a sensor or Unit changes, rebrowse, verify the metadata, and save again.
+
+\textbf{No sensor} means the physical SDAQ channel exists but has no sensor connected; it may be linked and typically reports \texttt{-902}. \textbf{Unclassified} Unit means Core received a unit code it cannot classify; it is not an empty string, but it is not confirmed engineering metadata. Link success does not mean a point is ready for first Gateway mapping. Connect the actual sensor and confirm Unit, Type, Address, SDAQnet, and calibration before first mapping. If \texttt{Unclassified} was already saved in Gateway metadata, later sensor recovery does not rewrite it automatically; rebrowse and save again.
 
 \subsection{Keyboard Shortcuts}
 The following keyboard shortcuts and key actions are currently implemented in LOG WEB.
@@ -272,7 +312,7 @@ The following keyboard shortcuts and key actions are currently implemented in LO
 \begin{itemize}
 \item \textbf{Ctrl+S}: save the current Add Channel form.
 \item \textbf{Enter} in the ISO field: accept the typed ISO code as a custom manual ISO value.
-\item \textbf{Enter} in the sensor path field: accept the typed device path when it matches an available search-pool candidate. Manual offline anchors are intended for SDAQ single-channel use only.
+\item \textbf{Enter} in the sensor path field: select the typed device path only when it matches a currently available search-pool candidate. It cannot create a channel outside that list.
 \item \textbf{Escape}: close the popup window.
 \end{itemize}
 
@@ -470,14 +510,18 @@ Each backup bundle contains the current OPC UA channel configuration XML and the
 \item Connect to the FTP server and engine directory.
 \item Select one backup file from the list.
 \item Click \textbf{Restore Selected}.
-\item Wait for the restore result message.
-\item Reload the main page and verify the channel/device configuration.
+\item Review the preflight errors and warnings. Hard errors must be corrected; warnings require explicit confirmation.
+\item Confirm Restore and wait for the result message.
+\item Reload the current LOG WEB and verify both channel and device configuration.
 \end{enumerate}
 
 \begin{itemize}
 \item Restore downloads the selected \texttt{.mbl} file from FTP.
-\item The file must be a valid backup bundle.
-\item Restore overwrites both the OPC UA channel configuration XML and the LOG device configuration XML from the bundle.
+\item Preflight validates both configuration files against the DTD, strict channel/device rules, and IOBOX/MTI channel-to-handler relationships. A hard error prevents all writes.
+\item Restore is a complete replacement of both the OPC UA channel configuration XML and the LOG device configuration XML; it is not a channel merge.
+\item The two files are locked and replaced in a fixed order. This prevents ordinary Web operations from interleaving, but it is not a power-loss-atomic transaction across both files.
+\item If the browser, Web process, or power is interrupted during Restore, run the same Restore again and recheck devices and channels.
+\item A restored offline SDAQ follows the Gateway mapping rules in \textbf{SDAQ Link and Gateway Mapping}. Do not force first Gateway configuration while the device identity or runtime metadata is unavailable.
 \item Backup files are listed newest-first, and old remote backups are pruned so the engine directory keeps up to 50 \texttt{.mbl} files.
 \end{itemize}
 
@@ -644,28 +688,33 @@ The file must contain a JSON array. Each entry must include:
 \item \texttt{ISO\_CHANNEL}
 \item \texttt{INTERFACE\_TYPE}
 \item \texttt{ANCHOR}
+\item \texttt{DESCRIPTION}
+\item \texttt{MIN}
+\item \texttt{MAX}
 \end{itemize}
 
-Optional fields include \texttt{DESCRIPTION}, \texttt{MIN}, \texttt{MAX}, alarm fields, \texttt{UNIT}, \texttt{CAL\_DATE}, and \texttt{CAL\_PERIOD}. For SDAQ imports, LOG WEB ignores \texttt{UNIT}, \texttt{CAL\_DATE}, and \texttt{CAL\_PERIOD} because SDAQ calibration data is read from the SDAQ calibration path.
+Optional fields include alarm fields, \texttt{UNIT}, \texttt{CAL\_DATE}, and \texttt{CAL\_PERIOD}. For SDAQ imports, LOG WEB ignores \texttt{UNIT}, \texttt{CAL\_DATE}, and \texttt{CAL\_PERIOD} because these values come from the live SDAQ runtime/calibration path.
 
 \subsection{Typical Import Flow}
 \begin{enumerate}
 \item Prepare or export a JSON array of channel entries.
 \item Click \textbf{Import Channels}.
 \item Select the JSON file.
-\item LOG WEB validates the file and maps each entry to the channel-create payload.
-\item Valid entries are created one by one.
-\item The main table refreshes after successful imports.
+\item LOG WEB preflights every row and reports \textbf{Ready to restore}, \textbf{No change}, \textbf{Update metadata}, \textbf{Invalid}, or \textbf{Conflict}.
+\item Correct every Invalid or Conflict row, then run preflight again.
+\item Confirm the operation. LOG WEB re-parses and rechecks the complete candidate under the configuration lock and writes the resulting channel set once.
+\item The main table refreshes after the atomic merge succeeds.
 \end{enumerate}
 
 \subsection{Validation and Conflicts}
 \begin{itemize}
-\item The import fails immediately if the file is not valid JSON or is not a JSON array.
-\item Entries missing required fields are skipped and reported.
-\item Duplicate ISO channels inside the import file are rejected.
-\item Duplicate device paths inside the import file are rejected.
-\item Existing live ISO-channel or device-path conflicts are rejected before creating that entry.
-\item If some entries succeed and others fail, LOG WEB reports both the number imported and the failed entries.
+\item The import fails if the file is not valid JSON or is not a JSON array.
+\item Local JSON Restore is an atomic channel-set merge: rows in the file are added or updated, but existing channels absent from the file are not deleted.
+\item Same ISO plus the same source may update allowed metadata. Same ISO with a different source, or the same source with a different ISO, is a conflict.
+\item Duplicated ISO names or source identities within the file are conflicts.
+\item If any row is Invalid or Conflict, the whole import writes nothing. There is no partial-success state and no need to guess which rows were changed.
+\item Commit checks that the configuration has not changed since preflight, then repeats parsing and conflict checks while holding the lock.
+\item A canonical offline SDAQ row may be restored, but it is not ready for first Gateway mapping until that serial/channel is online with complete metadata.
 \end{itemize}
 
 \subsection{Export as Import Source}
@@ -709,12 +758,12 @@ Multiple rows & Delete, Export. \\
 \begin{enumerate}
 \item Right-click one channel row.
 \item Choose \textbf{Edit}.
-\item Review the locked source type, ISO code, postfix, description, and device path.
-\item Change min/max, alarm fields, unit, and calibration date/period when these fields are available for the selected channel.
+\item Review the locked source type, ISO code/postfix, and device path.
+\item Change description, min/max, alarm low/high and their values. Unit and applicable XML calibration fields are editable only for non-SDAQ channels.
 \item Click \textbf{Save}.
 \end{enumerate}
 
-Edit uses the current channel data from the backend when available. The save operation updates the existing channel link while keeping the existing canonical device source anchor.
+Edit keeps type, anchor/path, ISO code/postfix, and build identity unchanged. SDAQ Unit and SDAQ runtime calibration fields are read-only; use the Calibration or Scale page to write SDAQ device calibration.
 
 \subsection{Delete}
 \begin{enumerate}
@@ -732,7 +781,7 @@ After a successful delete, one undo step is remembered for a short time. Press \
 \item The browser downloads a timestamped \texttt{LOG\_ISOChannel\_Linker\_Export\_Selection} JSON file.
 \end{enumerate}
 
-The exported JSON can be used later with \textbf{Import Channels}. For SDAQ rows, export keeps the channel link fields; SDAQ device calibration remains owned by the SDAQ calibration data.
+The exported JSON can be used later with \textbf{Import Channels}. SDAQ export does not include XML-owned \texttt{UNIT}, \texttt{CAL\_DATE}, or \texttt{CAL\_PERIOD}; those values are recovered from SDAQ runtime/calibration data when the device is available.
 
 \subsection{Scale}
 Scale is available only for \textbf{SDAQ-I} and \textbf{SDAQ-U} rows.
@@ -790,13 +839,13 @@ Replace is shown only for offline SDAQ rows. It uses the Edit Link popup in repl
 \item Choose \textbf{Replace}.
 \item The popup opens with the source type locked.
 \item Use device search to choose the replacement source path.
-\item Review the locked ISO code, description, min/max, alarms, unit, and any shown calibration fields.
+\item Review the locked ISO code, description, min/max, alarms, Unit, and calibration fields.
 \item Click \textbf{Save}.
 \end{enumerate}
 
-Replace changes only the device source path for the existing offline SDAQ link. Family mismatch is blocked. If the source SDAQ subtype is known, subtype mismatch is blocked. If the source subtype is unknown, replacement is allowed but the UI warns the operator to replace within the same type.
+Replace changes only the source identity for an existing offline SDAQ link. The replacement must be selected from the current Unlinked device list; an address cannot be typed or invented. Unit and all metadata remain unchanged. Family mismatch is blocked, and both source and target SDAQ subtype must be known and equal.
 
-\messageexample{Warning}{Subtype unknown, make sure replace within same type.}
+\messageexample{Blocked Replace}{Source SDAQ subtype is unknown; choose a channel whose type can be verified.}
 \messageexample{Blocked Replace}{Subtype mismatch: expected SDAQ-TC1, got SDAQ-AI8.}
 
 \subsection{Replace TC16}
@@ -880,6 +929,21 @@ This section gives quick operator guidance for common problems.
 \item \texttt{-907} means signal invalid / data invalid.
 \item When these codes are shown, the measurement should not be interpreted as a physical live value.
 \end{itemize}
+
+\subsection{Restored SDAQ Point Cannot Be Mapped Yet}
+Confirm that the stated serial is connected to this LOG, registration is complete, and the channel is online. Check Unit, Type, Address, SDAQnet, and calibration. When these values are ready, perform a complete Gateway rebrowse before first Configure/Save. A restored XML link by itself is not proof that the device is present.
+
+\subsection{Previously Mapped Point Appears Missing After SDAQ Went Offline}
+Do not immediately delete the saved Gateway point. First determine whether the SDAQ is temporarily offline or has moved to another LOG. A same-serial return to the same LOG restores the existing Value path; moving it to a new LOG requires Add and first mapping on the new endpoint.
+
+\subsection{Gateway Shows the Old Unit After a Sensor Change}
+Gateway metadata is a saved snapshot and is not refreshed automatically when SDAQ runtime metadata changes. Reconnect the sensor, confirm its current Unit in LOG WEB, then perform a complete Gateway rebrowse and configure/save the point again.
+
+\subsection{Restore Was Interrupted}
+Run the same FTP Restore again, then reload LOG WEB and verify both Devices and ISO Channels. Treat restored offline SDAQ channels according to the first-mapping guidance above.
+
+\subsection{Import Reports an Invalid or Conflict Row}
+The entire Local JSON import was rejected and no rows were written. Correct or remove every reported row, run preflight again, and then confirm the whole merge. There is no partial result to clean up.
 
 \subsection{Update Reminder Dot Is Still Visible}
 \begin{itemize}
