@@ -95,5 +95,6 @@ Morfeas_WEB/index.html
 ## Notes
 
 - Production paths for configuration, ramdisk, and ISO standards are defined in `Morfeas_WEB/backend/core/paths.php`.
+- Deploy `Morfeas.dtd` beside `/home/morfeas/configuration/OPC_UA_Config.xml`. Every channel mutation and FTP Restore validates the exact final XML bytes against this DTD and fails closed with `channel_config_validation_unavailable` if the file is missing or unreadable. Do not replace it with an empty or locally improvised DTD.
 - The end-user manual PDF is generated from `Morfeas_WEB/docs/manual/`.
 - Detailed application structure and backend notes are in `Morfeas_WEB/README.md`.

@@ -945,6 +945,9 @@ Run the same FTP Restore again, then reload LOG WEB and verify both Devices and 
 \subsection{Import Reports an Invalid or Conflict Row}
 The entire Local JSON import was rejected and no rows were written. Correct or remove every reported row, run preflight again, and then confirm the whole merge. There is no partial result to clean up.
 
+\subsection{Channel Configuration Validation Is Unavailable}
+LOG WEB deliberately refuses Add, Edit, Replace, Delete, Import, or Restore writes when the delivered \texttt{Morfeas.dtd} cannot be read. This prevents an unvalidated \texttt{OPC\_UA\_Config.xml} from replacing the working configuration. The DTD must be installed in \path{/home/morfeas/configuration/}, beside \texttt{OPC\_UA\_Config.xml}. Restore the matching product DTD and its read permissions, then retry the original operation. Do not create a blank or locally modified replacement. Existing Core channels are not deleted merely because this Web validation dependency is unavailable.
+
 \subsection{Update Reminder Dot Is Still Visible}
 \begin{itemize}
 \item The reminder is based on the stored update flag.
