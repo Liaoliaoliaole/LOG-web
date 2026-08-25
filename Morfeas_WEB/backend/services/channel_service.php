@@ -6,7 +6,7 @@ require_once __DIR__ . '/../core/logstat_iobox.php';
 require_once __DIR__ . '/../core/logstat_mti.php';
 require_once __DIR__ . '/../core/logstat_nox.php';
 require_once __DIR__ . '/../core/sdaq_type_cache.php';
-// Add and Local JSON Restore share the same device-handler identity check.
+// Add and Local JSON Restore use the same static handler identity rules.
 require_once __DIR__ . '/channel_restore_service.php';
 
 function channel_status_is_offline(string $status): bool
@@ -21,9 +21,7 @@ function channel_reserved_error_code(?float $value): ?int
         return null;
     }
 
-    // Reserved measurement error codes are produced by core/logstat/OPC-UA.
-    // The web may display these values, but it must not infer or invent them
-    // from status text alone.
+    // Error codes come from Core; status text must not be converted into one.
     $intValue = (int)round($value);
     return in_array($intValue, [-901, -902, -903, -904, -905, -906, -907], true) ? $intValue : null;
 }
@@ -323,8 +321,7 @@ function channel_build_rows_with_logstat(
                 $runtimeSdaqType = (string)$sdaqDeviceTypes[$busAddrKey];
             }
 
-            // For SDAQ channels, keep edit popup in sync with the device's latest runtime unit.
-            // This avoids showing stale OPC-UA-config unit after scale/calibration writes.
+            // SDAQ Unit is runtime-owned; keep Edit in sync with live metadata.
             if (is_string($measUnit) && $measUnit !== '') {
                 $row['unit'] = $measUnit;
             }
@@ -379,7 +376,8 @@ function channel_build_rows_with_logstat(
                     channel_assign_error_code_display($row, $errorCode, $meas, $measUnit);
                 } elseif (!empty($ls['is_meas_valid']) && $ls['meas_value'] !== null) {
                     $value = (float)$ls['meas_value'];
-                    channel_assign_numeric_display($row, $value, $ls['meas_unit'] ?? null, $meas, $measUnit);
+                    // IOBOX Unit is XML-owned; logstat's °C is only a placeholder.
+                    channel_assign_numeric_display($row, $value, $row['unit'] ?? null, $meas, $measUnit);
                 }
             }
 
@@ -404,7 +402,8 @@ function channel_build_rows_with_logstat(
                 if ($errorCode !== null) {
                     channel_assign_error_code_display($row, $errorCode, $meas, $measUnit);
                 } elseif (!empty($ls['is_meas_valid']) && $ls['meas_value'] !== null) {
-                    channel_assign_numeric_display($row, (float)$ls['meas_value'], $ls['meas_unit'] ?? null, $meas, $measUnit);
+                    // MTI Unit is XML-owned; do not display a logstat placeholder.
+                    channel_assign_numeric_display($row, (float)$ls['meas_value'], $row['unit'] ?? null, $meas, $measUnit);
                 }
             } elseif ($anchor) {
                 $deviceId = explode('.', $anchor, 2)[0] ?? null;
@@ -439,7 +438,8 @@ function channel_build_rows_with_logstat(
                 if ($errorCode !== null) {
                     channel_assign_error_code_display($row, $errorCode, $meas, $measUnit);
                 } elseif (!empty($ls['is_meas_valid']) && $ls['meas_value'] !== null) {
-                    channel_assign_numeric_display($row, (float)$ls['meas_value'], $ls['meas_unit'] ?? null, $meas, $measUnit);
+                    // NOX Unit is XML-owned after Add/Edit; ppm/% is candidate-only.
+                    channel_assign_numeric_display($row, (float)$ls['meas_value'], $row['unit'] ?? null, $meas, $measUnit);
                 }
             }
 
@@ -461,10 +461,7 @@ function channel_build_rows_with_logstat(
     }
 
     foreach ($sdaqChannels as $chMeta) {
-        // Add/Replace candidates must be keyed by the stable serial anchor and a
-        // completed registration; a detected-but-not-yet-registered SDAQ (or one
-        // whose serial hasn't arrived yet) never becomes selectable here. It can
-        // still appear elsewhere as a diagnostic row via $anchorsInXmlUpper/$rows.
+        // Only registered SDAQs with a stable serial become Add/Replace candidates.
         $serialAnchor = $chMeta['serial_anchor'] ?? null;
         $regStatus    = $chMeta['registration'] ?? null;
         $regDone      = is_string($regStatus) && strcasecmp($regStatus, 'Done') === 0;
@@ -509,7 +506,8 @@ function channel_build_rows_with_logstat(
             'status'         => $entry['status'] ?? null,
             'is_meas_valid'  => $entry['is_meas_valid'] ?? null,
             'meas_value'     => $entry['meas_value'] ?? null,
-            'meas_unit'      => $entry['meas_unit'] ?? null,
+            // No device-reported IOBOX Unit exists; keep Add's required Unit empty.
+            'meas_unit'      => null,
             'error_code'     => channel_reserved_error_code(isset($entry['meas_value']) ? (float)$entry['meas_value'] : null),
             'meas_is_error_code' => channel_reserved_error_code(isset($entry['meas_value']) ? (float)$entry['meas_value'] : null) !== null,
             'linked_in_xml'  => isset($anchorsInXmlUpper[$upper]),
@@ -526,7 +524,8 @@ function channel_build_rows_with_logstat(
             'status'         => $entry['status'] ?? null,
             'is_meas_valid'  => $entry['is_meas_valid'] ?? null,
             'meas_value'     => $entry['meas_value'] ?? null,
-            'meas_unit'      => $entry['meas_unit'] ?? null,
+            // MTI's logstat Unit is a placeholder, not an Add default.
+            'meas_unit'      => null,
             'error_code'     => channel_reserved_error_code(isset($entry['meas_value']) ? (float)$entry['meas_value'] : null),
             'meas_is_error_code' => channel_reserved_error_code(isset($entry['meas_value']) ? (float)$entry['meas_value'] : null) !== null,
             'linked_in_xml'  => isset($anchorsInXmlUpper[$upper]),
@@ -743,12 +742,7 @@ function channel_find_candidate_by_anchor(array $searchPool, string $anchor): ?a
     return null;
 }
 
-/*
- * The canonical identity actually written for a resolved candidate: SDAQ
- * uses its stable serial anchor, every other family uses the anchor already
- * canonicalized by the search-pool builder (channel_build_rows_with_logstat()).
- * Shared by Add and Replace so both paths can never drift from each other.
- */
+/* Add and Replace persist the same canonical identity for a candidate. */
 function channel_candidate_canonical_anchor(array $candidate): string
 {
     if (channel_candidate_family($candidate) === 'SDAQ') {
@@ -758,18 +752,8 @@ function channel_candidate_canonical_anchor(array $candidate): string
 }
 
 /*
- * Server-side re-derivation for Add, for every interface family (SDAQ,
- * IOBOX, MTI, NOX): the client-submitted `anchor` is never trusted as the
- * identity to persist. It is only used to locate a currently-detected,
- * not-yet-linked candidate of the requested family in a search pool rebuilt
- * inside the XML lock; the anchor actually written is always the
- * candidate's own canonical identity. This closes the incident entry point
- * for every interface, not just SDAQ: a display/CAN-address string, or any
- * other syntactically-valid-but-undetected anchor, can no longer be written
- * to OPC_UA_Config.xml as if it were the device identity, even via a direct
- * API call. The normal Search-popup flow already only ever submits an
- * anchor that is already in the live pool, so this is a no-op for the
- * legitimate UI path and only closes the direct-API bypass.
+ * Rebuild the live candidate pool inside the XML lock. Client anchor text
+ * selects a candidate; only that candidate's canonical identity is written.
  */
 function channel_add_channel_from_pool(
     string $xmlPath,
@@ -896,12 +880,8 @@ function channel_add_channel_from_pool(
         iso_add_channel_body($xmlPath, $serverData);
     };
 
-    // Fixed lock order: log_config outward, opcua_config
-    // inward, never the reverse -- the same order ftp_backup_restore_commit()
-    // takes, so the two can never deadlock against each other. SDAQ and NOX
-    // Add does not consult Morfeas_Config.xml at all and does not take the
-    // outer lock, which keeps channel Add on a CAN bus independent of
-    // whatever the Devices page is doing.
+    // Fixed lock order prevents deadlock with FTP Restore. SDAQ/NOX need no
+    // log-config lock because their identities do not depend on manual handlers.
     if ($needsLogConfig) {
         log_config_with_xml_lock($logConfigPath, function () use ($xmlPath, $body) {
             iso_with_xml_lock($xmlPath, $body);
@@ -911,21 +891,7 @@ function channel_add_channel_from_pool(
     iso_with_xml_lock($xmlPath, $body);
 }
 
-/*
- * Atomic multi-channel SDAQ Add ("Multilinking Range Add"). The client
- * submits a batch of items, each with a candidate-locating anchor plus
- * per-item ISO/static metadata; every candidate is re-resolved against a
- * single, freshly rebuilt pool inside one XML lock, then the whole batch is
- * validated (candidate availability, per-batch duplicate serial/ISO_CHANNEL,
- * grammar, and conflict against the existing file) before any node is
- * appended. Only after every item is proven individually valid and
- * non-conflicting are all of them appended to the in-memory document, which
- * is then saved exactly once. This replaces the previous "loop calling
- * single Add per record" pattern (addCh.js used to POST one record at a
- * time), which could leave e.g. CH1 written while CH2 failed -- here any
- * single item being unavailable, invalid, or duplicated means the entire
- * batch is rejected and nothing is written.
- */
+/* Re-resolve and validate every Range Add item under one lock; commit all or none. */
 function channel_add_sdaq_range_from_pool(
     string $xmlPath,
     array $items,
@@ -1058,9 +1024,7 @@ function channel_add_sdaq_range_from_pool(
             $payloads[] = iso_build_new_channel_payload($isoChannel, $data);
         }
 
-        // Pass 3: every item in the batch is proven individually valid and
-        // non-conflicting (against the file and against each other). Only
-        // now do we mutate the document, and save exactly once.
+        // Mutate only after the full batch has passed validation.
         foreach ($payloads as $payload) {
             $new = $xml->addChild('CHANNEL');
             iso_set_channel_contents($new, $payload);
@@ -1069,18 +1033,7 @@ function channel_add_sdaq_range_from_pool(
     });
 }
 
-/*
- * Server-side re-derivation for Replace: same principle as
- * channel_add_channel_from_pool(), applied to the PATCH replace_mode path. The
- * client-submitted `anchor` is only used to locate a currently-detected,
- * compatible, not-already-linked candidate in a search pool rebuilt inside
- * the XML lock; the value actually written is always the candidate's own
- * canonical identity (serial anchor for SDAQ, pool anchor otherwise), never
- * the client-submitted display/address text. This also removes the previous
- * silent pass-through for "source SDAQ subtype unknown and no candidate
- * found": that case is now blocked with a stable error, matching the rule
- * that an unverifiable target must never be written.
- */
+/* Replace resolves a live compatible candidate under lock, then writes its identity. */
 function channel_replace_channel_from_pool(
     string $xmlPath,
     string $iso,
@@ -1273,14 +1226,7 @@ function channel_find_by_iso(array $rows, ?string $iso): ?array
     return null;
 }
 
-/*
- * ============================================================
- * TC16 Replace All
- * ============================================================
- * Lives here (not api_channels.php) so it can be unit-tested without
- * pulling in that file's top-level HTTP request dispatch, matching how
- * every other write path (Add/Replace/Range Add) is organized.
- */
+/* TC16 Replace All is kept here so the write operation can be unit-tested. */
 
 class ChannelRuleException extends RuntimeException
 {
@@ -1767,19 +1713,7 @@ function channel_build_tc16_anchor_updates(array $sourceGroup, array $targetDevi
     return $updates;
 }
 
-/*
- * Atomic TC16 Replace All: source resolution, target lookup/validation,
- * canonical anchor generation, semantic-source duplicate checking and the
- * final 16-channel write all happen inside a single XML lock, against rows
- * and an XML snapshot re-read fresh once the lock is held -- closing the
- * previous TOCTOU where target selection/validation ran unlocked and only
- * the final write was locked. Any single target problem (not found, wrong
- * subtype, not full 16-channel, registration not Done, a declared channel
- * not currently detected, already linked, or a generated anchor that turns
- * out to collide/fail grammar against the file as it stands right now)
- * rejects the whole operation with zero writes; the previous
- * iso_batch_update_anchors() had no grammar/duplicate validation at all.
- */
+/* Resolve, validate and replace all 16 channels under one lock; commit all or none. */
 function channel_replace_tc16_from_pool(
     string $xmlPath,
     string $sourceIso,

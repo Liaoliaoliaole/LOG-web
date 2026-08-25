@@ -1,25 +1,5 @@
 <?php
-/*
- * tests/php/sourceIdentityParserTest.php
- *
- * Regression test for iso_parse_source_identity() and the four per-interface
- * decoders it dispatches to (opcua_config.php). This is the Web-side
- * counterpart to Core's tests/opcua_config_parser_test.c: the grammar tables
- * below are deliberately kept in the same shape (accept/reject per
- * interface, then whole-document duplicate/canonicalization checks) so the
- * two suites can be compared side by side to catch Web/Core drift.
- *
- * Also covers:
- *   - iso_find_anchor_conflict() using semantic keys instead of raw ANCHOR
- *     text (an existing channel whose own ANCHOR fails to parse must be
- *     skipped, never crash and never falsely match).
- *   - iso_add_channel_body()/iso_update_channel_body() now gating every
- *     interface (previously SDAQ-only) through iso_require_valid_source_identity(),
- *     always persisting the canonical form, and using duplicate_source /
- *     invalid_anchor as the plan's unified error codes.
- *
- * Run: php tests/php/sourceIdentityParserTest.php   (from Morfeas_WEB/)
- */
+/* Interface identity grammar, canonicalization and semantic duplicate rules match Core. */
 
 require __DIR__ . '/../../backend/core/opcua_config.php';
 
@@ -259,18 +239,7 @@ check(
     'iso_find_anchor_conflict() honors $ignoreIso (self-match excluded, e.g. for Edit-in-place)'
 );
 
-// ============================================================
-// 6) iso_add_channel_body()/iso_update_channel_body(): every interface now
-//    gated through iso_require_valid_source_identity(), always persisting
-//    the canonical form, using duplicate_source/invalid_anchor.
-//
-// This section needs its own clean fixture rather than reusing $xmlPath
-// from section 5: since Phase A4 (2026-08-19), every write validates the
-// *whole* document, not just the row being touched, so a file containing
-// the pre-existing _Legacy_Bad row would now reject every one of 6a-6c/6e
-// too, not just an edit of that specific row -- 6d below is exactly the
-// scenario where that whole-document rejection is what's under test.
-// ============================================================
+// 6) Normal writers persist canonical identities and validate the whole document.
 $xmlPath = $dir . '/OPC_UA_Config_section6.xml';
 file_put_contents($xmlPath, <<<XML
 <?xml version="1.0"?>
@@ -370,16 +339,7 @@ try {
 }
 check(sha1_file($xmlPath) === $beforeHash2, 'XML file is unchanged after rejecting a duplicate-source Add');
 
-// 6d) iso_update_channel_body(): a plain metadata Edit on the pre-existing
-//     legacy-bad-anchor row must still be rejected -- and, since Phase A4's
-//     whole-document validator (plan §6.0.2), any write to a file that
-//     still contains that row is rejected, not just an edit targeting it
-//     specifically. This is Core's actual behaviour (a single invalid row
-//     fails the *entire* document on every reload, confirmed live against
-//     Morfeas_opc_ua_config_valid()) and matches the plan's Delete
-//     authorization note: the operator's way out is to delete the one bad
-//     channel, not edit around it. Isolated in its own fixture so it does
-//     not interfere with 6a-6c/6e above.
+// 6d) Any write is rejected while an existing row makes the whole document invalid.
 $legacyBadPath = $dir . '/OPC_UA_Config_legacy_bad.xml';
 file_put_contents($legacyBadPath, <<<XML
 <?xml version="1.0"?>

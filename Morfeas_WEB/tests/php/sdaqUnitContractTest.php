@@ -1,8 +1,5 @@
 <?php
-/*
- * SDAQ Unit ownership regression tests.
- * Run from Morfeas_WEB/: php tests/php/sdaqUnitContractTest.php
- */
+/* SDAQ Unit is runtime-owned and never persisted in OPC_UA_Config.xml. */
 
 require __DIR__ . '/../../backend/core/opcua_config.php';
 

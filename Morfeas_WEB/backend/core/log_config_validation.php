@@ -3,56 +3,12 @@
 require_once __DIR__ . '/opcua_config.php'; // ChannelConfigException
 
 /*
- * Whole-document validator for a Morfeas_Config.xml candidate. FTP Restore
- * and every writer that adds a component run it before committing bytes: the
- * document must be provably safe to write before it is ever committed to
- * disk, the same standard iso_validate_document() already holds
- * OPC_UA_Config.xml to.
- *
- * It covers every deterministic rule in Core's
- * Morfeas_daemon_config_valid()
- * (Morfeas_XML.c:973-1210), rule for rule:
- *
- *   Core                                    | here
- *   ----------------------------------------|--------------------------------
- *   XML_PARSE_DTDVALID at parse (XML.c:176) | log_config_validate_dtd_structure()
- *   scaning_XML_nodes_for_empty()  (:978)   | empty-leaf pass
- *   Disable attribute range        (:1013)  | log_config_validate_disable_attributes()
- *   APP_NAME whitespace            (:1037)  | APP_NAME pass
- *   SDAQ_HANDLER dup CANBUS_IF     (:1052)  | log_config_validate_can_bus_usage() pass 1
- *   NOX_HANDLER dup CANBUS_IF      (:1080)  | log_config_validate_can_bus_usage() pass 2
- *   cross-handler dup CANBUS_IF    (:1110)  | log_config_validate_can_bus_usage() pass 3
- *   MDAQ/IOBOX/MTI IPv4+DEV_NAME   (:1139)  | handler pass
- *
- * The passes run in Core's own order and each pass mirrors Core's own loop
- * shape (nested "compare against every LATER sibling" rather than a
- * single-pass seen-map), so the FIRST error reported here is the same one
- * Core would print -- which matters, because that string is what the
- * operator sees in the preflight report and then has to reconcile against
- * Core's journal if they restore anyway.
- *
- * Per-component runtime support and the meaning of a Disable combination
- * are not
- * deterministic document rules; they depend on what hardware answers, and
- * Core itself does not check them at config-validation time. They stay out
- * of scope here on purpose.
- *
- * The governing principle throughout is EQUIVALENCE, not strictness: this
- * validator gates the restore of an existing configuration, so a rule
- * stricter than Core's would false-reject a backup Core itself loads
- * happily. Every deliberate deviation is called out at its own site, and
- * there are exactly two (the whitespace-only leaf, and the 16-byte
- * DEV_NAME reported as a warning by
- * log_config_collect_document_warnings()).
+ * Final-byte validator for Morfeas_Config.xml. It mirrors deterministic Core
+ * validation rules; restore compatibility requires equivalence, not stricter
+ * Web-only rules. Runtime hardware state is intentionally out of scope.
  */
 
-/*
- * Resolves "Morfeas.dtd" SYSTEM ID references against a real file on disk
- * so DOMDocument::validate() can run against an in-memory XML string (an
- * FTP-downloaded candidate that was never written to $dtdDir itself). Must
- * be installed before validate() is called and removed afterward -- it is
- * process-global state, not scoped to one DOMDocument.
- */
+/* Validate in-memory candidates against the installed DTD; libxml state is global. */
 function log_config_install_dtd_entity_loader(string $dtdDir): void
 {
     libxml_set_external_entity_loader(static function (?string $public, ?string $system, array $context) use ($dtdDir) {
@@ -73,71 +29,23 @@ function log_config_restore_default_entity_loader(): void
 
 function log_config_dev_name_max_length(): int
 {
-    // Dev_or_Bus_name_str_size == IFNAMSIZ (Morfeas_IPC.h:20), a POSIX
-    // system constant (net/if.h), not something Core's own repo assigns a
-    // numeric value to. 16 has been
-    // unchanged across every glibc/Linux version this product targets.
+    // IFNAMSIZ / Dev_or_Bus_name_str_size from the Core IPC contract.
     return 16;
 }
 
-/*
- * Core's DEV_NAME length rule, transcribed from the loop that implements it
- * rather than from the error string it prints (Morfeas_XML.c:1160-1180):
- *
- *     for(int i=0; dev_name[i]!='\0'; i++) {
- *         if(dev_name[i]==' '||...) { reject }
- *         if(i>=Dev_or_Bus_name_str_size) { reject "too long (>=16)" }
- *     }
- *
- * The bound is tested against the INDEX, so the largest index ever reached
- * for a 16-byte name is 15 and the check never fires: Core's daemon-config
- * validator ACCEPTS 16 bytes and first rejects at 17. The message it prints
- * (">=16") describes a rule the code does not implement. Verified by
- * compiling the loop verbatim against the real net/if.h.
- *
- * So 16 bytes must not be a hard error here -- rejecting it would
- * false-reject a document Core loads. It is not harmless either (see
- * log_config_collect_document_warnings()), which is why it is a warning,
- * and why the Device Add writer applies its own stricter rule to names it
- * is CREATING (log_config_dev_name_safe_max_length()).
- */
+/* Core accepts 16 bytes despite its message; Restore warns instead of rejecting it. */
 function log_config_dev_name_is_too_long(string $name): bool
 {
     return strlen($name) > log_config_dev_name_max_length();
 }
 
-/*
- * The limit the Web applies to a DEV_NAME it is about to CREATE, as opposed
- * to one it is being asked to accept from an existing document. 15 bytes,
- * i.e. IFNAMSIZ-1, because at exactly 16 the two handler binaries disagree
- * with each other and with the daemon-config validator:
- *
- *   Morfeas_IOBOX_if.c:110   strlen(dev_name) >= 16  -> handler EXITS
- *   Morfeas_MTI_if.c:169     strlen(dev_name) >  16  -> handler starts,
- *                            then memccpy(..., 16) + [15]='\0' silently
- *                            TRUNCATES the name to 15 bytes in every IPC
- *                            message, so the device reports itself under a
- *                            different name than the config gives it
- *   Morfeas_XML.c:1160       index-based             -> config ACCEPTED
- *
- * A 16-byte name therefore produces a config that loads cleanly and a
- * device that either never comes up (IOBOX) or comes up under the wrong
- * identity (MTI). Nothing should be creating one; existing ones are
- * surfaced as a warning instead of being rejected outright.
- */
+/* New names are capped at 15 bytes: 16 breaks IOBOX or truncates MTI IPC identity. */
 function log_config_dev_name_safe_max_length(): int
 {
     return log_config_dev_name_max_length() - 1;
 }
 
-/*
- * Core reads element content with XML_node_get_content() (Morfeas_XML.c:114),
- * which returns the content of the FIRST DIRECT CHILD element with that
- * name -- not a recursive descendant search, and with no trimming of any
- * kind. Both properties matter, so both are reproduced here rather than
- * using getElementsByTagName() (recursive) + trim() (see the call sites for
- * what trimming would cost).
- */
+/* Match Core: first direct child only, with raw untrimmed content. */
 function log_config_child_text(DOMElement $parent, string $tag): ?string
 {
     foreach ($parent->childNodes as $child) {
@@ -148,17 +56,7 @@ function log_config_child_text(DOMElement $parent, string $tag): ?string
     return null;
 }
 
-/*
- * Shared DTD structural validation for either config document. Core's
- * Morfeas_XML_parsing() parses BOTH files with XML_PARSE_DTDVALID and checks
- * ctxt->valid (Morfeas_XML.c:176/184), so a document that fails here is one
- * Core would refuse to load at all -- for OPC_UA_Config.xml that means an
- * empty ISO object list after the next restart, i.e. the original incident.
- *
- * $expectedRoot is checked explicitly rather than left to the DTD: a
- * document declaring a DOCTYPE whose name does not match its root element,
- * or no DOCTYPE at all, must not slip through.
- */
+/* Core requires a valid DTD, matching root and matching DOCTYPE. */
 function log_config_validate_dtd_structure(DOMDocument $dom, string $dtdDir, string $expectedRoot, string $label): void
 {
     $rootName = $dom->documentElement !== null ? $dom->documentElement->nodeName : '';
@@ -207,16 +105,7 @@ function log_config_validate_dtd_structure(DOMDocument $dom, string $dtdDir, str
     }
 }
 
-/*
- * Core's is_valid_IPv4() (Morfeas_run_check.c:102) is a bare
- * inet_pton(AF_INET). filter_var(FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) was
- * checked against it case for case -- including the ones that usually
- * separate two IPv4 parsers: leading zeros ("01.2.3.4", "192.168.000.1"),
- * short forms ("127.1"), hex ("0x7f.0.0.1"), a bare integer
- * ("2130706433"), and surrounding whitespace (" 1.2.3.4", "1.2.3.4\n").
- * Both reject all of them, both accept "0.0.0.0" and "255.255.255.255".
- * The whitespace cases are why this is called with untrimmed content.
- */
+/* This PHP IPv4 parser was verified equivalent to Core's inet_pton(AF_INET). */
 function log_config_ipv4_is_valid(string $ip): bool
 {
     return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
@@ -236,24 +125,7 @@ function log_config_dev_name_illegal_char(string $name): ?string
     return null;
 }
 
-/*
- * Whether a COMPONENTS child is switched off, mirroring Core's
- * getprop_disable() (Morfeas_XML.c:141): only the exact string "true"
- * disables. Note what this deliberately does NOT do: no strtolower(), no
- * trim(). "TRUE" and " true" are not "true" to strcmp(), so to Core they
- * are out-of-range values that
- * log_config_validate_disable_attributes() has already rejected -- they
- * must never be silently read as "disabled" here.
- *
- * An ABSENT attribute means enabled, and not because of a guess: the DTD
- * declares `Disable CDATA "false"` as a default value for all five handler
- * types, and xmlGetProp() falls back to the DTD default when the attribute
- * is not on the node. Confirmed by running Core's exact parse
- * (XML_PARSE_DTDVALID|XML_PARSE_NOBLANKS) over a config with the attribute
- * omitted: xmlGetProp() returns "false". This is also why Core's
- * "Unknown Attribute found" branch (Morfeas_XML.c:1024) is unreachable for
- * a DTD-valid document and has no counterpart here.
- */
+/* Match Core exactly: only literal Disable="true" disables a component. */
 function log_config_component_is_disabled(DOMElement $node): bool
 {
     return $node->getAttribute('Disable') === 'true';
@@ -296,18 +168,7 @@ function log_config_component_nodes(DOMDocument $dom): array
     return $out;
 }
 
-/*
- * Core (Morfeas_XML.c:1013-1030) walks every element child of COMPONENTS and
- * rejects the whole config if its Disable attribute is neither "true" nor
- * "false". The DTD cannot catch this: it declares Disable as CDATA, so
- * Disable="maybe" is structurally valid and passes DTD validation -- verified
- * against the real DTD. Without this pass a bundle carrying Disable="yes"
- * is written happily and then Core refuses to start.
- *
- * Only a PRESENT attribute is checked. Absent means the DTD default
- * "false", which Core sees through xmlGetProp() -- see
- * log_config_component_is_disabled().
- */
+/* DTD permits any Disable text; Core accepts only literal true or false. */
 function log_config_validate_disable_attributes(DOMDocument $dom): void
 {
     foreach (log_config_component_nodes($dom) as $node) {
@@ -327,24 +188,8 @@ function log_config_validate_disable_attributes(DOMDocument $dom): void
 }
 
 /*
- * Core's three separate CANBUS_IF duplicate scans (Morfeas_XML.c:1052-1136),
- * kept separate here because they do NOT have the same rule:
- *
- *   1. SDAQ_HANDLER vs SDAQ_HANDLER -- Disable is IGNORED.
- *   2. NOX_HANDLER  vs NOX_HANDLER  -- Disable is IGNORED.
- *   3. any handler  vs any handler  -- ENABLED nodes only (getprop_disable).
- *
- * Pass 3 alone would not be equivalent: two SDAQ_HANDLERs on can0 with one
- * of them Disable="true" are skipped by pass 3 and still rejected by Core
- * in pass 1. That combination is not hypothetical -- the field config on
- * the two production LOGs carries a Disable="true" SDAQ_HANDLER (vcan0)
- * alongside its live can0/can1 ones, so a backup taken there is exactly one
- * "duplicate the disabled bus" edit away from the case pass 3 misses.
- *
- * Comparison is strcmp() on raw content: case-sensitive, untrimmed. "can0"
- * and "CAN0" are two different buses to Core, and normalizing them here
- * (as the repository layer's read path does for display purposes) would
- * invent a duplicate Core does not see.
+ * Core has three distinct raw, case-sensitive CANBUS_IF duplicate passes:
+ * SDAQ-only, NOX-only, then all enabled handlers.
  */
 function log_config_validate_can_bus_usage(DOMDocument $dom): void
 {
@@ -399,29 +244,7 @@ function log_config_validate_can_bus_usage(DOMDocument $dom): void
     }
 }
 
-/*
- * Core's MDAQ/IOBOX/MTI pass (Morfeas_XML.c:1139-1205). MDAQ is included
- * here for the same reason Core includes it: the DTD still permits an
- * MDAQ_HANDLER element, and a historical .mbl may well carry one --
- * retiring MDAQ removed it as a *channel anchor* interface, not as a
- * daemon-config handler element.
- *
- * Content is read RAW. An earlier revision trimmed DEV_NAME and IPv4_ADDR
- * before checking them, which broke equivalence in both directions at once:
- *
- *   - too loose: "IOBOX1 " (trailing space) trimmed to "IOBOX1" passes the
- *     illegal-character scan, while Core scans the raw bytes, finds the
- *     space, and refuses to start. Same for " 10.0.0.1", which trims into a valid address
- *     but is not one to inet_pton().
- *   - too strict: "Box" and "Box " are one trimmed string and two distinct
- *     strings to strcmp(), so trimming invented a duplicate Core does not
- *     see and false-rejected a restorable backup.
- *
- * Duplicate detection uses Core's nested "compare against every later
- * sibling" shape rather than a seen-map so that the first error reported is
- * the one Core reports, IPv4 before DEV_NAME, on a document that violates
- * several rules at once.
- */
+/* Core validates MDAQ/IOBOX/MTI handler IP and name as raw text. */
 function log_config_validate_ip_handlers(DOMDocument $dom): void
 {
     $ipTags = ['MDAQ_HANDLER' => true, 'IOBOX_HANDLER' => true, 'MTI_HANDLER' => true];
@@ -474,17 +297,7 @@ function log_config_validate_ip_handlers(DOMDocument $dom): void
     }
 }
 
-/*
- * Non-blocking findings: things Core's daemon-config validator accepts, so
- * they must not stop a restore, but that produce a configuration which does
- * not do what its author wrote down. They are reported, and
- * ftp_backup_restore_commit() requires explicit
- * acknowledgement before it will proceed.
- *
- * Currently one rule: a DEV_NAME of exactly IFNAMSIZ bytes. See
- * log_config_dev_name_safe_max_length() for why 16 is the trap value and
- * why it cannot be a hard error.
- */
+/* Core-valid but unsafe legacy conditions require acknowledgement at Restore. */
 function log_config_collect_document_warnings(DOMDocument $dom): array
 {
     $ipTags = ['MDAQ_HANDLER' => true, 'IOBOX_HANDLER' => true, 'MTI_HANDLER' => true];

@@ -1,31 +1,5 @@
 <?php
-/*
- * tests/php/coreConstantsConsistencyTest.php
- *
- * Closes F-8 (plan §10.0.8): the Web strict parsers in opcua_config.php
- * hardcode several Core compile-time constants (SDAQ/IOBOX/MTI channel
- * counts, IOBOX RX count, Mini-RMSW ID range, ISO_CHANNEL length) with no
- * mechanism to catch drift if Core's definition ever changes. Per plan
- * §6.0.1 ("两者分歧发布阻断"), a Core/Web divergence must be a release
- * blocker, not something that silently ships.
- *
- * This test does NOT compare two independently hardcoded numbers (that
- * would just move the "someone has to remember to update both" problem
- * into a second copy). Instead it reads the actual Core source files at
- * test time, extracts the real constant value, and asserts the Web parser
- * accepts/rejects at exactly that boundary. If a future Core change moves
- * a constant, this test starts failing the next time it runs -- without
- * anyone having to remember to update a second hardcoded value here.
- *
- * Requires the LOG-core checkout to be available as a sibling of LOG-web
- * (the layout this repo is developed in). If it isn't found, this test
- * SKIPS (exit 0) rather than failing a Web-only checkout/deploy that has
- * no reason to carry the Core source tree -- drift protection only works
- * where there is something to compare against, and CI that checks out
- * both repos is where this test earns its keep.
- *
- * Run: php tests/php/coreConstantsConsistencyTest.php   (from Morfeas_WEB/)
- */
+/* Web parser limits must match Core constants; skip only when Core is absent. */
 
 require __DIR__ . '/../../backend/core/opcua_config.php';
 

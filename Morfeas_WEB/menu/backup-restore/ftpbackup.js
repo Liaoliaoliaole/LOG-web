@@ -268,12 +268,7 @@
     }
   };
 
-  // FTP Restore is a full-config replace (plan §10.0.3), not a per-channel
-  // merge like Local JSON Restore, so its preflight report is file-level
-  // (did OPC_UA_Config.xml / Morfeas_Config.xml validate, and why not if
-  // not) rather than a per-row matrix -- a summary + confirm() is
-  // proportionate here; it doesn't need Local JSON Restore's dedicated
-  // review popup and per-row table.
+  // FTP Restore replaces both config files; its preflight is file-level.
   const describePreflightErrors = (side, label) => {
     if (side.valid) return [];
     return side.errors.map((e) => `  [${label}] ${e.code}: ${e.message}`);

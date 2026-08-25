@@ -440,13 +440,7 @@ function iso_digits_fit_uint32(string $digits): bool
     return !(strlen($digits) > 10 || (strlen($digits) === 10 && strcmp($digits, '4294967295') > 0));
 }
 
-/*
- * Core-equivalent strict grammar for the canonical SDAQ anchor:
- * "<serial>.CH<channel>", uint32 serial > 0, channel in 1..16, no leading
- * zeros, no trailing text. Mirrors decode_sdaq_anchor() in
- * src/Supplementary/Morfeas_XML.c; must stay in sync with that decoder.
- * Returns null on parse failure, otherwise ['canonical_anchor', 'semantic_key', 'components'].
- */
+/* Core-equivalent SDAQ grammar. Keep this aligned with decode_sdaq_anchor(). */
 function iso_parse_sdaq_identity(string $anchor): ?array
 {
     if (!preg_match('/^([1-9][0-9]*)\.CH([1-9][0-9]*)$/', $anchor, $m)) {
@@ -467,16 +461,7 @@ function iso_parse_sdaq_identity(string $anchor): ?array
     ];
 }
 
-/*
- * Core-equivalent strict grammar for IOBOX, mirroring decode_iobox_anchor()
- * in src/Supplementary/Morfeas_XML.c:
- *     <identifier>.RX<receiver>.CH<channel>
- *     <identifier>.RX<receiver>.Status
- *     <identifier>.RX<receiver>.Success
- * identifier: uint32, no leading zero; receiver: 1..6 (IOBOX_Amount_of_All_RXs);
- * channel (CH form only): 1..16 (IOBOX_Amount_of_channels). Case-sensitive;
- * no suffix, extra segment or trailing text.
- */
+/* Core-equivalent IOBOX grammar. Keep this aligned with decode_iobox_anchor(). */
 function iso_parse_iobox_identity(string $anchor): ?array
 {
     if (!preg_match('/^([1-9][0-9]*)\.RX([1-9][0-9]*)\.(CH([1-9][0-9]*)|Status|Success)$/', $anchor, $m)) {
@@ -506,19 +491,7 @@ function iso_parse_iobox_identity(string $anchor): ?array
     ];
 }
 
-/*
- * Core-equivalent strict grammar for MTI, mirroring decode_mti_anchor() in
- * src/Supplementary/Morfeas_XML.c:
- *     <identifier>.TC16.CH<1..16>
- *     <identifier>.TC8.CH<1..8>
- *     <identifier>.TC4.CH<1..4>
- *     <identifier>.QUAD.CH<1..2>
- *     <identifier>.ID:<1..255>.CH<1..4>
- * The literal "RMSW/MUX" (a runtime radio-mode string) never matches this
- * grammar and is never itself a valid anchor token; Mini-RMSW devices are
- * only reachable through the "ID:<id>" form. tele_ID is unsigned char in
- * Core's struct Link_entry, so an ID>255 is rejected, never truncated.
- */
+/* Core-equivalent MTI grammar. RMSW/MUX is runtime metadata, never an anchor. */
 function iso_parse_mti_identity(string $anchor): ?array
 {
     if (!preg_match('/^([1-9][0-9]*)\.(?:(TC16|TC8|TC4|QUAD)|ID:([1-9][0-9]*))\.CH([1-9][0-9]*)$/', $anchor, $m)) {
@@ -558,17 +531,7 @@ function iso_parse_mti_identity(string $anchor): ?array
     ];
 }
 
-/*
- * Core-equivalent grammar for NOX, mirroring decode_nox_anchor() in
- * src/Supplementary/Morfeas_XML.c *exactly* -- including that decoder's
- * current permissiveness (any non-empty, dot-free CAN interface segment;
- * address digits may have a leading zero; address is currently only ever
- * 0 or 1). This function's job is Core-equivalence, not a stricter or
- * "cleaner" grammar than what Core actually accepts today.
- * Accepts both "addr_N" and "addr:N" (case-insensitive), canonicalizes to
- * "<can_if>.addr_<N>.NOx|O2" in lower-case, matching what Web Search/Add
- * already generates.
- */
+/* Core-equivalent NOX grammar; legal addr_ and addr: aliases canonicalize here. */
 function iso_parse_nox_identity(string $anchor): ?array
 {
     $firstDot = strpos($anchor, '.');
@@ -619,19 +582,10 @@ function iso_parse_nox_identity(string $anchor): ?array
     ];
 }
 
-/*
- * Single interface-aware authority for "is this anchor a valid source
- * identity, and what does it canonicalize to": every write entry point
- * (Add, Replace, batch, and the future Local JSON/FTP Restore) must consume
- * this result instead of trusting client-submitted text or falling back to
- * a looser interpretation. Returns null on parse failure -- never a raw/
- * uppercased fallback -- so callers can distinguish "invalid" from "valid".
- */
+/* Every write path uses this strict, interface-aware identity parser. */
 function iso_parse_source_identity(string $interfaceType, string $anchor): ?array
 {
-    // No trimming here: every per-interface grammar below is a full-string
-    // match anchored at both ends, so leading/trailing whitespace must be a
-    // parse failure, not something this dispatcher silently tolerates.
+    // Do not trim: whitespace is not a valid part of an anchor identity.
     if ($anchor === '') {
         return null;
     }
@@ -765,20 +719,13 @@ function iso_pick_value(array $data, array $keys)
     return null;
 }
 
-/*
- * Retained as a boolean convenience wrapper for callers that only need a
- * yes/no answer (channel_service.php's Add/Replace pool resolution). Grammar
- * itself lives in iso_parse_sdaq_identity(); do not re-implement it here.
- */
+/* Compatibility wrapper; grammar remains in iso_parse_sdaq_identity(). */
 function iso_sdaq_anchor_is_valid(string $anchor): bool
 {
     return iso_parse_sdaq_identity($anchor) !== null;
 }
 
-/*
- * Lock-free core of Add. The production caller revalidates the live
- * candidate pool while holding the XML lock, then calls this function.
- */
+/* Lock-free Add body; callers resolve live candidates while holding the lock. */
 function iso_add_channel_body(string $xmlPath, array $data): void
 {
     if (!file_exists($xmlPath)) {
@@ -820,14 +767,7 @@ function iso_add_channel_body(string $xmlPath, array $data): void
     iso_save_xml($xml, $xmlPath);
 }
 
-/*
- * Builds the iso_set_channel_contents() payload for a brand-new channel
- * (single Add and batch Range Add both use this): dates default to now(),
- * everything else comes straight from $data. Does not validate anchor
- * grammar or duplicates -- callers must have already run
- * iso_require_valid_source_identity()/iso_find_anchor_conflict() and passed
- * the canonicalized anchor in $data['anchor'].
- */
+/* Build a new payload after the caller has validated its canonical identity. */
 function iso_build_new_channel_payload(string $isoChannel, array $data): array
 {
     $now = time();
@@ -862,24 +802,13 @@ function iso_build_new_channel_payload(string $isoChannel, array $data): array
     ];
 }
 
-/*
- * Identity fields a plain Edit may never carry, for any interface (plan
- * §5.3's read-only rows plus its explicit reject list). "postfix/cylinder"
- * from that list is not a separate wire field -- the browser composes it
- * into iso_channel -- so rejecting iso_channel covers it.
- */
+/* Plain Edit cannot change identity or server-owned audit fields. */
 const ISO_EDIT_FORBIDDEN_FIELDS = [
     'interface_type',
     'anchor',
     'iso_channel',
     'build_date',
-    // mod_date is not in §5.3's list, but it is the same class of field as
-    // build_date: an audit timestamp the server owns. iso_update_channel_body()
-    // accepts a client-supplied value ($modDate ?? $now), so without this a
-    // caller could backdate or freeze "last modified" and make an identity
-    // change look older than it is. Safe to reject: the Edit popup never
-    // sends it, and Local JSON Restore sets mod_date itself rather than
-    // passing one through this path.
+    // Audit timestamps are server-owned; Restore has its own path.
     'mod_date',
     'mod_date_unix',
     'Mod_date_UNIX',
@@ -887,13 +816,7 @@ const ISO_EDIT_FORBIDDEN_FIELDS = [
     'Build_date_UNIX',
 ];
 
-/*
- * Enforce the plain-Edit allowlist on the server. Browser-disabled identity
- * fields are not an authority; Replace is the only flow allowed to carry an
- * anchor, and it re-derives that anchor from the live candidate pool.
- * Calibration fields remain XML-owned for non-SDAQ interfaces. SDAQ Unit is
- * runtime-owned and therefore rejected below.
- */
+/* Enforce Edit ownership server-side; browser-disabled fields are not authority. */
 function iso_require_edit_field_allowlist(string $xmlPath, string $isoChannel, array $data): void
 {
     $offenders = [];
@@ -903,10 +826,7 @@ function iso_require_edit_field_allowlist(string $xmlPath, string $isoChannel, a
         }
     }
 
-    // `unit` is interface-dependent (§5.3: read-only for SDAQ, editable for
-    // IOBOX/MTI/NOX), so it needs the stored interface type -- taken from the
-    // file, never from the request, precisely because interface_type is
-    // itself a forbidden field. Read inside the caller's lock.
+    // SDAQ Unit is runtime-owned; other interfaces use the stored XML Unit.
     if (array_key_exists('unit', $data) && is_file($xmlPath)) {
         $xml = simplexml_load_file($xmlPath);
         if ($xml !== false) {

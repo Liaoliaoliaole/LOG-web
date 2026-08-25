@@ -1,31 +1,5 @@
 <?php
-/*
- * tests/php/includeGraphTest.php
- *
- * Guards one invariant across the whole backend: every file-level include
- * must be require_once/include_once, never plain require/include.
- *
- * This exists because of a live HTTP 500 on 2026-08-20. api_channels.php
- * loaded two services with plain `require`:
- *
- *     require __DIR__ . '/services/channel_service.php';
- *     require __DIR__ . '/services/channel_restore_service.php';
- *
- * F-16 then added `require_once channel_restore_service.php` INSIDE
- * channel_service.php (Add needs restore_check_device_handler()). Line 7
- * pulled the restore service in transitively, line 8 pulled it in again --
- * plain require does not care that it is already loaded -- and PHP fatalled
- * with "Cannot redeclare function". The whole channel API returned an
- * empty-bodied 500.
- *
- * Every unit test passed throughout, and always would have: each test file
- * requires exactly one entry point, so no test ever reproduces an
- * api_*.php's real include list. That is the gap this file closes. It is a
- * static check on purpose -- actually including an api_*.php would execute
- * its HTTP dispatch.
- *
- * Run: php tests/php/includeGraphTest.php   (from Morfeas_WEB/)
- */
+/* Static guard: backend file-level imports must use require_once/include_once. */
 
 $g_checks = 0;
 $g_failures = 0;

@@ -1,30 +1,5 @@
 <?php
-/*
- * tests/php/replaceCandidateTest.php
- *
- * Standalone regression test for the Replace fix in channel_service.php:
- *   - Replace is SDAQ-only (device-relocation is the only scenario it
- *     exists for): a source with any other resolvable interface family
- *     must be rejected with replace_source_not_sdaq, even when that source
- *     is genuinely offline and a matching same-family candidate exists.
- *   - channel_replace_channel_from_pool() re-derives the canonical target
- *     anchor server-side inside the XML lock (never persists the client's
- *     raw submission), mirroring channel_add_channel_from_pool().
- *   - The previous silent pass-through ("source SDAQ subtype unknown and no
- *     candidate found -> allow anyway") is removed: an unresolved target is
- *     now always rejected with replace_target_not_detected.
- *   - The source channel must be re-confirmed offline server-side, inside
- *     the same lock as the write; a currently-online/connected source must
- *     reject with replace_source_not_offline (plan 5.4).
- *   - A source with an unresolvable interface family (e.g. a malformed row
- *     with an empty INTERFACE_TYPE) must reject, never silently skip the
- *     family-compatibility check.
- *   - Replace only ever persists anchor + mod_date; any other field in the
- *     replace_mode PATCH body (iso_channel, description, min/max, unit,
- *     alarms) must be ignored, not written.
- *
- * Run: php tests/php/replaceCandidateTest.php   (from Morfeas_WEB/)
- */
+/* Replace moves an offline SDAQ to a live compatible candidate; no other fields change. */
 
 require __DIR__ . '/../../backend/services/channel_service.php';
 
@@ -321,13 +296,7 @@ try {
     check($e->apiCode() === 'replace_source_family_unknown', 'Replace rejects a source with an unresolvable interface type with replace_source_family_unknown (got ' . $e->apiCode() . ')');
 }
 
-// _Blank_Type's Replace attempt above always failed, so it is still sitting
-// in the file with its empty INTERFACE_TYPE. Since Phase A4's whole-document
-// gate (plan §6.0.2, C-1) now rejects *any* write to a file containing an
-// empty element -- not just an operation targeting that row -- it has to be
-// removed before section 8 can write anything else, exactly like an
-// operator would have to Delete a genuinely broken row in production before
-// continuing to use the rest of the config.
+// Remove the invalid fixture row before testing later writes.
 $xmlCleanup = simplexml_load_file($xmlPath);
 $cleanupIdx = 0;
 foreach ($xmlCleanup->CHANNEL as $ch) {

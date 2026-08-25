@@ -1,24 +1,5 @@
 <?php
-/*
- * tests/php/tc16ReplaceAllTest.php
- *
- * Regression test for channel_replace_tc16_from_pool() (TC16 Replace All).
- * Per the fix plan section 5.5, this closes:
- *   - the canX.address.CHn anchor fallback when a target has no serial yet
- *     (deleted -- a target without a stable serial can never be a valid
- *     TC16 target);
- *   - missing "target registration must be Done" / "all CH1..16 must be
- *     currently detected, not just declared 16-channel capable" checks;
- *   - the TOCTOU where target selection/validation ran outside the XML
- *     lock and only the final anchor write was locked (source resolution,
- *     target lookup/validation, canonical anchor generation and the final
- *     duplicate/grammar check + write must all happen inside one lock,
- *     against state re-read fresh once the lock is held);
- *   - iso_batch_update_anchors() writing anchors with no grammar or
- *     semantic-source duplicate validation at all.
- *
- * Run: php tests/php/tc16ReplaceAllTest.php   (from Morfeas_WEB/)
- */
+/* TC16 Replace All requires a complete registered target and commits all 16 or none. */
 
 require __DIR__ . '/../../backend/services/channel_service.php';
 

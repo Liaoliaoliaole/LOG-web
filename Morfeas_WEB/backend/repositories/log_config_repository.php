@@ -4,27 +4,14 @@ require_once __DIR__ . '/../core/concurrency.php';
 require_once __DIR__ . '/../core/log_config_validation.php';
 
 /*
- * Every writer that adds a component validates its final bytes inside the
- * lock against the same Core-equivalent rules as FTP Restore.
- *
- * Deliberately not applied to the removal paths (log_config_delete_devices(),
- * and the FREE branch of log_config_set_can_role()). Removing a component
- * cannot introduce a violation, and a config that is already invalid -- a
- * hand-edited file, or one written before these rules existed -- must not
- * become impossible to repair through the UI. Blocking the fix for the
- * problem would be worse than the problem.
- *
- * Validation runs on a re-parse of the serialized string rather than on the
- * live DOMDocument, so what is checked is byte for byte what
- * backend_atomic_write_file() then writes.
+ * Add/update validates serialized final bytes inside the lock. Deletions
+ * stay available so the UI can repair an older invalid configuration.
  */
 function log_config_validate_before_write(string $xmlString, string $xmlPath): void
 {
     $dtdDir = dirname($xmlPath);
     if (!is_file(rtrim($dtdDir, '/') . '/Morfeas.dtd')) {
-        // Distinguished from a real structural failure on purpose: this is
-        // a broken installation, not a bad edit, and the two need very
-        // different responses from whoever reads the error.
+        // Missing DTD is an installation failure, not an invalid edit.
         throw new ChannelConfigException(
             "Cannot validate the new Morfeas_Config.xml: Morfeas.dtd is missing from $dtdDir",
             500,
@@ -48,20 +35,8 @@ function log_config_validate_before_write(string $xmlString, string $xmlPath): v
 }
 
 /*
- * Uniqueness for a device being CREATED, evaluated against the DOM already
- * loaded inside the log_config lock.
- *
- * There is one implementation of this rule, inside the lock and against the
- * DOM that will be written. This prevents two concurrent creates from both
- * validating against a stale outside snapshot.
- *
- * Names are compared case-INSENSITIVELY, which is stricter than Core's
- * strcmp(). That is deliberate and specific to creation: the Web's own
- * runtime map keys handlers by strtoupper(identifier)
- * (device_build_runtime_maps()), so "Box" and "box" would be one entry
- * there and the two devices would shadow each other's connection status.
- * log_config_validate_document(), which judges documents that already
- * exist, stays case-sensitive like Core.
+ * Check new-device conflicts inside the write lock. Creation is
+ * case-insensitive because the Web runtime map uppercases device names.
  */
 function log_config_find_device_conflict(DOMElement $components, string $name, string $ip): ?string
 {

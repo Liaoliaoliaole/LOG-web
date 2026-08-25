@@ -4,25 +4,9 @@ require_once __DIR__ . '/../core/opcua_config.php';
 require_once __DIR__ . '/../repositories/log_config_repository.php';
 
 /*
- * Local JSON Restore (fix plan section 6.1/6.2): accepts the existing
- * Legacy Local JSON export/import container -- a bare array of channel
- * objects (ISO_CHANNEL/INTERFACE_TYPE/ANCHOR/DESCRIPTION/MIN/MAX, optional
- * UNIT/CAL_DATE/CAL_PERIOD/ALARM_*), the exact shape Morfeas_WEB_Legacy and
- * this Web's own Export already produce. Unlike live Add/Replace, Restore
- * does not require a channel to be currently detected: it restores a
- * statically valid, offline-eligible definition, using the same
- * interface-aware strict grammar (iso_parse_source_identity()) as every
- * other write path.
- *
- * Preflight is read-only and reports every row (not stop-at-first-error).
- * Commit never trusts the preflight report it's handed back -- it
- * re-parses the file and re-validates every row fresh, against the current
- * files, inside the XML lock, and writes the whole batch as a single
- * atomic replace or nothing at all. A digest of the current
- * OPC_UA_Config.xml + Morfeas_Config.xml content is threaded from
- * preflight to commit so an out-of-date review (the underlying config
- * changed since the browser last saw it) is reported explicitly instead of
- * silently re-validated into a different outcome.
+ * Local JSON Restore accepts the historical channel-array format, including
+ * valid offline definitions. Preflight reports all rows; Commit revalidates
+ * current files under lock and replaces the batch atomically.
  */
 
 const RESTORE_LEGACY_REQUIRED_FIELDS = ['ISO_CHANNEL', 'INTERFACE_TYPE', 'ANCHOR', 'DESCRIPTION', 'MIN', 'MAX'];
@@ -44,15 +28,7 @@ function restore_parse_legacy_json(string $rawJson): array
     return $data;
 }
 
-/*
- * Core computes the IOBOX/MTI identifier via inet_pton(AF_INET, ip, &u32)
- * and then reads that 4-byte network-order buffer directly as a native
- * unsigned int -- on the little-endian hardware this ships on, that is
- * byte0 + byte1*256 + byte2*65536 + byte3*16777216, i.e. unpack('V', ...)
- * on the inet_pton() bytes. This is NOT the same value PHP's ip2long()
- * produces (that's the big-endian/network-order interpretation). Verified
- * against the field fixture in the fix plan: 192.168.234.141 -> 2380966080.
- */
+/* Core reads IPv4 bytes as native little-endian uint32; do not use ip2long(). */
 function restore_ipv4_to_core_identifier(string $ip): ?int
 {
     $bytes = @inet_pton($ip);
@@ -63,14 +39,7 @@ function restore_ipv4_to_core_identifier(string $ip): ?int
     return $unpacked[1] ?? null;
 }
 
-/*
- * Same-type IOBOX/MTI device handlers currently configured in
- * Morfeas_Config.xml, keyed by Core's identifier. Restore requires a
- * matching static handler definition to exist -- the device may be
- * offline, but it must at least be a real configured handler, not a
- * from-nowhere identifier. This does not read live logstat/Connection_status;
- * that is a runtime condition that only applies to Add/Replace, not Restore.
- */
+/* Restore accepts offline IOBOX/MTI only when a same-type handler is configured. */
 function restore_load_device_identifiers(string $logConfigPath): array
 {
     $out = ['IOBOX' => [], 'MTI' => []];
@@ -518,8 +487,7 @@ function restore_commit_locked(string $xmlPath, string $logConfigPath, string $f
                     'mod_date' => $now,
                 ]);
                 if ($data['interface_type'] === 'SDAQ') {
-                    // Legacy JSON may carry a historical SDAQ Unit, but SDAQ
-                    // metadata is runtime-owned and is not restored to XML.
+                    // SDAQ metadata is runtime-owned and is not restored to XML.
                     unset($newData['unit']);
                 }
                 $payload = iso_build_new_channel_payload($data['iso_channel'], $newData);

@@ -7,30 +7,8 @@ require_once __DIR__ . '/../core/nox_runtime.php';
 const DEVICE_LEGACY_MDAQ_MESSAGE = 'Legacy MDAQ config found in XML. Remove it manually before using this page.';
 
 /*
- * The limit for a name being CREATED is IFNAMSIZ-1 = 15, one byte tighter
- * than the >16 that Morfeas_XML.c actually enforces, because 16 is the
- * length the three Core components disagree on: the config validator
- * accepts it, Morfeas_IOBOX_if.c:110 exits at >=16, and
- * Morfeas_MTI_if.c:169 admits it and then truncates the name to 15 bytes in
- * every IPC message. 15 is the largest length that means the same thing
- * everywhere. See log_config_dev_name_safe_max_length(), which is where the
- * number comes from; existing 16-byte names in a restored backup are
- * warned about rather than rejected, since Core does load them.
- *
- * The base character class is a Web policy for newly created names and is
- * stricter than Core's "no space, no quote" scan.
- *
- * MTI names carry one more rule, and it is a genuine Core constraint rather
- * than a policy: Morfeas_MTI_DBus.c:115/134 builds the handler's D-Bus
- * names by concatenation --
- *
- *     sprintf(dbus_server_name_if, "%s%s", "Morfeas.MTI.", stats->dev_name);
- *
- * -- so the device name becomes a D-Bus interface name ELEMENT, which D-Bus
- * requires to match [A-Za-z_][A-Za-z0-9_]*: no hyphen, no leading digit. An
- * MTI called "IO-Box" or "1Box" produces an invalid interface name and the
- * handler's D-Bus registration fails. devices.js has enforced this in the
- * browser and backend must both enforce it.
+ * New names are at most 15 bytes. MTI names also become D-Bus identifiers,
+ * so they must match [A-Za-z_][A-Za-z0-9_]*.
  */
 function devices_validate_name(string $name, string $type): bool
 {

@@ -36,15 +36,7 @@ function backend_named_lock_file(string $name): string
     return backend_runtime_locks_dir() . '/.internal_' . sha1($name) . '.lck';
 }
 
-/*
- * flock() is bound to the open file description, not the process: a second
- * fopen()+flock() on the same name from deeper in the same call stack would
- * simply block until PHP's max_execution_time kills the request, instead of
- * failing fast. The lock/unlock discipline elsewhere in this codebase (the
- * "_body" vs. locked-wrapper naming convention) is what actually prevents
- * that today, but it only works as long as every caller remembers it; this
- * guard turns a violation into an immediate, diagnosable exception.
- */
+/* Fail fast on same-request lock re-entry; flock() would otherwise block. */
 function backend_with_named_lock(string $name, callable $fn)
 {
     static $held = [];
@@ -122,18 +114,7 @@ function backend_atomic_write_file(string $path, string $contents, ?int $mode = 
     }
 }
 
-/*
- * Same same-directory-temp-then-rename atomicity as backend_atomic_write_file(),
- * plus an actual fsync() of the temp file's contents before the rename --
- * file_put_contents() only goes through PHP's stream buffering, it never
- * forces the bytes to disk. This is for FTP Restore's ordered dual-file
- * replacement. Kept
- * as a separate function from backend_atomic_write_file() rather than
- * adding fsync there, so every other existing caller (Add/Edit/Delete/
- * Replace/TC16/Local JSON Restore) keeps its current, already-tested
- * behavior unchanged; only the one new caller that plan section actually
- * names opts into the extra syscall cost.
- */
+/* FTP Restore needs durable temp bytes before each ordered rename. */
 function backend_atomic_write_file_synced(string $path, string $contents, ?int $mode = null): void
 {
     $dir = dirname($path);

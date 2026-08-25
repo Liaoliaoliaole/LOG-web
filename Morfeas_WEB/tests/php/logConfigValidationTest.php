@@ -1,24 +1,5 @@
 <?php
-/*
- * tests/php/logConfigValidationTest.php
- *
- * Standalone regression test for log_config_validate_document() (backend/
- * core/log_config_validation.php), the Morfeas_Config.xml candidate
- * validator used by FTP Restore and by every write that adds a component.
- * One case per rule in Core's Morfeas_daemon_config_valid(): real DTD
- * structural validation (matching Core's own Morfeas_XML_parsing(), which
- * parses with XML_PARSE_DTDVALID), empty-leaf rejection, the Disable
- * attribute range, APP_NAME whitespace, all three CANBUS_IF duplicate
- * scans, and IPv4/DEV_NAME validity plus duplicates across
- * MDAQ/IOBOX/MTI_HANDLER.
- *
- * Every "must still pass" case in here is load-bearing: this validator
- * gates the restore of an EXISTING configuration, so a rule stricter than
- * Core's false-rejects a backup Core itself loads. The rejection cases
- * prove equivalence in one direction and those prove it in the other.
- *
- * Run: php tests/php/logConfigValidationTest.php   (from Morfeas_WEB/)
- */
+/* Morfeas_Config.xml validation must accept and reject exactly as Core does. */
 
 require __DIR__ . '/../../backend/core/log_config_validation.php';
 
@@ -157,19 +138,7 @@ try {
     check($e->apiCode() === 'empty_element', 'Empty DEV_NAME rejected with empty_element (got ' . $e->apiCode() . ')');
 }
 
-// --- 6) DEV_NAME length boundary. Core's check is written against the
-//        loop INDEX, not the length:
-//
-//            for(int i=0; dev_name[i]; i++) { ... if(i>=16) reject; }
-//
-//        so a 16-byte name never reaches the test and Core ACCEPTS it,
-//        first rejecting at 17 -- despite printing ">=16" when it does.
-//        This test asserted the printed rule until 2026-08-20; the loop was
-//        then compiled verbatim against the real net/if.h, which is what
-//        these boundaries now encode. 16 is still not a name anyone should
-//        be creating (Morfeas_IOBOX_if.c:110 exits at >=16 and
-//        Morfeas_MTI_if.c:169 silently truncates it), so it is reported as
-//        a warning here and blocked outright by the Device Add writer. ---
+// --- 6) Core accepts 16-byte names, but new names are capped at 15. ---
 $name15 = str_repeat('A', 15);
 $name16 = str_repeat('A', 16);
 $name17 = str_repeat('A', 17);
@@ -195,9 +164,7 @@ try {
     check($e->apiCode() === 'invalid_device_name', 'DEV_NAME of 17 bytes rejected with invalid_device_name (got ' . $e->apiCode() . ')');
 }
 
-// --- 7) Duplicate DEV_NAME across IOBOX_HANDLER/MTI_HANDLER (cross-type,
-//        matching plan §5.4's "duplicate_device_name applies across IOBOX/
-//        MTI, not just within one type"). ---
+// --- 7) Duplicate DEV_NAME across IOBOX_HANDLER/MTI_HANDLER. ---
 $dupName = base_config('Same-Name', '10.193.135.20', 'Same-Name', '10.193.135.28');
 try {
     log_config_validate_document(load_dom($dupName), $dtdDir);
@@ -426,26 +393,22 @@ foreach ([
     }
 }
 
-// The real field configuration from the two production LOGs, byte for byte
-// (raw_remote/configuration/Morfeas_config.xml): a disabled vcan0
-// SDAQ_HANDLER alongside live can0/can1 ones and two IOBOX handlers. It
-// must pass every rule added above -- this is the document the E8 hardware
-// check exists to protect, and the one the new CAN scans are most likely to
-// false-reject.
-$fieldConfig = realpath(__DIR__ . '/../../../../incident_evidence_2026-08-13/raw_remote/configuration/Morfeas_config.xml');
-if ($fieldConfig !== false && is_file($fieldConfig)) {
-    $dom = new DOMDocument('1.0');
-    $dom->loadXML(file_get_contents($fieldConfig));
-    try {
-        log_config_validate_document($dom, $dtdDir);
-        check(true, 'The real field Morfeas_config.xml (disabled vcan0 + live can0/can1 + 2 IOBOX) passes every rule');
-    } catch (ChannelConfigException $e) {
-        check(false, 'The real field Morfeas_config.xml passes every rule (got ' . $e->apiCode() . ': ' . $e->getMessage() . ')');
-    }
-    check(log_config_collect_document_warnings($dom) === [], 'The real field Morfeas_config.xml produces no warnings');
-} else {
-    echo "NOTE: field Morfeas_config.xml fixture not found, skipping the real-config regression\n";
+// Representative mixed-handler configuration must pass without warnings.
+$representativeConfig = can_config(
+    $sdaq('vcan0', 'true') . "\n"
+    . $sdaq('can0') . "\n"
+    . $sdaq('can1') . "\n"
+    . '    <IOBOX_HANDLER Disable="false"><DEV_NAME>BoxA</DEV_NAME><IPv4_ADDR>192.168.234.141</IPv4_ADDR></IOBOX_HANDLER>' . "\n"
+    . '    <IOBOX_HANDLER Disable="false"><DEV_NAME>BoxB</DEV_NAME><IPv4_ADDR>192.168.234.142</IPv4_ADDR></IOBOX_HANDLER>'
+);
+$dom = load_dom($representativeConfig);
+try {
+    log_config_validate_document($dom, $dtdDir);
+    check(true, 'A mixed-handler configuration (disabled vcan0, live can0/can1, two IOBOX) passes every rule');
+} catch (ChannelConfigException $e) {
+    check(false, 'The mixed-handler configuration passes every rule (got ' . $e->apiCode() . ': ' . $e->getMessage() . ')');
 }
+check(log_config_collect_document_warnings($dom) === [], 'The mixed-handler configuration produces no warnings');
 
 echo "\n{$g_checks} checks, " . ($g_checks - $g_failures) . " passed, {$g_failures} failed\n";
 exit($g_failures === 0 ? 0 : 1);

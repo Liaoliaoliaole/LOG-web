@@ -1,25 +1,5 @@
 <?php
-/*
- * tests/php/editFieldAllowlistTest.php
- *
- * Regression test for F-11 (2026-08-19 second code review): plain Edit -- a
- * PATCH without replace_mode -- had no server-side field allowlist, so a
- * direct API call could rewrite ANCHOR to any syntactically valid but
- * never-detected identity, rename ISO_CHANNEL, or change INTERFACE_TYPE.
- * That reopened the incident's entry point and bypassed Replace's
- * source-offline/family/candidate-pool checks and batch atomicity.
- *
- * Contract under test: plan §5.3's table and reject list, §10.0.1, §13.2.
- *
- * Both directions matter here and are both covered:
- *   - identity/read-only fields must be REJECTED (not silently ignored), and
- *     the file must be byte-for-byte unchanged;
- *   - every legitimate metadata edit must still WORK -- an allowlist that is
- *     too tight silently removes real functionality, which is why the
- *     "still allowed" cases below are as important as the rejections.
- *
- * Run: php tests/php/editFieldAllowlistTest.php   (from Morfeas_WEB/)
- */
+/* Plain Edit changes metadata only; identity and audit fields are rejected. */
 
 require __DIR__ . '/../../backend/core/opcua_config.php';
 
@@ -89,9 +69,7 @@ function expect_rejected(string $label, array $data, string $iso = '_TE101'): vo
     check(file_get_contents($xmlPath) === $before, "$label leaves the XML byte-for-byte unchanged");
 }
 
-// =====================================================================
-// Rejections -- the identity/read-only fields from plan §5.3
-// =====================================================================
+// Identity and audit fields are rejected.
 
 // The original F-11 reproduction: a fabricated but syntactically valid
 // SDAQ identity that was never detected on any bus.
@@ -114,13 +92,10 @@ expect_rejected('legitimate description + forbidden anchor in one request', [
     'anchor' => '999999999.CH1',
 ]);
 
-// An anchor identical to the stored one is still rejected: §5.3 says a
-// present identity field is an error, not something to compare-and-ignore.
-// Silently accepting "unchanged" values would leave the endpoint's contract
-// dependent on request content rather than request shape.
+// A present identity field is rejected even if its value is unchanged.
 expect_rejected('anchor present but identical to the stored value', ['anchor' => '111111111.CH1']);
 
-// SDAQ Unit is runtime-owned; Core never reads it from XML (plan §13.2).
+// SDAQ Unit is runtime-owned; Core never reads it from XML.
 expect_rejected('unit on a SDAQ channel', ['unit' => 'HACKED']);
 
 // =====================================================================

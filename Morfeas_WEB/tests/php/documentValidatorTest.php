@@ -1,26 +1,5 @@
 <?php
-/*
- * tests/php/documentValidatorTest.php
- *
- * Regression test for iso_validate_document() (opcua_config.php), the
- * single whole-document Core-equivalence gate added by Phase A4
- * (2026-08-19 code review, plan §6.0.2). Every rule below is cross-
- * referenced by number (C-1..C-9, D-1..D-3) against the same section, and
- * against Core's tests/opcua_config_parser_test.c, which gained matching
- * test_whole_document_rejects_empty_description() /
- * _iso_channel_too_long() / _iso_channel_with_dot() cases in the same
- * change -- these three were previously untested on *either* side of the
- * Web/Core boundary, which is how the Web gap went unnoticed until it was
- * reproduced against a live LOGDemo32.
- *
- * Section 1 calls iso_validate_document() directly against hand-built
- * SimpleXMLElement documents (unit-level, mirrors the Core suite's style).
- * Section 2 goes through iso_add_channel_body()/iso_update_channel_body()
- * to prove the gate is actually wired into iso_save_xml() and cannot be
- * bypassed by a real write path, not just callable in isolation.
- *
- * Run: php tests/php/documentValidatorTest.php   (from Morfeas_WEB/)
- */
+/* Whole-document gate must match Core and protect every normal writer. */
 
 require __DIR__ . '/../../backend/core/opcua_config.php';
 
@@ -135,7 +114,7 @@ expect_rejected(valid_channel_xml('TE1', ' SDAQ', '796834087.CH1'), 'unsupported
 expect_rejected(valid_channel_xml(' TE1', 'SDAQ', '796834087.CH1'), 'invalid_iso_channel', 'ISO_CHANNEL with leading whitespace');
 
 // C-6: ANCHOR must satisfy the interface's strict grammar.
-expect_rejected(valid_channel_xml('TE1', 'SDAQ', 'CAN1.ADDR:05.CH:01'), 'invalid_anchor', 'an address-style SDAQ anchor (the 2026-08-13 incident pattern)');
+expect_rejected(valid_channel_xml('TE1', 'SDAQ', 'CAN1.ADDR:05.CH:01'), 'invalid_anchor', 'an address-style SDAQ anchor');
 expect_rejected(valid_channel_xml('TE1', 'SDAQ', '0.CH1'), 'invalid_anchor', 'a zero SDAQ serial');
 expect_rejected(valid_channel_xml('TE1', 'SDAQ', '796834087.CH1 '), 'invalid_anchor', 'an ANCHOR with trailing whitespace that Core rejects');
 
@@ -206,10 +185,7 @@ function make_base_xml(string $dir): string
 $dir = make_tmp_dir('doc_validator_wiring_test');
 $xmlPath = make_base_xml($dir);
 
-// This is the exact real-machine reproduction from the 2026-08-19 code
-// review (F-1): iso_add_channel_body() must now refuse an empty
-// description before Core ever sees the file, instead of writing
-// <DESCRIPTION/> and letting the next Core reload discover it.
+// A normal writer must reject empty required metadata before Core sees it.
 try {
     iso_add_channel_body($xmlPath, [
         'iso_channel' => '_EmptyDescWiring', 'interface_type' => 'SDAQ',

@@ -1,8 +1,5 @@
 <?php
-/*
- * Final OPC_UA_Config.xml byte-boundary regression tests.
- * Run from Morfeas_WEB/: php tests/php/finalBytesGateTest.php
- */
+/* Validate exactly the OPC_UA_Config.xml bytes that will be written. */
 
 require __DIR__ . '/../../backend/core/opcua_config.php';
 

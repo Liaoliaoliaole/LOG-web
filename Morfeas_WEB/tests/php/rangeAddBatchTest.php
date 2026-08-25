@@ -1,17 +1,5 @@
 <?php
-/*
- * tests/php/rangeAddBatchTest.php
- *
- * Regression test for channel_add_sdaq_range_from_pool() (SDAQ Multilinking
- * Range Add), which replaced addCh.js's previous "loop calling single Add
- * per record" pattern. Per the fix plan section 5.5, a batch must be
- * validated and written as a single atomic all-or-nothing operation inside
- * one XML lock: any single item being unavailable, invalid, or duplicated
- * (against the file or against another item in the same batch) must reject
- * the whole batch with zero writes -- never CH1 written while CH2 fails.
- *
- * Run: php tests/php/rangeAddBatchTest.php   (from Morfeas_WEB/)
- */
+/* SDAQ Range Add resolves and validates the complete batch before one commit. */
 
 require __DIR__ . '/../../backend/services/channel_service.php';
 

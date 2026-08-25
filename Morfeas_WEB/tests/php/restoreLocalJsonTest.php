@@ -1,24 +1,5 @@
 <?php
-/*
- * tests/php/restoreLocalJsonTest.php
- *
- * Regression test for Local JSON Restore (channel_restore_service.php),
- * fix plan section 6.1/6.2: accepts the existing Legacy Local JSON
- * container, previously handled by index.js's importChannelsFromFile()
- * looping over single Add-API calls (no preflight, "Imported N, but some
- * entries failed" partial success). This closes that gap:
- *   - preflight is read-only and reports every row, not stop-at-first-error;
- *   - commit re-validates everything fresh against the current files inside
- *     the XML lock and never trusts the report it's handed back;
- *   - the whole batch commits atomically or not at all;
- *   - the six-way duplicate/conflict matrix from the plan (Ready to
- *     restore / No change / Update metadata / Invalid entry / Conflict,
- *     both within-file and against the existing config) is exercised
- *     directly, along with the IOBOX/MTI cross-file device-handler match
- *     against Morfeas_Config.xml.
- *
- * Run: php tests/php/restoreLocalJsonTest.php   (from Morfeas_WEB/)
- */
+/* Local JSON Restore reports all rows, revalidates under lock, then commits all or none. */
 
 require __DIR__ . '/../../backend/services/channel_restore_service.php';
 
@@ -115,10 +96,8 @@ try {
 }
 check(restore_parse_legacy_json('[]') === [], 'An empty JSON array parses to an empty list');
 
-// ============================================================
-// 2) IPv4 -> Core identifier byte order (fix plan fixture: 192.168.234.141 -> 2380966080)
-// ============================================================
-check(restore_ipv4_to_core_identifier('192.168.234.141') === 2380966080, 'IPv4->identifier matches the fix plan field fixture (192.168.234.141 -> 2380966080)');
+// 2) IPv4 -> Core identifier byte order.
+check(restore_ipv4_to_core_identifier('192.168.234.141') === 2380966080, 'IPv4->identifier matches Core byte order (192.168.234.141 -> 2380966080)');
 check(restore_ipv4_to_core_identifier('not-an-ip') === null, 'IPv4->identifier returns null for a malformed IP');
 
 // ============================================================
@@ -149,10 +128,7 @@ check($r['result'] === 'Invalid entry' && $r['code'] === 'missing_required_unit'
 $r = classify_one($xmlPath3, $logCfg3, legacy_entry('_A', 'SDAQ', '117440522.CH1')); // SDAQ never needs UNIT
 check($r['result'] === 'Ready to restore', 'SDAQ entry with no UNIT is fine (Unit is runtime-owned, not restorable) (got ' . $r['result'] . ')');
 
-// Plan §6.0.2 C-1/C-4/C-5, checked at preflight time so the report matches
-// what commit will actually do (2026-08-19: these were reproduced live via
-// restore_commit() -- preflight said "Ready to restore" for all three right
-// up until commit, silently, past the report a reviewer would actually read).
+// Preflight and Commit must agree on required metadata.
 $r = classify_one($xmlPath3, $logCfg3, legacy_entry('_A', 'SDAQ', '117440522.CH1', ['DESCRIPTION' => '']));
 check($r['result'] === 'Invalid entry' && $r['code'] === 'missing_field', 'Empty DESCRIPTION -> Invalid entry / missing_field at preflight, not just at commit (got ' . $r['result'] . '/' . $r['code'] . ')');
 

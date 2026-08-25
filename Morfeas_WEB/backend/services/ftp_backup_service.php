@@ -567,55 +567,15 @@ function ftp_backup_decode_bundle(string $rawBytes): array
     return ['opc_ua' => $opcUa, 'morfeas' => $morfeas];
 }
 
-/*
- * Ties a preflight report to the exact downloaded bytes it was computed
- * from, so commit can detect "the remote .mbl changed between preflight and
- * commit" (someone re-ran a backup with the same filename, a prune
- * happened, etc.) the same way restore_compute_digest() catches a changed
- * live config for Local JSON Restore. This one digests the SOURCE bytes,
- * not the live target files -- FTP Restore is a full replace, not a merge,
- * so there is no "conflicts with a concurrent unrelated edit" concept to
- * detect against the live config the way Local JSON's merge has; what
- * matters here is committing the same candidate the user actually reviewed.
- */
+/* Commit only the exact FTP bytes that the user reviewed in preflight. */
 function ftp_backup_restore_digest(string $filename, string $rawBytes): string
 {
     return hash('sha256', $filename . "\0" . $rawBytes);
 }
 
 /*
- * Pure validation: given two already-decoded candidate document strings,
- * runs each through its own whole-document validator and reports both
- * files' errors (not stop-at-first). No network, no filesystem writes, no
- * locks -- shared by preflight (report only) and commit (re-checked fresh,
- * never trusting preflight's report). $dtdDir is passed through to
- * log_config_validate_document(); see that function for why the DTD file
- * itself is not bundled with the backup.
- */
-/*
- * Cross-file candidate matching: an IOBOX/MTI channel in the backup's
- * OPC_UA_Config.xml should have a
- * matching same-type handler in the SAME backup's Morfeas_Config.xml. Both
- * sides come from the bundle, never from the live config -- FTP is a full
- * replace, so what matters is that the pair being installed is internally
- * consistent, not how it relates to what is on disk now.
- *
- * These are warnings, not errors. The dividing line for FTP Restore is
- * "would Core accept this document?", not
- * "did a human edit this bundle?" -- the latter is not even detectable,
- * since the bundle's CRC32 proves integrity, not provenance, and anyone
- * editing it can recompute the checksum.
- *
- * Core has no cross-file checks at all, so it loads an orphan-carrying
- * config happily; the orphan channels simply stay permanently offline. And
- * orphans arise from ordinary supported UI use, not tampering: Device
- * Delete deliberately does not cascade into ISO channels, so
- * "delete a handler, don't clean up its channels, take a backup" produces
- * one. Hard-rejecting would therefore be stricter than Core and could make
- * a legitimate historical backup permanently unrestorable.
- *
- * Reuses restore_ipv4_to_core_identifier() so the IP -> identifier byte
- * order matches Core exactly, the same helper Local JSON Restore uses.
+ * Warn when an IOBOX/MTI channel lacks a same-type handler in this bundle.
+ * It remains restorable because Core accepts offline orphan definitions.
  */
 function ftp_backup_check_bundle_handler_matching(SimpleXMLElement $xml, DOMDocument $morfeasDom): array
 {
@@ -657,9 +617,7 @@ function ftp_backup_check_bundle_handler_matching(SimpleXMLElement $xml, DOMDocu
 
 function ftp_backup_validate_bundle_candidates(string $opcUa, string $morfeas, string $dtdDir): array
 {
-    // Validate the raw OPC UA bytes with the same final-byte gate used by
-    // every Web writer. This deliberately does not trim or canonicalise a
-    // Restore candidate before proving that Core can consume it.
+    // Validate raw final bytes; Restore must not normalize invalid XML first.
     $opcUaErrors = [];
     $xml = false;
     try {
@@ -683,12 +641,7 @@ function ftp_backup_validate_bundle_candidates(string $opcUa, string $morfeas, s
         }
     }
 
-    // Warning passes run only when both sides are individually valid --
-    // otherwise their findings would be noise on top of a document that is
-    // already being rejected for a more fundamental reason. Two sources:
-    // the cross-file handler matching below, and the single-document
-    // findings log_config_validate_document() deliberately does not raise
-    // as errors because Core accepts them, such as a 16-byte DEV_NAME.
+    // Warnings are useful only after both files pass hard validation.
     $warnings = [];
     if (empty($opcUaErrors) && empty($morfeasErrors) && $xml !== false) {
         $warnings = array_merge(
@@ -697,10 +650,7 @@ function ftp_backup_validate_bundle_candidates(string $opcUa, string $morfeas, s
         );
     }
 
-    // can_commit reflects only hard errors -- documents Core itself would
-    // refuse to load. Warnings do not block, but ftp_backup_restore_commit()
-    // requires them to be explicitly acknowledged, so "warn + confirm" is a
-    // real API contract rather than a browser-only courtesy.
+    // Warnings require acknowledgement but do not reject Core-valid backups.
     return [
         'opc_ua' => ['valid' => empty($opcUaErrors), 'errors' => $opcUaErrors, 'channel_count' => $xml !== false ? count($xml->CHANNEL) : null],
         'morfeas' => ['valid' => empty($morfeasErrors), 'errors' => $morfeasErrors],
@@ -710,20 +660,9 @@ function ftp_backup_validate_bundle_candidates(string $opcUa, string $morfeas, s
 }
 
 /*
- * Ordered dual-file replacement, with no locking and
- * no network/download concerns -- callable directly with plain file paths,
- * so its rollback behavior can be unit-tested (including forcing the
- * second write to fail) without any FTP server or lock plumbing involved.
- * Morfeas_Config.xml is written first since it does not hot-reload,
- * OPC_UA_Config.xml last since writing it is what triggers Core's hot
- * reload -- so hot reload only ever fires once both files already reflect
- * the new pair. If the second write fails after the first succeeded, this
- * makes one best-effort attempt to restore the first file's prior content
- * and then reports failure; it never claims success and never restarts
- * Core. A crash between the two renames is an accepted, documented
- * residual window; recovery is re-running this same
- * Restore, not automatic reconciliation. Caller (ftp_backup_restore_commit())
- * is responsible for holding both file locks around this call.
+ * Write Morfeas_Config.xml first and OPC_UA_Config.xml last, so Core reloads
+ * only after both candidates are in place. A failed second write restores the
+ * first best-effort; a crash between renames is recovered by re-running Restore.
  */
 function ftp_backup_apply_ordered_replace(string $opcUaContent, string $morfeasContent, string $xmlPath, string $logConfigPath): void
 {
@@ -809,15 +748,7 @@ function ftp_backup_restore_preflight(string $filename, string $dtdDir): array
     ]);
 }
 
-/*
- * Re-downloads and re-validates from scratch (never trusts the preflight
- * report the client hands back), checks the digest to catch a changed
- * remote file, then performs the ordered dual-file replace under a fixed
- * lock order: log_config lock held outer / opcua_config lock inner (same
- * order restore_commit() uses in channel_restore_service.php, for the same
- * TOCTOU reason -- handler/config reads must come from one consistent
- * locked snapshot).
- */
+/* Re-download and revalidate the reviewed bytes under the shared lock order. */
 function ftp_backup_restore_commit(
     string $filename,
     string $expectedDigest,
@@ -860,12 +791,7 @@ function ftp_backup_restore_commit(
                 );
             }
 
-            // Warnings (currently: orphan IOBOX/MTI channels) do not make the
-            // candidate invalid -- Core would load it -- but they must not be
-            // restored silently. The browser confirm dialog is not an
-            // authorization boundary:
-            // a direct API call must opt in explicitly, so a scripted caller
-            // cannot restore a known-inconsistent backup without saying so.
+            // Core-valid warnings require explicit acknowledgement from every caller.
             if (!empty($report['warnings']) && !$acknowledgeWarnings) {
                 $count = count($report['warnings']);
                 $first = $report['warnings'][0]['message'] ?? '';

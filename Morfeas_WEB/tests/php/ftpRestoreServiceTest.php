@@ -1,23 +1,5 @@
 <?php
-/*
- * tests/php/ftpRestoreServiceTest.php
- *
- * Standalone regression test for the FTP Restore rewrite in
- * ftp_backup_service.php. FTP socket I/O still needs a real server, but the
- * production commit entry is exercised with an injected byte transport, so
- * locking, digest recheck, validation and replacement are covered here:
- *
- *   - ftp_backup_decode_bundle(): gzip/JSON/checksum decoding, no network.
- *   - ftp_backup_restore_digest(): deterministic hashing of (filename, bytes).
- *   - ftp_backup_validate_bundle_candidates(): runs iso_validate_document()
- *     on the OPC_UA_Config candidate and log_config_validate_document() on
- *     the Morfeas_Config candidate, reporting both files' errors.
- *   - ftp_backup_apply_ordered_replace(): the actual dual-file write +
- *     rollback-on-second-write-failure mechanics, exercised here with a
- *     real forced second-write failure (not just code review).
- *
- * Run: php tests/php/ftpRestoreServiceTest.php   (from Morfeas_WEB/)
- */
+/* FTP Restore verifies source bytes, both final documents and ordered replacement. */
 
 require __DIR__ . '/../../backend/services/ftp_backup_service.php';
 
@@ -385,14 +367,10 @@ if ($dtdAvailable) {
     check($r['can_commit'] === true, 'F-12 regression: a fully valid pair still commits');
 }
 
-// =====================================================================
-// F-13: candidate-to-candidate handler matching. An IOBOX/MTI channel in
-// the backup must have a matching same-type handler in the SAME backup.
-// =====================================================================
+// IOBOX/MTI channels are checked against same-type handlers in the bundle.
 
 if ($dtdAvailable) {
-    // 2380966080 == 192.168.234.141 in Core's byte order (the fixture the
-    // fix plan documents), so this pair is internally consistent.
+    // 2380966080 is 192.168.234.141 in Core's byte order.
     $opcIobox = <<<XML
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE NODESet SYSTEM "Morfeas.dtd">
@@ -418,11 +396,7 @@ XML;
     check($r['warnings'] === [], 'F-13 regression: IOBOX channel WITH a matching handler in the same bundle produces no warning');
     check($r['can_commit'] === true, 'F-13 regression: an internally consistent bundle still commits');
 
-    // Same OPC side, but the handler is gone -> orphan. Per the 2026-08-20
-    // decision this is a WARNING, not an error: Core has no cross-file
-    // checks and would load this config happily, and orphans arise from
-    // ordinary Device Delete (which deliberately does not cascade), so
-    // hard-rejecting would make a legitimate backup unrestorable.
+    // Orphans warn, rather than reject a Core-valid historical backup.
     $r = ftp_backup_validate_bundle_candidates($opcIobox, $validMorfeas, $dtdDir);
     check(count($r['warnings']) === 1, 'F-13: IOBOX channel with NO matching handler produces exactly one warning (got ' . count($r['warnings']) . ')');
     check(($r['warnings'][0]['code'] ?? '') === 'orphan_device_source', 'F-13: orphan reported as orphan_device_source (got ' . ($r['warnings'][0]['code'] ?? 'null') . ')');
@@ -501,11 +475,7 @@ if ($dtdAvailable) {
     $r = ftp_backup_validate_bundle_candidates($validOpcUa, $mkMorfeas('Test-IOBox', '10.193.135.20'), $dtdDir);
     check($r['morfeas']['valid'] === true, 'F-14 regression: a real-world device name ("Test-IOBox") is still accepted');
 
-    // The rules completed on 2026-08-20 -- asserted here at the bundle
-    // level, not just at the validator level, because these are the codes
-    // the preflight report actually shows the operator. Per-rule coverage
-    // (including every "must still pass" counterpart) is in
-    // logConfigValidationTest.php.
+    // Assert validation through the bundle path shown to the operator.
     $badDisable = str_replace('<SDAQ_HANDLER Disable="false">', '<SDAQ_HANDLER Disable="maybe">', $validMorfeas);
     $r = ftp_backup_validate_bundle_candidates($validOpcUa, $badDisable, $dtdDir);
     check($r['morfeas']['valid'] === false, 'F-14: Disable="maybe" is rejected (DTD declares Disable as CDATA, so only this check catches it)');

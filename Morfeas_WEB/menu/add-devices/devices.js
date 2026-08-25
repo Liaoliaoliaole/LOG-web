@@ -1,12 +1,4 @@
-/* ============================================================================
- * Add Devices
- * ----------------------------------------------------------------------------
- * - CAN Bus Setup is the main control surface for SDAQ / NOX role switching.
- * - Configured Devices shows explicit XML-backed devices.
- * - Detected Devices shows auto-discovered runtime devices.
- * - NOX creation goes through the CAN role transition flow instead of direct
- *   device append, so bitrate + handler changes stay together.
- * ========================================================================== */
+/* NOX creation uses the CAN role transition so bitrate and handler stay aligned. */
 
 (function () {
   const $ = (s, r = document) => r.querySelector(s);

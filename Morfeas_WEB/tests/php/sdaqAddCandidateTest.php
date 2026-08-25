@@ -1,18 +1,5 @@
 <?php
-/*
- * tests/php/sdaqAddCandidateTest.php
- *
- * Standalone (no PHPUnit dependency) regression test for the Web-A1 fix:
- *   - logstat_sdaq.php no longer exposes a CAN-address fallback as the
- *     preferred/connection anchor.
- *   - channel_service.php's SDAQ Add/Replace candidate pool only contains
- *     channels with a valid serial anchor and registration=Done.
- *   - channel_add_channel_from_pool() re-derives the canonical serial anchor
- *     server-side inside the XML lock and rejects anything that isn't a
- *     currently-available SDAQ candidate (closing the incident entry point).
- *
- * Run: php tests/php/sdaqAddCandidateTest.php   (from Morfeas_WEB/)
- */
+/* SDAQ Add/Replace accepts only registered live serial.CHn candidates. */
 
 require __DIR__ . '/../../backend/services/channel_service.php';
 

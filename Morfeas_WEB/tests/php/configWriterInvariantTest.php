@@ -1,13 +1,5 @@
 <?php
-/*
- * Static guard for backend atomic-write call sites.
- * Run from Morfeas_WEB/: php tests/php/configWriterInvariantTest.php
- *
- * OPC_UA_Config.xml may only be replaced by iso_save_xml() or by the
- * validated two-file FTP restore transaction. Keeping a complete allowlist
- * of atomic-write calls also makes any future direct writer fail this test
- * until its destination and validation boundary are reviewed explicitly.
- */
+/* Static guard: every configuration writer must use an approved validation boundary. */
 
 $checks = 0;
 $failures = 0;

@@ -1,26 +1,5 @@
 <?php
-/*
- * tests/php/addChannelPoolTest.php
- *
- * Regression test for the Phase B1 generalization of the incident fix:
- * channel_add_channel_from_pool() (formerly channel_add_sdaq_from_pool(),
- * SDAQ-only) now enforces the same live-Unlinked-pool authorization for
- * IOBOX, MTI and NOX that channel_add_sdaq_from_pool() already enforced for
- * SDAQ. Before this change, api_channels.php routed non-SDAQ Add POSTs
- * through the old direct Add helper, which trusted the client-submitted anchor
- * directly (only checking for a duplicate ISO_CHANNEL/ANCHOR conflict, not
- * whether the target was ever actually detected). Per the fix plan, section
- * 10.0.1 / Phase A1: "所有 interface 都不信任浏览器提交的 raw/display anchor" --
- * this must hold for every family reachable through this endpoint, not just
- * SDAQ.
- *
- * This does not require physical IOBOX/MTI/NOX hardware: it constructs the
- * same shape of logstat_*.json fixtures the real producer processes would
- * write, exactly like replaceCandidateTest.php already does for its IOBOX
- * scenarios.
- *
- * Run: php tests/php/addChannelPoolTest.php   (from Morfeas_WEB/)
- */
+/* Add writes only a canonical identity resolved from the live candidate pool. */
 
 require __DIR__ . '/../../backend/services/channel_service.php';
 
@@ -132,10 +111,7 @@ file_put_contents($logConfigPath, $logConfigWithBothHandlers);
 function add_payload(string $type, string $iso, string $anchor): array
 {
     $payload = ['iso_channel' => $iso, 'interface_type' => $type, 'anchor' => $anchor, 'description' => 'd', 'min' => '0', 'max' => '1'];
-    // IOBOX/MTI/NOX own UNIT statically from the XML (plan §6.0.2, C-7);
-    // since Phase A4 (2026-08-19) the write-time whole-document gate
-    // enforces this on every Add, so every non-SDAQ fixture here needs one.
-    // SDAQ's Unit is runtime-owned and must not be set here.
+    // Non-SDAQ Unit is XML-owned; SDAQ Unit is runtime-owned.
     if ($type !== 'SDAQ') {
         $payload['unit'] = 'C';
     }
@@ -273,21 +249,7 @@ try {
     check($e->apiCode() === 'missing_field', 'Add rejects an empty interface_type with missing_field (got ' . $e->apiCode() . ')');
 }
 
-// =====================================================================
-// F-16 (plan §10.0.9): an IOBOX/MTI Add must re-verify, inside the
-// log_config lock, that the device still has a handler in
-// Morfeas_Config.xml.
-//
-// The candidate pool above is built from ramdisk logstat alone. Device
-// Delete deliberately does not cascade (plan §12.4) and does not clean up
-// the ramdisk, so between deleting a handler and Core's next restart the
-// stale logstat still advertises the device as available -- and Add would
-// write an ISO channel anchored to a handler that no longer exists.
-//
-// This is the one scenario the 2026-08-20 hardware session could not
-// construct without disturbing the live configuration, which is why it is
-// pinned here as well as in the E4 hardware item.
-// =====================================================================
+// A stale logstat candidate must still have a matching configured handler.
 
 $mtiOnly = str_replace(
     '    <IOBOX_HANDLER Disable="false">

@@ -1,25 +1,5 @@
 <?php
-/*
- * tests/php/deviceWriterTest.php
- *
- * Regression test for the ordinary (non-FTP) Morfeas_Config.xml writers,
- * plan §10.0.9 F-15: Device Add and the CAN role transition could write a
- * document Core refuses to start on, and then restart Core into it.
- *
- * Three things are asserted, each against real files on disk and the real
- * shared DTD -- no stubs, because what F-15 was about is precisely the gap
- * between what the writers checked and what the file ended up containing:
- *
- *   1. the DEV_NAME length a new device may be given,
- *   2. that name/IP uniqueness is enforced by the writer itself, inside the
- *      lock, rather than by a caller reading a snapshot beforehand,
- *   3. that the whole-document Core-equivalence validator now gates every
- *      write that adds a component -- and that a rejected write leaves the
- *      file byte-for-byte unchanged, since the caller restarts Core
- *      immediately after a successful one.
- *
- * Run: php tests/php/deviceWriterTest.php   (from Morfeas_WEB/)
- */
+/* Device and CAN writers validate final configuration bytes under lock. */
 
 require __DIR__ . '/../../backend/services/device_service.php';
 

@@ -1,13 +1,4 @@
-/* =============================================================================
- * Restore Channels (JSON) -- review UI for Local JSON Restore.
- * - Upload a file, run a read-only server-side preflight, show every row's
- *   result. Only when every row is Ready/No-change/Update-metadata can the
- *   restore be confirmed.
- * - Review state (the parsed rows and the digest) lives only in this
- *   window; closing it or navigating away discards it. The server holds no
- *   Pending/staging state -- Confirm re-sends the same file content and the
- *   digest, and the backend re-validates everything fresh before writing.
- * ========================================================================== */
+/* Local JSON Restore previews all rows; Commit revalidates the reviewed file. */
 
 (() => {
   const $ = (s, r = document) => r.querySelector(s);
