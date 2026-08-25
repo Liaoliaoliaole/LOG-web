@@ -8,6 +8,7 @@ const NETWORK_DEFAULT_IPV4_PREFIX = 24;
 const NETWORK_PENDING_FILE = '/tmp/morfeas_network_pending.json';
 const NETWORK_LOCK_FILE = '/tmp/morfeas_network_apply.lock';
 const NETWORK_DEFAULT_TIMEOUT_SEC = 90;
+const NETWORK_FILE_HELPER = '/usr/local/sbin/morfeas-network-files';
 
 function network_now(): int
 {
@@ -250,15 +251,51 @@ function network_nm_can_supported(): bool
     return $cached;
 }
 
-function network_write_system_file_via_sudo_cp(string $path, string $contents, string $context): void
+function network_system_file_key(string $path): string
 {
+    $keys = [
+        '/etc/NetworkManager/NetworkManager.conf' => 'networkmanager',
+        '/etc/hosts' => 'hosts',
+        '/etc/network/interfaces.d/can0' => 'can0',
+        '/etc/network/interfaces.d/can1' => 'can1',
+        '/etc/systemd/timesyncd.conf' => 'timesyncd',
+    ];
+    if (!array_key_exists($path, $keys)) {
+        throw new RuntimeException("Unsupported system configuration path: $path");
+    }
+    return $keys[$path];
+}
+
+function network_file_helper_command(string ...$args): string
+{
+    return escapeshellarg(NETWORK_FILE_HELPER) . ' '
+        . implode(' ', array_map('escapeshellarg', $args));
+}
+
+/*
+ * The new contents go to the helper on stdin, not as a path argument.
+ * The shell performs this redirection as www-data before exec'ing sudo, so
+ * the helper receives a descriptor that was already open and cannot be
+ * swapped for a symlink between validation and use -- see the comment on
+ * write_file() in deploy/morfeas-network-files for why passing the path
+ * instead would let a compromised web process read root-only files into a
+ * world-readable target.
+ */
+function network_write_system_file_via_helper(string $path, string $contents, string $context): void
+{
+    $key = network_system_file_key($path);
+
     $tmp = '/tmp/morfeas_net_' . basename($path) . '_' . network_uuid();
     if (@file_put_contents($tmp, $contents) === false) {
         throw new RuntimeException("$context: unable to create temp file");
     }
 
     try {
-        network_exec_ok('cp ' . escapeshellarg($tmp) . ' ' . escapeshellarg($path), true, $context);
+        network_exec_ok(
+            network_file_helper_command('write', $key) . ' < ' . escapeshellarg($tmp),
+            true,
+            $context
+        );
     } finally {
         @unlink($tmp);
     }
@@ -271,7 +308,11 @@ function network_ensure_nm_ifupdown_managed_true(string $backupDir): bool
         return false;
     }
 
-    network_exec_ok('cp -a ' . escapeshellarg($nmConf) . ' ' . escapeshellarg($backupDir . '/NetworkManager.conf'), true, 'Unable to backup NetworkManager.conf');
+    network_exec_ok(
+        network_file_helper_command('backup-networkmanager', $backupDir),
+        true,
+        'Unable to backup NetworkManager.conf'
+    );
 
     $raw = @file_get_contents($nmConf);
     if (!is_string($raw)) {
@@ -293,7 +334,7 @@ function network_ensure_nm_ifupdown_managed_true(string $backupDir): bool
         return false;
     }
 
-    network_write_system_file_via_sudo_cp($nmConf, $updated, 'Unable to enable NM ifupdown managed=true');
+    network_write_system_file_via_helper($nmConf, $updated, 'Unable to enable NM ifupdown managed=true');
     return true;
 }
 
@@ -316,7 +357,7 @@ function network_update_hosts_hostname_map(string $hostname): void
         return;
     }
 
-    network_write_system_file_via_sudo_cp($hostsPath, $updated, 'Unable to update /etc/hosts');
+    network_write_system_file_via_helper($hostsPath, $updated, 'Unable to update /etc/hosts');
 }
 
 function network_get_can_bitrate_bps(string $iface): ?int
@@ -602,11 +643,13 @@ function network_prepare_cutover(string $backupDir): void
     $cutoverTouched = false;
     foreach ($ifacesForCutover as $iface) {
         $path = '/etc/network/interfaces.d/' . $iface;
-        $disabledPath = $path . '.disabled_by_morfeas_nm';
 
         if (is_file($path)) {
-            network_exec_ok('cp -a ' . escapeshellarg($path) . ' ' . escapeshellarg($backupDir . '/' . $iface), true, "Unable to backup $path");
-            network_exec_ok('mv ' . escapeshellarg($path) . ' ' . escapeshellarg($disabledPath), true, "Unable to disable $path");
+            network_exec_ok(
+                network_file_helper_command('backup-disable-ifupdown', $iface, $backupDir),
+                true,
+                "Unable to backup and disable $path"
+            );
             $cutoverTouched = true;
         }
     }
@@ -737,7 +780,7 @@ function network_update_can_interfaces_file(string $iface, int $bitrate): void
         }
 
         if ($updated !== $raw) {
-            network_write_system_file_via_sudo_cp($path, $updated, "Unable to persist CAN bitrate for $iface");
+            network_write_system_file_via_helper($path, $updated, "Unable to persist CAN bitrate for $iface");
         }
         return;
     }
@@ -749,7 +792,7 @@ function network_update_can_interfaces_file(string $iface, int $bitrate): void
         . "\tup /sbin/ip link set \$IFACE up\n"
         . "\tdown /sbin/ip link set \$IFACE down\n";
 
-    network_write_system_file_via_sudo_cp($path, $template, "Unable to create CAN interface config for $iface");
+    network_write_system_file_via_helper($path, $template, "Unable to create CAN interface config for $iface");
 }
 
 function network_apply_can_legacy(array $can): void
@@ -832,7 +875,7 @@ function network_apply_ntp_server(?string $server): void
     }
 
     if ($updated !== $raw) {
-        network_write_system_file_via_sudo_cp($confPath, $updated, 'Unable to update NTP server in timesyncd.conf');
+        network_write_system_file_via_helper($confPath, $updated, 'Unable to update NTP server in timesyncd.conf');
     }
 
     network_exec_ok('systemctl restart systemd-timesyncd', true, 'Unable to restart systemd-timesyncd');

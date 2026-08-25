@@ -1,0 +1,99 @@
+#!/bin/bash
+set -euo pipefail
+
+fail() {
+    echo "morfeas-network-files: $*" >&2
+    exit 1
+}
+
+valid_backup_dir() {
+    [[ "$1" =~ ^/tmp/morfeas_network_backup_[a-f0-9]{16}$ ]]
+}
+
+target_path() {
+    case "$1" in
+        networkmanager) printf '%s\n' '/etc/NetworkManager/NetworkManager.conf' ;;
+        hosts) printf '%s\n' '/etc/hosts' ;;
+        can0) printf '%s\n' '/etc/network/interfaces.d/can0' ;;
+        can1) printf '%s\n' '/etc/network/interfaces.d/can1' ;;
+        timesyncd) printf '%s\n' '/etc/systemd/timesyncd.conf' ;;
+        *) fail "unsupported target key" ;;
+    esac
+}
+
+# New content arrives on stdin, never as a path.
+#
+# The caller is www-data and owns the temp file it wants written, so any
+# path this helper were given would be a path the caller can still change
+# after we validate it: a check like "not a symlink, is a regular file"
+# followed by install(1) re-resolves the name a second time, and install
+# dereferences symlinks. Winning that race would let the caller name any
+# root-only file (/etc/shadow) and have its contents copied into one of the
+# 0644 targets below.
+#
+# Passing content on stdin removes the second resolution entirely. The
+# shell opens the temp file as www-data *before* exec'ing sudo, so this
+# helper inherits an already-open descriptor that cannot be swapped, and
+# whatever it reads was readable by the caller in the first place.
+write_file() {
+    local key="$1"
+    local target
+    local staged
+
+    target="$(target_path "$key")"
+
+    # Stage in a root-only directory so the file install(1) reads is one no
+    # unprivileged user can substitute.
+    staged="$(mktemp /run/morfeas-network-files.XXXXXX)"
+    # shellcheck disable=SC2064  # expand $staged now: it is what we must clean up
+    trap "rm -f -- '$staged'" EXIT
+
+    cat >"$staged"
+    install -o root -g root -m 0644 -- "$staged" "$target"
+}
+
+backup_networkmanager() {
+    local backup_dir="$1"
+    local source='/etc/NetworkManager/NetworkManager.conf'
+
+    valid_backup_dir "$backup_dir" || fail "invalid backup directory"
+    [[ -d "$backup_dir" && ! -L "$backup_dir" ]] || fail "backup directory is unavailable"
+    [[ -f "$source" ]] || fail "NetworkManager configuration is unavailable"
+    cp -a -- "$source" "$backup_dir/NetworkManager.conf"
+}
+
+backup_disable_ifupdown() {
+    local iface="$1"
+    local backup_dir="$2"
+    local source
+
+    case "$iface" in
+        eth0|can0|can1) ;;
+        *) fail "unsupported interface" ;;
+    esac
+    valid_backup_dir "$backup_dir" || fail "invalid backup directory"
+    [[ -d "$backup_dir" && ! -L "$backup_dir" ]] || fail "backup directory is unavailable"
+
+    source="/etc/network/interfaces.d/$iface"
+    [[ -f "$source" && ! -L "$source" ]] || fail "ifupdown file is unavailable"
+    cp -a -- "$source" "$backup_dir/$iface"
+    mv -- "$source" "$source.disabled_by_morfeas_nm"
+}
+
+case "${1:-}" in
+    write)
+        [[ "$#" -eq 2 ]] || fail "usage: write <target-key> (content on stdin)"
+        write_file "$2"
+        ;;
+    backup-networkmanager)
+        [[ "$#" -eq 2 ]] || fail "usage: backup-networkmanager <backup-dir>"
+        backup_networkmanager "$2"
+        ;;
+    backup-disable-ifupdown)
+        [[ "$#" -eq 3 ]] || fail "usage: backup-disable-ifupdown <iface> <backup-dir>"
+        backup_disable_ifupdown "$2" "$3"
+        ;;
+    *)
+        fail "unsupported operation"
+        ;;
+esac

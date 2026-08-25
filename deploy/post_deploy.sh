@@ -264,6 +264,12 @@ main() {
         644 root root
     log_info "installed /etc/logrotate.d/morfeas-loggers"
 
+    install_regular_file \
+        "$REPO_ROOT/deploy/morfeas-network-files" \
+        "/usr/local/sbin/morfeas-network-files" \
+        750 root root
+    log_info "installed /usr/local/sbin/morfeas-network-files"
+
     install_sudoers_file \
         "$REPO_ROOT/sudoers/Morfeas_update_allow" \
         "/etc/sudoers.d/Morfeas_update_allow"

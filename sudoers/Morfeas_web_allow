@@ -1,9 +1,8 @@
 Cmnd_Alias ALLOW_PASSWORDLESS = /sbin/ip,\
-                                /bin/cp,\
-                                /bin/mv,\
                                 /usr/bin/hostnamectl,\
                                 /usr/bin/journalctl,\
                                 /usr/bin/nmcli,\
+                                /usr/local/sbin/morfeas-network-files *,\
                                 /bin/systemctl restart NetworkManager,\
                                 /bin/systemctl restart systemd-timesyncd,\
                                 /bin/systemctl restart networking.service,\
@@ -11,8 +10,7 @@ Cmnd_Alias ALLOW_PASSWORDLESS = /sbin/ip,\
                                 /bin/systemctl restart Morfeas_system.service,\
                                 /bin/hostname,\
                                 /sbin/poweroff,\
-                                /sbin/reboot,\
-                                /usr/bin/make install
+                                /sbin/reboot
 
 www-data ALL = (ALL) NOPASSWD: ALLOW_PASSWORDLESS
 

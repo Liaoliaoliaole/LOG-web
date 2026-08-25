@@ -7,7 +7,7 @@ global.window = {
   },
 };
 
-require('../Morfeas_WEB/assets/services/isoCatalog.js');
+require('../../assets/services/isoCatalog.js');
 
 const { rules } = global.window.LOG_WEB.services.isoCatalog;
 

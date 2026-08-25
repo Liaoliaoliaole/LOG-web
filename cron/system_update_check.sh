@@ -24,8 +24,10 @@ chown root:morfeas "$LOGGER_DIR" 2>/dev/null || true
 chmod 2775 "$LOGGER_DIR" 2>/dev/null || true
 
 # Run update check and overwrite log
+set +e
 "$SYSTEM_UPDATE_SCRIPT" --check-only > "$LOG_FILE" 2>&1
 exit_code=$?
+set -e
 
 log_line "INFO" "system_update_check finished with exit_code=$exit_code"
 if [ $exit_code -eq 100 ]; then
