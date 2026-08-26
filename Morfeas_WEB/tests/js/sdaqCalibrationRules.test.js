@@ -42,10 +42,11 @@ test('F-2 rejects NaN or missing polynomial coefficients in the source model', (
   assert.equal(rules.singlePointSource(channel(1, { c3: '' })).ok, false);
 });
 
-test('F-1 blocks Scale only when an active calibration would be overwritten', () => {
-  assert.equal(rules.scaleOverwriteBlockReason('0'), '');
-  assert.match(rules.scaleOverwriteBlockReason('1'), /cannot overwrite an existing calibration/);
-  assert.match(rules.scaleOverwriteBlockReason('8'), /cannot overwrite an existing calibration/);
+test('F-1 treats every Scale as a calibration and warns before replacing an active table', () => {
+  assert.match(rules.scaleCalibrationConfirmation('0', '1'), /new 2-point Scale table/);
+  assert.match(rules.scaleCalibrationConfirmation('1', '1'), /active 1-point calibration/);
+  assert.match(rules.scaleCalibrationConfirmation('8', '3'), /replace it with a new 2-point table/);
+  assert.match(rules.scaleCalibrationConfirmation('8', '3'), /today's calibration date, and period 0/);
 });
 
 test('F-3 validates Point order after float32 conversion without sorting rows', () => {

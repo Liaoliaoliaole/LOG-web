@@ -41,7 +41,7 @@
 
 \title{LOG WEB\\Help Manual}
 \author{}
-\date{Current New Web UI}
+\date{Current LOG WEB UI --- Revision 2026-08-26}
 
 \begin{document}
 \maketitle
@@ -215,6 +215,8 @@ NOX & Unclassified / invalid sensor condition & \texttt{-904} & \texttt{-904} & 
 \textbf{MTI Disabled note:} Disabled is an operator-selected radio mode, not a measurement fault. If MTI telemetry is disabled, the web shows \textbf{Status = Disabled} and leaves \textbf{Value} as \texttt{---} unless LOG core explicitly provides a numeric channel value. This keeps OPC UA/logstat measurement values owned by core and prevents the web interface from inventing error codes.
 
 \textbf{NOX mapped-channel note:} NOX uses dynamic sensor nodes for UniNOx addresses. If the NOX handler is not running, the bus has been switched away from NOX, or a sensor address has never been detected, the web linker table may show \textbf{Status = OFF-Line} with \textbf{Value = ---} because no logstat runtime source exists. The OPC UA mapped \textbf{Value} may return \texttt{-905} for the same ISO link because the mapped source node is missing. These two displays describe the same missing-source condition from different layers.
+
+LOG core treats a detected NOX sensor as active through exactly 10 seconds since its last message. At 11 seconds it is offline. While a sensor is present but reports a heater-off, heating, or invalid condition, core publishes the corresponding reserved value instead of passing through a stale NOx or O2 measurement.
 
 \subsection{Reading Status Together with Value}
 Operators should read the \textbf{Status} and \textbf{Value} columns together:
@@ -416,6 +418,8 @@ The page refreshes while the popup is focused. Polling pauses during remove or r
 \item After SDAQ devices are detected, link individual SDAQ channels from the main page with \textbf{Add Channels}.
 \item If a bus is in SDAQ mode but no SDAQ appears, check wiring, power, and CAN bitrate/state in the same table.
 \end{itemize}
+
+LOG core remembers the address associated with an SDAQ serial number for 14 days after the device goes offline. A returning device normally recovers that address. ISO channel identity is still the canonical \texttt{serial.CHn}; the remembered CAN address is only an advisory runtime reservation and is not the saved channel identity. After an on-card software upgrade from the older address-cache format, the cache is rebuilt from devices currently online, so addresses may be reassigned without changing canonical channel identity.
 
 \subsection{NOX Operation Flow}
 \begin{itemize}
@@ -645,7 +649,7 @@ The page supports:
 A red dot on the menu item indicates that the system has recorded an available update. The reminder stays visible until a later check confirms that no update is pending, or until a successful update clears it.
 
 \subsection{Important Note}
-The current update flow handles the full system update path shown in the progress messages. It checks and updates LOG WEB, applies web deployment steps, checks and downloads LOG core changes, builds and installs core when needed, runs core health checks, restarts services, and waits for the web service to become reachable again.
+The current update flow handles the full system update path shown in the progress messages. It checks and updates LOG WEB, applies web deployment steps, checks and downloads LOG core changes, synchronizes the recorded \texttt{sdaq-worker} source, builds and installs both \texttt{SDAQ\_worker} and LOG core when needed, runs core health checks, restarts services, and waits for the web service to become reachable again.
 
 \messageexample{Update Available}{Update available. Click "Update Now" to apply, or "Update Later" to postpone.}
 \messageexample{Update Success}{Update flow completed and web service is reachable. Refresh page (Ctrl+F5) to load latest files.}
@@ -701,8 +705,8 @@ Optional fields include alarm fields, \texttt{UNIT}, \texttt{CAL\_DATE}, and \te
 \item Click \textbf{Import Channels}.
 \item Select the JSON file.
 \item LOG WEB preflights every row and reports \textbf{Ready to restore}, \textbf{No change}, \textbf{Update metadata}, \textbf{Invalid}, or \textbf{Conflict}.
-\item Correct every Invalid or Conflict row, then run preflight again.
-\item Confirm the operation. LOG WEB re-parses and rechecks the complete candidate under the configuration lock and writes the resulting channel set once.
+\item Correct every Invalid or Conflict row, then run preflight again. Core-valid orphan or device-type relationship findings are shown separately as warnings.
+\item Review every warning and confirm the operation. Confirmation explicitly acknowledges the current warning list. LOG WEB re-parses and rechecks the complete candidate under the configuration lock and writes the resulting channel set once.
 \item The main table refreshes after the atomic merge succeeds.
 \end{enumerate}
 
@@ -713,6 +717,7 @@ Optional fields include alarm fields, \texttt{UNIT}, \texttt{CAL\_DATE}, and \te
 \item Same ISO plus the same source may update allowed metadata. Same ISO with a different source, or the same source with a different ISO, is a conflict.
 \item Duplicated ISO names or source identities within the file are conflicts.
 \item If any row is Invalid or Conflict, the whole import writes nothing. There is no partial-success state and no need to guess which rows were changed.
+\item A warning does not make the file invalid. For example, a valid IOBOX or MTI channel may refer to a handler absent from the current device configuration. Such a channel can be restored but remains offline until the matching handler is added. Warnings must be explicitly acknowledged; a commit without acknowledgement writes nothing.
 \item Commit checks that the configuration has not changed since preflight, then repeats parsing and conflict checks while holding the lock.
 \item A canonical offline SDAQ row may be restored, but it is not ready for first Gateway mapping until that serial/channel is online with complete metadata.
 \end{itemize}
@@ -796,7 +801,9 @@ Scale is available only for \textbf{SDAQ-I} and \textbf{SDAQ-U} rows.
 \item Use \textbf{Continue in Calibration} when you want to add or review calibration points for the same channel after saving the quick scale.
 \end{enumerate}
 
-The scale popup writes a two-point calibration table into the selected SDAQ channel calibration data. It is a quick workflow for SDAQ-I and SDAQ-U; the full Calibration popup edits the same underlying calibration table.
+The scale popup writes a new two-point calibration table into the selected SDAQ channel calibration data. Scale is itself a calibration operation, not a display-only scaling shortcut. If the channel already has an active point table, LOG WEB shows the existing point count and requires confirmation before replacing it. The new table receives today's calibration date and a re-calibration period of zero; it never inherits the previous table's date, period, or coefficients.
+
+Scale may be performed again later. Each confirmed Save is a new calibration and replaces the previously active table with the newly entered two-point table. Save the Scale before choosing \textbf{Continue in Calibration}; that button opens the full editor for a subsequent calibration and does not transfer unsaved Scale fields.
 
 \subsection{Calibration}
 Calibration is available for SDAQ rows.
@@ -819,17 +826,24 @@ The popup contains:
 \begin{itemize}
 \item \textbf{Read from SDAQ}: reload calibration directly from the device.
 \item \textbf{Discard Changes}: restore the last data loaded into the popup.
-\item \textbf{Save Metadata}: available when existing calibration is protected. It saves only calibration date and period, without changing points or coefficients.
 \item \textbf{Edit Calibration Points}: unlocks point editing for a channel that already has calibration data. Confirming this action converts the editable table to auto-linear points and may overwrite existing coefficients.
 \item \textbf{Save to SDAQ}: validate the current auto-linear point form and write it to the device.
+\item Independent date/period-only editing is not available. Calibration Date is stamped automatically with the current date when the point table changes; Re-Calibration Period is saved only as part of that same point-table calibration.
 \item \textbf{CH's Unit} must be selected from the supported runtime SDAQ unit list.
 \item \textbf{Used Points} must be an integer between zero and the device maximum.
 \item In point editing mode, \texttt{Uncalibrated value} and \texttt{Reference value} must contain finite numbers.
-\item \texttt{Measure} values of used points must be unique. Rows can be entered in any order; LOG WEB follows the industry convention of letting the user enter rows by \texttt{Reference} (forward, reverse-response, or non-monotonic sensors are all supported) and sorts internally by \texttt{Measure} before computing coefficients and writing to the SDAQ.
+\item \texttt{Uncalibrated value} (device \texttt{Measure}) must be strictly increasing by row after conversion to the device's float32 representation. LOG WEB does not reorder rows. Values that look different as decimal text but become the same float32 value are rejected.
 \item \texttt{Reference value} may increase or decrease, depending on the sensor and engineering range.
+\item A new zero-to-one-point calibration uses unity gain and calculates an offset. Re-saving an existing genuine linear one-point table may retain that table's gain. Reducing a multi-point or polynomial table directly to one point is rejected because no valid slope can be inferred.
+\item A one-point table has no bounded calibrated interval, so the SDAQ Out-of-Calibrated-Range supervision is unavailable. LOG WEB requires a separate warning confirmation before saving one point.
 \end{itemize}
 
 \texttt{Offset}, \texttt{Gain}, \texttt{C2}, and \texttt{C3} are shown for transparency. In normal point editing mode they are read-only and LOG WEB recalculates them from the calibration points before saving. The goal of each used point is that \texttt{Difference (Calibrated - Reference)} is as close to zero as possible.
+
+\subsubsection{After a Calibration Write}
+After a successful Scale or Calibration save, use \textbf{Read from SDAQ} once and verify the active point count, point values, unit, calibration date/period, and live output before starting the formal measurement run. Normal operation does not require repeated writes, a long polling window, or a mandatory power cycle.
+
+If the table or output is abnormal, stop using that channel, preserve the readback evidence, and power-cycle the target SDAQ itself before reassessing it. Restarting only the browser, LOG service, or \texttt{SDAQ\_worker} is not the same as removing power from the SDAQ. The recorded delayed-change event has no confirmed root cause, so LOG WEB does not add repeated writes or artificial stress operations to reproduce it.
 
 \subsection{Replace}
 Replace is shown only for offline SDAQ rows. It uses the Edit Link popup in replace mode.
@@ -839,11 +853,11 @@ Replace is shown only for offline SDAQ rows. It uses the Edit Link popup in repl
 \item Choose \textbf{Replace}.
 \item The popup opens with the source type locked.
 \item Use device search to choose the replacement source path.
-\item Review the locked ISO code, description, min/max, alarms, Unit, and calibration fields.
+\item Review the locked ISO code, description, min/max, alarms, and replacement identity.
 \item Click \textbf{Save}.
 \end{enumerate}
 
-Replace changes only the source identity for an existing offline SDAQ link. The replacement must be selected from the current Unlinked device list; an address cannot be typed or invented. Unit and all metadata remain unchanged. Family mismatch is blocked, and both source and target SDAQ subtype must be known and equal.
+Replace changes the source identity for an existing offline SDAQ link while preserving its channel description, limits, and alarm settings. The replacement must be selected from the current Unlinked device list; an address cannot be typed or invented. SDAQ \texttt{UNIT}, \texttt{CAL\_DATE}, and \texttt{CAL\_PERIOD} are removed from channel XML because these values are owned by the replacement SDAQ runtime/calibration data. Family mismatch is blocked, and both source and target SDAQ subtype must be known and equal.
 
 \messageexample{Blocked Replace}{Source SDAQ subtype is unknown; choose a channel whose type can be verified.}
 \messageexample{Blocked Replace}{Subtype mismatch: expected SDAQ-TC1, got SDAQ-AI8.}
@@ -942,8 +956,18 @@ Gateway metadata is a saved snapshot and is not refreshed automatically when SDA
 \subsection{Restore Was Interrupted}
 Run the same FTP Restore again, then reload LOG WEB and verify both Devices and ISO Channels. Treat restored offline SDAQ channels according to the first-mapping guidance above.
 
+FTP Restore replaces the saved XML files as a bundle and does not rewrite individual SDAQ channel fields through the Local JSON rules. A historical FTP backup may therefore still contain SDAQ \texttt{UNIT}, \texttt{CAL\_DATE}, or \texttt{CAL\_PERIOD}; current Core ignores those XML fields for SDAQ and uses live device data. Local JSON Restore instead reports those fields as ignored and removes them from the resulting SDAQ channel XML.
+
 \subsection{Import Reports an Invalid or Conflict Row}
 The entire Local JSON import was rejected and no rows were written. Correct or remove every reported row, run preflight again, and then confirm the whole merge. There is no partial result to clean up.
+
+If preflight reports only warnings, read them before continuing. The file remains eligible to commit, but LOG WEB requires explicit confirmation. Cancelling or submitting without warning acknowledgement writes nothing.
+
+\subsection{Scale Reports an Existing Calibration}
+This is informational, not a permanent block. Scale is a new two-point calibration. Review the current active point count and the replacement warning, then confirm only if the old point table should be replaced. The new Scale receives today's date and period zero. Choosing \textbf{Continue in Calibration} opens the full editor for another calibration; it does not save unsaved Scale entries.
+
+\subsection{SDAQ Calibration Readback or Output Is Abnormal}
+Stop using the affected channel for measurement and preserve the table/readback evidence; do not attempt rapid repeated writes. Power-cycle only the affected SDAQ, wait for the same serial/channel to return, then read and check the table and output again. Escalate the device for investigation if the values do not recover or the condition returns.
 
 \subsection{Channel Configuration Validation Is Unavailable}
 LOG WEB deliberately refuses Add, Edit, Replace, Delete, Import, or Restore writes when the delivered \texttt{Morfeas.dtd} cannot be read. This prevents an unvalidated \texttt{OPC\_UA\_Config.xml} from replacing the working configuration. The DTD must be installed in \path{/home/morfeas/configuration/}, beside \texttt{OPC\_UA\_Config.xml}. Restore the matching product DTD and its read permissions, then retry the original operation. Do not create a blank or locally modified replacement. Existing Core channels are not deleted merely because this Web validation dependency is unavailable.

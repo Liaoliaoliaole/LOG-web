@@ -194,9 +194,30 @@ cal_test_throws(
 
 cal_test_throws(
     static fn() => cal_build_scale_xml_payload($multiPrevious, 1, 0, 100, 0, 10, 'C'),
-    'existing calibration',
-    'F-1: Scale cannot overwrite an active calibration while retaining its provenance',
+    'Explicit confirmation is required',
+    'F-1: direct Scale requests cannot replace an active calibration without acknowledgement',
     409
+);
+
+$recalibratedScale = cal_build_scale_xml_payload($multiPrevious, 1, 0, 100, 0, 10, 'C', true);
+$recalibratedScaleDoc = new DOMDocument();
+$recalibratedScaleDoc->loadXML($recalibratedScale);
+$recalibratedScaleXpath = new DOMXPath($recalibratedScaleDoc);
+cal_test_check(
+    trim((string)$recalibratedScaleXpath->evaluate('string(/SDAQ/Calibration_Data/CH1/Used_Points)')) === '2'
+        && trim((string)$recalibratedScaleXpath->evaluate('string(/SDAQ/Calibration_Data/CH1/Calibration_date)')) === date('Y/m/d')
+        && trim((string)$recalibratedScaleXpath->evaluate('string(/SDAQ/Calibration_Data/CH1/Calibration_Period)')) === '0',
+    'F-1: acknowledged Scale replaces an active table as a new two-point calibration with new provenance'
+);
+
+$secondScale = cal_build_scale_xml_payload($recalibratedScale, 1, 4, 20, 0, 100, 'C', true);
+$secondScaleDoc = new DOMDocument();
+$secondScaleDoc->loadXML($secondScale);
+$secondScaleXpath = new DOMXPath($secondScaleDoc);
+cal_test_check(
+    trim((string)$secondScaleXpath->evaluate('string(/SDAQ/Calibration_Data/CH1/Points/Point_0/Measure)')) === '4'
+        && trim((string)$secondScaleXpath->evaluate('string(/SDAQ/Calibration_Data/CH1/Points/Point_1/Measure)')) === '20',
+    'F-1: an acknowledged second Scale is a second calibration and replaces the previous Scale table'
 );
 
 $uncalibratedScale = cal_build_scale_xml_payload($zeroPrevious, 1, 0, 100, 0, 10, 'C');

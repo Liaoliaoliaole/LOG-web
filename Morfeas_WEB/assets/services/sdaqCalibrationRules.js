@@ -65,13 +65,15 @@
     return { ok: true, gain };
   }
 
-  function scaleOverwriteBlockReason(usedPoints) {
+  function scaleCalibrationConfirmation(usedPoints, channelNumber = '') {
     const raw = String(usedPoints ?? '').trim();
     const used = /^\d+$/.test(raw) ? Number(raw) : -1;
+    const channel = String(channelNumber ?? '').trim();
+    const prefix = channel === '' ? 'This channel' : `CH${channel}`;
     if (used > 0) {
-      return 'Scale cannot overwrite an existing calibration. Use Calibration to intentionally replace the active point table; Scale is available only when Used Points is 0.';
+      return `${prefix} already has an active ${used}-point calibration. This Scale is a new calibration and will replace it with a new 2-point table, today's calibration date, and period 0. Continue calibration?`;
     }
-    return '';
+    return `${prefix} will be calibrated with a new 2-point Scale table, today's calibration date, and period 0. Continue calibration?`;
   }
 
   function validateMeasureOrder(values) {
@@ -164,7 +166,7 @@
     finiteNumber,
     finiteFloat32,
     singlePointSource,
-    scaleOverwriteBlockReason,
+    scaleCalibrationConfirmation,
     validateMeasureOrder,
     scaleRangeError,
     singlePointWarning,

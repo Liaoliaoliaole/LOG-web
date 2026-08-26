@@ -96,7 +96,7 @@
       el.disabled = shouldDisable;
       el.style.background = shouldDisable ? 'var(--color-bg-weak)' : '';
     });
-    btnSave.disabled = shouldDisable || state.activeCalibrationPoints > 0;
+    btnSave.disabled = shouldDisable;
     btnReset.disabled = shouldDisable;
   }
 
@@ -520,11 +520,6 @@
     if (!calibrationRules) {
       throw new Error('Calibration safety rules failed to load; refusing to save.');
     }
-    const overwriteError = calibrationRules.scaleOverwriteBlockReason(state.activeCalibrationPoints);
-    if (overwriteError) {
-      throw new Error(overwriteError);
-    }
-
     const acquired = await ensureEditLock({ silent: true });
     if (!acquired) {
       throw new Error('This device is currently being edited by another session.');
@@ -532,7 +527,7 @@
     const validated = validateBeforeSave();
 
     const confirmed = window.confirm(
-      `This will overwrite CH${ch} calibration to 2-point scale. Continue?`
+      calibrationRules.scaleCalibrationConfirmation(state.activeCalibrationPoints, ch)
     );
     if (!confirmed) {
       setStatus('Save canceled by user', 'info');
@@ -549,6 +544,7 @@
       engLow: validated.engLow,
       engHigh: validated.engHigh,
       engUnit: validated.engUnit,
+      acknowledgeExistingCalibration: state.activeCalibrationPoints > 0,
     };
 
     const res = await sessionFetch(buildApiUrl(), {
@@ -562,7 +558,8 @@
       throw new Error(data?.error || `Scale save failed: HTTP ${res.status}`);
     }
 
-    setStatus(data.message || `Scale saved for ${bus.toUpperCase()} addr ${addr} ch ${ch}`, 'ok');
+    state.activeCalibrationPoints = 2;
+    setStatus(data.message || `Scale calibration saved for ${bus.toUpperCase()} addr ${addr} ch ${ch}`, 'ok');
   }
 
   function resetScale() {
@@ -666,9 +663,11 @@
       updatePreview();
       const lockData = await fetchEditStatus();
       applyLockStatus(lockData);
-      const overwriteError = calibrationRules?.scaleOverwriteBlockReason(state.activeCalibrationPoints) || '';
-      if (overwriteError) {
-        setStatus(`${overwriteError} No device write will be attempted.`, 'err');
+      if (state.activeCalibrationPoints > 0) {
+        setStatus(
+          `This channel has an active ${state.activeCalibrationPoints}-point calibration. Saving Scale starts a new calibration and requires confirmation.`,
+          'info'
+        );
       }
     } catch (err) {
       setStatus(err.message || 'Failed to initialize scale page', 'err');

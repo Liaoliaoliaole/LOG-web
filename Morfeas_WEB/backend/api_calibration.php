@@ -851,7 +851,8 @@ function cal_build_scale_xml_payload(
     float $rawHigh,
     float $engLow,
     float $engHigh,
-    string $engUnit
+    string $engUnit,
+    bool $acknowledgeExistingCalibration = false
 ): string {
     $sourceDoc = new DOMDocument('1.0', 'utf-8');
     if (!$sourceDoc->loadXML($sourceXml)) {
@@ -874,9 +875,9 @@ function cal_build_scale_xml_payload(
     if (preg_match('/^\d+$/', $sourceUsedRaw) !== 1) {
         throw new RuntimeException(sprintf('Current device XML has invalid %s Used_Points', $chTag), 502);
     }
-    if ((int)$sourceUsedRaw > 0) {
+    if ((int)$sourceUsedRaw > 0 && !$acknowledgeExistingCalibration) {
         throw new RuntimeException(sprintf(
-            'Scale cannot overwrite existing calibration on %s. Use Calibration to intentionally replace the active point table; Scale is available only when Used_Points is 0.',
+            'Scale is a new calibration and would replace the active calibration on %s. Explicit confirmation is required.',
             $chTag
         ), 409);
     }
@@ -1147,6 +1148,7 @@ try {
             $addr = cal_normalize_addr($body['addr'] ?? null);
             $ch = cal_normalize_ch($body['ch'] ?? null);
             $engUnit = trim((string)($body['engUnit'] ?? ''));
+            $acknowledgeExistingCalibration = ($body['acknowledgeExistingCalibration'] ?? false) === true;
 
             $rawLow = filter_var($body['rawLow'] ?? null, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE);
             $rawHigh = filter_var($body['rawHigh'] ?? null, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE);
@@ -1187,7 +1189,8 @@ try {
                 (float)$rawHigh,
                 (float)$engLow,
                 (float)$engHigh,
-                $engUnit
+                $engUnit,
+                $acknowledgeExistingCalibration
             );
             $xml = cal_rebuild_linear_coeffs_for_auto_mode($xml);
             cal_validate_calibration_xml($xml, $unitList, $sourceXml);
