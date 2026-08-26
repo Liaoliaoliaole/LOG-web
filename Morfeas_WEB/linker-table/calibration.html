@@ -332,11 +332,11 @@
                         <div class="panel-list">
                             <div class="panel-row">
                                 <div class="k">Calibration Date</div>
-                                <div class="v"><input id="calDate" type="date" class="input input--compact" /></div>
+                                <div class="v"><input id="calDate" type="date" class="input input--compact" disabled /></div>
                             </div>
                             <div class="panel-row">
                                 <div class="k">Re-Calibration Period (Months)</div>
-                                <div class="v"><input id="calPeriod" type="number" min="0" class="input input--compact" /></div>
+                                <div class="v"><input id="calPeriod" type="number" min="0" max="255" class="input input--compact" disabled /></div>
                             </div>
                             <div class="panel-row">
                                 <div class="k">CH's Unit</div>
@@ -447,6 +447,7 @@
     </div>
 
     <script src="../assets/config.js"></script>
+    <script src="../assets/services/sdaqCalibrationRules.js"></script>
     <script src="./calibration.js"></script>
 </body>
 

@@ -1,6 +1,7 @@
 (() => {
   const $ = (s, r = document) => r.querySelector(s);
   const root = window.LOG_WEB || (window.LOG_WEB = {});
+  const calibrationRules = root.services?.sdaqCalibrationRules || null;
   const applySessionHeaders = (headers = {}) => root.session?.applyHeaders ? root.session.applyHeaders(headers) : headers;
   const EDIT_RENEW_MS = 10000;
 
@@ -62,6 +63,7 @@
     lockRequestPromise: null,
     lockInfo: null,
     renewTimerId: null,
+    activeCalibrationPoints: 0,
   };
 
   function setStatus(msg, type = 'info') {
@@ -94,7 +96,7 @@
       el.disabled = shouldDisable;
       el.style.background = shouldDisable ? 'var(--color-bg-weak)' : '';
     });
-    btnSave.disabled = shouldDisable;
+    btnSave.disabled = shouldDisable || state.activeCalibrationPoints > 0;
     btnReset.disabled = shouldDisable;
   }
 
@@ -357,8 +359,9 @@
       return;
     }
 
-    if (rawHigh === rawLow) {
-      scaledPreview.textContent = 'Scaled Output Value: invalid measurement input range (high equals low)';
+    const rangeError = calibrationRules?.scaleRangeError(rawLow, rawHigh, engLow, engHigh);
+    if (rangeError) {
+      scaledPreview.textContent = `Scaled Output Value: ${rangeError}`;
       return;
     }
 
@@ -385,8 +388,9 @@
       throw new Error('Measurement input and engineering output low/high values are required');
     }
 
-    if (rawHigh <= rawLow) {
-      throw new Error('Invalid measurement input range: high must be greater than low');
+    const rangeError = calibrationRules?.scaleRangeError(rawLow, rawHigh, engLow, engHigh);
+    if (rangeError) {
+      throw new Error(rangeError);
     }
 
     const engUnit = getSelectedUnit();
@@ -475,6 +479,7 @@
     const chNode = getChannelNode(xmlDoc);
     const usedPointsRaw = (chNode?.querySelector(':scope > Used_Points')?.textContent || '').trim();
     const usedPoints = /^\d+$/.test(usedPointsRaw) ? Number(usedPointsRaw) : 0;
+    state.activeCalibrationPoints = usedPoints;
 
     const p0Measure = getPointValue(chNode, 0, 'Measure');
     const p1Measure = getPointValue(chNode, 1, 'Measure');
@@ -512,6 +517,14 @@
   }
 
   async function saveScale() {
+    if (!calibrationRules) {
+      throw new Error('Calibration safety rules failed to load; refusing to save.');
+    }
+    const overwriteError = calibrationRules.scaleOverwriteBlockReason(state.activeCalibrationPoints);
+    if (overwriteError) {
+      throw new Error(overwriteError);
+    }
+
     const acquired = await ensureEditLock({ silent: true });
     if (!acquired) {
       throw new Error('This device is currently being edited by another session.');
@@ -569,7 +582,6 @@
     url.searchParams.set('bus', bus);
     url.searchParams.set('addr', String(addr));
     url.searchParams.set('ch', String(ch));
-    url.searchParams.set('from', 'scale');
     if (sn) url.searchParams.set('sn', sn);
     if (getSelectedUnit()) url.searchParams.set('unit', getSelectedUnit());
     window.open(url.toString(), '_blank', 'noopener,noreferrer,width=1400,height=900');
@@ -654,6 +666,10 @@
       updatePreview();
       const lockData = await fetchEditStatus();
       applyLockStatus(lockData);
+      const overwriteError = calibrationRules?.scaleOverwriteBlockReason(state.activeCalibrationPoints) || '';
+      if (overwriteError) {
+        setStatus(`${overwriteError} No device write will be attempted.`, 'err');
+      }
     } catch (err) {
       setStatus(err.message || 'Failed to initialize scale page', 'err');
       btnSave.disabled = true;

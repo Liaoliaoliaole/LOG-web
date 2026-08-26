@@ -16,12 +16,12 @@
 
   const params = new URLSearchParams(location.search);
   const root = window.LOG_WEB || (window.LOG_WEB = {});
+  const calibrationRules = root.services?.sdaqCalibrationRules || null;
   const applySessionHeaders = (headers = {}) => root.session?.applyHeaders ? root.session.applyHeaders(headers) : headers;
   const requestedPoints = Math.max(1, parseInt(params.get('points') || '8', 10));
   const requestedCh = Math.max(1, parseInt(params.get('ch') || '1', 10));
   const requestedUnit = params.get('unit') || '';
   const requestedSn = (params.get('sn') || '').trim();
-  const fromScale = (params.get('from') || '').trim().toLowerCase() === 'scale';
   const bus = (params.get('bus') || '').trim().toLowerCase();
   const addrRaw = params.get('addr');
   const addr = addrRaw !== null && /^\d+$/.test(addrRaw) ? parseInt(addrRaw, 10) : null;
@@ -138,14 +138,26 @@
 
   function applyInteractionState() {
     const blocked = state.blockedByOtherSession;
-    const canEditPoints = isAutoLinearMode() && !blocked;
-    const canEditMetadata = !blocked;
+    const policy = calibrationRules?.pointTableEditorPolicy(state.editorMode) || {
+      canEditDate: false,
+      canEditPeriod: false,
+      canSave: false,
+      showSave: false,
+    };
+    const canEditPoints = policy.canSave && !blocked;
 
-    [calDateInput, calPeriodInput].forEach((el) => {
-      if (!el) return;
-      el.disabled = !canEditMetadata;
-      el.style.background = canEditMetadata ? '' : 'var(--color-bg-weak)';
-    });
+    // Calibration date is display-only in Web and is stamped automatically
+    // when a point-table calibration is saved. Period is editable only as
+    // part of that point-table operation; there is no metadata-only workflow.
+    if (calDateInput) {
+      calDateInput.disabled = !policy.canEditDate || blocked;
+      calDateInput.style.background = 'var(--color-bg-weak)';
+    }
+    if (calPeriodInput) {
+      const canEditPeriod = policy.canEditPeriod && !blocked;
+      calPeriodInput.disabled = !canEditPeriod;
+      calPeriodInput.style.background = canEditPeriod ? '' : 'var(--color-bg-weak)';
+    }
 
     [usedInput, unitSelect].forEach((el) => {
       if (!el) return;
@@ -153,7 +165,7 @@
       el.style.background = canEditPoints ? '' : 'var(--color-bg-weak)';
     });
 
-    btnSave.disabled = blocked;
+    btnSave.disabled = blocked || !policy.canSave;
     btnRevert.disabled = blocked;
     if (btnConvert) {
       btnConvert.style.display = state.protectedByExisting && !isAutoLinearMode() && !blocked ? '' : 'none';
@@ -164,7 +176,8 @@
     }
 
     if (btnSave) {
-      btnSave.textContent = isAutoLinearMode() ? 'Save to SDAQ' : 'Save Metadata';
+      btnSave.textContent = 'Save to SDAQ';
+      btnSave.style.display = policy.showSave ? '' : 'none';
     }
 
     if (modeBanner) {
@@ -174,7 +187,7 @@
       } else if (isAutoLinearMode()) {
         text = 'Auto linear point editing is active. Offset, Gain, C2, and C3 are calculated automatically.';
       } else if (state.protectedByExisting) {
-        text = 'Existing calibration is protected. Metadata can be saved without changing coefficients, or convert to edit calibration points.';
+        text = 'Existing calibration is read-only. Use Edit Calibration Points to start a point-table calibration.';
       }
       modeBanner.textContent = text;
       modeBanner.style.display = text ? 'block' : 'none';
@@ -306,7 +319,7 @@
 
     if (!options.silent) {
       const msg = isProtectedViewMode()
-        ? 'Read-only point table. Metadata changes will acquire the edit lock automatically; use Edit Calibration Points to convert.'
+        ? 'Read-only calibration table. Use Edit Calibration Points to start a point-table calibration.'
         : 'Ready. Editing lock will be acquired automatically when you change a value or save.';
       setStatus(msg, 'info');
     }
@@ -352,8 +365,9 @@
     if (!target) return false;
     if (target === btnRead) return false;
     if (target === btnConvert) return false;
-    if (target === btnSave) return true;
-    if (target === calDateInput || target === calPeriodInput) return true;
+    if (target === btnSave) return isAutoLinearMode();
+    if (target === calDateInput) return false;
+    if (target === calPeriodInput) return isAutoLinearMode();
     if ((target === usedInput || target === unitSelect) && isAutoLinearMode()) return true;
     const pointInput = target.closest('#calTable input[data-k]');
     if (!pointInput || !isAutoLinearMode()) return false;
@@ -437,11 +451,6 @@
       }
     }
     return false;
-  }
-
-  function channelLooksLikeScaleResult(chObj) {
-    const used = Math.max(0, Math.min(state.maxPoints, toInt(chObj?.Used_Points ?? 0, 0)));
-    return used === 2 && !channelHasPolynomial(chObj);
   }
 
   function toDisplayNumber(value) {
@@ -661,16 +670,11 @@
       return p.offset + (p.gain * rawMeasure) + (p.c2 * rawMeasure * rawMeasure) + (p.c3 * rawMeasure * rawMeasure * rawMeasure);
     }
 
-    // Sort by Measure ascending so piecewise lookup works regardless of the
-    // order the user entered the points (industry convention is to enter rows
-    // by Reference; reverse-response sensors then have descending Measure).
-    const sorted = [...points].sort((a, b) => a.measure - b.measure);
-
-    let selected = sorted[sorted.length - 1];
+    let selected = points[points.length - 1];
     // Piecewise boundary per the auto-linear writer: raw <= Point[i + 1].Measure uses Point_i's segment.
-    for (let i = 0; i < sorted.length - 1; i++) {
-      if (rawMeasure <= sorted[i + 1].measure) {
-        selected = sorted[i];
+    for (let i = 0; i < points.length - 1; i++) {
+      if (rawMeasure <= points[i + 1].measure) {
+        selected = points[i];
         break;
       }
     }
@@ -682,11 +686,20 @@
   }
 
   function previousSinglePointGain() {
-    if (!state.originalChannelObj || channelHasPolynomial(state.originalChannelObj)) {
-      return 1;
+    if (!calibrationRules) return null;
+    const source = calibrationRules.singlePointSource(state.originalChannelObj);
+    return source.ok ? source.gain : null;
+  }
+
+  function validateSinglePointTransition(used) {
+    if (used !== 1) return;
+    if (!calibrationRules) {
+      throw new Error('Calibration safety rules failed to load; refusing to save.');
     }
-    const gain = toFiniteNumber(state.originalChannelObj?.Points?.Point_0?.gain);
-    return gain === null ? 1 : gain;
+    const source = calibrationRules.singlePointSource(state.originalChannelObj);
+    if (!source.ok) {
+      throw new Error(source.error);
+    }
   }
 
   function writeCoeff(rowIdx, offset, gain, c2 = 0, c3 = 0) {
@@ -696,56 +709,62 @@
     setCellValue(rowIdx, 'c3', normalizeScalar(c3));
   }
 
+  function clearDerivedCoefficients(used) {
+    for (let i = 0; i < used; i++) {
+      ['offset', 'gain', 'c2', 'c3'].forEach((key) => setCellValue(i, key, ''));
+    }
+  }
+
   function deriveAutoLinearCoefficients() {
-    if (!isAutoLinearMode()) return;
+    if (!isAutoLinearMode()) return false;
 
     const used = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
-    if (used === 0) return;
+    if (used === 0) return true;
 
     const points = [];
     for (let i = 0; i < used; i++) {
-      const measure = toFiniteNumber(getCellInput(i, 'measure')?.value);
-      const reference = toFiniteNumber(getCellInput(i, 'reference')?.value);
-      if (measure === null || reference === null) return;
+      const measure = calibrationRules?.finiteFloat32(getCellInput(i, 'measure')?.value) ?? null;
+      const reference = calibrationRules?.finiteFloat32(getCellInput(i, 'reference')?.value) ?? null;
+      if (measure === null || reference === null) {
+        clearDerivedCoefficients(used);
+        return false;
+      }
       points.push({ rowIdx: i, measure, reference });
     }
 
-    // Follow industry convention: the user enters rows by Reference (the
-    // controlled physical input) in any order they prefer. Internally we sort
-    // by Measure ascending because the SDAQ piecewise lookup is keyed on
-    // Measure. Duplicate Measure values would make a segment slope infinite,
-    // so we still reject them.
-    const sorted = [...points].sort((a, b) => a.measure - b.measure);
-    for (let i = 1; i < sorted.length; i++) {
-      if (sorted[i].measure === sorted[i - 1].measure) return;
+    const order = calibrationRules?.validateMeasureOrder(points.map((point) => point.measure));
+    if (!order?.ok) {
+      clearDerivedCoefficients(used);
+      return false;
     }
 
     if (used === 1) {
       const gain = previousSinglePointGain();
+      if (gain === null) {
+        clearDerivedCoefficients(used);
+        return false;
+      }
       const offset = points[0].reference - (gain * points[0].measure);
       writeCoeff(points[0].rowIdx, offset, gain);
-      return;
+      return true;
     }
-
-    // Map each UI row to its position in the Measure-sorted order, so each row
-    // receives the segment whose first endpoint is that row's own (Measure,
-    // Reference). The row with the largest Measure reuses the previous segment.
-    const sortedPos = new Map();
-    sorted.forEach((p, idx) => sortedPos.set(p.rowIdx, idx));
 
     for (let i = 0; i < used; i++) {
-      const pos = sortedPos.get(i);
-      const start = pos < used - 1 ? pos : pos - 1;
-      const end = pos < used - 1 ? pos + 1 : pos;
-      const x0 = sorted[start].measure;
-      const y0 = sorted[start].reference;
-      const x1 = sorted[end].measure;
-      const y1 = sorted[end].reference;
+      const start = i < used - 1 ? i : i - 1;
+      const end = i < used - 1 ? i + 1 : i;
+      const x0 = points[start].measure;
+      const y0 = points[start].reference;
+      const x1 = points[end].measure;
+      const y1 = points[end].reference;
       const gain = (y1 - y0) / (x1 - x0);
       const offset = y0 - (gain * x0);
-      if (!Number.isFinite(gain) || !Number.isFinite(offset)) return;
+      if (!Number.isFinite(gain) || !Number.isFinite(offset)) {
+        clearDerivedCoefficients(used);
+        return false;
+      }
       writeCoeff(i, offset, gain);
     }
+    return true;
   }
 
   function computeChannelType(used) {
@@ -934,51 +953,6 @@
     return obj;
   }
 
-  function collectMetadataOnlyChannelObj() {
-    const base = JSON.parse(JSON.stringify(state.originalChannelObj || {}));
-    base.Calibration_date = ymdToSlash(calDateInput.value) || ymdToSlash(todayYmd());
-    base.Calibration_Period = String(Math.max(0, toInt(calPeriodInput.value, 0)));
-    base.Used_Points = String(Math.max(0, Math.min(state.maxPoints, toInt(base.Used_Points ?? 0, 0))));
-    base.Unit = String(base.Unit ?? '');
-    base.Points = base.Points || {};
-    for (let i = 0; i < state.maxPoints; i++) {
-      base.Points[`Point_${i}`] = base.Points[`Point_${i}`] || { ...DEFAULT_POINT_VALUES };
-    }
-    return base;
-  }
-
-  function hasMetadataDiff(currentObj, originalObj) {
-    return normalizeScalar(currentObj?.Calibration_date) !== normalizeScalar(originalObj?.Calibration_date)
-      || normalizeScalar(currentObj?.Calibration_Period) !== normalizeScalar(originalObj?.Calibration_Period);
-  }
-
-  function normalizeChannelForDiff(chObj) {
-    const used = Math.max(0, Math.min(state.maxPoints, toInt(chObj?.Used_Points ?? 0, 0)));
-    const out = {
-      Calibration_date: normalizeScalar(chObj?.Calibration_date),
-      Calibration_Period: normalizeScalar(chObj?.Calibration_Period),
-      Used_Points: String(used),
-      Unit: String(chObj?.Unit ?? ''),
-      Points: {},
-    };
-
-    for (let i = 0; i < state.maxPoints; i++) {
-      const src = chObj?.Points?.[`Point_${i}`] || {};
-      const p = {};
-      pointCols.forEach((c) => {
-        p[c.key] = i < used
-          ? normalizeScalar(src[c.key])
-          : (DEFAULT_POINT_VALUES[c.key] ?? '0');
-      });
-      out.Points[`Point_${i}`] = p;
-    }
-    return out;
-  }
-
-  function hasSelectedChannelDiff(currentObj, originalObj) {
-    return JSON.stringify(normalizeChannelForDiff(currentObj)) !== JSON.stringify(normalizeChannelForDiff(originalObj));
-  }
-
   function createEmptyDoc() {
     return new DOMParser().parseFromString('<?xml version="1.0" encoding="utf-8"?><SDAQ/>', 'application/xml');
   }
@@ -989,12 +963,7 @@
     parent.appendChild(n);
   }
 
-  function pointValueForXml(value, preserveRaw) {
-    return preserveRaw ? String(value ?? '') : normalizeScalar(value);
-  }
-
-  function buildSaveXmlOnlySelectedChannel(channelObj, options = {}) {
-    const preserveRawPointValues = !!options.preserveRawPointValues;
+  function buildSaveXmlOnlySelectedChannel(channelObj) {
     const outDoc = createEmptyDoc();
     const sdaqRoot = outDoc.documentElement;
     const srcInfo = state.sourceXmlDoc?.querySelector('SDAQ > SDAQ_info');
@@ -1018,7 +987,7 @@
     for (let i = 0; i < used; i++) {
       const pNode = outDoc.createElement(`Point_${i}`);
       const p = channelObj.Points[`Point_${i}`] || {};
-      pointCols.forEach((c) => appendTextNode(outDoc, pNode, c.xml, pointValueForXml(p[c.key], preserveRawPointValues)));
+      pointCols.forEach((c) => appendTextNode(outDoc, pNode, c.xml, normalizeScalar(p[c.key])));
       pointsNode.appendChild(pNode);
     }
     chNode.appendChild(pointsNode);
@@ -1085,7 +1054,7 @@
 
     state.selectedPreviewRow = used > 0 ? Math.min(state.selectedPreviewRow, used - 1) : 0;
     applyUsed();
-    validateMeasureDistinct(false);
+    validateMeasureOrder(false);
     updateDerivedViews();
     const msg = invalidMessage(true);
     if (!options.suppressStatus) {
@@ -1204,8 +1173,7 @@
     const chObj = channelNodeToObject(chNode);
     state.originalChannelObj = JSON.parse(JSON.stringify(chObj));
     state.hasExistingCalibration = channelHasExistingCalibration(chObj);
-    const allowScaleContinuation = fromScale && channelLooksLikeScaleResult(chObj);
-    state.protectedByExisting = state.hasExistingCalibration && !allowScaleContinuation;
+    state.protectedByExisting = state.hasExistingCalibration;
     state.editorMode = state.protectedByExisting ? 'view' : 'auto-linear';
     state.editCalibrationClicked = false;
     fillFormFromChannelObj(chObj);
@@ -1242,25 +1210,21 @@
     updateDerivedViews();
   }
 
-  // Industry-convention calibration tools sort points by Reference and accept
-  // any Measure ordering (forward, reverse-response, or non-monotonic sensors).
-  // The only hard requirement is that no two used Measure values are equal,
-  // otherwise the segment slope between them would be infinite.
-  function validateMeasureDistinct(throwOnError = true) {
+  function validateMeasureOrder(throwOnError = true) {
     const used = Math.max(0, Math.min(state.maxPoints, toInt(usedInput.value, 0)));
-    const seen = new Map();
+    const values = [];
     for (let i = 0; i < used; i++) {
-      const value = toFiniteNumber(getCellInput(i, 'measure')?.value);
-      if (value === null) continue;
-      if (seen.has(value)) {
-        const firstIdx = seen.get(value);
-        markInvalid(i, 'measure', getCellInput(i, 'measure')?.value, `value must be unique among ${colLabel('measure')} (duplicate of Point_${firstIdx})`);
-        const msg = invalidMessage(true);
-        if (throwOnError) throw new Error(msg);
-        setStatus(msg, 'err');
-        return false;
-      }
-      seen.set(value, i);
+      clearInvalid(i, 'measure');
+      values.push(getCellInput(i, 'measure')?.value);
+    }
+    const result = calibrationRules?.validateMeasureOrder(values);
+    if (!result?.ok) {
+      const index = Number.isInteger(result?.index) ? result.index : 0;
+      markInvalid(index, 'measure', getCellInput(index, 'measure')?.value, result?.error || 'invalid Uncalibrated value order');
+      const msg = invalidMessage(true);
+      if (throwOnError) throw new Error(msg);
+      setStatus(msg, 'err');
+      return false;
     }
     return true;
   }
@@ -1274,6 +1238,7 @@
     if (!Number.isInteger(used) || used < 0 || used > state.maxPoints) {
       throw new Error(`Used Points must be an integer between 0 and ${state.maxPoints}`);
     }
+    validateSinglePointTransition(used);
 
     clearAllInvalidMarks();
     deriveAutoLinearCoefficients();
@@ -1291,60 +1256,62 @@
           markInvalid(i, c.key, raw, 'non-finite value');
           return;
         }
-        const value = Number(raw);
-        if (!Number.isFinite(value)) {
-          markInvalid(i, c.key, raw, 'non-finite value');
+        if (calibrationRules?.finiteFloat32(raw) === null) {
+          markInvalid(i, c.key, raw, 'value must be representable as finite float32');
         }
       });
     }
 
     const fieldErrors = invalidMessage(true);
     if (fieldErrors) throw new Error(fieldErrors);
-    validateMeasureDistinct(true);
+    validateMeasureOrder(true);
   }
 
-  function validateMetadataBeforeSave() {
+  function validateCalibrationMetadata() {
     if (!calDateInput.value || !/^\d{4}-\d{2}-\d{2}$/.test(calDateInput.value)) {
       throw new Error('Calibration date must be a valid date');
     }
 
     const period = toInt(calPeriodInput.value, -1);
-    if (!Number.isInteger(period) || period < 0) {
-      throw new Error('Calibration period must be a non-negative integer');
+    if (!Number.isInteger(period) || period < 0 || period > 255) {
+      throw new Error('Calibration period must be an integer between 0 and 255');
     }
   }
 
   async function saveSelectedChannel() {
+    const policy = calibrationRules?.pointTableEditorPolicy(state.editorMode);
+    if (!policy?.canSave) {
+      throw new Error('Independent calibration metadata editing is not available. Use Edit Calibration Points to save a point-table calibration.');
+    }
+
     const acquired = await ensureEditLock({ silent: true });
     if (!acquired) {
       throw new Error('This device is currently being edited by another session.');
     }
 
-    const saveMode = isAutoLinearMode() ? 'auto-linear' : 'legacy';
-    if (saveMode === 'auto-linear') {
-      // Stamp today as the calibration date whenever the point table is saved
-      calDateInput.value = todayYmd();
-      validateBeforeSave();
-      deriveAutoLinearCoefficients();
-    } else {
-      validateMetadataBeforeSave();
-    }
+    // Stamp today only when the point table itself is being calibrated.
+    calDateInput.value = todayYmd();
+    validateCalibrationMetadata();
+    validateBeforeSave();
+    deriveAutoLinearCoefficients();
 
-    const currentObj = saveMode === 'auto-linear'
-      ? collectChannelObjFromForm()
-      : collectMetadataOnlyChannelObj();
-    const changed = saveMode === 'auto-linear'
-      ? hasSelectedChannelDiff(currentObj, state.originalChannelObj)
-      : hasMetadataDiff(currentObj, state.originalChannelObj);
+    const currentObj = collectChannelObjFromForm();
+    const changed = calibrationRules.pointTableChanged(currentObj, state.originalChannelObj, state.maxPoints);
     if (!changed) {
-      setStatus(`No changes for ${selectedChannelTag()}.`, 'info');
+      setStatus(`No point-table changes for ${selectedChannelTag()}; date and period were not saved.`, 'info');
       return null;
     }
 
-    const xmlContent = buildSaveXmlOnlySelectedChannel(currentObj, { preserveRawPointValues: saveMode === 'legacy' });
+    if (toInt(currentObj.Used_Points, 0) === 1
+        && !window.confirm(calibrationRules.singlePointWarning())) {
+      setStatus('Single-point calibration save canceled by user.', 'info');
+      return null;
+    }
+
+    const xmlContent = buildSaveXmlOnlySelectedChannel(currentObj);
     const payload = {
       action: 'calibration_save',
-      mode: saveMode,
+      mode: 'auto-linear',
       bus,
       addr,
       xmlContent,
@@ -1357,19 +1324,11 @@
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data?.ok) throw new Error(data?.error || `Save failed: HTTP ${res.status}`);
-    if (saveMode === 'auto-linear') {
-      await fetchCalibrationXml();
-      populateInfo();
-      // loadSelectedChannelFromXml sets editorMode/protectedByExisting correctly
-      loadSelectedChannelFromXml();
-      updateDerivedViews();
-    } else {
-      state.originalChannelObj = JSON.parse(JSON.stringify(currentObj));
-      state.hasExistingCalibration = channelHasExistingCalibration(currentObj);
-      state.protectedByExisting = state.hasExistingCalibration;
-      state.editorMode = state.protectedByExisting ? 'view' : 'auto-linear';
-      applyInteractionState();
-    }
+    await fetchCalibrationXml();
+    populateInfo();
+    // loadSelectedChannelFromXml sets editorMode/protectedByExisting correctly
+    loadSelectedChannelFromXml();
+    updateDerivedViews();
     return data;
   }
 
@@ -1391,8 +1350,7 @@
     }
     state.editCalibrationClicked = false;
     fillFormFromChannelObj(JSON.parse(JSON.stringify(state.originalChannelObj)));
-    const allowScaleContinuation = fromScale && channelLooksLikeScaleResult(state.originalChannelObj);
-    if (state.hasExistingCalibration && !allowScaleContinuation) {
+    if (state.hasExistingCalibration) {
       state.editorMode = 'view';
       state.protectedByExisting = true;
     }
@@ -1429,8 +1387,7 @@
     const acquired = await ensureEditLock({ silent: true });
     if (!acquired) {
       state.editorMode = 'view';
-      const allowScaleContinuation = fromScale && channelLooksLikeScaleResult(state.originalChannelObj);
-      state.protectedByExisting = state.hasExistingCalibration && !allowScaleContinuation;
+      state.protectedByExisting = state.hasExistingCalibration;
       applyInteractionState();
       applyUsed();
       setStatus('This device is currently being edited by another session.', 'err');
@@ -1481,12 +1438,12 @@
       markInvalid(rowIdx, colKey, raw, 'empty value');
     } else if (/^-?nan$/i.test(raw)) {
       markInvalid(rowIdx, colKey, raw, 'non-finite value');
-    } else if (!Number.isFinite(Number(raw))) {
-      markInvalid(rowIdx, colKey, raw, 'non-finite value');
+    } else if (calibrationRules?.finiteFloat32(raw) === null) {
+      markInvalid(rowIdx, colKey, raw, 'value must be representable as finite float32');
     } else {
       clearInvalid(rowIdx, colKey);
       if (colKey === 'measure') {
-        validateMeasureDistinct(false);
+        validateMeasureOrder(false);
       }
     }
 
@@ -1527,7 +1484,6 @@
   });
 
   unitSelect.addEventListener('change', updateDerivedViews);
-  calDateInput.addEventListener('input', () => setStatus('', 'info'));
   calPeriodInput.addEventListener('input', () => setStatus('', 'info'));
 
   btnRead.addEventListener('click', async () => {
@@ -1567,7 +1523,8 @@
   });
 
   document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key).toLowerCase() === 's' && !state.blockedByOtherSession) {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key).toLowerCase() === 's'
+        && isAutoLinearMode() && !state.blockedByOtherSession) {
       e.preventDefault();
       btnSave?.click();
       return;

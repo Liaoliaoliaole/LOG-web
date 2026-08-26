@@ -90,6 +90,21 @@ function cal_normalize_ch($ch): ?int
     return $value;
 }
 
+function cal_require_point_table_save_mode($mode): string
+{
+    $normalized = strtolower(trim((string)$mode));
+    if ($normalized === '' || $normalized === 'legacy') {
+        throw new RuntimeException(
+            'Independent calibration metadata editing is not supported. Date and period are updated only with a point-table calibration save.',
+            410
+        );
+    }
+    if ($normalized !== 'auto-linear') {
+        throw new RuntimeException('Invalid calibration save mode. Use auto-linear', 400);
+    }
+    return $normalized;
+}
+
 function cal_resource_id(string $bus, int $addr): string
 {
     return strtolower($bus) . ':' . $addr;
@@ -274,9 +289,11 @@ function cal_num_to_string(float $value): string
         throw new RuntimeException('Scale value is not finite');
     }
 
-    $text = sprintf('%.12F', $value);
-    $text = rtrim(rtrim($text, '0'), '.');
-    if ($text === '' || $text === '-0') {
+    // SDAQ stores these values as float32. Nine significant decimal digits
+    // are sufficient for an exact float32 round trip, including very small
+    // and very large incident values; a fixed 12-decimal format is not.
+    $text = sprintf('%.9g', $value);
+    if ($text === '' || (float)$text == 0.0) {
         return '0';
     }
     return $text;
@@ -327,9 +344,17 @@ function cal_set_point_field(DOMDocument $doc, DOMElement $pointNode, string $fi
 
 function cal_compute_linear_coeff(float $x0, float $y0, float $x1, float $y1): array
 {
+    $x0 = cal_float32_value($x0);
+    $y0 = cal_float32_value($y0);
+    $x1 = cal_float32_value($x1);
+    $y1 = cal_float32_value($y1);
+    if ($x0 === null || $y0 === null || $x1 === null || $y1 === null) {
+        throw new RuntimeException('Invalid calibration points: values must be representable as finite float32', 400);
+    }
+
     $dx = $x1 - $x0;
-    if (!is_finite($dx) || abs($dx) < 1e-12) {
-        throw new RuntimeException('Invalid calibration points: Measure values must be strictly increasing');
+    if (!is_finite($dx) || $x1 <= $x0) {
+        throw new RuntimeException('Invalid calibration points: Measure values must be strictly increasing after float32 conversion', 400);
     }
 
     $gain = ($y1 - $y0) / $dx;
@@ -339,6 +364,20 @@ function cal_compute_linear_coeff(float $x0, float $y0, float $x1, float $y1): a
     }
 
     return [$offset, $gain];
+}
+
+function cal_float32_value(float $value): ?float
+{
+    if (!is_finite($value)) {
+        return null;
+    }
+
+    $decoded = unpack('gvalue', pack('g', $value));
+    $float32 = $decoded['value'] ?? null;
+    if (!is_float($float32) || !is_finite($float32)) {
+        return null;
+    }
+    return $float32;
 }
 
 function cal_point_float(DOMXPath $xpath, DOMElement $pointNode, string $field): ?float
@@ -358,50 +397,68 @@ function cal_point_float(DOMXPath $xpath, DOMElement $pointNode, string $field):
 function cal_previous_gain_for_single_point(?string $previousXmlContent, string $channelTag): float
 {
     if ($previousXmlContent === null || trim($previousXmlContent) === '') {
-        return 1.0;
+        throw new RuntimeException(
+            'Cannot save single-point calibration: no previous one-point table exists to define its gain; use at least two points.',
+            409
+        );
     }
 
     $doc = new DOMDocument('1.0', 'utf-8');
     if (!$doc->loadXML($previousXmlContent)) {
-        return 1.0;
+        throw new RuntimeException('Failed to parse current device calibration XML', 502);
     }
 
     $xpath = new DOMXPath($doc);
     $chNode = $xpath->query('/SDAQ/Calibration_Data/' . $channelTag)->item(0);
     if (!$chNode instanceof DOMElement) {
-        return 1.0;
+        throw new RuntimeException(
+            sprintf('Cannot save single-point calibration: %s is missing from the current device table.', $channelTag),
+            409
+        );
     }
 
     $usedRaw = trim((string)$xpath->evaluate('string(./Used_Points)', $chNode));
-    $used = preg_match('/^\d+$/', $usedRaw) === 1 ? (int)$usedRaw : 0;
-    if ($used < 1) {
+    if (preg_match('/^\d+$/', $usedRaw) !== 1) {
+        throw new RuntimeException(sprintf('Current device XML has invalid %s Used_Points', $channelTag), 502);
+    }
+    $used = (int)$usedRaw;
+    if ($used === 0) {
         return 1.0;
     }
-
-    $hasPolynomial = false;
-    for ($i = 0; $i < $used; $i++) {
-        $point = $xpath->query(sprintf('./Points/Point_%d', $i), $chNode)->item(0);
-        if (!$point instanceof DOMElement) {
-            continue;
-        }
-        $c2 = cal_point_float($xpath, $point, 'C2');
-        $c3 = cal_point_float($xpath, $point, 'C3');
-        if (($c2 !== null && abs($c2) > 1e-12) || ($c3 !== null && abs($c3) > 1e-12)) {
-            $hasPolynomial = true;
-            break;
-        }
-    }
-    if ($hasPolynomial) {
-        return 1.0;
+    if ($used > 1) {
+        throw new RuntimeException(
+            sprintf(
+                'Cannot save single-point calibration: current %s has %d active points; reducing a multi-point table to one would discard segments and copy an unrelated slope.',
+                $channelTag,
+                $used
+            ),
+            409
+        );
     }
 
     $point0 = $xpath->query('./Points/Point_0', $chNode)->item(0);
     if (!$point0 instanceof DOMElement) {
-        return 1.0;
+        throw new RuntimeException(sprintf('Current device XML is missing %s Point_0', $channelTag), 502);
+    }
+
+    $c2 = cal_point_float($xpath, $point0, 'C2');
+    $c3 = cal_point_float($xpath, $point0, 'C3');
+    if ($c2 === null || $c3 === null) {
+        throw new RuntimeException(sprintf('Current device XML has non-finite %s Point_0 polynomial coefficients', $channelTag), 502);
+    }
+    if ($c2 != 0.0 || $c3 != 0.0) {
+        throw new RuntimeException(
+            sprintf('Cannot save single-point calibration: current %s Point_0 is polynomial and cannot be reduced to Offset/Gain.', $channelTag),
+            409
+        );
     }
 
     $gain = cal_point_float($xpath, $point0, 'Gain');
-    return $gain === null ? 1.0 : $gain;
+    $gain = $gain === null ? null : cal_float32_value($gain);
+    if ($gain === null) {
+        throw new RuntimeException(sprintf('Current device XML has no finite %s Point_0.Gain', $channelTag), 502);
+    }
+    return $gain;
 }
 
 function cal_rebuild_linear_coeffs_for_auto_mode(string $xmlContent, ?string $previousXmlContent = null): string
@@ -462,35 +519,24 @@ function cal_rebuild_linear_coeffs_for_auto_mode(string $xmlContent, ?string $pr
             ];
         }
 
-        // Industry-convention calibration tools sort points by Reference (the
-        // controlled physical input) and accept any Measure ordering, so the
-        // user can enter rows naturally for forward, reverse-response, or
-        // non-monotonic sensors. The only hard constraint is that Measure
-        // values are distinct; otherwise the linear segment slope between two
-        // identical Measure values would be infinite. We sort by Measure
-        // ascending internally because the SDAQ piecewise lookup is keyed on
-        // Measure.
-        $sortedPoints = $points;
-        usort($sortedPoints, function ($a, $b) {
-            return $a['measure'] <=> $b['measure'];
-        });
-        for ($i = 1; $i < count($sortedPoints); $i++) {
-            if ($sortedPoints[$i]['measure'] === $sortedPoints[$i - 1]['measure']) {
+        for ($i = 0; $i < count($points); $i++) {
+            $points[$i]['measure'] = cal_float32_value($points[$i]['measure']);
+            $points[$i]['reference'] = cal_float32_value($points[$i]['reference']);
+            if ($points[$i]['measure'] === null || $points[$i]['reference'] === null) {
                 throw new RuntimeException(sprintf(
-                    'Invalid calibration points in %s: duplicate Measure value %s',
+                    'Invalid calibration points in %s: Point_%d Measure/Reference must be representable as finite float32',
                     $chNode->tagName,
-                    cal_num_to_string($sortedPoints[$i]['measure'])
-                ));
+                    $i
+                ), 400);
             }
-        }
-
-        // Map each input row to its position in the Measure-sorted order so
-        // each row receives the segment whose first endpoint is that row's own
-        // (Measure, Reference). The row with the largest Measure reuses the
-        // previous segment, matching the auto-linear writer in calibration.js.
-        $sortedPosByObj = new SplObjectStorage();
-        foreach ($sortedPoints as $pos => $p) {
-            $sortedPosByObj->attach($p['node'], $pos);
+            if ($i > 0 && $points[$i]['measure'] <= $points[$i - 1]['measure']) {
+                throw new RuntimeException(sprintf(
+                    'Invalid calibration points in %s: Point_%d.Measure must be greater than Point_%d.Measure after float32 conversion',
+                    $chNode->tagName,
+                    $i,
+                    $i - 1
+                ), 400);
+            }
         }
 
         if ($used === 1) {
@@ -508,10 +554,10 @@ function cal_rebuild_linear_coeffs_for_auto_mode(string $xmlContent, ?string $pr
 
         if ($used === 2) {
             [$offset, $gain] = cal_compute_linear_coeff(
-                $sortedPoints[0]['measure'],
-                $sortedPoints[0]['reference'],
-                $sortedPoints[1]['measure'],
-                $sortedPoints[1]['reference']
+                $points[0]['measure'],
+                $points[0]['reference'],
+                $points[1]['measure'],
+                $points[1]['reference']
             );
             for ($i = 0; $i < 2; $i++) {
                 cal_set_point_field($doc, $points[$i]['node'], 'Offset', cal_num_to_string($offset));
@@ -523,17 +569,16 @@ function cal_rebuild_linear_coeffs_for_auto_mode(string $xmlContent, ?string $pr
         }
 
         for ($i = 0; $i < $used; $i++) {
-            $pos = $sortedPosByObj[$points[$i]['node']];
-            if ($pos < $used - 1) {
-                $x0 = $sortedPoints[$pos]['measure'];
-                $y0 = $sortedPoints[$pos]['reference'];
-                $x1 = $sortedPoints[$pos + 1]['measure'];
-                $y1 = $sortedPoints[$pos + 1]['reference'];
+            if ($i < $used - 1) {
+                $x0 = $points[$i]['measure'];
+                $y0 = $points[$i]['reference'];
+                $x1 = $points[$i + 1]['measure'];
+                $y1 = $points[$i + 1]['reference'];
             } else {
-                $x0 = $sortedPoints[$pos - 1]['measure'];
-                $y0 = $sortedPoints[$pos - 1]['reference'];
-                $x1 = $sortedPoints[$pos]['measure'];
-                $y1 = $sortedPoints[$pos]['reference'];
+                $x0 = $points[$i - 1]['measure'];
+                $y0 = $points[$i - 1]['reference'];
+                $x1 = $points[$i]['measure'];
+                $y1 = $points[$i]['reference'];
             }
 
             [$offset, $gain] = cal_compute_linear_coeff($x0, $y0, $x1, $y1);
@@ -551,7 +596,7 @@ function cal_rebuild_linear_coeffs_for_auto_mode(string $xmlContent, ?string $pr
     return $out;
 }
 
-function cal_validate_calibration_xml(string $xmlContent, array $runtimeUnits): void
+function cal_validate_calibration_xml(string $xmlContent, array $runtimeUnits, ?string $liveXmlContent = null): void
 {
     $doc = new DOMDocument('1.0', 'utf-8');
     if (!$doc->loadXML($xmlContent)) {
@@ -565,6 +610,23 @@ function cal_validate_calibration_xml(string $xmlContent, array $runtimeUnits): 
     }
 
     $unitSet = array_fill_keys(array_map('strval', $runtimeUnits), true);
+    $limitXpath = $xpath;
+    if ($liveXmlContent !== null) {
+        $liveDoc = new DOMDocument('1.0', 'utf-8');
+        if (!$liveDoc->loadXML($liveXmlContent)) {
+            throw new RuntimeException('Failed to parse current device XML', 502);
+        }
+        $limitXpath = new DOMXPath($liveDoc);
+    }
+    $maxPointsRaw = trim((string)$limitXpath->evaluate('string(/SDAQ/SDAQ_info/Max_num_of_cal_points)'));
+    if ($maxPointsRaw === '' || preg_match('/^\d+$/', $maxPointsRaw) !== 1 || (int)$maxPointsRaw < 1) {
+        $sourceLabel = $liveXmlContent === null ? 'posted calibration XML' : 'current device XML';
+        throw new RuntimeException(
+            sprintf('Invalid %s: Max_num_of_cal_points is invalid', $sourceLabel),
+            $liveXmlContent === null ? 400 : 502
+        );
+    }
+    $maxPoints = (int)$maxPointsRaw;
 
     foreach ($channels as $chNode) {
         if (!$chNode instanceof DOMElement) {
@@ -577,6 +639,14 @@ function cal_validate_calibration_xml(string $xmlContent, array $runtimeUnits): 
         }
 
         $used = (int)$usedRaw;
+        if ($used > $maxPoints) {
+            throw new RuntimeException(sprintf(
+                'Invalid calibration XML: %s Used_Points=%d exceeds Max_num_of_cal_points=%d',
+                $chNode->tagName,
+                $used,
+                $maxPoints
+            ), 400);
+        }
         $unit = trim((string)$xpath->evaluate('string(./Unit)', $chNode));
         if ($unit === '') {
             throw new RuntimeException(sprintf('Invalid calibration XML: %s Unit is empty', $chNode->tagName));
@@ -585,13 +655,30 @@ function cal_validate_calibration_xml(string $xmlContent, array $runtimeUnits): 
             throw new RuntimeException(sprintf('Invalid calibration XML: %s Unit "%s" is not supported by SDAQ runtime unit dictionary', $chNode->tagName, $unit));
         }
 
-        if ($used === 0) {
-            continue;
+        $pointsNode = $xpath->query('./Points', $chNode)->item(0);
+        if ($used > 0 && !$pointsNode instanceof DOMElement) {
+            throw new RuntimeException(sprintf('Invalid calibration XML: %s has no Points node', $chNode->tagName));
         }
 
-        $pointsNode = $xpath->query('./Points', $chNode)->item(0);
-        if (!$pointsNode instanceof DOMElement) {
-            throw new RuntimeException(sprintf('Invalid calibration XML: %s has no Points node', $chNode->tagName));
+        if ($pointsNode instanceof DOMElement) {
+            foreach ($pointsNode->childNodes as $pointNode) {
+                if (!$pointNode instanceof DOMElement || preg_match('/^Point_(\d+)$/', $pointNode->tagName, $match) !== 1) {
+                    continue;
+                }
+                $pointIndex = (int)$match[1];
+                if ($pointIndex >= $used) {
+                    throw new RuntimeException(sprintf(
+                        'Invalid calibration XML: %s Point_%d is outside Used_Points=%d',
+                        $chNode->tagName,
+                        $pointIndex,
+                        $used
+                    ), 400);
+                }
+            }
+        }
+
+        if ($used === 0) {
+            continue;
         }
 
         $prevMeasure = null;
@@ -615,16 +702,25 @@ function cal_validate_calibration_xml(string $xmlContent, array $runtimeUnits): 
                 if ($value === null || !is_finite((float)$value)) {
                     throw new RuntimeException(sprintf('Invalid calibration XML: %s->Point_%d->%s is non-finite', $chNode->tagName, $i, $field));
                 }
-                $finiteValues[$field] = (float)$value;
+                $float32 = cal_float32_value((float)$value);
+                if ($float32 === null) {
+                    throw new RuntimeException(sprintf(
+                        'Invalid calibration XML: %s->Point_%d->%s is not representable as finite float32',
+                        $chNode->tagName,
+                        $i,
+                        $field
+                    ), 400);
+                }
+                $finiteValues[$field] = $float32;
             }
 
             if ($prevMeasure !== null && $finiteValues['Measure'] <= $prevMeasure) {
                 throw new RuntimeException(sprintf(
-                    'Invalid calibration points in %s: Point_%d.Measure must be greater than Point_%d.Measure',
+                    'Invalid calibration points in %s: Point_%d.Measure must be greater than Point_%d.Measure after float32 conversion',
                     $chNode->tagName,
                     $i,
                     $i - 1
-                ));
+                ), 400);
             }
 
             $prevMeasure = $finiteValues['Measure'];
@@ -646,71 +742,100 @@ function cal_single_payload_channel(DOMDocument $doc): DOMElement
     $xpath = new DOMXPath($doc);
     $channels = $xpath->query('/SDAQ/Calibration_Data/*');
     if (!$channels || $channels->length !== 1) {
-        throw new RuntimeException('Metadata-only save must contain exactly one channel');
+        throw new RuntimeException('Calibration save XML must contain exactly one channel');
     }
 
     $node = $channels->item(0);
     if (!$node instanceof DOMElement) {
-        throw new RuntimeException('Metadata-only save contains an invalid channel node');
+        throw new RuntimeException('Calibration save XML contains an invalid channel node');
     }
     return $node;
 }
 
-function cal_point_text(DOMXPath $xpath, DOMElement $channelNode, int $pointIdx, string $field): string
+function cal_float32_text_equal(string $left, string $right): bool
 {
-    return trim((string)$xpath->evaluate(sprintf('string(./Points/Point_%d/%s)', $pointIdx, $field), $channelNode));
+    $leftValue = filter_var(trim($left), FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE);
+    $rightValue = filter_var(trim($right), FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE);
+    if ($leftValue === null || $rightValue === null) {
+        return false;
+    }
+    if (!is_finite((float)$leftValue) || !is_finite((float)$rightValue)) {
+        return false;
+    }
+    return pack('g', (float)$leftValue) === pack('g', (float)$rightValue);
 }
 
-function cal_assert_legacy_metadata_only(string $postedXml, string $currentXml): void
+/**
+ * A calibration_save request must change the calibration model itself.
+ * Date and period deliberately do not participate in this comparison: Web
+ * does not expose an independent metadata-only transaction.
+ */
+function cal_assert_point_table_changed(string $postedXml, string $currentXml): void
 {
     $postedDoc = cal_parse_xml_doc($postedXml, 'posted calibration XML');
     $currentDoc = cal_parse_xml_doc($currentXml, 'current device calibration XML');
     $postedXpath = new DOMXPath($postedDoc);
     $currentXpath = new DOMXPath($currentDoc);
-
     $postedCh = cal_single_payload_channel($postedDoc);
     $currentCh = $currentXpath->query('/SDAQ/Calibration_Data/' . $postedCh->tagName)->item(0);
     if (!$currentCh instanceof DOMElement) {
-        throw new RuntimeException(sprintf('Metadata-only save cannot find %s in current device XML', $postedCh->tagName));
+        throw new RuntimeException(sprintf('Current device XML has no %s channel', $postedCh->tagName), 502);
     }
 
-    foreach (['Used_Points', 'Unit'] as $field) {
-        $posted = trim((string)$postedXpath->evaluate(sprintf('string(./%s)', $field), $postedCh));
-        $current = trim((string)$currentXpath->evaluate(sprintf('string(./%s)', $field), $currentCh));
-        if ($posted !== $current) {
-            throw new RuntimeException(sprintf('Metadata-only save cannot change %s', $field));
+    $postedUsedRaw = cal_read_child_text($postedCh, 'Used_Points');
+    if (preg_match('/^\d+$/', $postedUsedRaw) !== 1) {
+        throw new RuntimeException(sprintf('Posted calibration XML has invalid %s Used_Points', $postedCh->tagName), 400);
+    }
+    $currentUsedRaw = cal_read_child_text($currentCh, 'Used_Points');
+    if (preg_match('/^\d+$/', $currentUsedRaw) !== 1) {
+        throw new RuntimeException(sprintf('Current device XML has invalid %s Used_Points', $postedCh->tagName), 502);
+    }
+
+    $postedUsed = (int)$postedUsedRaw;
+    $currentUsed = (int)$currentUsedRaw;
+    if ($postedUsed !== $currentUsed) {
+        return;
+    }
+    if (cal_read_child_text($postedCh, 'Unit') !== cal_read_child_text($currentCh, 'Unit')) {
+        return;
+    }
+
+    for ($pointIndex = 0; $pointIndex < $postedUsed; $pointIndex++) {
+        $postedPoint = $postedXpath->query(sprintf('./Points/Point_%d', $pointIndex), $postedCh)->item(0);
+        $currentPoint = $currentXpath->query(sprintf('./Points/Point_%d', $pointIndex), $currentCh)->item(0);
+        if (!$postedPoint instanceof DOMElement) {
+            throw new RuntimeException(sprintf('Posted calibration XML is missing %s Point_%d', $postedCh->tagName, $pointIndex), 400);
         }
-    }
+        if (!$currentPoint instanceof DOMElement) {
+            return;
+        }
 
-    $usedRaw = trim((string)$currentXpath->evaluate('string(./Used_Points)', $currentCh));
-    if ($usedRaw === '' || preg_match('/^\d+$/', $usedRaw) !== 1) {
-        throw new RuntimeException(sprintf('Current device XML has invalid %s Used_Points', $postedCh->tagName));
-    }
-
-    $used = (int)$usedRaw;
-    foreach (['Measure', 'Reference', 'Offset', 'Gain', 'C2', 'C3'] as $field) {
-        for ($i = 0; $i < $used; $i++) {
-            $posted = cal_point_text($postedXpath, $postedCh, $i, $field);
-            $current = cal_point_text($currentXpath, $currentCh, $i, $field);
-            if ($posted !== $current) {
-                throw new RuntimeException(sprintf(
-                    'Metadata-only save cannot change %s Point_%d %s',
-                    $postedCh->tagName,
-                    $i,
-                    $field
-                ));
+        foreach (['Measure', 'Reference', 'Offset', 'Gain', 'C2', 'C3'] as $field) {
+            if (!cal_float32_text_equal(
+                cal_read_child_text($postedPoint, $field),
+                cal_read_child_text($currentPoint, $field)
+            )) {
+                return;
             }
         }
     }
+
+    throw new RuntimeException(
+        'Independent calibration metadata editing is not supported. Change Used_Points, Unit, or at least one active point value before saving date/period.',
+        410
+    );
 }
 
-function cal_validate_legacy_metadata_xml(string $xmlContent): void
+function cal_validate_calibration_metadata_xml(string $xmlContent): void
 {
     $doc = cal_parse_xml_doc($xmlContent);
     $chNode = cal_single_payload_channel($doc);
     $period = cal_read_child_text($chNode, 'Calibration_Period');
     if ($period === '' || preg_match('/^\d+$/', $period) !== 1) {
         throw new RuntimeException(sprintf('Invalid calibration XML: %s Calibration_Period is not a non-negative integer', $chNode->tagName));
+    }
+    if ((int)$period > 255) {
+        throw new RuntimeException(sprintf('Invalid calibration XML: %s Calibration_Period must be between 0 and 255', $chNode->tagName), 400);
     }
 
     $date = cal_read_child_text($chNode, 'Calibration_date');
@@ -742,15 +867,24 @@ function cal_build_scale_xml_payload(
     $chTag = 'CH' . $ch;
     $sourceChNode = $xpath->query('/SDAQ/Calibration_Data/' . $chTag)->item(0);
 
-    $calDate = cal_read_child_text($sourceChNode instanceof DOMElement ? $sourceChNode : null, 'Calibration_date');
-    $calPeriod = cal_read_child_text($sourceChNode instanceof DOMElement ? $sourceChNode : null, 'Calibration_Period');
+    if (!$sourceChNode instanceof DOMElement) {
+        throw new RuntimeException(sprintf('Current device XML has no %s channel', $chTag), 502);
+    }
+    $sourceUsedRaw = cal_read_child_text($sourceChNode, 'Used_Points');
+    if (preg_match('/^\d+$/', $sourceUsedRaw) !== 1) {
+        throw new RuntimeException(sprintf('Current device XML has invalid %s Used_Points', $chTag), 502);
+    }
+    if ((int)$sourceUsedRaw > 0) {
+        throw new RuntimeException(sprintf(
+            'Scale cannot overwrite existing calibration on %s. Use Calibration to intentionally replace the active point table; Scale is available only when Used_Points is 0.',
+            $chTag
+        ), 409);
+    }
 
-    if ($calDate === '' || $calDate === '2000/00/00') {
-        $calDate = date('Y/m/d');
-    }
-    if ($calPeriod === '' || !preg_match('/^\d+$/', $calPeriod)) {
-        $calPeriod = '0';
-    }
+    // A Scale write is a new two-point table, not a continuation of stale
+    // calibration provenance from an inactive table.
+    $calDate = date('Y/m/d');
+    $calPeriod = '0';
 
     $doc = new DOMDocument('1.0', 'utf-8');
     $doc->formatOutput = false;
@@ -771,6 +905,17 @@ function cal_build_scale_xml_payload(
 
     $points = $doc->createElement('Points');
     $dstCh->appendChild($points);
+
+    $rawLow = cal_float32_value($rawLow);
+    $rawHigh = cal_float32_value($rawHigh);
+    $engLow = cal_float32_value($engLow);
+    $engHigh = cal_float32_value($engHigh);
+    if ($rawLow === null || $rawHigh === null || $engLow === null || $engHigh === null) {
+        throw new RuntimeException('Scale values must be representable as finite float32', 400);
+    }
+    if ($engLow === $engHigh) {
+        throw new RuntimeException('Invalid engineering range: EngHigh must differ from EngLow after float32 conversion', 400);
+    }
 
     $pointDefs = [
         [0, $rawLow, $engLow],
@@ -797,6 +942,12 @@ function cal_build_scale_xml_payload(
     }
 
     return $xml;
+}
+
+// Unit tests load the domain functions above without dispatching an HTTP
+// request. Production never defines this constant.
+if (defined('CALIBRATION_API_LIBRARY_ONLY') && CALIBRATION_API_LIBRARY_ONLY === true) {
+    return;
 }
 
 try {
@@ -1011,6 +1162,11 @@ try {
             if ((float)$rawHigh <= (float)$rawLow) {
                 cal_fail('Invalid raw range: RawHigh must be greater than RawLow', 400);
             }
+            $engLowFloat32 = cal_float32_value((float)$engLow);
+            $engHighFloat32 = cal_float32_value((float)$engHigh);
+            if ($engLowFloat32 === null || $engHighFloat32 === null || $engLowFloat32 === $engHighFloat32) {
+                cal_fail('Invalid engineering range: EngHigh must differ from EngLow after float32 conversion', 400);
+            }
             if ($engUnit === '') {
                 cal_fail('engUnit is required for action=scale', 400);
             }
@@ -1034,7 +1190,8 @@ try {
                 $engUnit
             );
             $xml = cal_rebuild_linear_coeffs_for_auto_mode($xml);
-
+            cal_validate_calibration_xml($xml, $unitList, $sourceXml);
+            cal_validate_calibration_metadata_xml($xml);
             $result = cal_save_xml_live($bus, $addr, $xml);
             cal_json([
                 'ok' => true,
@@ -1054,10 +1211,7 @@ try {
             $bus = cal_normalize_bus($body['bus'] ?? ($body['SDAQnet'] ?? ''));
             $addr = cal_normalize_addr($body['addr'] ?? ($body['SDAQaddr'] ?? null));
             $xml = (string)($body['xmlContent'] ?? ($body['XMLcontent'] ?? ''));
-            $saveMode = strtolower(trim((string)($body['mode'] ?? 'legacy')));
-            if ($saveMode === '') {
-                $saveMode = 'legacy';
-            }
+            $saveMode = cal_require_point_table_save_mode($body['mode'] ?? '');
 
             if ($bus === '' || $addr === null) {
                 cal_fail('Missing or invalid bus/addr in request body', 400);
@@ -1067,30 +1221,19 @@ try {
                 cal_fail('xmlContent is required', 400);
             }
 
-            if ($saveMode !== 'legacy' && $saveMode !== 'auto-linear') {
-                cal_fail('Invalid calibration save mode. Use legacy or auto-linear', 400);
-            }
-
             cal_require_owned_lock($bus, $addr, $sessionId);
 
-            $previousXml = null;
-            if ($saveMode === 'auto-linear') {
-                $units = cal_get_units_live();
-                $unitList = $units['SDAQ_UNITs'] ?? [];
-                if (!is_array($unitList)) {
-                    cal_fail('Failed to load runtime SDAQ unit dictionary', 500);
-                }
-
-                $previousXml = cal_get_xml_live($bus, $addr);
-                $xml = cal_rebuild_linear_coeffs_for_auto_mode($xml, $previousXml);
-                cal_validate_calibration_xml($xml, $unitList);
-                cal_validate_legacy_metadata_xml($xml);
-            } else {
-                $previousXml = cal_get_xml_live($bus, $addr);
-                cal_assert_legacy_metadata_only($xml, $previousXml);
-                cal_validate_legacy_metadata_xml($xml);
+            $units = cal_get_units_live();
+            $unitList = $units['SDAQ_UNITs'] ?? [];
+            if (!is_array($unitList)) {
+                cal_fail('Failed to load runtime SDAQ unit dictionary', 500);
             }
 
+            $previousXml = cal_get_xml_live($bus, $addr);
+            $xml = cal_rebuild_linear_coeffs_for_auto_mode($xml, $previousXml);
+            cal_validate_calibration_xml($xml, $unitList, $previousXml);
+            cal_validate_calibration_metadata_xml($xml);
+            cal_assert_point_table_changed($xml, $previousXml);
             $result = cal_save_xml_live($bus, $addr, $xml);
 
             cal_json([
