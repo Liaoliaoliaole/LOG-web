@@ -19,7 +19,7 @@
   const state = {
     fileContent: null,
     fileName: null,
-    preflight: null, // { rows, summary, can_commit, digest }
+    preflight: null, // { rows, summary, warnings, can_commit, digest }
   };
 
   function setStatus(msg, tone = 'info') {
@@ -44,7 +44,7 @@
   }
 
   function renderReport(preflight) {
-    const { rows, summary, can_commit: canCommit } = preflight;
+    const { rows, summary, warnings = [], can_commit: canCommit } = preflight;
 
     summaryRow.classList.remove('hidden');
     reportHint.classList.remove('hidden');
@@ -62,7 +62,10 @@
       const ignored = Array.isArray(r.ignored_fields) && r.ignored_fields.length
         ? `Ignored: ${r.ignored_fields.join(', ')} (SDAQ runtime-owned)`
         : '';
-      const detail = [r.reason || '', ignored].filter(Boolean).join('; ');
+      const warningsText = Array.isArray(r.warnings) && r.warnings.length
+        ? r.warnings.map((w) => `Warning: ${w.message}`).join('; ')
+        : '';
+      const detail = [r.reason || '', ignored, warningsText].filter(Boolean).join('; ');
       return `
       <tr class="${resultRowClass(r.result)}">
         <td>${r.row}</td>
@@ -79,7 +82,8 @@
     btnConfirm.disabled = !canCommit;
 
     if (canCommit) {
-      setStatus(`Preflight passed: ${summary.ready_to_restore} to add, ${summary.update_metadata} to update, ${summary.no_change} unchanged. Review the table, then Confirm Restore.`, 'success');
+      const warningText = warnings.length ? ` ${warnings.length} Core-valid warning(s) require explicit acknowledgement.` : '';
+      setStatus(`Preflight passed: ${summary.ready_to_restore} to add, ${summary.update_metadata} to update, ${summary.no_change} unchanged.${warningText} Review the table, then Confirm Restore.`, 'success');
     } else {
       setStatus(`Preflight found ${summary.invalid} invalid and ${summary.conflict} conflicting row(s). Fix or remove them in the source file and re-run preflight -- this file cannot be restored as-is.`, 'error');
     }
@@ -120,9 +124,14 @@
     }
 
     const summary = state.preflight.summary;
+    const warnings = Array.isArray(state.preflight.warnings) ? state.preflight.warnings : [];
+    const warningLines = warnings.slice(0, 10).map((w) => `• ${w.iso_channel}: ${w.message}`).join('\n');
+    const warningSuffix = warnings.length
+      ? `\n\nThis Restore has ${warnings.length} Core-valid warning(s):\n${warningLines}${warnings.length > 10 ? '\n• …' : ''}\n\nConfirming explicitly accepts these warnings.`
+      : '';
     const confirmed = window.confirm(
       `This will add ${summary.ready_to_restore} channel(s) and update ${summary.update_metadata} channel(s). ` +
-      `This action writes to the live configuration. Continue?`
+      `This action writes to the live configuration.${warningSuffix}\n\nContinue?`
     );
     if (!confirmed) return;
 
@@ -131,7 +140,7 @@
     setStatus('Committing restore...');
 
     try {
-      const json = await channelsApi.restoreCommit(state.fileContent, state.preflight.digest);
+      const json = await channelsApi.restoreCommit(state.fileContent, state.preflight.digest, warnings.length > 0);
       if (json && json.ok === false) {
         throw new Error(json.error || 'Restore failed');
       }

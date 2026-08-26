@@ -607,11 +607,11 @@ function ftp_backup_check_bundle_handler_matching(SimpleXMLElement $xml, DOMDocu
         if ($identity === null) {
             continue; // already reported by iso_validate_document()
         }
-        $identifier = (int)$identity['components']['identifier'];
-        if (!isset($identifiers[$type][$identifier])) {
+        $handlerIssue = restore_check_device_handler($type, $identity, $identifiers);
+        if ($handlerIssue !== null) {
             $errors[] = [
-                'code' => 'orphan_device_source',
-                'message' => "ISO_CHANNEL \"$iso\" ($type, identifier $identifier) has no matching $type handler in the backup's Morfeas_Config.xml",
+                'code' => $handlerIssue['code'],
+                'message' => "ISO_CHANNEL \"$iso\": " . $handlerIssue['detail'],
             ];
         }
     }

@@ -106,10 +106,10 @@
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ file_content: fileContent }),
     }),
-    restoreCommit: (fileContent, digest) => fetchJson({ include: 'restore_commit' }, {
+    restoreCommit: (fileContent, digest, acknowledgeWarnings = false) => fetchJson({ include: 'restore_commit' }, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ file_content: fileContent, digest }),
+      body: JSON.stringify({ file_content: fileContent, digest, acknowledge_warnings: acknowledgeWarnings }),
     }),
   };
 

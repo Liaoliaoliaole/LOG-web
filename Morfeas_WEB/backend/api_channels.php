@@ -184,7 +184,13 @@ if (isset($_GET['include']) && $_GET['include'] === 'restore_commit') {
         }
 
         try {
-            $result = restore_commit($xmlPath, $logConfigPath, $fileContent, $digest);
+            $result = restore_commit(
+                $xmlPath,
+                $logConfigPath,
+                $fileContent,
+                $digest,
+                !empty($data['acknowledge_warnings'])
+            );
         } catch (RuntimeException $e) {
             channels_fail_from_runtime($e);
         }

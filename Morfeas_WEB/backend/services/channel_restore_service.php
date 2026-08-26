@@ -39,7 +39,7 @@ function restore_ipv4_to_core_identifier(string $ip): ?int
     return $unpacked[1] ?? null;
 }
 
-/* Restore accepts offline IOBOX/MTI only when a same-type handler is configured. */
+/* Load the configured IOBOX/MTI handler identities for Restore classification. */
 function restore_load_device_identifiers(string $logConfigPath): array
 {
     $out = ['IOBOX' => [], 'MTI' => []];
@@ -86,6 +86,29 @@ function restore_check_device_handler(string $interfaceType, array $identity, ar
         'code' => 'orphan_device_source',
         'detail' => "No $interfaceType handler with this IP is currently configured in Morfeas_Config.xml",
     ];
+}
+
+/*
+ * Orphan IOBOX/MTI channels are Core-valid: Device Delete intentionally does
+ * not cascade into OPC_UA_Config.xml, so a historical Restore may legitimately
+ * contain one.  Keep the per-row warning separate from its Ready/No-change/
+ * Update classification; warnings require acknowledgement at Commit but do
+ * not turn an otherwise valid batch into an invalid one.
+ */
+function restore_collect_warnings(array $rows): array
+{
+    $warnings = [];
+    foreach ($rows as $row) {
+        foreach (($row['warnings'] ?? []) as $warning) {
+            $warnings[] = [
+                'row' => $row['row'],
+                'iso_channel' => $row['iso_channel'],
+                'code' => $warning['code'],
+                'message' => $warning['message'],
+            ];
+        }
+    }
+    return $warnings;
 }
 
 /*
@@ -166,6 +189,7 @@ function restore_classify_entries(array $rawEntries, array $existingRows, array 
             'reason' => null,
             'canonical_anchor' => null,
             'ignored_fields' => [],
+            'warnings' => [],
             'payload' => null,
         ];
 
@@ -252,12 +276,12 @@ function restore_classify_entries(array $rawEntries, array $existingRows, array 
             }
         }
 
-        $deviceCheck = restore_check_device_handler($interfaceType, $identity, $deviceIdentifiers);
-        if ($deviceCheck !== null) {
-            $report['reason'] = $deviceCheck['detail'];
-            $report['code'] = $deviceCheck['code'];
-            $rows[] = $report;
-            continue;
+        $deviceWarning = restore_check_device_handler($interfaceType, $identity, $deviceIdentifiers);
+        if ($deviceWarning !== null) {
+            $report['warnings'][] = [
+                'code' => $deviceWarning['code'],
+                'message' => $deviceWarning['detail'],
+            ];
         }
 
         $isoNorm = iso_normalize_iso_channel((string)$raw['ISO_CHANNEL']);
@@ -352,8 +376,9 @@ function restore_compute_digest(string $xmlPath, string $logConfigPath): string
 
 function restore_summarize(array $rows): array
 {
-    $summary = ['ready_to_restore' => 0, 'no_change' => 0, 'update_metadata' => 0, 'invalid' => 0, 'conflict' => 0];
+    $summary = ['ready_to_restore' => 0, 'no_change' => 0, 'update_metadata' => 0, 'invalid' => 0, 'conflict' => 0, 'warning' => 0];
     foreach ($rows as $r) {
+        $summary['warning'] += count($r['warnings'] ?? []);
         switch ($r['result']) {
             case 'Ready to restore':
                 $summary['ready_to_restore']++;
@@ -387,6 +412,7 @@ function restore_preflight(string $xmlPath, string $logConfigPath, string $fileC
     $deviceIdentifiers = restore_load_device_identifiers($logConfigPath);
     $rows = restore_classify_entries($rawEntries, $existingRows, $deviceIdentifiers);
     $summary = restore_summarize($rows);
+    $warnings = restore_collect_warnings($rows);
 
     return [
         'rows' => array_map(static function ($r) {
@@ -394,6 +420,7 @@ function restore_preflight(string $xmlPath, string $logConfigPath, string $fileC
             return $r;
         }, $rows),
         'summary' => $summary,
+        'warnings' => $warnings,
         'can_commit' => count($rawEntries) > 0 && $summary['invalid'] === 0 && $summary['conflict'] === 0,
         'digest' => restore_compute_digest($xmlPath, $logConfigPath),
     ];
@@ -403,10 +430,11 @@ function restore_preflight(string $xmlPath, string $logConfigPath, string $fileC
  * Commit: re-parses and re-classifies everything fresh, inside the XML
  * lock, against the current files -- never trusts the report the browser
  * is holding. Any row that is not Ready/No-change/Update-metadata aborts
- * the whole commit with zero writes. A digest mismatch (the config changed
+ * the whole commit with zero writes. Core-valid orphan warnings additionally
+ * require an explicit acknowledgement. A digest mismatch (the config changed
  * since preflight) is reported explicitly before even re-classifying.
  */
-function restore_commit(string $xmlPath, string $logConfigPath, string $fileContent, string $expectedDigest): array
+function restore_commit(string $xmlPath, string $logConfigPath, string $fileContent, string $expectedDigest, bool $acknowledgeWarnings = false): array
 {
     // IOBOX/MTI handler matching reads Morfeas_Config.xml, so this must hold
     // log_config before opcua_config, in that fixed order, so the
@@ -414,14 +442,14 @@ function restore_commit(string $xmlPath, string $logConfigPath, string $fileCont
     // from a single consistent point in time -- closing the TOCTOU where a
     // device handler cannot be deleted between digest computation and the
     // handler-matching re-check below.
-    return log_config_with_xml_lock($logConfigPath, function () use ($xmlPath, $logConfigPath, $fileContent, $expectedDigest) {
-        return restore_commit_locked($xmlPath, $logConfigPath, $fileContent, $expectedDigest);
+    return log_config_with_xml_lock($logConfigPath, function () use ($xmlPath, $logConfigPath, $fileContent, $expectedDigest, $acknowledgeWarnings) {
+        return restore_commit_locked($xmlPath, $logConfigPath, $fileContent, $expectedDigest, $acknowledgeWarnings);
     });
 }
 
-function restore_commit_locked(string $xmlPath, string $logConfigPath, string $fileContent, string $expectedDigest): array
+function restore_commit_locked(string $xmlPath, string $logConfigPath, string $fileContent, string $expectedDigest, bool $acknowledgeWarnings = false): array
 {
-    return iso_with_xml_lock($xmlPath, function () use ($xmlPath, $logConfigPath, $fileContent, $expectedDigest) {
+    return iso_with_xml_lock($xmlPath, function () use ($xmlPath, $logConfigPath, $fileContent, $expectedDigest, $acknowledgeWarnings) {
         $actualDigest = restore_compute_digest($xmlPath, $logConfigPath);
         if (!hash_equals($actualDigest, $expectedDigest)) {
             throw new ChannelConfigException(
@@ -447,6 +475,17 @@ function restore_commit_locked(string $xmlPath, string $logConfigPath, string $f
                     $r['code'] ?? 'invalid_entry'
                 );
             }
+        }
+
+        $warnings = restore_collect_warnings($rows);
+        if ($warnings !== [] && !$acknowledgeWarnings) {
+            $first = $warnings[0];
+            throw new ChannelConfigException(
+                'This Restore has ' . count($warnings) . ' warning(s) that must be acknowledged before committing. First: '
+                    . $first['message'] . ' Re-submit with acknowledge_warnings=true to proceed.',
+                409,
+                'restore_warnings_not_acknowledged'
+            );
         }
 
         if (!file_exists($xmlPath)) {
@@ -487,8 +526,11 @@ function restore_commit_locked(string $xmlPath, string $logConfigPath, string $f
                     'mod_date' => $now,
                 ]);
                 if ($data['interface_type'] === 'SDAQ') {
-                    // SDAQ metadata is runtime-owned and is not restored to XML.
-                    unset($newData['unit']);
+                    // SDAQ runtime metadata is deliberately absent from a
+                    // restored XML payload. The Add body rejects direct API
+                    // attempts to supply these fields, while Restore keeps
+                    // accepting legacy rows by stripping them first.
+                    unset($newData['unit'], $newData['cal_date'], $newData['cal_period']);
                 }
                 $payload = iso_build_new_channel_payload($data['iso_channel'], $newData);
                 iso_set_channel_contents($new, $payload);

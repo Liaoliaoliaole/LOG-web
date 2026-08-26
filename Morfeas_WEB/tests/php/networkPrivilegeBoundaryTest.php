@@ -57,6 +57,13 @@ check(
 );
 check(str_contains($helper, 'backup-disable-ifupdown'), 'Helper supports only the required ifupdown transition');
 check(str_contains($helper, 'networkmanager)') && str_contains($helper, 'timesyncd)'), 'Helper has an explicit fixed target map');
+check(!str_contains($service, '/tmp/morfeas_network_backup_'), 'Web never creates a caller-owned /tmp network backup directory');
+check(str_contains($service, '/run/morfeas_network_backup_'), 'Web passes the root-owned /run backup namespace to the helper');
+check(str_contains($helper, 'ensure_backup_dir()'), 'Helper owns backup-directory creation and validation');
+check(str_contains($helper, 'install -d -o root -g root -m 0700 -- "$backup_dir"'), 'Helper creates backup directories root:root 0700');
+check(str_contains($helper, "stat -c '%u:%g:%a' -- \"\$backup_dir\""), 'Helper rejects a backup directory not owned root:root with mode 0700');
+check(preg_match('/backup_networkmanager\(\).*?ensure_backup_dir\s+"\$backup_dir".*?cp -a/s', $helper) === 1, 'NetworkManager backup validates root-owned directory before copying');
+check(preg_match('/backup_disable_ifupdown\(\).*?ensure_backup_dir\s+"\$backup_dir".*?cp -a/s', $helper) === 1, 'ifupdown backup validates root-owned directory before copying');
 check(!str_contains($sudoers, '/bin/cp') && !str_contains($sudoers, '/bin/mv') && !str_contains($sudoers, '/usr/bin/make install'), 'sudoers no longer grants generic cp, mv, or make install');
 check(str_contains($sudoers, '/usr/local/sbin/morfeas-network-files *'), 'sudoers grants the restricted network helper');
 check(

@@ -97,6 +97,35 @@ expect_rejected('anchor present but identical to the stored value', ['anchor' =>
 
 // SDAQ Unit is runtime-owned; Core never reads it from XML.
 expect_rejected('unit on a SDAQ channel', ['unit' => 'HACKED']);
+expect_rejected('cal_date on a SDAQ channel', ['cal_date' => '2026/08/26']);
+expect_rejected('cal_period on a SDAQ channel', ['cal_period' => '12']);
+expect_rejected(
+    'mixed legitimate metadata plus SDAQ calibration fields',
+    ['description' => 'should not persist', 'cal_date' => '2026/08/26', 'cal_period' => '12']
+);
+
+// Add has no ordinary Edit allowlist, so it must enforce the same ownership
+// boundary itself. This also proves a direct POST cannot persist SDAQ XML
+// calibration provenance.
+$dirAdd = make_tmp_dir('sdaq_add_calibration');
+$xmlPathAdd = fresh_xml($dirAdd);
+$beforeAdd = file_get_contents($xmlPathAdd);
+try {
+    iso_add_channel_body($xmlPathAdd, [
+        'iso_channel' => '_TE102',
+        'interface_type' => 'SDAQ',
+        'anchor' => '222222222.CH1',
+        'description' => 'new SDAQ',
+        'min' => '0',
+        'max' => '100',
+        'cal_date' => '2026/08/26',
+        'cal_period' => '12',
+    ]);
+    check(false, 'SDAQ Add with calibration metadata must be rejected');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'sdaq_calibration_metadata_not_allowed', 'SDAQ Add rejects calibration metadata with the runtime-owned error (got ' . $e->apiCode() . ')');
+}
+check(file_get_contents($xmlPathAdd) === $beforeAdd, 'Rejected SDAQ Add leaves XML byte-for-byte unchanged');
 
 // =====================================================================
 // Still allowed -- guarding against an over-tight allowlist
@@ -152,6 +181,15 @@ check((string)$iobox->UNIT === 'bar', 'unit IS editable on a non-SDAQ channel (g
 check((string)$iobox->DESCRIPTION === 'iobox edited', 'description editable on a non-SDAQ channel');
 check((string)$iobox->ANCHOR === '344441098.RX1.CH1', 'IOBOX anchor unchanged by a metadata-only edit');
 
+iso_update_channel($xmlPath2, '_FT200', ['cal_date' => '2026/08/26', 'cal_period' => '12']);
+$xml2 = simplexml_load_file($xmlPath2);
+$iobox = null;
+foreach ($xml2->CHANNEL as $ch) {
+    if ((string)$ch->ISO_CHANNEL === '_FT200') { $iobox = $ch; }
+}
+check((string)$iobox->CAL_DATE === '2026/08/26', 'cal_date remains editable on a non-SDAQ channel');
+check((string)$iobox->CAL_PERIOD === '12', 'cal_period remains editable on a non-SDAQ channel');
+
 // =====================================================================
 // Replace must NOT be affected -- it legitimately carries `anchor` and
 // reaches the write through iso_update_channel_body(), bypassing this
@@ -170,6 +208,22 @@ foreach ($xml3->CHANNEL as $ch) {
 }
 check($replaced !== null && (string)$replaced->ANCHOR === '222222222.CH1', "Replace's path (iso_update_channel_body) can still write an anchor (got " . ($replaced ? (string)$replaced->ANCHOR : 'null') . ')');
 check((string)$replaced->DESCRIPTION === 'original desc', 'Replace preserves description while changing only the anchor');
+
+// Replace is allowed to carry an anchor, but must not preserve or accept
+// runtime-owned SDAQ XML calibration metadata.
+iso_with_xml_lock($xmlPath3, function () use ($xmlPath3) {
+    iso_update_channel_body($xmlPath3, '_TE101', [
+        'anchor' => '333333333.CH1',
+        'cal_date' => '2026/08/26',
+        'cal_period' => '12',
+    ]);
+});
+$xml3 = simplexml_load_file($xmlPath3);
+$replaced = null;
+foreach ($xml3->CHANNEL as $ch) {
+    if ((string)$ch->ISO_CHANNEL === '_TE101') { $replaced = $ch; }
+}
+check($replaced !== null && !isset($replaced->CAL_DATE) && !isset($replaced->CAL_PERIOD), 'SDAQ Replace clears runtime-owned CAL_DATE/CAL_PERIOD instead of persisting them');
 
 echo "\n{$g_checks} checks, " . ($g_checks - $g_failures) . " passed, {$g_failures} failed\n";
 exit($g_failures === 0 ? 0 : 1);

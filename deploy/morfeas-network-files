@@ -7,7 +7,25 @@ fail() {
 }
 
 valid_backup_dir() {
-    [[ "$1" =~ ^/tmp/morfeas_network_backup_[a-f0-9]{16}$ ]]
+    [[ "$1" =~ ^/run/morfeas_network_backup_[a-f0-9]{16}$ ]]
+}
+
+# Backup paths used by this root helper must never be created or writable by
+# www-data.  The caller supplies only an opaque random token embedded in the
+# fixed /run path; this process creates and owns the directory before any
+# system file is copied into it.  Keeping the directory root-only also means
+# its fixed child names cannot be swapped for symlinks between validation and
+# cp(1)'s destination lookup.
+ensure_backup_dir() {
+    local backup_dir="$1"
+
+    valid_backup_dir "$backup_dir" || fail "invalid backup directory"
+    if [[ -e "$backup_dir" || -L "$backup_dir" ]]; then
+        [[ -d "$backup_dir" && ! -L "$backup_dir" ]] || fail "backup directory is unavailable"
+    else
+        install -d -o root -g root -m 0700 -- "$backup_dir"
+    fi
+    [[ "$(stat -c '%u:%g:%a' -- "$backup_dir")" == '0:0:700' ]] || fail "backup directory ownership is invalid"
 }
 
 target_path() {
@@ -56,8 +74,7 @@ backup_networkmanager() {
     local backup_dir="$1"
     local source='/etc/NetworkManager/NetworkManager.conf'
 
-    valid_backup_dir "$backup_dir" || fail "invalid backup directory"
-    [[ -d "$backup_dir" && ! -L "$backup_dir" ]] || fail "backup directory is unavailable"
+    ensure_backup_dir "$backup_dir"
     [[ -f "$source" ]] || fail "NetworkManager configuration is unavailable"
     cp -a -- "$source" "$backup_dir/NetworkManager.conf"
 }
@@ -71,8 +88,7 @@ backup_disable_ifupdown() {
         eth0|can0|can1) ;;
         *) fail "unsupported interface" ;;
     esac
-    valid_backup_dir "$backup_dir" || fail "invalid backup directory"
-    [[ -d "$backup_dir" && ! -L "$backup_dir" ]] || fail "backup directory is unavailable"
+    ensure_backup_dir "$backup_dir"
 
     source="/etc/network/interfaces.d/$iface"
     [[ -f "$source" && ! -L "$source" ]] || fail "ifupdown file is unavailable"

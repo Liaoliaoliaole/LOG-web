@@ -782,6 +782,13 @@ function iso_build_new_channel_payload(string $isoChannel, array $data): array
             'sdaq_unit_not_allowed'
         );
     }
+    if ($interfaceType === 'SDAQ' && (array_key_exists('cal_date', $data) || array_key_exists('cal_period', $data))) {
+        throw new ChannelConfigException(
+            'SDAQ calibration metadata is supplied by live runtime metadata and must not be stored in OPC_UA_Config.xml',
+            400,
+            'sdaq_calibration_metadata_not_allowed'
+        );
+    }
 
     return [
         'iso_channel'    => $isoChannel,
@@ -826,15 +833,29 @@ function iso_require_edit_field_allowlist(string $xmlPath, string $isoChannel, a
         }
     }
 
-    // SDAQ Unit is runtime-owned; other interfaces use the stored XML Unit.
-    if (array_key_exists('unit', $data) && is_file($xmlPath)) {
+    // SDAQ Unit and calibration provenance are runtime-owned. Browser UI
+    // state is not authority: reject these fields even when a caller sends
+    // an otherwise valid metadata edit directly to the API.
+    $sdaqRuntimeOwnedFields = ['unit', 'cal_date', 'cal_period'];
+    $hasSdaqRuntimeOwnedField = false;
+    foreach ($sdaqRuntimeOwnedFields as $field) {
+        if (array_key_exists($field, $data)) {
+            $hasSdaqRuntimeOwnedField = true;
+            break;
+        }
+    }
+    if ($hasSdaqRuntimeOwnedField && is_file($xmlPath)) {
         $xml = simplexml_load_file($xmlPath);
         if ($xml !== false) {
             $target = iso_normalize_iso_channel($isoChannel);
             foreach ($xml->CHANNEL as $ch) {
                 if ((string)$ch->ISO_CHANNEL === $target) {
                     if (strtoupper(trim((string)$ch->INTERFACE_TYPE)) === 'SDAQ') {
-                        $offenders[] = 'unit (SDAQ Unit is runtime-owned; Core never reads it from XML)';
+                        foreach ($sdaqRuntimeOwnedFields as $field) {
+                            if (array_key_exists($field, $data)) {
+                                $offenders[] = $field . ' (SDAQ calibration metadata is runtime-owned; Core never reads it from XML)';
+                            }
+                        }
                     }
                     break;
                 }
@@ -844,7 +865,7 @@ function iso_require_edit_field_allowlist(string $xmlPath, string $isoChannel, a
 
     if ($offenders !== []) {
         throw new ChannelConfigException(
-            'Edit may only change metadata (description, min, max, alarms, and unit for non-SDAQ). '
+            'Edit may only change metadata (description, min, max, alarms, and XML-owned unit/calibration for non-SDAQ). '
                 . 'Rejected identity/read-only field(s): ' . implode(', ', $offenders)
                 . '. Use Replace to move a channel to a different source.',
             400,
@@ -928,9 +949,12 @@ function iso_update_channel_body(string $xmlPath, string $isoChannel, array $dat
     $interfaceType = strtoupper(trim((string)($payload['interface_type'] ?? '')));
     $payload['interface_type'] = $interfaceType;
     if ($interfaceType === 'SDAQ') {
-        // SDAQ Unit is runtime-owned. This also removes historical XML UNIT
-        // values when a SDAQ channel is replaced or otherwise rewritten.
+        // SDAQ Unit and calibration provenance are runtime-owned. This also
+        // removes historical XML metadata when a SDAQ channel is replaced or
+        // otherwise rewritten.
         $payload['unit'] = null;
+        $payload['cal_date'] = null;
+        $payload['cal_period'] = null;
     }
     // Defense in depth, for every interface: even a server-derived
     // replacement anchor must satisfy the Core-equivalent grammar before it

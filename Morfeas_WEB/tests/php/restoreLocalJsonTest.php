@@ -157,10 +157,49 @@ $r = classify_one($xmlPath4, $logCfg4, legacy_entry('_A', 'IOBOX', '2380966080.R
 check($r['result'] === 'Ready to restore', 'IOBOX row whose identifier matches a configured IOBOX handler is restorable (got ' . $r['result'] . '/' . ($r['code'] ?? '') . ')');
 
 $r = classify_one($xmlPath4, $logCfg4, legacy_entry('_A', 'IOBOX', '999999999.RX1.CH1', ['UNIT' => 'C'])); // no handler with this identifier
-check($r['result'] === 'Invalid entry' && $r['code'] === 'orphan_device_source', 'IOBOX row with no matching handler -> orphan_device_source (got ' . $r['code'] . ')');
+check(
+    $r['result'] === 'Ready to restore'
+        && (($r['warnings'][0]['code'] ?? null) === 'orphan_device_source'),
+    'IOBOX row with no matching handler remains Core-valid with orphan_device_source warning'
+);
 
 $r = classify_one($xmlPath4, $logCfg4, legacy_entry('_A', 'MTI', '2380966080.TC16.CH1', ['UNIT' => 'C'])); // identifier belongs to an IOBOX handler, not MTI
-check($r['result'] === 'Invalid entry' && $r['code'] === 'device_source_type_mismatch', 'MTI row whose identifier matches an IOBOX (not MTI) handler -> device_source_type_mismatch (got ' . $r['code'] . ')');
+check(
+    $r['result'] === 'Ready to restore'
+        && (($r['warnings'][0]['code'] ?? null) === 'device_source_type_mismatch'),
+    'MTI row whose identifier belongs to IOBOX remains Core-valid with type-mismatch warning'
+);
+
+// Local JSON and FTP Restore share the same Core-valid orphan contract:
+// warn at preflight, require acknowledgement at Commit, and never write
+// before acknowledgement.
+$orphanContent4 = json_encode([
+    legacy_entry('_Warn_Valid', 'SDAQ', '900000001.CH1'),
+    legacy_entry('_Warn_Orphan', 'IOBOX', '999999999.RX1.CH1', ['UNIT' => 'C']),
+]);
+$orphanPreflight4 = restore_preflight($xmlPath4, $logCfg4, $orphanContent4);
+check($orphanPreflight4['can_commit'] === true, 'orphan warning does not block Local JSON preflight');
+check(($orphanPreflight4['summary']['warning'] ?? 0) === 1, 'Local JSON summary counts one orphan warning');
+check(($orphanPreflight4['warnings'][0]['code'] ?? null) === 'orphan_device_source', 'Local JSON exposes orphan warning in the top-level warnings list');
+$orphanHash4 = sha1_file($xmlPath4);
+try {
+    restore_commit($xmlPath4, $logCfg4, $orphanContent4, $orphanPreflight4['digest']);
+    check(false, 'unacknowledged Local JSON orphan warning must block commit');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'restore_warnings_not_acknowledged', 'unacknowledged Local JSON warning rejects with restore_warnings_not_acknowledged (got ' . $e->apiCode() . ')');
+}
+check(sha1_file($xmlPath4) === $orphanHash4, 'unacknowledged Local JSON warning leaves XML byte-for-byte unchanged');
+$orphanCommit4 = restore_commit($xmlPath4, $logCfg4, $orphanContent4, $orphanPreflight4['digest'], true);
+check($orphanCommit4['added'] === 2, 'acknowledged Local JSON orphan warning commits the otherwise-valid batch');
+$orphanXml4 = simplexml_load_file($xmlPath4);
+$restoredSdaq4 = null;
+foreach ($orphanXml4->CHANNEL as $ch) {
+    if ((string)$ch->ISO_CHANNEL === '_Warn_Valid') { $restoredSdaq4 = $ch; }
+}
+check(
+    $restoredSdaq4 !== null && !isset($restoredSdaq4->UNIT) && !isset($restoredSdaq4->CAL_DATE) && !isset($restoredSdaq4->CAL_PERIOD),
+    'Local JSON Restore accepts legacy SDAQ metadata but strips all runtime-owned XML fields'
+);
 
 // ============================================================
 // 5) Six-way duplicate/conflict matrix against the existing config

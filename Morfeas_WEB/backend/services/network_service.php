@@ -625,15 +625,14 @@ function network_restore_payload_from_state(array $state): array
 
 function network_backup_dir(string $pendingId): string
 {
-    return '/tmp/morfeas_network_backup_' . preg_replace('/[^a-f0-9]/', '', strtolower($pendingId));
+    // The root helper, not www-data, creates this exact /run path with
+    // root:root 0700.  Do not change this to /tmp or pre-create it here:
+    // backup child paths must be outside the caller's control.
+    return '/run/morfeas_network_backup_' . preg_replace('/[^a-f0-9]/', '', strtolower($pendingId));
 }
 
 function network_prepare_cutover(string $backupDir): void
 {
-    if (!is_dir($backupDir) && !@mkdir($backupDir, 0700, true) && !is_dir($backupDir)) {
-        throw new RuntimeException('Unable to create network backup dir');
-    }
-
     $nmCan = network_nm_can_supported();
     $ifacesForCutover = [NETWORK_ETH_IFACE];
     if ($nmCan) {

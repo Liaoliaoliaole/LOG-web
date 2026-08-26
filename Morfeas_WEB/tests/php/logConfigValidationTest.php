@@ -34,6 +34,19 @@ function load_dom(string $xml): DOMDocument
     return $dom;
 }
 
+function shared_daemon_validation_cases(): array
+{
+    $path = realpath(__DIR__ . '/../../../../LOG-core/tests/fixtures/daemon_config_validation_cases.json');
+    if ($path === false) {
+        throw new RuntimeException('Shared Core/Web daemon validation fixture corpus is missing');
+    }
+    $decoded = json_decode((string)file_get_contents($path), true);
+    if (!is_array($decoded) || !array_is_list($decoded) || $decoded === []) {
+        throw new RuntimeException('Shared Core/Web daemon validation fixture corpus is invalid');
+    }
+    return $decoded;
+}
+
 function base_config(string $devName = 'Test-IOBox', string $ip = '10.193.135.20', string $devName2 = 'Test_MTI', string $ip2 = '10.193.135.28'): string
 {
     return <<<XML
@@ -409,6 +422,34 @@ try {
     check(false, 'The mixed-handler configuration passes every rule (got ' . $e->apiCode() . ': ' . $e->getMessage() . ')');
 }
 check(log_config_collect_document_warnings($dom) === [], 'The mixed-handler configuration produces no warnings');
+
+// Shared fixture corpus: Core's daemon_config_fixture_test executes these
+// same inputs against Morfeas_daemon_config_valid(). This side must stay in
+// lockstep for each documented semantic accept/reject decision.
+try {
+    $sharedCases = shared_daemon_validation_cases();
+    check(true, 'Shared Core/Web daemon validation fixture corpus is readable');
+    foreach ($sharedCases as $case) {
+        $name = (string)($case['name'] ?? 'unnamed');
+        $expected = !empty($case['accepted']);
+        $dom = load_dom((string)($case['xml'] ?? ''));
+        try {
+            log_config_validate_document($dom, $dtdDir);
+            $actual = true;
+        } catch (ChannelConfigException $e) {
+            $actual = false;
+        }
+        check($actual === $expected, "shared fixture $name is " . ($expected ? 'accepted' : 'rejected') . ' by Web validator');
+        $expectedWarnings = array_values((array)($case['web_warning_codes'] ?? []));
+        $actualWarnings = array_map(
+            static fn(array $warning): string => (string)($warning['code'] ?? ''),
+            log_config_collect_document_warnings($dom)
+        );
+        check($actualWarnings === $expectedWarnings, "shared fixture $name has the documented Web warning set");
+    }
+} catch (Throwable $e) {
+    check(false, 'Shared Core/Web daemon validation fixture corpus is usable (' . $e->getMessage() . ')');
+}
 
 echo "\n{$g_checks} checks, " . ($g_checks - $g_failures) . " passed, {$g_failures} failed\n";
 exit($g_failures === 0 ? 0 : 1);
