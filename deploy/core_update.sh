@@ -117,6 +117,12 @@ find_core_root() {
   return 1
 }
 
+# build_core_only.sh is expected to always sync/rebuild the src/sdaq-worker
+# submodule itself (both steps are no-ops when nothing changed there), so this
+# function does not need to inspect what actually changed before picking a
+# script. Do not reintroduce content-based branching here; if a future
+# submodule needs the same "only" treatment, add it to build_core_only.sh
+# instead of adding a new detection rule to this function.
 resolve_core_build_script() {
   local core_root="$1"
   local candidate
