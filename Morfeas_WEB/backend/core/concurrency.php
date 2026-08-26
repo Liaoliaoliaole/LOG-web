@@ -134,8 +134,14 @@ function backend_atomic_write_file_synced(string $path, string $contents, ?int $
             throw new RuntimeException("Unable to open temporary file for: $path");
         }
         try {
-            if (@fwrite($fp, $contents) === false) {
-                throw new RuntimeException("Unable to write temporary file for: $path");
+            $length = strlen($contents);
+            $written = 0;
+            while ($written < $length) {
+                $chunk = @fwrite($fp, substr($contents, $written));
+                if ($chunk === false || $chunk === 0) {
+                    throw new RuntimeException("Unable to write temporary file for: $path");
+                }
+                $written += $chunk;
             }
             if (!@fflush($fp) || !@fsync($fp)) {
                 throw new RuntimeException("Unable to fsync temporary file for: $path");

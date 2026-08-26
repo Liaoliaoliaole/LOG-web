@@ -498,7 +498,10 @@ function ftp_backup_run_backup(): array
     $config = ftp_backup_load_config_raw();
     $timestamp = date('Ymd_His');
     $filename = sprintf('%s_%s_%s.mbl', $config['dir'], $config['log'], $timestamp);
-    $localFile = '/tmp/' . $filename;
+    $localFile = @tempnam(sys_get_temp_dir(), 'morfeas_ftp_backup_');
+    if (!is_string($localFile) || $localFile === '') {
+        throw new RuntimeException('Failed to allocate local backup temp file', 500);
+    }
 
     $payload = ftp_backup_create_bundle_payload();
     if (@file_put_contents($localFile, $payload, LOCK_EX) === false) {
@@ -626,19 +629,16 @@ function ftp_backup_validate_bundle_candidates(string $opcUa, string $morfeas, s
         $opcUaErrors[] = ['code' => $e->apiCode(), 'message' => $e->getMessage()];
     }
 
-    $morfeasErrors = [];
     $dom = new DOMDocument('1.0');
     libxml_use_internal_errors(true);
     $loaded = $dom->loadXML($morfeas);
     libxml_clear_errors();
     if (!$loaded) {
-        $morfeasErrors[] = ['code' => 'invalid_document_structure', 'message' => 'Morfeas_Config.xml is not well-formed XML'];
+        $morfeasErrors = [['code' => 'invalid_document_structure', 'message' => 'Morfeas_Config.xml is not well-formed XML']];
     } else {
-        try {
-            log_config_validate_document($dom, $dtdDir);
-        } catch (ChannelConfigException $e) {
-            $morfeasErrors[] = ['code' => $e->apiCode(), 'message' => $e->getMessage()];
-        }
+        // Report every violation in this candidate, not just the first one
+        // (F-20 / plan §6.1: preflight must not stop at the first error).
+        $morfeasErrors = log_config_collect_document_errors($dom, $dtdDir);
     }
 
     // Warnings are useful only after both files pass hard validation.
@@ -706,7 +706,11 @@ function ftp_backup_download_raw(array $config, string $filename): string
     }
 
     $conn = ftp_backup_open_connection($config);
-    $localFile = '/tmp/' . $filename;
+    $localFile = @tempnam(sys_get_temp_dir(), 'morfeas_ftp_restore_');
+    if (!is_string($localFile) || $localFile === '') {
+        @ftp_close($conn);
+        throw new RuntimeException('Failed to allocate local restore temp file', 500);
+    }
 
     try {
         ftp_backup_ensure_remote_dir($conn, $config['dir']);
@@ -748,7 +752,14 @@ function ftp_backup_restore_preflight(string $filename, string $dtdDir): array
     ]);
 }
 
-/* Re-download and revalidate the reviewed bytes under the shared lock order. */
+/*
+ * Re-download and revalidate the reviewed bytes, then apply them. The
+ * download and validation below do not touch local config state; only the
+ * final ftp_backup_apply_ordered_replace() call needs the shared config
+ * locks, so it is the only part that acquires them. Holding both locks for
+ * the FTP network round-trip would block every unrelated Add/Edit/Device
+ * request for as long as the remote server takes to respond.
+ */
 function ftp_backup_restore_commit(
     string $filename,
     string $expectedDigest,
@@ -759,50 +770,50 @@ function ftp_backup_restore_commit(
     ?callable $downloadRaw = null
 ): array
 {
-    return log_config_with_xml_lock($logConfigPath, function () use ($filename, $expectedDigest, $xmlPath, $logConfigPath, $dtdDir, $acknowledgeWarnings, $downloadRaw) {
-        return iso_with_xml_lock($xmlPath, function () use ($filename, $expectedDigest, $xmlPath, $logConfigPath, $dtdDir, $acknowledgeWarnings, $downloadRaw) {
-            if ($downloadRaw !== null) {
-                $raw = $downloadRaw($filename);
-                if (!is_string($raw) || $raw === '') {
-                    throw new RuntimeException('Restore download returned empty or unreadable content', 500);
-                }
-            } else {
-                $config = ftp_backup_load_config_raw();
-                $raw = ftp_backup_download_raw($config, $filename);
-            }
+    if ($downloadRaw !== null) {
+        $raw = $downloadRaw($filename);
+        if (!is_string($raw) || $raw === '') {
+            throw new RuntimeException('Restore download returned empty or unreadable content', 500);
+        }
+    } else {
+        $config = ftp_backup_load_config_raw();
+        $raw = ftp_backup_download_raw($config, $filename);
+    }
 
-            $actualDigest = ftp_backup_restore_digest($filename, $raw);
-            if (!hash_equals($actualDigest, $expectedDigest)) {
-                throw new ChannelConfigException(
-                    'The backup file on the FTP server changed since this was reviewed; please re-run the preflight check',
-                    409,
-                    'ftp_restore_candidate_changed'
-                );
-            }
+    $actualDigest = ftp_backup_restore_digest($filename, $raw);
+    if (!hash_equals($actualDigest, $expectedDigest)) {
+        throw new ChannelConfigException(
+            'The backup file on the FTP server changed since this was reviewed; please re-run the preflight check',
+            409,
+            'ftp_restore_candidate_changed'
+        );
+    }
 
-            $bundle = ftp_backup_decode_bundle($raw);
-            $report = ftp_backup_validate_bundle_candidates($bundle['opc_ua'], $bundle['morfeas'], $dtdDir);
-            if (!$report['can_commit']) {
-                $firstError = $report['opc_ua']['errors'][0] ?? $report['morfeas']['errors'][0] ?? null;
-                throw new ChannelConfigException(
-                    'Backup candidate failed validation: ' . ($firstError['message'] ?? 'unknown error'),
-                    409,
-                    $firstError['code'] ?? 'invalid_document_structure'
-                );
-            }
+    $bundle = ftp_backup_decode_bundle($raw);
+    $report = ftp_backup_validate_bundle_candidates($bundle['opc_ua'], $bundle['morfeas'], $dtdDir);
+    if (!$report['can_commit']) {
+        $firstError = $report['opc_ua']['errors'][0] ?? $report['morfeas']['errors'][0] ?? null;
+        throw new ChannelConfigException(
+            'Backup candidate failed validation: ' . ($firstError['message'] ?? 'unknown error'),
+            409,
+            $firstError['code'] ?? 'invalid_document_structure'
+        );
+    }
 
-            // Core-valid warnings require explicit acknowledgement from every caller.
-            if (!empty($report['warnings']) && !$acknowledgeWarnings) {
-                $count = count($report['warnings']);
-                $first = $report['warnings'][0]['message'] ?? '';
-                throw new ChannelConfigException(
-                    "This backup has $count warning(s) that must be acknowledged before restoring. First: $first"
-                        . ' Re-submit with acknowledge_warnings=true to proceed.',
-                    409,
-                    'ftp_restore_warnings_not_acknowledged'
-                );
-            }
+    // Core-valid warnings require explicit acknowledgement from every caller.
+    if (!empty($report['warnings']) && !$acknowledgeWarnings) {
+        $count = count($report['warnings']);
+        $first = $report['warnings'][0]['message'] ?? '';
+        throw new ChannelConfigException(
+            "This backup has $count warning(s) that must be acknowledged before restoring. First: $first"
+                . ' Re-submit with acknowledge_warnings=true to proceed.',
+            409,
+            'ftp_restore_warnings_not_acknowledged'
+        );
+    }
 
+    return log_config_with_xml_lock($logConfigPath, function () use ($bundle, $xmlPath, $logConfigPath, $filename) {
+        return iso_with_xml_lock($xmlPath, function () use ($bundle, $xmlPath, $logConfigPath, $filename) {
             ftp_backup_apply_ordered_replace($bundle['opc_ua'], $bundle['morfeas'], $xmlPath, $logConfigPath);
 
             @touch(ftp_backup_config_file());

@@ -8,6 +8,21 @@ require_once __DIR__ . '/opcua_config.php'; // ChannelConfigException
  * Web-only rules. Runtime hardware state is intentionally out of scope.
  */
 
+/*
+ * Either throws immediately (the default, used by every single-item Add/Edit/
+ * Device write, which should fail fast on the first problem) or, when the
+ * caller passes a live $errors accumulator, appends and lets the caller keep
+ * scanning so a preflight can report every violation in one pass instead of
+ * stopping at the first one (see log_config_collect_document_errors()).
+ */
+function log_config_report_error(?array &$errors, string $message, int $httpCode, string $code): void
+{
+    if ($errors === null) {
+        throw new ChannelConfigException($message, $httpCode, $code);
+    }
+    $errors[] = ['code' => $code, 'message' => $message];
+}
+
 /* Validate in-memory candidates against the installed DTD; libxml state is global. */
 function log_config_install_dtd_entity_loader(string $dtdDir): void
 {
@@ -169,7 +184,7 @@ function log_config_component_nodes(DOMDocument $dom): array
 }
 
 /* DTD permits any Disable text; Core accepts only literal true or false. */
-function log_config_validate_disable_attributes(DOMDocument $dom): void
+function log_config_validate_disable_attributes(DOMDocument $dom, ?array &$errors = null): void
 {
     foreach (log_config_component_nodes($dom) as $node) {
         if (!$node->hasAttribute('Disable')) {
@@ -177,7 +192,8 @@ function log_config_validate_disable_attributes(DOMDocument $dom): void
         }
         $value = $node->getAttribute('Disable');
         if ($value !== 'true' && $value !== 'false') {
-            throw new ChannelConfigException(
+            log_config_report_error(
+                $errors,
                 'Attribute Disable="' . $value . '" on ' . $node->nodeName
                     . ' is out of range (must be exactly "true" or "false")',
                 409,
@@ -191,7 +207,7 @@ function log_config_validate_disable_attributes(DOMDocument $dom): void
  * Core has three distinct raw, case-sensitive CANBUS_IF duplicate passes:
  * SDAQ-only, NOX-only, then all enabled handlers.
  */
-function log_config_validate_can_bus_usage(DOMDocument $dom): void
+function log_config_validate_can_bus_usage(DOMDocument $dom, ?array &$errors = null): void
 {
     $nodes = log_config_component_nodes($dom);
     $count = count($nodes);
@@ -210,7 +226,8 @@ function log_config_validate_can_bus_usage(DOMDocument $dom): void
                     continue;
                 }
                 if (log_config_child_text($nodes[$j], 'CANBUS_IF') === $bus) {
-                    throw new ChannelConfigException(
+                    log_config_report_error(
+                        $errors,
                         "CANBUS_IF \"$bus\" is used by more than one $tag",
                         409,
                         'duplicate_can_bus'
@@ -233,7 +250,8 @@ function log_config_validate_can_bus_usage(DOMDocument $dom): void
                 continue;
             }
             if (log_config_child_text($nodes[$j], 'CANBUS_IF') === $bus) {
-                throw new ChannelConfigException(
+                log_config_report_error(
+                    $errors,
                     "CANBUS_IF \"$bus\" is used by multiple enabled handlers ("
                         . $nodes[$i]->nodeName . ' and ' . $nodes[$j]->nodeName . ')',
                     409,
@@ -245,7 +263,7 @@ function log_config_validate_can_bus_usage(DOMDocument $dom): void
 }
 
 /* Core validates MDAQ/IOBOX/MTI handler IP and name as raw text. */
-function log_config_validate_ip_handlers(DOMDocument $dom): void
+function log_config_validate_ip_handlers(DOMDocument $dom, ?array &$errors = null): void
 {
     $ipTags = ['MDAQ_HANDLER' => true, 'IOBOX_HANDLER' => true, 'MTI_HANDLER' => true];
     $nodes = log_config_component_nodes($dom);
@@ -260,7 +278,8 @@ function log_config_validate_ip_handlers(DOMDocument $dom): void
         $name = (string)log_config_child_text($nodes[$i], 'DEV_NAME');
 
         if (!log_config_ipv4_is_valid($ip)) {
-            throw new ChannelConfigException(
+            log_config_report_error(
+                $errors,
                 'IPv4_ADDR is not a valid IPv4 address: ' . ($ip === '' ? '(empty)' : $ip),
                 409,
                 'invalid_device_ipv4'
@@ -269,14 +288,16 @@ function log_config_validate_ip_handlers(DOMDocument $dom): void
 
         $illegal = log_config_dev_name_illegal_char($name);
         if ($illegal !== null) {
-            throw new ChannelConfigException(
+            log_config_report_error(
+                $errors,
                 "DEV_NAME contains an illegal character ($illegal): $name",
                 409,
                 'invalid_device_name'
             );
         }
         if (log_config_dev_name_is_too_long($name)) {
-            throw new ChannelConfigException(
+            log_config_report_error(
+                $errors,
                 "DEV_NAME is too long (> $maxNameLen bytes): $name",
                 409,
                 'invalid_device_name'
@@ -288,10 +309,10 @@ function log_config_validate_ip_handlers(DOMDocument $dom): void
                 continue;
             }
             if ((string)log_config_child_text($nodes[$j], 'IPv4_ADDR') === $ip) {
-                throw new ChannelConfigException("Duplicate device IPv4_ADDR: $ip", 409, 'duplicate_device_ipv4');
+                log_config_report_error($errors, "Duplicate device IPv4_ADDR: $ip", 409, 'duplicate_device_ipv4');
             }
             if ((string)log_config_child_text($nodes[$j], 'DEV_NAME') === $name) {
-                throw new ChannelConfigException("Duplicate device DEV_NAME: $name", 409, 'duplicate_device_name');
+                log_config_report_error($errors, "Duplicate device DEV_NAME: $name", 409, 'duplicate_device_name');
             }
         }
     }
@@ -324,9 +345,26 @@ function log_config_collect_document_warnings(DOMDocument $dom): array
     return $warnings;
 }
 
-function log_config_validate_document(DOMDocument $dom, string $dtdDir): void
+/*
+ * Runs every semantic rule and returns all violations found, instead of
+ * stopping at the first one (see log_config_report_error()). FTP Restore
+ * preflight uses this directly so a candidate with several unrelated
+ * problems can be fixed in one round trip instead of one submit-and-retry
+ * per violation (plan §6.1: preflight "must report every problem in one
+ * pass, not exit at the first error"). DTD/root-element/DOCTYPE structure is
+ * kept as a single all-or-nothing entry: those checks are prerequisites for
+ * every check that follows (they gate whether the document is even shaped
+ * like a CONFIG document), not independent violations to enumerate.
+ */
+function log_config_collect_document_errors(DOMDocument $dom, string $dtdDir): array
 {
-    log_config_validate_dtd_structure($dom, $dtdDir, 'CONFIG', 'Morfeas_Config.xml');
+    $errors = [];
+
+    try {
+        log_config_validate_dtd_structure($dom, $dtdDir, 'CONFIG', 'Morfeas_Config.xml');
+    } catch (ChannelConfigException $e) {
+        $errors[] = ['code' => $e->apiCode(), 'message' => $e->getMessage()];
+    }
 
     // Core's scaning_XML_nodes_for_empty() (Morfeas_XML.c:71) returns the
     // first element that has NO child nodes at all; DTD validation cannot
@@ -345,15 +383,14 @@ function log_config_validate_document(DOMDocument $dom, string $dtdDir): void
     foreach ($xpath->query('//*[not(*)]') as $leaf) {
         /** @var DOMElement $leaf */
         if (trim($leaf->textContent) === '') {
-            throw new ChannelConfigException(
-                'Morfeas_Config.xml element ' . $leaf->nodeName . ' must not be empty',
-                409,
-                'empty_element'
-            );
+            $errors[] = [
+                'code' => 'empty_element',
+                'message' => 'Morfeas_Config.xml element ' . $leaf->nodeName . ' must not be empty',
+            ];
         }
     }
 
-    log_config_validate_disable_attributes($dom);
+    log_config_validate_disable_attributes($dom, $errors);
 
     // Core rejects an APP_NAME containing a space (Morfeas_XML.c:1037),
     // using strstr() on the raw content -- so, as everywhere else in this
@@ -366,15 +403,25 @@ function log_config_validate_document(DOMDocument $dom, string $dtdDir): void
             }
             $appName = (string)log_config_child_text($child, 'APP_NAME');
             if (strpos($appName, ' ') !== false) {
-                throw new ChannelConfigException(
-                    'APP_NAME must not contain whitespace: ' . $appName,
-                    409,
-                    'invalid_app_name'
-                );
+                $errors[] = [
+                    'code' => 'invalid_app_name',
+                    'message' => 'APP_NAME must not contain whitespace: ' . $appName,
+                ];
             }
         }
     }
 
-    log_config_validate_can_bus_usage($dom);
-    log_config_validate_ip_handlers($dom);
+    log_config_validate_can_bus_usage($dom, $errors);
+    log_config_validate_ip_handlers($dom, $errors);
+
+    return $errors;
+}
+
+/* Single-item write paths (Add/Edit/Device): fail fast on the first violation. */
+function log_config_validate_document(DOMDocument $dom, string $dtdDir): void
+{
+    $errors = log_config_collect_document_errors($dom, $dtdDir);
+    if ($errors !== []) {
+        throw new ChannelConfigException($errors[0]['message'], 409, $errors[0]['code']);
+    }
 }
