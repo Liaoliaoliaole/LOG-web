@@ -63,6 +63,7 @@ Common checks:
 php -l Morfeas_WEB/backend/api_channels.php
 php -l Morfeas_WEB/backend/api_calibration.php
 node -e "const fs=require('fs'); new Function(fs.readFileSync('Morfeas_WEB/assets/index.js','utf8')); console.log('ok');"
+bash Morfeas_WEB/tests/run_tests.sh
 make -C Morfeas_WEB/docs/manual
 ```
 
@@ -96,5 +97,9 @@ Morfeas_WEB/index.html
 
 - Production paths for configuration, ramdisk, and ISO standards are defined in `Morfeas_WEB/backend/core/paths.php`.
 - Deploy `Morfeas.dtd` beside `/home/morfeas/configuration/OPC_UA_Config.xml`. Every channel mutation and FTP Restore validates the exact final XML bytes against this DTD and fails closed with `channel_config_validation_unavailable` if the file is missing or unreadable. Do not replace it with an empty or locally improvised DTD.
+- SDAQ `UNIT`, `CAL_DATE`, and `CAL_PERIOD` are runtime-owned. Add/Edit reject them for SDAQ, while Replace and Local JSON Restore remove historical copies. Non-SDAQ channels retain their XML-owned metadata.
+- Local JSON and FTP Restore report Core-valid orphan/device-type findings as warnings. They require explicit acknowledgement before commit; a hard validation error or an unacknowledged warning writes nothing.
+- SDAQ-I/U Scale creates a two-point nominal range table. It may replace an active table only after explicit confirmation, always sets `Calibration_Period=0`, and therefore does not enter the Next Calibration schedule. Use the Calibration editor for a traceable recalibration interval.
+- System Update's normal core path synchronizes and builds the pinned `src/sdaq-worker` submodule as well as LOG core.
 - The end-user manual PDF is generated from `Morfeas_WEB/docs/manual/`.
 - Detailed application structure and backend notes are in `Morfeas_WEB/README.md`.

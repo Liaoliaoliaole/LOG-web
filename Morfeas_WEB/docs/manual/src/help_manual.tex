@@ -803,6 +803,8 @@ Scale is available only for \textbf{SDAQ-I} and \textbf{SDAQ-U} rows.
 
 The scale popup writes a new two-point calibration table into the selected SDAQ channel calibration data. Scale is itself a calibration operation, not a display-only scaling shortcut. If the channel already has an active point table, LOG WEB shows the existing point count and requires confirmation before replacing it. The new table receives today's calibration date and a re-calibration period of zero; it never inherits the previous table's date, period, or coefficients.
 
+\textbf{Scale is nominal range setting, not a traceable recalibration.} It applies the sensor's declared transfer function (for example, 4--20 mA to an engineering range) and does not use a reference standard. Therefore its fixed period of zero means the channel does \textbf{not} appear in the Next Calibration schedule. If the channel requires a traceable calibration interval, use the full Calibration workflow with a reference standard instead of Scale.
+
 Scale may be performed again later. Each confirmed Save is a new calibration and replaces the previously active table with the newly entered two-point table. Save the Scale before choosing \textbf{Continue in Calibration}; that button opens the full editor for a subsequent calibration and does not transfer unsaved Scale fields.
 
 \subsection{Calibration}
@@ -964,7 +966,7 @@ The entire Local JSON import was rejected and no rows were written. Correct or r
 If preflight reports only warnings, read them before continuing. The file remains eligible to commit, but LOG WEB requires explicit confirmation. Cancelling or submitting without warning acknowledgement writes nothing.
 
 \subsection{Scale Reports an Existing Calibration}
-This is informational, not a permanent block. Scale is a new two-point calibration. Review the current active point count and the replacement warning, then confirm only if the old point table should be replaced. The new Scale receives today's date and period zero. Choosing \textbf{Continue in Calibration} opens the full editor for another calibration; it does not save unsaved Scale entries.
+This is informational, not a permanent block. Scale is a new two-point calibration. Review the current active point count and the replacement warning, then confirm only if the old point table should be replaced. The new Scale receives today's date and period zero. It is a nominal range setting and will not appear in the Next Calibration schedule. Choosing \textbf{Continue in Calibration} opens the full editor for another calibration; it does not save unsaved Scale entries.
 
 \subsection{SDAQ Calibration Readback or Output Is Abnormal}
 Stop using the affected channel for measurement and preserve the table/readback evidence; do not attempt rapid repeated writes. Power-cycle only the affected SDAQ, wait for the same serial/channel to return, then read and check the table and output again. Escalate the device for investigation if the values do not recover or the condition returns.

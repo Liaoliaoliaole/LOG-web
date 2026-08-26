@@ -18,7 +18,8 @@ Morfeas_WEB/
 │  │  └─ systemUpdate.js
 │  ├─ services/          # Shared data helpers
 │  │  ├─ isoCatalog.js   # ISO standard XML loader + localStorage persistence
-│  │  └─ searchPool.js   # Channel search index builder
+│  │  ├─ searchPool.js   # Channel search index builder
+│  │  └─ sdaqCalibrationRules.js # Shared float32/calibration validation rules
 │  └─ ui/
 │     └─ systemStatusFormatter.js  # Ticker + status value formatters
 ├─ backend/              # PHP API endpoints and supporting layers
@@ -58,7 +59,7 @@ Morfeas_WEB/
 │  └─ help_manual.pdf    # End-user help manual
 ├─ index.html            # ISO Channels Linker (main page)
 ├─ linker-table/         # Popups opened from the channel table
-│  ├─ calibration.html / calibration.js    # Manual SDAQ calibration editor (legacy-style save semantics)
+│  ├─ calibration.html / calibration.js    # SDAQ point-table calibration editor
 │  ├─ edit_channel.html / editCh.js        # ISO channel edit popup
 │  ├─ sdaq_scale.html / sdaq_scale.js      # Separate SDAQ-I/U scale popup (2-point auto-coefficient flow)
 │  └─ replace_tc16.html / replace_tc16.js # TC16 bulk SDAQ replacement popup
@@ -75,3 +76,11 @@ Morfeas_WEB/
    ├─ device_search.html / device_search.js  # Device anchor search popup
    └─ import_channel.html           # Channel import (JSON) popup
 ```
+
+## Current SDAQ and Restore Contracts
+
+- SDAQ `UNIT`, `CAL_DATE`, and `CAL_PERIOD` are runtime-owned: Add/Edit reject client-supplied values, and Replace/Local JSON Restore remove historical XML copies. They remain editable for non-SDAQ interfaces.
+- Local JSON Restore is a channel merge; FTP Restore is a full two-file replacement. Both surface Core-valid orphan/type findings as warnings and require `acknowledge_warnings=true` at commit. A warning does not make `can_commit` false; an unacknowledged commit is zero-write.
+- SDAQ-I/U Scale is a two-point nominal range calibration. It can replace an existing table only after UI confirmation and the matching API acknowledgement. Every Scale starts a new table with today's date and period `0`; it is not a traceable recalibration and is not listed in Next Calibration.
+- Independent SDAQ date/period-only writes are intentionally unsupported. A Calibration save must change the active point table, point count, or unit after float32 comparison.
+- The end-user operating instructions are maintained in `docs/manual/src/help_manual.tex`; build the delivered PDF with `make -C docs/manual`.
