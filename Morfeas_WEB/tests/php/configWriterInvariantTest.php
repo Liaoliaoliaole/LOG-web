@@ -136,8 +136,12 @@ check(
     'The normal OPC UA sink retains its exact-final-bytes validation call'
 );
 check(
-    substr_count($ftpWriter, 'iso_validate_final_xml_bytes($opcUa, $dtdDir, true);') === 1,
-    'The FTP candidate validator retains its exact-final-bytes validation call'
+    substr_count($ftpWriter, 'iso_validate_final_xml_structure($opcUa, $dtdDir, true);') === 1,
+    'The FTP candidate validator retains its exact-final-bytes structural gate call'
+);
+check(
+    substr_count($ftpWriter, 'iso_collect_document_errors($xml);') === 1,
+    'The FTP candidate validator retains its collect-all semantic validation call (P3: reports every violation, not just the first)'
 );
 $ftpCommit = substr($ftpWriter, (int)strpos($ftpWriter, 'function ftp_backup_restore_commit('));
 $ftpValidation = strpos($ftpCommit, '$report = ftp_backup_validate_bundle_candidates(');

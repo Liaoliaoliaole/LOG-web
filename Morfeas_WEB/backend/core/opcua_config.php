@@ -60,11 +60,33 @@ function iso_load_channels(string $xmlPath): array
 }
 
 /*
+ * Report one violation. In fail-fast mode ($errors === null, used by every
+ * single-item write path -- Add/Edit/Replace) this throws immediately with
+ * the caller's own HTTP status, same as before. In collect-all mode
+ * (an array is passed, used by iso_collect_document_errors() below for FTP
+ * Restore's whole-document preflight) it appends and keeps going, so a
+ * candidate with several unrelated problems can be fixed in one round trip
+ * instead of one submit-and-retry per violation -- mirroring
+ * log_config_report_error()'s same two-mode shape exactly, so the two
+ * validators do not drift into different reporting behavior.
+ */
+function iso_report_error(?array &$errors, string $message, int $httpCode, string $code): void
+{
+    if ($errors === null) {
+        throw new ChannelConfigException($message, $httpCode, $code);
+    }
+    $errors[] = ['code' => $code, 'message' => $message];
+}
+
+/*
  * Whole-document semantic gate matching Core's OPC UA configuration rules.
  * It intentionally rechecks identity grammar and duplicates across the
- * final document instead of trusting individual writer paths.
+ * final document instead of trusting individual writer paths. Walks every
+ * CHANNEL and returns every violation found, instead of stopping at the
+ * first one. See iso_report_error()'s docblock for why this exists and how
+ * it composes with fail-fast callers.
  */
-function iso_validate_document(SimpleXMLElement $xml): void
+function iso_collect_document_errors(SimpleXMLElement $xml, ?array &$errors = []): array
 {
     $dtdOrder = ['ISO_CHANNEL', 'INTERFACE_TYPE', 'ANCHOR', 'DESCRIPTION', 'MIN', 'MAX',
         'UNIT', 'CAL_DATE', 'CAL_PERIOD', 'BUILD_DATE', 'MOD_DATE',
@@ -86,7 +108,8 @@ function iso_validate_document(SimpleXMLElement $xml): void
         // No element name outside the DTD's CHANNEL content model.
         foreach ($childNames as $name) {
             if (!isset($orderIndex[$name])) {
-                throw new ChannelConfigException(
+                iso_report_error(
+                    $errors,
                     "CHANNEL \"$isoForError\" contains an element not in Morfeas.dtd: $name",
                     500,
                     'invalid_document_structure'
@@ -96,7 +119,8 @@ function iso_validate_document(SimpleXMLElement $xml): void
         // The six required elements must all be present.
         foreach ($requiredElements as $name) {
             if (!in_array($name, $childNames, true)) {
-                throw new ChannelConfigException(
+                iso_report_error(
+                    $errors,
                     "CHANNEL \"$isoForError\" is missing required element: $name",
                     500,
                     'invalid_document_structure'
@@ -107,7 +131,8 @@ function iso_validate_document(SimpleXMLElement $xml): void
         $lastIdx = -1;
         foreach ($childNames as $name) {
             if ($orderIndex[$name] < $lastIdx) {
-                throw new ChannelConfigException(
+                iso_report_error(
+                    $errors,
                     "CHANNEL \"$isoForError\" has elements out of Morfeas.dtd order (at $name)",
                     500,
                     'invalid_document_structure'
@@ -121,7 +146,8 @@ function iso_validate_document(SimpleXMLElement $xml): void
         // element that is present but empty is just as fatal to Core).
         foreach ($ch->children() as $child) {
             if (trim((string)$child) === '') {
-                throw new ChannelConfigException(
+                iso_report_error(
+                    $errors,
                     "CHANNEL \"$isoForError\" element " . $child->getName() . " must not be empty",
                     409,
                     'empty_element'
@@ -139,7 +165,8 @@ function iso_validate_document(SimpleXMLElement $xml): void
         $anchor = (string)$ch->ANCHOR;
 
         if ($isoChannel !== trim($isoChannel)) {
-            throw new ChannelConfigException(
+            iso_report_error(
+                $errors,
                 'ISO_CHANNEL must not contain leading or trailing whitespace',
                 409,
                 'invalid_iso_channel'
@@ -148,7 +175,8 @@ function iso_validate_document(SimpleXMLElement $xml): void
 
         // Check ISO_CHANNEL as stored, including the leading underscore.
         if (strlen($isoChannel) >= 20) { // ISO_channel_name_size
-            throw new ChannelConfigException(
+            iso_report_error(
+                $errors,
                 "ISO_CHANNEL is too long (>= 20 bytes): $isoChannel",
                 409,
                 'invalid_iso_channel'
@@ -156,26 +184,39 @@ function iso_validate_document(SimpleXMLElement $xml): void
         }
         // ISO_CHANNEL must not contain '.'.
         if (strpos($isoChannel, '.') !== false) {
-            throw new ChannelConfigException(
+            iso_report_error(
+                $errors,
                 "ISO_CHANNEL contains an illegal '.': $isoChannel",
                 409,
                 'invalid_iso_channel'
             );
         }
 
-        // MDAQ is intentionally absent because its channel implementation is retired.
+        // MDAQ is intentionally absent because its channel implementation is
+        // retired. An unsupported INTERFACE_TYPE stops here: whether UNIT is
+        // required, what grammar ANCHOR must satisfy, and what counts as a
+        // duplicate source are all rules that depend on knowing which
+        // device this is. None of them can be meaningfully evaluated
+        // against a type Core does not recognize, so this row contributes
+        // nothing else -- not even its ISO_CHANNEL -- to the checks below.
         if (!in_array($interfaceType, $knownInterfaces, true)) {
-            throw new ChannelConfigException(
+            iso_report_error(
+                $errors,
                 "CHANNEL \"$isoChannel\" has an unsupported INTERFACE_TYPE: $interfaceType",
                 409,
                 'unsupported_interface'
             );
+            continue;
         }
 
         // ANCHOR must satisfy the interface's strict full-string grammar.
+        // A failure here does not skip the checks below: UNIT and
+        // ISO_CHANNEL-uniqueness do not depend on a parsed identity, and
+        // only duplicate_source (further down) genuinely needs one.
         $identity = iso_parse_source_identity($interfaceType, $anchor);
         if ($identity === null) {
-            throw new ChannelConfigException(
+            iso_report_error(
+                $errors,
                 "CHANNEL \"$isoChannel\" has an invalid ANCHOR for interface $interfaceType: $anchor",
                 409,
                 'invalid_anchor'
@@ -183,18 +224,23 @@ function iso_validate_document(SimpleXMLElement $xml): void
         }
 
         // IOBOX/MTI/NOX must carry a non-empty XML-owned Unit; SDAQ's
-        // Unit is runtime-owned and not read from XML.
+        // Unit is runtime-owned and not read from XML. Independent of
+        // whether the ANCHOR parsed, so it is checked regardless.
         if ($interfaceType !== 'SDAQ' && trim((string)$ch->UNIT) === '') {
-            throw new ChannelConfigException(
+            iso_report_error(
+                $errors,
                 "CHANNEL \"$isoChannel\" ($interfaceType) is missing a non-empty UNIT",
                 409,
                 'missing_required_unit'
             );
         }
 
-        // ISO_CHANNEL must be unique across the document.
+        // ISO_CHANNEL must be unique across the document. Also independent
+        // of ANCHOR parsing -- a duplicate name is a real, separate problem
+        // even on a row whose ANCHOR is also broken.
         if (isset($seenIso[$isoChannel])) {
-            throw new ChannelConfigException(
+            iso_report_error(
+                $errors,
                 "ISO_CHANNEL \"$isoChannel\" appears more than once",
                 409,
                 'channel_conflict'
@@ -202,33 +248,56 @@ function iso_validate_document(SimpleXMLElement $xml): void
         }
         $seenIso[$isoChannel] = true;
 
-        // The parsed source identity must be unique across the
-        // document, per interface (compared on decoded fields, never on
-        // raw ANCHOR text -- iso_parse_source_identity()'s semantic_key
-        // already encodes the interface, so cross-interface collisions
-        // cannot occur here by construction).
-        $key = $identity['semantic_key'];
-        if (isset($seenSemanticKey[$key])) {
-            throw new ChannelConfigException(
-                "ANCHOR \"$anchor\" of ISO_CHANNEL \"$isoChannel\" duplicates the source already used by ISO_CHANNEL \"{$seenSemanticKey[$key]}\"",
-                409,
-                'duplicate_source'
-            );
+        // The parsed source identity must be unique across the document,
+        // per interface (compared on decoded fields, never on raw ANCHOR
+        // text -- iso_parse_source_identity()'s semantic_key already
+        // encodes the interface, so cross-interface collisions cannot
+        // occur here by construction). Unlike the two checks above, this
+        // one genuinely cannot run without a successfully parsed identity.
+        if ($identity !== null) {
+            $key = $identity['semantic_key'];
+            if (isset($seenSemanticKey[$key])) {
+                iso_report_error(
+                    $errors,
+                    "ANCHOR \"$anchor\" of ISO_CHANNEL \"$isoChannel\" duplicates the source already used by ISO_CHANNEL \"{$seenSemanticKey[$key]}\"",
+                    409,
+                    'duplicate_source'
+                );
+            }
+            $seenSemanticKey[$key] = $isoChannel;
         }
-        $seenSemanticKey[$key] = $isoChannel;
     }
 
     // DTD validation already makes the Core aggregate "no identity fields"
     // failure unreachable for a non-empty document; Core accepts an empty
     // NODESet.
+
+    // In fail-fast mode ($errors passed as null), any violation above has
+    // already thrown; reaching here means there were none, so $errors is
+    // still null and this coalesces it to satisfy the return type -- the
+    // fail-fast caller (iso_validate_document()) never looks at it anyway.
+    return $errors ?? [];
+}
+
+/* Single-item write paths (Add/Edit/Replace): fail fast on the first violation. */
+function iso_validate_document(SimpleXMLElement $xml): void
+{
+    $errors = null;
+    iso_collect_document_errors($xml, $errors);
 }
 
 /*
- * Validate the exact bytes that are about to be written. Object-level
- * validation alone cannot detect a serializer or post-processing bug that
- * changes valid data after the check.
+ * Structural half of validating the exact bytes about to be written:
+ * well-formed XML, correct root element, matching DOCTYPE, DTD validation,
+ * and no stray top-level element. All-or-nothing by nature (a document that
+ * is not well-formed has no CHANNELs to enumerate violations across), so
+ * unlike iso_collect_document_errors() this always throws on the first
+ * problem -- mirroring log_config_validate_dtd_structure()'s equivalent
+ * treatment of the Morfeas_Config.xml side, called the same way from inside
+ * a try/catch by callers (like ftp_backup_validate_bundle_candidates())
+ * that want the semantic errors below it collected instead of thrown.
  */
-function iso_validate_final_xml_bytes(
+function iso_validate_final_xml_structure(
     string $xmlBytes,
     ?string $dtdDir = null,
     bool $requireDtd = false
@@ -325,6 +394,24 @@ function iso_validate_final_xml_bytes(
             'channel_config_parse_failed'
         );
     }
+    return $xml;
+}
+
+/*
+ * Full exact-bytes gate for single-item write paths (Add/Edit/Replace):
+ * structure, then fail fast on the first semantic violation. FTP Restore's
+ * whole-document preflight does NOT call this -- it calls
+ * iso_validate_final_xml_structure() directly and then
+ * iso_collect_document_errors(), so a candidate with several unrelated
+ * problems is reported all at once instead of one submit-and-retry per
+ * violation.
+ */
+function iso_validate_final_xml_bytes(
+    string $xmlBytes,
+    ?string $dtdDir = null,
+    bool $requireDtd = false
+): SimpleXMLElement {
+    $xml = iso_validate_final_xml_structure($xmlBytes, $dtdDir, $requireDtd);
     iso_validate_document($xml);
     return $xml;
 }

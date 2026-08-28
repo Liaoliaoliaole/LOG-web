@@ -134,23 +134,58 @@ function backend_session_registry_get_lock(string $resourceType, string $resourc
     });
 }
 
+/*
+ * $blockedByTypes/$blockedByPredicate (optionally narrowed further, same
+ * shape as backend_session_registry_first_active_lock()'s own params): if
+ * any active lock of one of these types matches, acquisition fails with
+ * 'blocked_by' set to that lock instead of proceeding -- checked in the
+ * SAME critical section as the acquire itself, so a caller wanting "acquire
+ * X unless Y is active" never has a window between checking for Y and
+ * acquiring X where another request could slip in and acquire Y.
+ *
+ * $exclusive: when true, an existing unexpired lock blocks acquisition even
+ * if it is owned by this same $sessionId. The default (false) treats the
+ * same session as already owning the lock and lets it re-acquire/renew --
+ * correct for a single long-lived edit session renewing its own lock, but
+ * wrong for a one-shot operation like Restore, where two independent tabs
+ * of the same browser share one session id and must not both succeed.
+ */
 function backend_session_registry_acquire_lock(
     string $resourceType,
     string $resourceId,
     string $sessionId,
     int $ttlSec,
     string $mode = 'edit',
-    array $meta = []
+    array $meta = [],
+    array $blockedByTypes = [],
+    ?callable $blockedByPredicate = null,
+    bool $exclusive = false
 ): array {
     $ttlSec = max(5, $ttlSec);
-    return backend_session_registry_with_lock(function () use ($resourceType, $resourceId, $sessionId, $ttlSec, $mode, $meta) {
+    return backend_session_registry_with_lock(function () use (
+        $resourceType, $resourceId, $sessionId, $ttlSec, $mode, $meta,
+        $blockedByTypes, $blockedByPredicate, $exclusive
+    ) {
+        if (!empty($blockedByTypes)) {
+            foreach (backend_session_registry_list_active_locks_locked($blockedByTypes) as $blocker) {
+                if ($blockedByPredicate !== null && !$blockedByPredicate($blocker)) {
+                    continue;
+                }
+                return [
+                    'acquired' => false,
+                    'record' => null,
+                    'blocked_by' => $blocker,
+                ];
+            }
+        }
+
         $path = backend_session_registry_record_path($resourceType, $resourceId);
         $existing = backend_session_registry_read_json_file($path);
         $now = time();
 
         if (!backend_session_registry_is_expired($existing, $now)) {
             $existingSession = trim((string)($existing['session_id'] ?? ''));
-            if ($existingSession !== '' && $existingSession !== $sessionId) {
+            if ($existingSession !== '' && ($exclusive || $existingSession !== $sessionId)) {
                 return [
                     'acquired' => false,
                     'record' => $existing,
@@ -254,25 +289,38 @@ function backend_session_registry_release_lock(
     });
 }
 
+/*
+ * Must be called only from inside a closure already passed to
+ * backend_session_registry_with_lock() -- backend_with_named_lock() throws
+ * on same-request re-entrancy, so this cannot itself take the lock. Exists
+ * so backend_session_registry_acquire_lock() can check for a conflicting
+ * lock type and acquire its own lock in one critical section, closing the
+ * TOCTOU window a separate check-then-acquire pair would leave open.
+ */
+function backend_session_registry_list_active_locks_locked(array $resourceTypes = []): array
+{
+    $paths = @glob(backend_runtime_locks_dir() . '/*.json') ?: [];
+    $out = [];
+    foreach ($paths as $path) {
+        $record = backend_session_registry_read_json_file($path);
+        if (backend_session_registry_is_expired($record)) {
+            @unlink($path);
+            continue;
+        }
+
+        $type = (string)($record['resource_type'] ?? '');
+        if (!empty($resourceTypes) && !in_array($type, $resourceTypes, true)) {
+            continue;
+        }
+        $out[] = $record;
+    }
+    return $out;
+}
+
 function backend_session_registry_list_active_locks(array $resourceTypes = []): array
 {
     return backend_session_registry_with_lock(function () use ($resourceTypes) {
-        $paths = @glob(backend_runtime_locks_dir() . '/*.json') ?: [];
-        $out = [];
-        foreach ($paths as $path) {
-            $record = backend_session_registry_read_json_file($path);
-            if (backend_session_registry_is_expired($record)) {
-                @unlink($path);
-                continue;
-            }
-
-            $type = (string)($record['resource_type'] ?? '');
-            if (!empty($resourceTypes) && !in_array($type, $resourceTypes, true)) {
-                continue;
-            }
-            $out[] = $record;
-        }
-        return $out;
+        return backend_session_registry_list_active_locks_locked($resourceTypes);
     });
 }
 

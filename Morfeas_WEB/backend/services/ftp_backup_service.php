@@ -638,12 +638,20 @@ function ftp_backup_check_bundle_handler_matching(SimpleXMLElement $xml, DOMDocu
 function ftp_backup_validate_bundle_candidates(string $opcUa, string $morfeas, string $dtdDir): array
 {
     // Validate raw final bytes; Restore must not normalize invalid XML first.
+    // Structure (well-formed, root element, DOCTYPE, DTD) stays all-or-nothing,
+    // same as log_config_validate_dtd_structure() on the Morfeas side below --
+    // there is nothing to enumerate CHANNEL-level violations across until the
+    // document is at least that well-formed. Once past it, every semantic
+    // violation is collected instead of stopping at the first one (P3 / plan
+    // §6.1, matching the Morfeas side's existing F-20 treatment).
     $opcUaErrors = [];
     $xml = false;
     try {
-        $xml = iso_validate_final_xml_bytes($opcUa, $dtdDir, true);
+        $xml = iso_validate_final_xml_structure($opcUa, $dtdDir, true);
+        $opcUaErrors = iso_collect_document_errors($xml);
     } catch (ChannelConfigException $e) {
         $opcUaErrors[] = ['code' => $e->apiCode(), 'message' => $e->getMessage()];
+        $xml = false;
     }
 
     $dom = new DOMDocument('1.0');

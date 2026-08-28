@@ -279,6 +279,167 @@ if ($dtdAvailable) {
     //         first one encountered. ---
     $reportBothBad = ftp_backup_validate_bundle_candidates($emptyDescOpcUa, $dupNameMorfeas, $dtdDir);
     check($reportBothBad['opc_ua']['valid'] === false && $reportBothBad['morfeas']['valid'] === false, 'validate_bundle_candidates: reports BOTH sides invalid, not just the first one hit');
+
+    // =====================================================================
+    // P3: the OPC_UA_Config side now collects every semantic violation
+    // across the whole document, matching the Morfeas side's existing F-20
+    // treatment (test 14 above), instead of stopping at the first CHANNEL
+    // with a problem. Two channels, two independent and distinguishable
+    // violations, both must appear.
+    // =====================================================================
+    $twoBadChannelsOpcUa = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE NODESet SYSTEM "Morfeas.dtd">
+<NODESet>
+  <CHANNEL>
+    <ISO_CHANNEL>_AAAAAAAAAAAAAAAAAAA</ISO_CHANNEL>
+    <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+    <ANCHOR>111111111.CH1</ANCHOR>
+    <DESCRIPTION>d</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>100</MAX>
+  </CHANNEL>
+  <CHANNEL>
+    <ISO_CHANNEL>_Second</ISO_CHANNEL>
+    <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+    <ANCHOR>222222222.CH1</ANCHOR>
+    <DESCRIPTION></DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>100</MAX>
+  </CHANNEL>
+</NODESet>
+XML;
+    $reportTwoBad = ftp_backup_validate_bundle_candidates($twoBadChannelsOpcUa, $validMorfeas, $dtdDir);
+    check($reportTwoBad['opc_ua']['valid'] === false, 'P3: a two-violation OPC_UA_Config candidate is reported invalid');
+    check(count($reportTwoBad['opc_ua']['errors']) === 2, 'P3: BOTH independent OPC_UA_Config violations (one per channel) are collected, not just the first (got ' . count($reportTwoBad['opc_ua']['errors']) . ')');
+    $opcUaErrorCodes = array_column($reportTwoBad['opc_ua']['errors'], 'code');
+    check(in_array('invalid_iso_channel', $opcUaErrorCodes, true), 'P3: the first channel\'s invalid_iso_channel violation is present (got ' . json_encode($opcUaErrorCodes) . ')');
+    check(in_array('empty_element', $opcUaErrorCodes, true), 'P3: the second channel\'s empty_element violation is ALSO present, not swallowed by the first (got ' . json_encode($opcUaErrorCodes) . ')');
+    check($reportTwoBad['can_commit'] === false, 'P3: can_commit is still false with multiple OPC_UA_Config violations collected');
+
+    // --- P3: an invalid ANCHOR must not swallow a duplicate-ISO_CHANNEL
+    //         violation on the SAME row -- they are independent facts, and
+    //         only duplicate_source (which genuinely needs a parsed
+    //         identity) may be skipped when the anchor fails to parse. ---
+    $dupIsoBadAnchorOpcUa = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE NODESet SYSTEM "Morfeas.dtd">
+<NODESet>
+  <CHANNEL>
+    <ISO_CHANNEL>_Dup</ISO_CHANNEL>
+    <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+    <ANCHOR>not-a-valid-anchor</ANCHOR>
+    <DESCRIPTION>d</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>100</MAX>
+  </CHANNEL>
+  <CHANNEL>
+    <ISO_CHANNEL>_Dup</ISO_CHANNEL>
+    <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+    <ANCHOR>123456789.CH1</ANCHOR>
+    <DESCRIPTION>d</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>100</MAX>
+  </CHANNEL>
+</NODESet>
+XML;
+    $reportDupIsoBadAnchor = ftp_backup_validate_bundle_candidates($dupIsoBadAnchorOpcUa, $validMorfeas, $dtdDir);
+    $dupIsoBadAnchorCodes = array_column($reportDupIsoBadAnchor['opc_ua']['errors'], 'code');
+    check(in_array('invalid_anchor', $dupIsoBadAnchorCodes, true), 'P3: invalid_anchor is reported for the first row (got ' . json_encode($dupIsoBadAnchorCodes) . ')');
+    check(in_array('channel_conflict', $dupIsoBadAnchorCodes, true), 'P3: channel_conflict is ALSO reported for the duplicate ISO_CHANNEL, not swallowed by the first row\'s bad anchor (got ' . json_encode($dupIsoBadAnchorCodes) . ')');
+
+    // --- P3: an invalid ANCHOR must not swallow a missing-UNIT violation on
+    //         the same row either (IOBOX/MTI/NOX require UNIT; SDAQ does not). ---
+    $badAnchorMissingUnitOpcUa = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE NODESet SYSTEM "Morfeas.dtd">
+<NODESet>
+  <CHANNEL>
+    <ISO_CHANNEL>_BadAnchorNoUnit</ISO_CHANNEL>
+    <INTERFACE_TYPE>IOBOX</INTERFACE_TYPE>
+    <ANCHOR>not-a-valid-anchor</ANCHOR>
+    <DESCRIPTION>d</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>100</MAX>
+  </CHANNEL>
+</NODESet>
+XML;
+    $reportBadAnchorMissingUnit = ftp_backup_validate_bundle_candidates($badAnchorMissingUnitOpcUa, $validMorfeas, $dtdDir);
+    $badAnchorMissingUnitCodes = array_column($reportBadAnchorMissingUnit['opc_ua']['errors'], 'code');
+    check(in_array('invalid_anchor', $badAnchorMissingUnitCodes, true), 'P3: invalid_anchor is reported for the IOBOX row with a bad anchor (got ' . json_encode($badAnchorMissingUnitCodes) . ')');
+    check(in_array('missing_required_unit', $badAnchorMissingUnitCodes, true), 'P3: missing_required_unit is ALSO reported on the same row, not swallowed by the bad anchor (got ' . json_encode($badAnchorMissingUnitCodes) . ')');
+
+    // --- P3: an unsupported INTERFACE_TYPE must report only
+    //         unsupported_interface -- an unrecognized type has no grammar
+    //         to validate the ANCHOR against, so a derived invalid_anchor
+    //         on top of it would be noise, not an independent fact. ---
+    $unsupportedInterfaceOpcUa = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE NODESet SYSTEM "Morfeas.dtd">
+<NODESet>
+  <CHANNEL>
+    <ISO_CHANNEL>_Unsupported</ISO_CHANNEL>
+    <INTERFACE_TYPE>BOGUS</INTERFACE_TYPE>
+    <ANCHOR>111111111.CH1</ANCHOR>
+    <DESCRIPTION>d</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>100</MAX>
+    <UNIT>C</UNIT>
+  </CHANNEL>
+</NODESet>
+XML;
+    $reportUnsupported = ftp_backup_validate_bundle_candidates($unsupportedInterfaceOpcUa, $validMorfeas, $dtdDir);
+    check(
+        $reportUnsupported['opc_ua']['errors'] === [['code' => 'unsupported_interface', 'message' => 'CHANNEL "_Unsupported" has an unsupported INTERFACE_TYPE: BOGUS']],
+        'P3: an unsupported INTERFACE_TYPE reports ONLY unsupported_interface, no derived invalid_anchor (got ' . json_encode($reportUnsupported['opc_ua']['errors']) . ')'
+    );
+
+    // --- P3: an unsupported-type row contributes NOTHING else to the
+    //         document-wide checks either -- not a missing_required_unit
+    //         complaint (no UNIT here, but "is UNIT required" itself
+    //         depends on knowing the device type), and not even its
+    //         ISO_CHANNEL for duplicate detection against a later,
+    //         perfectly valid row using the same name. ---
+    $unsupportedContributesNothingOpcUa = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE NODESet SYSTEM "Morfeas.dtd">
+<NODESet>
+  <CHANNEL>
+    <ISO_CHANNEL>_Same</ISO_CHANNEL>
+    <INTERFACE_TYPE>BOGUS</INTERFACE_TYPE>
+    <ANCHOR>not-a-valid-anchor</ANCHOR>
+    <DESCRIPTION>d</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>100</MAX>
+  </CHANNEL>
+  <CHANNEL>
+    <ISO_CHANNEL>_Same</ISO_CHANNEL>
+    <INTERFACE_TYPE>SDAQ</INTERFACE_TYPE>
+    <ANCHOR>222222222.CH1</ANCHOR>
+    <DESCRIPTION>d</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>100</MAX>
+  </CHANNEL>
+</NODESet>
+XML;
+    $reportUnsupportedContributesNothing = ftp_backup_validate_bundle_candidates($unsupportedContributesNothingOpcUa, $validMorfeas, $dtdDir);
+    check(
+        $reportUnsupportedContributesNothing['opc_ua']['errors'] === [['code' => 'unsupported_interface', 'message' => 'CHANNEL "_Same" has an unsupported INTERFACE_TYPE: BOGUS']],
+        'P3: an unsupported-type row reports only unsupported_interface -- no missing_required_unit, and its ISO_CHANNEL does not trigger channel_conflict on the following valid row reusing the same name (got ' . json_encode($reportUnsupportedContributesNothing['opc_ua']['errors']) . ')'
+    );
+
+    // --- P3 regression: a single-item write path (Add/Edit/Replace, via
+    //     iso_save_xml() -> iso_validate_final_xml_bytes() ->
+    //     iso_validate_document()) must still fail fast on the FIRST
+    //     violation -- collect-all is exclusively FTP preflight's behavior,
+    //     not a change to the live-write gate that every other Channel
+    //     mutation relies on staying strict and immediate. ---
+    try {
+        iso_validate_document(simplexml_load_string($twoBadChannelsOpcUa));
+        check(false, 'P3 regression: iso_validate_document() (single-item write path) must still throw on the first violation');
+    } catch (ChannelConfigException $e) {
+        check($e->apiCode() === 'invalid_iso_channel', 'P3 regression: iso_validate_document() throws the FIRST violation only, unchanged from before P3 (got ' . $e->apiCode() . ')');
+    }
 }
 
 // =====================================================================

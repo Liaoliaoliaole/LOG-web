@@ -35,6 +35,16 @@ function channels_fail_from_runtime(RuntimeException $e): void
         channels_fail($e->getMessage(), $e->status(), $e->apiCode());
     }
 
+    // A plain RuntimeException with an explicit HTTP-range code (the
+    // convention used e.g. by the restore concurrency guard below, and
+    // throughout ftp_backup_service.php) carries its own status; only a
+    // RuntimeException with the default code 0 falls through to the
+    // message-sniffing below.
+    $status = $e->getCode();
+    if ($status >= 400 && $status <= 599) {
+        channels_fail($e->getMessage(), $status);
+    }
+
     $message = $e->getMessage();
     $lower = strtolower($message);
 
@@ -183,7 +193,56 @@ if (isset($_GET['include']) && $_GET['include'] === 'restore_commit') {
             channels_fail('Missing file_content or digest', 400, 'missing_field');
         }
 
+        // Concurrency guard aligned with FTP Restore's restore_commit: session
+        // token, then one exclusive, atomic acquire of system_action/restore
+        // that also checks for an active SDAQ calibration edit (the only edit
+        // lock type any code path actually creates today -- channel_edit and
+        // device_config are checked too so this starts covering them the
+        // moment such a lock exists, but nothing currently creates one) in
+        // the SAME session-registry critical section. A separate
+        // check-then-acquire (check for a conflicting edit, then acquire the
+        // restore lock as two different critical sections) would leave a
+        // real window: SDAQ edit_start() acquires its own lock the same way
+        // and would need to win that same race from the other side, so both
+        // sides being atomic is what actually closes it. exclusive:true also
+        // means two tabs of the same browser (sharing one session id via
+        // localStorage) cannot both hold this lock at once.
+        //
+        // channels_fail()/channels_fail_from_runtime() call exit()
+        // internally, which would skip a finally{} block entered from
+        // inside this try -- so nothing below calls them directly; every
+        // failure is caught into $caught and reported only after the lock
+        // (if it was ever acquired) has already been released.
+        $result = null;
+        $caught = null;
+        $lockAcquired = false;
+        $sessionId = null;
         try {
+            $sessionId = backend_require_session_token('Missing session token for restore_commit action');
+            $acquire = backend_session_registry_acquire_lock(
+                'system_action',
+                'restore',
+                $sessionId,
+                300,
+                'running',
+                ['action' => 'restore'],
+                ['channel_edit', 'device_config', 'sdaq_edit'],
+                static function (array $record): bool {
+                    return (string)($record['mode'] ?? '') === 'edit';
+                },
+                true
+            );
+            if (!$acquire['acquired']) {
+                if (isset($acquire['blocked_by'])) {
+                    throw new RuntimeException(backend_restore_blocking_lock_message($acquire['blocked_by']), 409);
+                }
+                // exclusive:true means this can also be the SAME session in
+                // a second browser tab, so the message must not claim
+                // "another session" when that may not be true.
+                throw new RuntimeException('Restore is already running.', 409);
+            }
+            $lockAcquired = true;
+
             $result = restore_commit(
                 $xmlPath,
                 $logConfigPath,
@@ -192,7 +251,14 @@ if (isset($_GET['include']) && $_GET['include'] === 'restore_commit') {
                 !empty($data['acknowledge_warnings'])
             );
         } catch (RuntimeException $e) {
-            channels_fail_from_runtime($e);
+            $caught = $e;
+        } finally {
+            if ($lockAcquired) {
+                backend_session_registry_release_lock('system_action', 'restore', $sessionId);
+            }
+        }
+        if ($caught !== null) {
+            channels_fail_from_runtime($caught);
         }
 
         echo json_encode(['ok' => true, 'data' => $result], JSON_PRETTY_PRINT);

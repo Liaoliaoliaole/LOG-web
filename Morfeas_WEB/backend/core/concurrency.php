@@ -1,7 +1,18 @@
 <?php
 
+/*
+ * The MORFEAS_WEB_RUNTIME_ROOT override exists for automated tests: without
+ * it, any test exercising session_registry locks would read and write the
+ * same directory a real running LOG instance on this machine uses, and
+ * could spuriously block (or be blocked by) real Restore/edit locks. Unset
+ * in production, so production behavior is unchanged.
+ */
 function backend_runtime_root_dir(): string
 {
+    $override = getenv('MORFEAS_WEB_RUNTIME_ROOT');
+    if (is_string($override) && $override !== '') {
+        return $override;
+    }
     return '/tmp/morfeas_web_sessions';
 }
 

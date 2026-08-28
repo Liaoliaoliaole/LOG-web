@@ -5,16 +5,6 @@ require_once __DIR__ . '/services/ftp_backup_service.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-function ftp_backup_first_restore_blocker(): ?array
-{
-    return backend_session_registry_first_active_lock(
-        ['channel_edit', 'device_config', 'sdaq_edit'],
-        static function (array $record): bool {
-            return (string)($record['mode'] ?? '') === 'edit';
-        }
-    );
-}
-
 function ftp_backup_api_respond(bool $ok, ?array $data = null, ?string $message = null, int $status = 200): void
 {
     http_response_code($status);
@@ -119,6 +109,14 @@ try {
             if ($localConfigDigest === '') {
                 throw new InvalidArgumentException('local_config_digest is required for restore_commit action');
             }
+            // One exclusive, atomic acquire that also checks for an active
+            // SDAQ calibration edit in the SAME session-registry critical
+            // section (see backend_session_registry_acquire_lock()'s
+            // docblock) -- a separate check-then-acquire pair would leave a
+            // real window between them for SDAQ edit_start() (which checks
+            // the symmetric case the same way) to slip in. exclusive:true
+            // also means two tabs of the same browser (sharing one session
+            // id via localStorage) cannot both hold this lock at once.
             $sessionId = backend_require_session_token('Missing session token for restore_commit action');
             $acquire = backend_session_registry_acquire_lock(
                 'system_action',
@@ -126,19 +124,25 @@ try {
                 $sessionId,
                 300,
                 'running',
-                ['action' => 'restore']
+                ['action' => 'restore'],
+                ['channel_edit', 'device_config', 'sdaq_edit'],
+                static function (array $record): bool {
+                    return (string)($record['mode'] ?? '') === 'edit';
+                },
+                true
             );
             if (!$acquire['acquired']) {
-                throw new RuntimeException('Restore is already running in another session.', 409);
+                if (isset($acquire['blocked_by'])) {
+                    throw new RuntimeException(backend_restore_blocking_lock_message($acquire['blocked_by']), 409);
+                }
+                // exclusive:true means this can also be the SAME session in
+                // a second browser tab, so the message must not claim
+                // "another session" when that may not be true.
+                throw new RuntimeException('Restore is already running.', 409);
             }
 
             $restoreResult = null;
             try {
-                $blocker = ftp_backup_first_restore_blocker();
-                if (is_array($blocker)) {
-                    throw new RuntimeException(backend_restore_blocking_lock_message($blocker), 409);
-                }
-
                 $restoreResult = ftp_backup_restore_commit(
                     $file,
                     $digest,

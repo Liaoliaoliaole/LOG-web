@@ -1045,16 +1045,35 @@ try {
                 cal_fail('Missing or invalid bus/addr for action=edit_start', 400);
             }
 
+            // Also checked in this same acquire's critical section: a Restore
+            // in progress (system_action/restore specifically -- system_power
+            // and system_update also use the 'system_action' type for their
+            // own, unrelated locks, so the predicate below must not treat
+            // those as a Restore) must block a new edit from starting, the
+            // symmetric half of restore_commit's own check for an active
+            // sdaq_edit -- both sides atomic is what actually closes the
+            // race, since a plain check-then-acquire on either side alone
+            // still leaves a window for the other to slip in.
             $acquire = backend_session_registry_acquire_lock(
                 CAL_EDIT_LOCK_TYPE,
                 cal_resource_id($bus, $addr),
                 $sessionId,
                 CAL_EDIT_LOCK_TTL_SEC,
                 'edit',
-                cal_lock_meta($tool, $bus, $addr)
+                cal_lock_meta($tool, $bus, $addr),
+                ['system_action'],
+                static fn(array $r): bool => (string)($r['resource_id'] ?? '') === 'restore'
             );
 
             if (!$acquire['acquired']) {
+                if (isset($acquire['blocked_by'])) {
+                    cal_fail_with_lock(
+                        'Editing is unavailable while a Restore is in progress.',
+                        $acquire['blocked_by'],
+                        $sessionId,
+                        409
+                    );
+                }
                 cal_fail_with_lock(
                     'This device is currently locked for calibration editing by another session.',
                     $acquire['record'] ?? null,
