@@ -11,13 +11,6 @@ $ramdisk    = backend_ramdisk_dir();
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-function devices_legacy_mdaq_message(): string
-{
-    return defined('DEVICE_LEGACY_MDAQ_MESSAGE')
-        ? DEVICE_LEGACY_MDAQ_MESSAGE
-        : 'Legacy MDAQ config found in XML. Remove it manually before using this page.';
-}
-
 function devices_fail(string $message, int $status = 400): void
 {
     http_response_code($status);
@@ -47,10 +40,6 @@ try {
             break;
 
         case 'POST':
-            if (log_config_has_legacy_mdaq($logConfig)) {
-                devices_fail(devices_legacy_mdaq_message(), 409);
-            }
-
             $body = read_json_body();
 
             $type = devices_normalize_type($body['type'] ?? '');
@@ -101,10 +90,6 @@ try {
             break;
 
         case 'DELETE':
-            if (log_config_has_legacy_mdaq($logConfig)) {
-                devices_fail(devices_legacy_mdaq_message(), 409);
-            }
-
             $body = read_json_body();
             $ids = devices_normalize_delete_ids($body['ids'] ?? []);
             if (empty($ids)) {

@@ -32,17 +32,6 @@ try {
         exit;
     }
 
-    if (log_config_has_legacy_mdaq(backend_log_config_path())) {
-        http_response_code(409);
-        echo json_encode([
-            'ok' => false,
-            'error' => defined('DEVICE_LEGACY_MDAQ_MESSAGE')
-                ? DEVICE_LEGACY_MDAQ_MESSAGE
-                : 'Legacy MDAQ config found in XML. Remove it manually before using this page.',
-        ], JSON_PRETTY_PRINT);
-        exit;
-    }
-
     $result = can_role_transition(backend_ramdisk_dir(), backend_log_config_path(), $bus, $targetMode);
     echo json_encode(['ok' => true, 'data' => $result], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 } catch (InvalidArgumentException $e) {

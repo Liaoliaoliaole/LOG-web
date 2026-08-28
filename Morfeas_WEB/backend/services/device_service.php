@@ -4,8 +4,6 @@ require_once __DIR__ . '/../repositories/log_config_repository.php';
 require_once __DIR__ . '/../repositories/logstat_repository.php';
 require_once __DIR__ . '/../core/nox_runtime.php';
 
-const DEVICE_LEGACY_MDAQ_MESSAGE = 'Legacy MDAQ config found in XML. Remove it manually before using this page.';
-
 /*
  * New names are at most 15 bytes. MTI names also become D-Bus identifiers,
  * so they must match [A-Za-z_][A-Za-z0-9_]*.
@@ -303,18 +301,12 @@ function device_list(string $ramdisk, string $logConfig): array
     $xmlConfig = log_config_read_all($logConfig);
     $manual    = device_merge_manual_runtime_status($xmlConfig['manual_devices'], device_build_runtime_maps($ramdisk));
     $all       = array_merge($manual, $auto);
-    $legacyMdaqPresent = $xmlConfig['has_legacy_mdaq'];
 
     return [
         'ok'         => true,
         'data'       => $all,
         'components' => [
             'total' => $xmlConfig['component_count'],
-        ],
-        'legacy' => [
-            'mdaq_present' => $legacyMdaqPresent,
-            'blocking' => $legacyMdaqPresent,
-            'message' => $legacyMdaqPresent ? DEVICE_LEGACY_MDAQ_MESSAGE : null,
         ],
     ];
 }

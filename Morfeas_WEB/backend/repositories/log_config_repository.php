@@ -72,7 +72,7 @@ function log_config_dom_text_or_empty(DOMElement $parent, string $tag): string
  * Parse the XML once and return all derived views together.
  *
  * Returns:
- *   manual_devices, can_handlers, component_count, has_legacy_mdaq
+ *   manual_devices, can_handlers, component_count
  */
 function log_config_read_all(string $xmlPath): array
 {
@@ -80,7 +80,6 @@ function log_config_read_all(string $xmlPath): array
         'manual_devices'  => [],
         'can_handlers'    => [],
         'component_count' => 0,
-        'has_legacy_mdaq' => false,
     ];
 
     if (!is_file($xmlPath)) {
@@ -100,7 +99,6 @@ function log_config_read_all(string $xmlPath): array
     $manualDevices  = [];
     $canHandlers    = [];
     $componentCount = 0;
-    $hasLegacyMdaq  = false;
 
     foreach ($components->children() as $comp) {
         $tag     = strtoupper($comp->getName());
@@ -163,9 +161,6 @@ function log_config_read_all(string $xmlPath): array
                 }
                 break;
 
-            case 'MDAQ_HANDLER':
-                $hasLegacyMdaq = true;
-                break;
         }
     }
 
@@ -173,39 +168,7 @@ function log_config_read_all(string $xmlPath): array
         'manual_devices'  => $manualDevices,
         'can_handlers'    => $canHandlers,
         'component_count' => $componentCount,
-        'has_legacy_mdaq' => $hasLegacyMdaq,
     ];
-}
-
-function log_config_has_component_tag(string $xmlPath, string $tagName): bool
-{
-    if (!is_file($xmlPath)) {
-        return false;
-    }
-
-    $xml = simplexml_load_file($xmlPath);
-    if ($xml === false) {
-        throw new RuntimeException('Failed to parse LOG config XML');
-    }
-
-    $components = $xml->COMPONENTS ?? null;
-    if ($components === null) {
-        return false;
-    }
-
-    $wanted = strtoupper(trim($tagName));
-    foreach ($components->children() as $comp) {
-        if (strtoupper($comp->getName()) === $wanted) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-function log_config_has_legacy_mdaq(string $xmlPath): bool
-{
-    return log_config_has_component_tag($xmlPath, 'MDAQ_HANDLER');
 }
 
 function log_config_load_manual_devices(string $xmlPath): array

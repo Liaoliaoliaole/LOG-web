@@ -289,7 +289,6 @@ function can_role_list(string $ramdisk, string $logConfig): array
     $groupedHandlers = can_role_group_handlers_by_bus($handlers);
     $runtimeSummary  = can_role_collect_runtime_summary($ramdisk);
     $networkState    = network_get_state();
-    $legacyMdaqPresent = $xmlConfig['has_legacy_mdaq'];
 
     $rows = [];
     foreach (can_role_supported_buses() as $bus) {
@@ -299,11 +298,6 @@ function can_role_list(string $ramdisk, string $logConfig): array
     return [
         'rows' => $rows,
         'warnings' => can_role_build_warning_summary($rows),
-        'legacy' => [
-            'mdaq_present' => $legacyMdaqPresent,
-            'blocking' => $legacyMdaqPresent,
-            'message' => $legacyMdaqPresent ? DEVICE_LEGACY_MDAQ_MESSAGE : null,
-        ],
         'network_state' => $networkState,
     ];
 }

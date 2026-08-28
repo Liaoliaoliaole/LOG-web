@@ -11,8 +11,6 @@
   const canBody = $('#canBody');
   const canChip = $('#canChip');
   const canTicker = $('#canTicker');
-  const legacyBanner = $('#legacyBanner');
-  const legacyBannerText = $('#legacyBannerText');
   const popupNotice = $('#popupNotice');
   const popupNoticeText = $('#popupNoticeText');
 
@@ -46,7 +44,6 @@
   let devices = [];
   let canRows = [];
   let canWarnings = { chip: null, ticker: [] };
-  let legacyState = { blocking: false, message: '' };
   let devicesPollTimer = null;
   let removeInProgress = false;
   let transitionInProgress = false;
@@ -391,10 +388,6 @@
               btn.textContent = label;
               btn.dataset.bus = row.bus || '';
               btn.dataset.action = label;
-              btn.disabled = !!legacyState.blocking;
-              if (legacyState.blocking && legacyState.message) {
-                btn.title = legacyState.message;
-              }
               wrap.appendChild(btn);
             });
             td.appendChild(wrap);
@@ -475,7 +468,7 @@
         btn.type = 'button';
         btn.textContent = 'Open MTI Config';
         btn.dataset.openMti = d.name || '';
-        btn.disabled = !!legacyState.blocking || !(d.name || '').trim();
+        btn.disabled = !(d.name || '').trim();
         tdAction.appendChild(btn);
       } else if (d.type === 'IOBOX') {
         const btn = document.createElement('button');
@@ -483,7 +476,7 @@
         btn.type = 'button';
         btn.textContent = 'Open IOBOX Monitor';
         btn.dataset.openIobox = d.name || '';
-        btn.disabled = !!legacyState.blocking || !(d.name || '').trim();
+        btn.disabled = !(d.name || '').trim();
         tdAction.appendChild(btn);
       } else {
         tdAction.textContent = '—';
@@ -528,7 +521,6 @@
     renderCanRows();
     renderConfiguredRows();
     renderDetectedRows();
-    applyLegacyLockUI();
     revealPendingDevice();
   }
 
@@ -562,41 +554,12 @@
     });
 
     const checked = rows.filter((r) => r.querySelector('input[type="checkbox"]')?.checked).length;
-    removeBtn.disabled = !!legacyState.blocking || checked === 0;
+    removeBtn.disabled = checked === 0;
 
     const total = rows.length;
     mchk.checked = total > 0 && checked === total;
     mchk.indeterminate = checked > 0 && checked < total;
-    mchk.disabled = !!legacyState.blocking || total === 0;
-  }
-
-  function applyLegacyLockUI() {
-    const blocked = !!legacyState.blocking;
-    const message = legacyState.message || 'Legacy MDAQ config found in XML. Remove it manually before using this page.';
-
-    if (legacyBanner) {
-      legacyBanner.hidden = !blocked;
-    }
-    if (legacyBannerText) {
-      legacyBannerText.textContent = message;
-    }
-
-    if (blocked) {
-      propCard.style.display = 'none';
-    }
-
-    addBtn.disabled = blocked;
-    saveBtn.disabled = blocked;
-
-    $$('#configuredBody input[type="checkbox"]').forEach((cb) => {
-      cb.disabled = blocked;
-    });
-    $$('#canBody button').forEach((btn) => {
-      btn.disabled = blocked;
-      if (blocked) {
-        btn.title = message;
-      }
-    });
+    mchk.disabled = total === 0;
   }
 
   function findCanRow(bus) {
@@ -611,11 +574,6 @@
       if (devicesJson.ok === false) throw new Error(devicesJson.error || 'Load devices failed');
 
       devices = devicesJson.data || [];
-      const devicesLegacy = devicesJson.legacy || {};
-      legacyState = {
-        blocking: !!devicesLegacy.blocking,
-        message: String(devicesLegacy.message || ''),
-      };
 
       try {
         if (!canRolesApi) throw new Error('CAN roles API unavailable');
@@ -624,8 +582,6 @@
         canRows = canJson.data?.rows || [];
         canWarnings = canJson.data?.warnings || { chip: null, ticker: [] };
       } catch (canErr) {
-        // Keep the last CAN table during daemon/network settle, but do not let
-        // a CAN roles read failure keep a stale legacy-MDAQ lock on the page.
         if (!silent && !pollMode) {
           alert('Failed to load CAN bus data: ' + canErr.message);
         }
@@ -659,10 +615,6 @@
 
   async function runCanRoleAction(actionCode, bus, actionLabel) {
     if (transitionInProgress) return false;
-    if (legacyState.blocking) {
-      alert(legacyState.message || 'Legacy MDAQ config found in XML. Remove it manually before using this page.');
-      return false;
-    }
     if (!canRolesApi) throw new Error('CAN roles API unavailable');
 
     transitionInProgress = true;
@@ -692,11 +644,6 @@
   }
 
   async function saveDevice() {
-    if (legacyState.blocking) {
-      alert(legacyState.message || 'Legacy MDAQ config found in XML. Remove it manually before using this page.');
-      return;
-    }
-
     const type = devType.value;
     const name = devName.value.trim();
     const ip = devIp.value.trim();
@@ -732,10 +679,6 @@
   }
 
   addBtn.addEventListener('click', () => {
-    if (legacyState.blocking) {
-      alert(legacyState.message || 'Legacy MDAQ config found in XML. Remove it manually before using this page.');
-      return;
-    }
     propCard.style.display = 'block';
     devType.value = 'IO-BOX';
     updateDevicePlaceholders();
@@ -753,10 +696,6 @@
   });
 
   mchk.addEventListener('change', () => {
-    if (legacyState.blocking) {
-      mchk.checked = false;
-      return;
-    }
     const enableAll = mchk.checked;
     $$('#configuredBody input[type="checkbox"]').forEach((cb) => {
       cb.checked = enableAll;
@@ -765,7 +704,6 @@
   });
 
   configuredBody.addEventListener('click', (e) => {
-    if (legacyState.blocking) return;
     const mtiBtn = e.target.closest('button[data-open-mti]');
     if (mtiBtn) {
       openMtiPopup(mtiBtn.dataset.openMti || '');
@@ -788,7 +726,6 @@
   });
 
   canBody.addEventListener('click', async (e) => {
-    if (legacyState.blocking) return;
     const btn = e.target.closest('button[data-action][data-bus]');
     if (!btn) return;
 
@@ -807,10 +744,6 @@
 
   async function deleteDevices() {
     if (removeInProgress) return;
-    if (legacyState.blocking) {
-      alert(legacyState.message || 'Legacy MDAQ config found in XML. Remove it manually before using this page.');
-      return;
-    }
 
     const rows = $$('#configuredBody tr').filter((r) => r.querySelector('input[type="checkbox"]')?.checked);
     if (!rows.length) {
@@ -877,7 +810,6 @@
     }
 
     if (e.key !== 'Delete') return;
-    if (legacyState.blocking) return;
 
     const el = document.activeElement;
     const isFormField = el && (
