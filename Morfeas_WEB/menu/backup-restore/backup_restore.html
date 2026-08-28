@@ -164,6 +164,85 @@
       color: var(--muted);
       text-align: center;
     }
+
+    /* ---- Restore impact report (mirrors tool-bar/import_channel.html) ---- */
+    .summary {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 10px 0;
+    }
+
+    .pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid var(--border);
+      background: #f9fafb;
+    }
+
+    .pill.add { color: #0f7b3f; border-color: #0f7b3f55; }
+    .pill.replace { color: #a15c00; border-color: #a15c0055; }
+    .pill.unchanged { color: #556; }
+    .pill.remove { color: #e11d48; border-color: #e11d4855; }
+
+    .report-title {
+      font-weight: 800;
+      margin: 12px 0 6px;
+      font-size: 13px;
+    }
+
+    .table-wrap {
+      max-height: 34vh;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    table.report {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    table.report th, table.report td {
+      padding: 6px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    table.report th {
+      position: sticky;
+      top: 0;
+      background: #f9fafb;
+      z-index: 1;
+    }
+
+    tr.result-add td.result { color: #0f7b3f; font-weight: 800; }
+    tr.result-replace td.result { color: #a15c00; font-weight: 800; }
+    tr.result-unchanged td.result { color: #556; font-weight: 800; }
+    tr.result-remove td.result { color: #e11d48; font-weight: 800; }
+
+    td.changes { white-space: normal; min-width: 220px; font-size: 12px; color: var(--muted); }
+
+    /* A handler going enabled -> disabled must stand out even amid other Replace rows. */
+    tr.disable-flip { background: #fff1f2; }
+    tr.disable-flip td.status { color: #e11d48; font-weight: 800; }
+
+    .hidden { display: none; }
+
+    .warning-list {
+      font-size: 13px;
+      margin: 8px 0;
+      padding: 8px 10px;
+      border: 1px solid #a15c0055;
+      border-radius: 8px;
+      background: #fff8ec;
+      color: #a15c00;
+    }
   </style>
 </head>
 
@@ -238,10 +317,54 @@
           <select id="backupList" size="7" class="list" aria-label="Available backup files"></select>
 
           <div class="actions">
-            <button id="restoreBtn" class="btn">Restore Selected</button>
+            <button id="restoreBtn" class="btn">Check Selected (Preflight)</button>
           </div>
 
           <div id="restoreStatus" class="status" aria-live="polite"></div>
+
+          <div id="restoreReport" class="hidden">
+            <div id="restoreSummaryRow" class="summary">
+              <span class="pill add" id="pillChAdd">Channels add: 0</span>
+              <span class="pill replace" id="pillChReplace">Channels replace: 0</span>
+              <span class="pill unchanged" id="pillChUnchanged">Channels unchanged: 0</span>
+              <span class="pill remove" id="pillChRemove">Channels remove: 0</span>
+            </div>
+            <div id="restoreHandlerSummaryRow" class="summary">
+              <span class="pill add" id="pillHAdd">Handlers add: 0</span>
+              <span class="pill replace" id="pillHReplace">Handlers replace: 0</span>
+              <span class="pill unchanged" id="pillHUnchanged">Handlers unchanged: 0</span>
+              <span class="pill remove" id="pillHRemove">Handlers remove: 0</span>
+            </div>
+
+            <div id="restoreWarningList" class="warning-list hidden"></div>
+
+            <div class="report-title">Channels (this Restore replaces the entire configuration)</div>
+            <div class="table-wrap">
+              <table class="report">
+                <thead>
+                  <tr><th>ISO_CHANNEL</th><th>Interface</th><th>Anchor</th><th>Changes</th><th>Result</th></tr>
+                </thead>
+                <tbody id="restoreChannelsBody"></tbody>
+              </table>
+            </div>
+
+            <div class="report-title">Device Handlers (IOBOX / MTI / NOX / SDAQ)</div>
+            <div class="table-wrap">
+              <table class="report">
+                <thead>
+                  <tr><th>Type</th><th>Name</th><th>IP / CAN bus</th><th>Status</th><th>Changes</th><th>Result</th></tr>
+                </thead>
+                <tbody id="restoreHandlersBody"></tbody>
+              </table>
+            </div>
+
+            <div class="actions">
+              <button id="restoreConfirmBtn" class="btn primary">Confirm Restore</button>
+              <button id="restoreCancelBtn" class="btn">Cancel</button>
+            </div>
+          </div>
+
+          <div id="restoreResult" class="status hidden"></div>
         </div>
 
       </div>

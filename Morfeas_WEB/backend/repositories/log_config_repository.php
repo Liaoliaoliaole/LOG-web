@@ -244,11 +244,18 @@ function log_config_load_manual_devices(string $xmlPath): array
                     'ip'     => $ip,
                     'name'   => $name,
                     'status' => $status,
+                    'i2c_bus_num' => '', // IOBOX/MTI are IP-connected; I2CBUS_NUM only applies to SDAQ/NOX (Morfeas_daemon.c's "-b" arg)
                     'origin' => 'xml',
                 ];
                 break;
             case 'NOX_HANDLER':
-                $type = 'NOX';
+            case 'SDAQ_HANDLER':
+                // Both are CAN-bus handlers keyed by type + CANBUS_IF.
+                // The type prefix keeps SDAQ and NOX inventory keys distinct.
+                // Both also take an optional I2CBUS_NUM that
+                // Morfeas_daemon.c passes through as a real "-b" runtime
+                // argument, not display-only metadata.
+                $type = str_replace('_HANDLER', '', $tag);
                 $bus  = trim((string)$comp->CANBUS_IF);
                 $name = $bus;
                 $ip   = '';
@@ -259,6 +266,7 @@ function log_config_load_manual_devices(string $xmlPath): array
                     'ip'     => $ip,
                     'name'   => $name,
                     'status' => $status,
+                    'i2c_bus_num' => trim((string)$comp->I2CBUS_NUM),
                     'origin' => 'xml',
                 ];
                 break;

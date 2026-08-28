@@ -658,5 +658,266 @@ if ($dtdAvailable) {
     check(file_get_contents($xmlPathP0c) === $legacySdaqUnit, '22 regression: the commit actually applied the new OPC_UA_Config content');
 }
 
+// =====================================================================
+// P1: full local-vs-bundle impact report (Add/Replace/Unchanged/Remove)
+// for both ISO channels and IOBOX/MTI/NOX device handlers -- what the
+// operator actually asked for: "which channel replaced which, which
+// stayed the same, which disappeared".
+// =====================================================================
+
+if ($dtdAvailable) {
+    function p1_channel_xml(string $iso, string $type, string $anchor, string $desc, string $unit = ''): string
+    {
+        $unitTag = $unit !== '' ? "\n    <UNIT>$unit</UNIT>" : '';
+        return "  <CHANNEL>\n"
+            . "    <ISO_CHANNEL>$iso</ISO_CHANNEL>\n"
+            . "    <INTERFACE_TYPE>$type</INTERFACE_TYPE>\n"
+            . "    <ANCHOR>$anchor</ANCHOR>\n"
+            . "    <DESCRIPTION>$desc</DESCRIPTION>\n"
+            . "    <MIN>0</MIN>\n"
+            . "    <MAX>100</MAX>$unitTag\n"
+            . "  </CHANNEL>\n";
+    }
+
+    // --- Local state before Restore. ---
+    $localChannelsXml = p1_channel_xml('_SDAQ_Same', 'SDAQ', '111111111.CH1', 'd', 'local-ignored')
+        . p1_channel_xml('_IOBOX_X', 'IOBOX', '2380966080.RX1.CH1', 'old-desc', 'C')
+        . p1_channel_xml('_Only_Local', 'SDAQ', '222222222.CH1', 'd');
+    $localOpcUa = "<?xml version=\"1.0\"?>\n<NODESet>\n$localChannelsXml</NODESet>\n";
+    $localMorfeas = <<<XML
+<?xml version="1.0"?>
+<CONFIG>
+  <COMPONENTS>
+    <SDAQ_HANDLER Disable="false"><CANBUS_IF>can0</CANBUS_IF><I2CBUS_NUM>1</I2CBUS_NUM></SDAQ_HANDLER>
+    <SDAQ_HANDLER Disable="false"><CANBUS_IF>can2</CANBUS_IF></SDAQ_HANDLER>
+    <IOBOX_HANDLER Disable="false"><DEV_NAME>Dev1</DEV_NAME><IPv4_ADDR>192.168.234.141</IPv4_ADDR></IOBOX_HANDLER>
+    <MTI_HANDLER Disable="false"><DEV_NAME>MtiOld</DEV_NAME><IPv4_ADDR>10.0.0.5</IPv4_ADDR></MTI_HANDLER>
+    <MTI_HANDLER Disable="false"><DEV_NAME>MtiKeep</DEV_NAME><IPv4_ADDR>10.0.0.9</IPv4_ADDR></MTI_HANDLER>
+  </COMPONENTS>
+</CONFIG>
+XML;
+
+    // --- Bundle being restored. Self-consistent: the IOBOX channel's
+    //     handler is present in this same bundle (renamed), so no orphan
+    //     warning is produced and acknowledge_warnings=false is enough. ---
+    $bundleChannelsXml = p1_channel_xml('_SDAQ_Same', 'SDAQ', '111111111.CH1', 'd', 'bundle-ignored')
+        . p1_channel_xml('_IOBOX_X', 'IOBOX', '2380966080.RX1.CH1', 'new-desc', 'C')
+        . p1_channel_xml('_New_SDAQ', 'SDAQ', '333333333.CH1', 'd');
+    $p1BundleOpcUa = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE NODESet SYSTEM \"Morfeas.dtd\">\n<NODESet>\n$bundleChannelsXml</NODESet>\n";
+    $p1BundleMorfeas = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE CONFIG SYSTEM "Morfeas.dtd">
+<CONFIG>
+  <CONFIGS_DIR>/home/morfeas/configuration</CONFIGS_DIR>
+  <LOGGERS_DIR>/mnt/ramdisk/Morfeas_Loggers/</LOGGERS_DIR>
+  <LOGSTAT_DIR>/mnt/ramdisk/</LOGSTAT_DIR>
+  <COMPONENTS>
+    <OPC_UA_SERVER>
+      <APP_NAME>Morfeas_Default_app_32</APP_NAME>
+    </OPC_UA_SERVER>
+    <SDAQ_HANDLER Disable="false"><CANBUS_IF>can0</CANBUS_IF><I2CBUS_NUM>2</I2CBUS_NUM></SDAQ_HANDLER>
+    <SDAQ_HANDLER Disable="false"><CANBUS_IF>can2</CANBUS_IF></SDAQ_HANDLER>
+    <IOBOX_HANDLER Disable="true"><DEV_NAME>Dev1-Renamed</DEV_NAME><IPv4_ADDR>192.168.234.141</IPv4_ADDR></IOBOX_HANDLER>
+    <MTI_HANDLER Disable="false"><DEV_NAME>MtiKeep</DEV_NAME><IPv4_ADDR>10.0.0.9</IPv4_ADDR></MTI_HANDLER>
+    <NOX_HANDLER Disable="false"><CANBUS_IF>can1</CANBUS_IF></NOX_HANDLER>
+  </COMPONENTS>
+</CONFIG>
+XML;
+
+    $p1Report = ftp_backup_validate_bundle_candidates($p1BundleOpcUa, $p1BundleMorfeas, $dtdDir);
+    check($p1Report['can_commit'] === true && $p1Report['warnings'] === [], 'P1 fixture: self-consistent bundle validates cleanly with no warnings (got ' . json_encode($p1Report['warnings']) . ')');
+
+    // --- 23) ftp_backup_build_impact_report() classifies every row correctly. ---
+    // (iso_load_channels()/log_config_load_manual_devices() both take a file
+    // path, so the "local" side is written out here the same way it exists
+    // on disk in production.)
+    $dirP1Fixture = make_tmp_dir('ftp_restore_p1_fixture');
+    $xmlPathP1Fixture = $dirP1Fixture . '/OPC_UA_Config.xml';
+    $logCfgP1Fixture = $dirP1Fixture . '/Morfeas_config.xml';
+    file_put_contents($xmlPathP1Fixture, $localOpcUa);
+    file_put_contents($logCfgP1Fixture, $localMorfeas);
+    $p1Impact = ftp_backup_build_impact_report(
+        iso_load_channels($xmlPathP1Fixture),
+        log_config_load_manual_devices($logCfgP1Fixture),
+        $p1BundleOpcUa,
+        $p1BundleMorfeas
+    );
+
+    $channelsByIso = [];
+    foreach ($p1Impact['channels'] as $row) {
+        $channelsByIso[$row['iso_channel']] = $row;
+    }
+    check(($channelsByIso['_SDAQ_Same']['result'] ?? null) === 'Unchanged', 'P1: SDAQ channel differing only in runtime-owned UNIT is Unchanged (got ' . ($channelsByIso['_SDAQ_Same']['result'] ?? 'null') . ')');
+    check(($channelsByIso['_IOBOX_X']['result'] ?? null) === 'Replace', 'P1: IOBOX channel with a changed DESCRIPTION is Replace (got ' . ($channelsByIso['_IOBOX_X']['result'] ?? 'null') . ')');
+    check(($channelsByIso['_Only_Local']['result'] ?? null) === 'Remove', 'P1: channel present locally but absent from the bundle is Remove (got ' . ($channelsByIso['_Only_Local']['result'] ?? 'null') . ')');
+    check(($channelsByIso['_New_SDAQ']['result'] ?? null) === 'Add', 'P1: channel present in the bundle but absent locally is Add (got ' . ($channelsByIso['_New_SDAQ']['result'] ?? 'null') . ')');
+    check(
+        $p1Impact['channel_summary'] === ['add' => 1, 'replace' => 1, 'unchanged' => 1, 'remove' => 1],
+        'P1: channel_summary tallies all four outcomes exactly once each (got ' . json_encode($p1Impact['channel_summary']) . ')'
+    );
+
+    // --- 23b) Replace rows carry `before` (the current local values) and
+    //          `changed_fields` -- without this a Replace row only shows the
+    //          bundle's final state, and an operator cannot tell a
+    //          DESCRIPTION-only edit apart from a full source swap. ---
+    check(
+        in_array('description', $channelsByIso['_IOBOX_X']['changed_fields'] ?? [], true),
+        'P1: Replace channel row lists "description" in changed_fields (got ' . json_encode($channelsByIso['_IOBOX_X']['changed_fields'] ?? null) . ')'
+    );
+    check(
+        ($channelsByIso['_IOBOX_X']['before']['description'] ?? null) === 'old-desc',
+        'P1: Replace channel row\'s `before` carries the pre-change DESCRIPTION (got ' . json_encode($channelsByIso['_IOBOX_X']['before']['description'] ?? null) . ')'
+    );
+    check(
+        $channelsByIso['_SDAQ_Same']['changed_fields'] === [],
+        'P1: an Unchanged row has an empty changed_fields (got ' . json_encode($channelsByIso['_SDAQ_Same']['changed_fields']) . ')'
+    );
+
+    $handlersByKey = [];
+    foreach ($p1Impact['handlers'] as $row) {
+        $handlersByKey[$row['type'] . ':' . (in_array($row['type'], ['NOX', 'SDAQ'], true) ? $row['bus'] : $row['ip'])] = $row;
+    }
+    check(($handlersByKey['IOBOX:192.168.234.141']['result'] ?? null) === 'Replace', 'P1: IOBOX handler with a changed DEV_NAME (same IP) is Replace (got ' . ($handlersByKey['IOBOX:192.168.234.141']['result'] ?? 'null') . ')');
+    check(($handlersByKey['MTI:10.0.0.5']['result'] ?? null) === 'Remove', 'P1: MTI handler present locally but absent from the bundle is Remove (got ' . ($handlersByKey['MTI:10.0.0.5']['result'] ?? 'null') . ')');
+    check(($handlersByKey['MTI:10.0.0.9']['result'] ?? null) === 'Unchanged', 'P1: MTI handler identical on both sides is Unchanged (got ' . ($handlersByKey['MTI:10.0.0.9']['result'] ?? 'null') . ')');
+    check(($handlersByKey['NOX:can1']['result'] ?? null) === 'Add', 'P1: NOX handler present in the bundle but absent locally is Add (got ' . ($handlersByKey['NOX:can1']['result'] ?? 'null') . ')');
+
+    // --- Finding 1 fix: SDAQ_HANDLER now appears in the impact report at
+    //     all, and a CANBUS_IF-matched pair differing only in I2CBUS_NUM is
+    //     correctly Replace, not a false Unchanged (I2CBUS_NUM feeds a real
+    //     "-b" runtime argument in Morfeas_daemon.c, not display-only data). ---
+    check(($handlersByKey['SDAQ:can0']['result'] ?? null) === 'Replace', 'P1: SDAQ handler with a changed I2CBUS_NUM (same CANBUS_IF) is Replace, not falsely Unchanged (got ' . ($handlersByKey['SDAQ:can0']['result'] ?? 'null') . ')');
+    check(
+        in_array('i2c_bus_num', $handlersByKey['SDAQ:can0']['changed_fields'] ?? [], true),
+        'P1: SDAQ handler Replace row lists "i2c_bus_num" in changed_fields (got ' . json_encode($handlersByKey['SDAQ:can0']['changed_fields'] ?? null) . ')'
+    );
+    check(($handlersByKey['SDAQ:can2']['result'] ?? null) === 'Unchanged', 'P1: SDAQ handler identical (including absent I2CBUS_NUM) on both sides is Unchanged (got ' . ($handlersByKey['SDAQ:can2']['result'] ?? 'null') . ')');
+
+    // --- Finding 1 fix: an enabled -> disabled handler flip must be visible
+    //     as a changed field, not hidden inside a bare "Replace" verdict. ---
+    check(
+        in_array('disabled', $handlersByKey['IOBOX:192.168.234.141']['changed_fields'] ?? [], true),
+        'P1: IOBOX handler Replace row lists "disabled" when Disable flips from false to true (got ' . json_encode($handlersByKey['IOBOX:192.168.234.141']['changed_fields'] ?? null) . ')'
+    );
+    check(
+        ($handlersByKey['IOBOX:192.168.234.141']['before']['disabled'] ?? null) === false,
+        'P1: IOBOX handler Replace row\'s `before` shows the handler was currently enabled'
+    );
+
+    check(
+        $p1Impact['handler_summary'] === ['add' => 1, 'replace' => 2, 'unchanged' => 2, 'remove' => 1],
+        'P1: handler_summary tallies all six rows correctly, including the two new SDAQ rows (got ' . json_encode($p1Impact['handler_summary']) . ')'
+    );
+
+    // --- Invariant: every row this fixture classifies as Replace must have
+    //     a non-empty changed_fields. A Replace with an empty changed_fields
+    //     is exactly the bug class ftp_backup_field_value_changed() used to
+    //     have (see 23c below): the row-level verdict says "different" but
+    //     the field-level detail says "nothing changed", which is a report
+    //     the operator cannot act on. ---
+    foreach (array_merge($p1Impact['channels'], $p1Impact['handlers']) as $row) {
+        if ($row['result'] === 'Replace') {
+            check(
+                !empty($row['changed_fields']),
+                'P1 invariant: Replace row (' . ($row['iso_channel'] ?? ($row['type'] . ':' . ($row['bus'] ?: $row['ip']))) . ') has a non-empty changed_fields'
+            );
+        }
+    }
+
+    // --- 23c) Finding 2 regression: restore_entry_matches_existing() uses
+    //     $strEq (plain string equality) for DESCRIPTION, not $numEq
+    //     (numeric-aware). "001" and "1" are numerically equal but are
+    //     different strings, so the row-level verdict is Replace -- and
+    //     changed_fields must be able to name DESCRIPTION too, not go quiet
+    //     just because a naive numeric-aware comparator would call them equal. ---
+    $dirNumStr = make_tmp_dir('ftp_restore_numeric_string_field');
+    $xmlPathNumStr = $dirNumStr . '/OPC_UA_Config.xml';
+    $logCfgNumStr = $dirNumStr . '/Morfeas_config.xml';
+    file_put_contents($xmlPathNumStr, "<?xml version=\"1.0\"?>\n<NODESet>\n" . p1_channel_xml('_NumStr', 'SDAQ', '444444444.CH1', '001') . "</NODESet>\n");
+    file_put_contents($logCfgNumStr, "<?xml version=\"1.0\"?>\n<CONFIG><COMPONENTS></COMPONENTS></CONFIG>\n");
+    $bundleOpcUaNumStr = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE NODESet SYSTEM \"Morfeas.dtd\">\n<NODESet>\n"
+        . p1_channel_xml('_NumStr', 'SDAQ', '444444444.CH1', '1') . "</NODESet>\n";
+    $bundleMorfeasNumStr = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE CONFIG SYSTEM "Morfeas.dtd">
+<CONFIG>
+  <CONFIGS_DIR>/home/morfeas/configuration</CONFIGS_DIR>
+  <LOGGERS_DIR>/mnt/ramdisk/Morfeas_Loggers/</LOGGERS_DIR>
+  <LOGSTAT_DIR>/mnt/ramdisk/</LOGSTAT_DIR>
+  <COMPONENTS>
+    <OPC_UA_SERVER><APP_NAME>Morfeas_Default_app_32</APP_NAME></OPC_UA_SERVER>
+  </COMPONENTS>
+</CONFIG>
+XML;
+    $numStrImpact = ftp_backup_build_impact_report(
+        iso_load_channels($xmlPathNumStr),
+        log_config_load_manual_devices($logCfgNumStr),
+        $bundleOpcUaNumStr,
+        $bundleMorfeasNumStr
+    );
+    $numStrRow = $numStrImpact['channels'][0] ?? null;
+    check($numStrRow !== null && $numStrRow['result'] === 'Replace', 'P1 23c: DESCRIPTION "001" vs "1" is a Replace (numerically equal, but different strings) (got ' . ($numStrRow['result'] ?? 'null') . ')');
+    check(
+        $numStrRow !== null && in_array('description', $numStrRow['changed_fields'], true),
+        'P1 23c: changed_fields correctly names "description" for a "001" vs "1" DESCRIPTION change, not silently empty (got ' . json_encode($numStrRow['changed_fields'] ?? null) . ')'
+    );
+
+    // Regression guard: numeric fields must still use numeric-aware
+    // equality (MIN "0" and "0.0" are the same value), so this fix does not
+    // overcorrect into false Replace verdicts on ordinary formatting noise.
+    check(
+        ftp_backup_numeric_field_changed('0', '0.0') === false,
+        'P1 23c regression: numeric fields "0" and "0.0" are still treated as unchanged (numeric-aware)'
+    );
+    check(
+        ftp_backup_string_field_changed('001', '1') === true,
+        'P1 23c regression: string fields "001" and "1" are treated as changed (plain string equality, matching $strEq)'
+    );
+
+    // --- 24) End-to-end through the production commit entry point: the
+    //         returned impact matches what was computed above, proving
+    //         commit recomputes it from the real files under lock rather
+    //         than trusting a value handed in by the caller. ---
+    $dirP1 = make_tmp_dir('ftp_restore_p1_impact');
+    $xmlPathP1 = $dirP1 . '/OPC_UA_Config.xml';
+    $logCfgP1 = $dirP1 . '/Morfeas_config.xml';
+    file_put_contents($xmlPathP1, $localOpcUa);
+    file_put_contents($logCfgP1, $localMorfeas);
+
+    $localDigestP1 = ftp_backup_local_config_digest_locked($xmlPathP1, $logCfgP1);
+    $bundleP1 = make_bundle($p1BundleOpcUa, $p1BundleMorfeas);
+    $remoteDigestP1 = ftp_backup_restore_digest('p1-impact.mbl', $bundleP1);
+
+    $commitResultP1 = ftp_backup_restore_commit(
+        'p1-impact.mbl',
+        $remoteDigestP1,
+        $localDigestP1,
+        $xmlPathP1,
+        $logCfgP1,
+        $dtdDir,
+        false,
+        static fn(string $filename): string => $bundleP1
+    );
+    check(
+        $commitResultP1['impact']['channel_summary'] === ['add' => 1, 'replace' => 1, 'unchanged' => 1, 'remove' => 1],
+        'P1: restore_commit() returns the real recomputed channel_summary (got ' . json_encode($commitResultP1['impact']['channel_summary'] ?? null) . ')'
+    );
+    check(
+        $commitResultP1['impact']['handler_summary'] === ['add' => 1, 'replace' => 2, 'unchanged' => 2, 'remove' => 1],
+        'P1: restore_commit() returns the real recomputed handler_summary (got ' . json_encode($commitResultP1['impact']['handler_summary'] ?? null) . ')'
+    );
+
+    // --- 25) The condition ftp_backup_restore_preflight() gates
+    //         impact-building on: an invalid candidate's can_commit is
+    //         false, so preflight's `$report['can_commit'] ? ... : null`
+    //         must skip building an impact report against a document that
+    //         cannot be restored anyway. (preflight itself needs a live FTP
+    //         connection, so this exercises the exact real report shape it
+    //         branches on, the same way the ack-gate tests above do for
+    //         restore_commit()'s warning check.) ---
+    $invalidReport = ftp_backup_validate_bundle_candidates('<not even xml', $p1BundleMorfeas, $dtdDir);
+    check($invalidReport['can_commit'] === false, 'P1: an invalid candidate reports can_commit=false, which gates impact-building off in preflight');
+}
+
 echo "\n{$g_checks} checks, " . ($g_checks - $g_failures) . " passed, {$g_failures} failed\n";
 exit($g_failures === 0 ? 0 : 1);
