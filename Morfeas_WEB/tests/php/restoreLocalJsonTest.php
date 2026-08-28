@@ -379,5 +379,41 @@ try {
     check($e->apiCode() === 'missing_field', 'Commit of an empty entry list rejects with missing_field (got ' . $e->apiCode() . ')');
 }
 
+// ============================================================
+// 10) P0: preflight reads OPC_UA_Config.xml, Morfeas_config.xml and the
+// digest under one fixed-order lock pair (log_config, then opcua_config),
+// not as up to four independent unlocked reads. Proven here by nesting
+// restore_preflight() inside a caller that already holds one of those same
+// locks: backend_with_named_lock() throws on same-request re-entrancy, so
+// if restore_preflight() did NOT actually acquire the lock, this would
+// return normally instead of throwing.
+// ============================================================
+$dir10 = make_tmp_dir('restore_test');
+$xmlPath10 = write_xml($dir10, channel_xml('_Existing', 'SDAQ', '700000030.CH1'));
+$logCfg10 = write_log_config($dir10, []);
+$fileContent10 = json_encode([legacy_entry('_New', 'SDAQ', '700000031.CH1')]);
+
+try {
+    log_config_with_xml_lock($logCfg10, function () use ($xmlPath10, $logCfg10, $fileContent10) {
+        restore_preflight($xmlPath10, $logCfg10, $fileContent10);
+    });
+    check(false, '10: preflight must acquire the log_config lock (nesting should have thrown re-entrancy)');
+} catch (RuntimeException $e) {
+    check(strpos($e->getMessage(), 're-entrancy') !== false, '10: preflight acquires the log_config lock (' . $e->getMessage() . ')');
+}
+
+try {
+    iso_with_xml_lock($xmlPath10, function () use ($xmlPath10, $logCfg10, $fileContent10) {
+        restore_preflight($xmlPath10, $logCfg10, $fileContent10);
+    });
+    check(false, '10: preflight must acquire the opcua_config lock (nesting should have thrown re-entrancy)');
+} catch (RuntimeException $e) {
+    check(strpos($e->getMessage(), 're-entrancy') !== false, '10: preflight acquires the opcua_config lock (' . $e->getMessage() . ')');
+}
+
+// Regression guard: preflight still works normally outside any pre-held lock.
+$preflight10 = restore_preflight($xmlPath10, $logCfg10, $fileContent10);
+check($preflight10['can_commit'] === true, '10 regression: preflight still succeeds normally when no lock is already held');
+
 echo "\n{$g_checks} checks, " . ($g_checks - $g_failures) . " passed, {$g_failures} failed\n";
 exit($g_failures === 0 ? 0 : 1);

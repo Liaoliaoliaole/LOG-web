@@ -738,8 +738,37 @@ function ftp_backup_download_raw(array $config, string $filename): string
  * without writing anything. Mirrors Local JSON Restore's preflight/commit
  * split, at whole-file granularity since FTP is a full-config replace, not
  * a per-channel merge.
+ *
+ * The FTP round-trip happens with no lock held (a slow/unreachable server
+ * must not block unrelated Add/Edit/Device requests); only the local-file
+ * digest read at the end takes the same fixed-order lock pair commit() uses
+ * (log_config, then opcua_config), so that digest describes one consistent
+ * instant of the local files. It travels back to the caller as
+ * local_config_digest and must be echoed into restore_commit() alongside
+ * the remote-bytes digest -- the remote digest alone cannot detect a local
+ * config edit that landed between preflight and commit.
  */
-function ftp_backup_restore_preflight(string $filename, string $dtdDir): array
+/*
+ * Read the local snapshot digest under the same fixed-order lock pair
+ * commit() uses (log_config, then opcua_config). Factored out of
+ * ftp_backup_restore_preflight() so it can be exercised directly in unit
+ * tests without a live FTP connection -- everything else preflight does
+ * (download, decode, validate) requires the network round-trip that only
+ * ftp_backup_restore_commit() has a test-time injection point for.
+ */
+function ftp_backup_local_config_digest_locked(string $xmlPath, string $logConfigPath): string
+{
+    return log_config_with_xml_lock(
+        $logConfigPath,
+        static function () use ($xmlPath, $logConfigPath) {
+            return iso_with_xml_lock($xmlPath, static function () use ($xmlPath, $logConfigPath) {
+                return restore_compute_digest($xmlPath, $logConfigPath);
+            });
+        }
+    );
+}
+
+function ftp_backup_restore_preflight(string $filename, string $xmlPath, string $logConfigPath, string $dtdDir): array
 {
     $config = ftp_backup_load_config_raw();
     $raw = ftp_backup_download_raw($config, $filename);
@@ -749,6 +778,7 @@ function ftp_backup_restore_preflight(string $filename, string $dtdDir): array
     return array_merge($report, [
         'filename' => $filename,
         'digest' => ftp_backup_restore_digest($filename, $raw),
+        'local_config_digest' => ftp_backup_local_config_digest_locked($xmlPath, $logConfigPath),
     ]);
 }
 
@@ -759,10 +789,17 @@ function ftp_backup_restore_preflight(string $filename, string $dtdDir): array
  * locks, so it is the only part that acquires them. Holding both locks for
  * the FTP network round-trip would block every unrelated Add/Edit/Device
  * request for as long as the remote server takes to respond.
+ *
+ * $expectedLocalConfigDigest is checked inside that same lock pair, right
+ * before the write: it is the only thing that can catch a local config edit
+ * (an unrelated Add/Edit/Device, or another Restore) that landed after
+ * preflight computed its snapshot. The remote-bytes digest above cannot see
+ * that -- it only proves the backup on the FTP server has not changed.
  */
 function ftp_backup_restore_commit(
     string $filename,
     string $expectedDigest,
+    string $expectedLocalConfigDigest,
     string $xmlPath,
     string $logConfigPath,
     string $dtdDir,
@@ -812,8 +849,17 @@ function ftp_backup_restore_commit(
         );
     }
 
-    return log_config_with_xml_lock($logConfigPath, function () use ($bundle, $xmlPath, $logConfigPath, $filename) {
-        return iso_with_xml_lock($xmlPath, function () use ($bundle, $xmlPath, $logConfigPath, $filename) {
+    return log_config_with_xml_lock($logConfigPath, function () use ($bundle, $xmlPath, $logConfigPath, $filename, $expectedLocalConfigDigest) {
+        return iso_with_xml_lock($xmlPath, function () use ($bundle, $xmlPath, $logConfigPath, $filename, $expectedLocalConfigDigest) {
+            $actualLocalConfigDigest = restore_compute_digest($xmlPath, $logConfigPath);
+            if (!hash_equals($actualLocalConfigDigest, $expectedLocalConfigDigest)) {
+                throw new ChannelConfigException(
+                    'The local configuration changed since this backup was reviewed; please re-run the preflight check',
+                    409,
+                    'ftp_restore_local_config_changed'
+                );
+            }
+
             ftp_backup_apply_ordered_replace($bundle['opc_ua'], $bundle['morfeas'], $xmlPath, $logConfigPath);
 
             @touch(ftp_backup_config_file());

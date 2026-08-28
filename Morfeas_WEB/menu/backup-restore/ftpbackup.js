@@ -342,7 +342,7 @@
       setMsg(resMsg, 'Restoring backup...');
       // The operator has now seen and accepted the warnings above; the
       // backend requires this to be explicit rather than assumed.
-      const payload = await api.restoreCommit(file, data.digest, warnings.length > 0);
+      const payload = await api.restoreCommit(file, data.digest, data.local_config_digest, warnings.length > 0);
       setMsg(resMsg, payload?.message || `Restored from: ${file}`, 'ok');
     } catch (err) {
       setMsg(resMsg, `Restore failed: ${err.message || err}`, 'err');

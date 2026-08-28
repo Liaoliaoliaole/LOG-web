@@ -96,18 +96,28 @@ try {
             // Read-only: downloads and validates the candidate, writes
             // nothing, so it does not need the system_action 'restore' lock
             // or the edit-mode blocker check -- those guard the write in
-            // restore_commit below.
-            $preflightResult = ftp_backup_restore_preflight($file, dirname(backend_log_config_path()));
+            // restore_commit below. It does take the local config locks
+            // briefly, just to read a consistent local_config_digest.
+            $preflightResult = ftp_backup_restore_preflight(
+                $file,
+                backend_opcua_config_path(),
+                backend_log_config_path(),
+                dirname(backend_log_config_path())
+            );
             ftp_backup_api_respond(true, $preflightResult, 'Preflight complete');
 
         case 'restore_commit':
             $file = trim((string) ($body['file'] ?? ''));
             $digest = trim((string) ($body['digest'] ?? ''));
+            $localConfigDigest = trim((string) ($body['local_config_digest'] ?? ''));
             if ($file === '') {
                 throw new InvalidArgumentException('file is required for restore_commit action');
             }
             if ($digest === '') {
                 throw new InvalidArgumentException('digest is required for restore_commit action');
+            }
+            if ($localConfigDigest === '') {
+                throw new InvalidArgumentException('local_config_digest is required for restore_commit action');
             }
             $sessionId = backend_require_session_token('Missing session token for restore_commit action');
             $acquire = backend_session_registry_acquire_lock(
@@ -132,6 +142,7 @@ try {
                 $restoreResult = ftp_backup_restore_commit(
                     $file,
                     $digest,
+                    $localConfigDigest,
                     backend_opcua_config_path(),
                     backend_log_config_path(),
                     dirname(backend_log_config_path()),

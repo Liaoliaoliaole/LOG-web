@@ -404,12 +404,30 @@ function restore_summarize(array $rows): array
  * Read-only preflight: parses and classifies every row, never touches the
  * real files. Returns a digest of the current config so a later commit()
  * call can detect "the config changed since you reviewed this".
+ *
+ * Both files are read inside the same fixed-order lock pair commit() uses
+ * (log_config, then opcua_config) so the rows shown to the operator, the
+ * device-handler warnings, and the returned digest all describe one single
+ * instant -- not up to four independent unlocked reads that a concurrent
+ * Add/Edit/Device/Restore could interleave with.
  */
 function restore_preflight(string $xmlPath, string $logConfigPath, string $fileContent): array
 {
     $rawEntries = restore_parse_legacy_json($fileContent);
-    $existingRows = iso_load_channels($xmlPath);
-    $deviceIdentifiers = restore_load_device_identifiers($logConfigPath);
+
+    [$existingRows, $deviceIdentifiers, $digest] = log_config_with_xml_lock(
+        $logConfigPath,
+        static function () use ($xmlPath, $logConfigPath) {
+            return iso_with_xml_lock($xmlPath, static function () use ($xmlPath, $logConfigPath) {
+                return [
+                    iso_load_channels($xmlPath),
+                    restore_load_device_identifiers($logConfigPath),
+                    restore_compute_digest($xmlPath, $logConfigPath),
+                ];
+            });
+        }
+    );
+
     $rows = restore_classify_entries($rawEntries, $existingRows, $deviceIdentifiers);
     $summary = restore_summarize($rows);
     $warnings = restore_collect_warnings($rows);
@@ -422,7 +440,7 @@ function restore_preflight(string $xmlPath, string $logConfigPath, string $fileC
         'summary' => $summary,
         'warnings' => $warnings,
         'can_commit' => count($rawEntries) > 0 && $summary['invalid'] === 0 && $summary['conflict'] === 0,
-        'digest' => restore_compute_digest($xmlPath, $logConfigPath),
+        'digest' => $digest,
     ];
 }
 

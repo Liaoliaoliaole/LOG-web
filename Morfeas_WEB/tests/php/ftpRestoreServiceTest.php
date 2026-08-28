@@ -189,9 +189,11 @@ if ($dtdAvailable) {
     file_put_contents($commitLog, $validMorfeas);
     $legacyBundle = make_bundle($legacySdaqUnit, $validMorfeas);
     $legacyDigest = ftp_backup_restore_digest('legacy-unit.mbl', $legacyBundle);
+    $localDigestBefore = restore_compute_digest($commitXml, $commitLog);
     ftp_backup_restore_commit(
         'legacy-unit.mbl',
         $legacyDigest,
+        $localDigestBefore,
         $commitXml,
         $commitLog,
         $dtdDir,
@@ -204,10 +206,12 @@ if ($dtdAvailable) {
     $lowerDigest = ftp_backup_restore_digest('lowercase-type.mbl', $lowerBundle);
     $beforeOpcHash = hash_file('sha256', $commitXml);
     $beforeLogHash = hash_file('sha256', $commitLog);
+    $localDigestBefore2 = restore_compute_digest($commitXml, $commitLog);
     try {
         ftp_backup_restore_commit(
             'lowercase-type.mbl',
             $lowerDigest,
+            $localDigestBefore2,
             $commitXml,
             $commitLog,
             $dtdDir,
@@ -546,6 +550,113 @@ XML;
         'ack gate: a clean backup commits without any acknowledgement');
 }
 
+
+// =====================================================================
+// P0: local_config_digest -- FTP preflight/commit must see one consistent
+// local-file snapshot, not just the remote backup bytes.
+// =====================================================================
+
+// --- 19) ftp_backup_local_config_digest_locked() matches a direct read. ---
+$dirP0a = make_tmp_dir('ftp_restore_p0_digest');
+$xmlPathP0a = $dirP0a . '/OPC_UA_Config.xml';
+$logCfgP0a = $dirP0a . '/Morfeas_config.xml';
+file_put_contents($xmlPathP0a, $validOpcUa);
+file_put_contents($logCfgP0a, $validMorfeas);
+check(
+    ftp_backup_local_config_digest_locked($xmlPathP0a, $logCfgP0a) === restore_compute_digest($xmlPathP0a, $logCfgP0a),
+    'local_config_digest_locked matches restore_compute_digest read directly'
+);
+
+// --- 20) It actually holds the fixed-order lock pair, proven the same way
+//         as the Local JSON Restore P0 regression: nesting inside a
+//         pre-held lock on either resource must trip re-entrancy detection. ---
+try {
+    log_config_with_xml_lock($logCfgP0a, function () use ($xmlPathP0a, $logCfgP0a) {
+        ftp_backup_local_config_digest_locked($xmlPathP0a, $logCfgP0a);
+    });
+    check(false, 'local_config_digest_locked must acquire the log_config lock (nesting should have thrown re-entrancy)');
+} catch (RuntimeException $e) {
+    check(strpos($e->getMessage(), 're-entrancy') !== false, 'local_config_digest_locked acquires the log_config lock (' . $e->getMessage() . ')');
+}
+try {
+    iso_with_xml_lock($xmlPathP0a, function () use ($xmlPathP0a, $logCfgP0a) {
+        ftp_backup_local_config_digest_locked($xmlPathP0a, $logCfgP0a);
+    });
+    check(false, 'local_config_digest_locked must acquire the opcua_config lock (nesting should have thrown re-entrancy)');
+} catch (RuntimeException $e) {
+    check(strpos($e->getMessage(), 're-entrancy') !== false, 'local_config_digest_locked acquires the opcua_config lock (' . $e->getMessage() . ')');
+}
+
+if ($dtdAvailable) {
+    // --- 21) Commit rejects a stale local_config_digest even though the
+    //         remote backup bytes are unchanged and would otherwise pass --
+    //         simulating an unrelated Add/Edit/Device write landing between
+    //         preflight and commit. Files must be left untouched. ---
+    $dirP0b = make_tmp_dir('ftp_restore_p0_stale_local');
+    $xmlPathP0b = $dirP0b . '/OPC_UA_Config.xml';
+    $logCfgP0b = $dirP0b . '/Morfeas_config.xml';
+    file_put_contents($xmlPathP0b, $validOpcUa);
+    file_put_contents($logCfgP0b, $validMorfeas);
+
+    $staleLocalDigest = ftp_backup_local_config_digest_locked($xmlPathP0b, $logCfgP0b);
+
+    // An unrelated write (e.g. a channel Add) touches OPC_UA_Config.xml
+    // after preflight computed its snapshot but before commit runs.
+    file_put_contents($xmlPathP0b, str_replace(
+        '</NODESet>',
+        "  <CHANNEL><ISO_CHANNEL>_Concurrent</ISO_CHANNEL><INTERFACE_TYPE>SDAQ</INTERFACE_TYPE><ANCHOR>222222222.CH2</ANCHOR><DESCRIPTION>d</DESCRIPTION><MIN>0</MIN><MAX>1</MAX></CHANNEL>\n</NODESet>",
+        $validOpcUa
+    ));
+    $beforeOpcHashP0b = hash_file('sha256', $xmlPathP0b);
+    $beforeLogHashP0b = hash_file('sha256', $logCfgP0b);
+
+    $bundleP0b = make_bundle($validOpcUa, $validMorfeas);
+    $remoteDigestP0b = ftp_backup_restore_digest('p0-stale-local.mbl', $bundleP0b);
+
+    try {
+        ftp_backup_restore_commit(
+            'p0-stale-local.mbl',
+            $remoteDigestP0b,
+            $staleLocalDigest,
+            $xmlPathP0b,
+            $logCfgP0b,
+            $dtdDir,
+            false,
+            static fn(string $filename): string => $bundleP0b
+        );
+        check(false, 'Commit with a stale local_config_digest must throw even though the remote digest matches');
+    } catch (ChannelConfigException $e) {
+        check($e->apiCode() === 'ftp_restore_local_config_changed', 'Commit with a stale local_config_digest rejects with ftp_restore_local_config_changed (got ' . $e->apiCode() . ')');
+        check($e->status() === 409, 'Stale local_config_digest rejection uses HTTP 409 (got ' . $e->status() . ')');
+    }
+    check(
+        hash_file('sha256', $xmlPathP0b) === $beforeOpcHashP0b && hash_file('sha256', $logCfgP0b) === $beforeLogHashP0b,
+        'a rejected FTP commit (stale local_config_digest) leaves both local files byte-for-byte unchanged'
+    );
+
+    // --- 22) Regression: a fresh, correctly-paired local_config_digest still
+    //         commits normally -- this fix must not false-reject a normal Restore. ---
+    $dirP0c = make_tmp_dir('ftp_restore_p0_fresh_local');
+    $xmlPathP0c = $dirP0c . '/OPC_UA_Config.xml';
+    $logCfgP0c = $dirP0c . '/Morfeas_config.xml';
+    file_put_contents($xmlPathP0c, $validOpcUa);
+    file_put_contents($logCfgP0c, $validMorfeas);
+    $freshLocalDigest = ftp_backup_local_config_digest_locked($xmlPathP0c, $logCfgP0c);
+    $bundleP0c = make_bundle($legacySdaqUnit, $validMorfeas);
+    $remoteDigestP0c = ftp_backup_restore_digest('p0-fresh-local.mbl', $bundleP0c);
+    $resultP0c = ftp_backup_restore_commit(
+        'p0-fresh-local.mbl',
+        $remoteDigestP0c,
+        $freshLocalDigest,
+        $xmlPathP0c,
+        $logCfgP0c,
+        $dtdDir,
+        false,
+        static fn(string $filename): string => $bundleP0c
+    );
+    check($resultP0c['filename'] === 'p0-fresh-local.mbl', '22 regression: a fresh local_config_digest still commits normally');
+    check(file_get_contents($xmlPathP0c) === $legacySdaqUnit, '22 regression: the commit actually applied the new OPC_UA_Config content');
+}
 
 echo "\n{$g_checks} checks, " . ($g_checks - $g_failures) . " passed, {$g_failures} failed\n";
 exit($g_failures === 0 ? 0 : 1);
