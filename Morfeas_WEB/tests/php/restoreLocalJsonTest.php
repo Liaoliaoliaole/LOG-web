@@ -34,11 +34,17 @@ function write_xml(string $dir, string $channelsXml): string
 
 function write_log_config(string $dir, array $handlers): string
 {
-    // handlers: [['type'=>'IOBOX'|'MTI', 'name'=>..., 'ip'=>...], ...]
+    // handlers: [['type'=>'IOBOX'|'MTI'|'NOX', 'name'=>..., 'ip'=>..., 'bus'=>..., 'disable'=>bool], ...]
     $comps = '';
     foreach ($handlers as $h) {
-        $tag = strtoupper($h['type']) . '_HANDLER';
-        $comps .= "<$tag><DEV_NAME>{$h['name']}</DEV_NAME><IPv4_ADDR>{$h['ip']}</IPv4_ADDR></$tag>\n";
+        $type = strtoupper($h['type']);
+        $tag = $type . '_HANDLER';
+        $disableAttr = !empty($h['disable']) ? 'true' : 'false';
+        if ($type === 'NOX') {
+            $comps .= "<$tag Disable=\"$disableAttr\"><CANBUS_IF>{$h['bus']}</CANBUS_IF></$tag>\n";
+        } else {
+            $comps .= "<$tag Disable=\"$disableAttr\"><DEV_NAME>{$h['name']}</DEV_NAME><IPv4_ADDR>{$h['ip']}</IPv4_ADDR></$tag>\n";
+        }
     }
     $path = $dir . '/Morfeas_config.xml';
     file_put_contents($path, "<?xml version=\"1.0\"?>\n<NODESet><COMPONENTS>\n$comps</COMPONENTS></NODESet>\n");
@@ -200,6 +206,102 @@ check(
     $restoredSdaq4 !== null && !isset($restoredSdaq4->UNIT) && !isset($restoredSdaq4->CAL_DATE) && !isset($restoredSdaq4->CAL_PERIOD),
     'Local JSON Restore accepts legacy SDAQ metadata but strips all runtime-owned XML fields'
 );
+
+// ============================================================
+// NOX orphan/disabled handler warnings, and IOBOX/MTI disabled
+// handler warnings -- previously NOX was skipped entirely (identity is
+// bus-based, unlike IOBOX/MTI's IP-based check), and a Disable="true"
+// handler was indistinguishable from a fully-configured one, so a channel
+// bound to it silently produced no warning at all.
+// ============================================================
+$dir4b = make_tmp_dir('restore_test');
+$xmlPath4b = write_xml($dir4b, '');
+$logCfg4b = write_log_config($dir4b, [
+    ['type' => 'NOX', 'bus' => 'can0'],                     // enabled
+    ['type' => 'NOX', 'bus' => 'can1', 'disable' => true],  // disabled
+    ['type' => 'IOBOX', 'name' => 'Box1', 'ip' => '192.168.234.141', 'disable' => true], // -> identifier 2380966080
+]);
+
+// NOX channel on an enabled, matching bus -> no warning.
+$r = classify_one($xmlPath4b, $logCfg4b, legacy_entry('_Nox_Ok', 'NOX', 'can0.addr_0.NOx', ['UNIT' => 'ppm']));
+check($r['result'] === 'Ready to restore' && ($r['warnings'] ?? []) === [], 'P2: NOX channel with a matching ENABLED handler produces no warning (got ' . $r['result'] . '/' . json_encode($r['warnings'] ?? null) . ')');
+
+// NOX channel on a bus with no handler at all -> orphan_device_source, same as IOBOX/MTI.
+$r = classify_one($xmlPath4b, $logCfg4b, legacy_entry('_Nox_Orphan', 'NOX', 'can9.addr_0.NOx', ['UNIT' => 'ppm']));
+check(
+    $r['result'] === 'Ready to restore' && (($r['warnings'][0]['code'] ?? null) === 'orphan_device_source'),
+    'P2: NOX channel on a bus with no configured handler is Core-valid with orphan_device_source warning (got ' . $r['result'] . '/' . json_encode($r['warnings'] ?? null) . ')'
+);
+check(
+    strpos($r['warnings'][0]['message'] ?? '', 'the current local Morfeas_Config.xml') !== false,
+    'P2: Local JSON Restore\'s orphan warning names the LOCAL config file, not a generic "Morfeas_Config.xml" (got ' . ($r['warnings'][0]['message'] ?? 'null') . ')'
+);
+
+// NOX channel bound to a handler that exists but is Disable="true" -> a
+// different, still-reportable problem: device_handler_disabled, not orphan.
+$r = classify_one($xmlPath4b, $logCfg4b, legacy_entry('_Nox_Disabled', 'NOX', 'can1.addr_0.NOx', ['UNIT' => 'ppm']));
+check(
+    $r['result'] === 'Ready to restore' && (($r['warnings'][0]['code'] ?? null) === 'device_handler_disabled'),
+    'P2: NOX channel bound to a Disable="true" handler warns device_handler_disabled, not orphan_device_source (got ' . $r['result'] . '/' . json_encode($r['warnings'] ?? null) . ')'
+);
+
+// Case-sensitivity: the anchor's can_if is always lower-cased by
+// iso_parse_nox_identity() (matching Core's own decode_nox_anchor()), but a
+// handler's OPC-UA node prefix is registered using its raw CANBUS_IF text
+// (NOX_handler_reg()). A handler written as "CAN0" therefore registers as
+// "CAN0.sensors...." while the channel looks up "can0.sensors....": two
+// different NodeIds. Silently matching these would hide a channel that can
+// never resolve at runtime, so this must warn, not pass silently.
+$dir4c = make_tmp_dir('restore_test');
+$logCfg4c = write_log_config($dir4c, [['type' => 'NOX', 'bus' => 'CAN0']]);
+$xmlPath4c = write_xml($dir4c, '');
+$r = classify_one($xmlPath4c, $logCfg4c, legacy_entry('_Nox_Case', 'NOX', 'can0.addr_0.NOx', ['UNIT' => 'ppm']));
+check(
+    $r['result'] === 'Ready to restore' && (($r['warnings'][0]['code'] ?? null) === 'device_handler_bus_case_mismatch'),
+    'P2: a handler CANBUS_IF written in a different case warns device_handler_bus_case_mismatch, not a silent match (got ' . $r['result'] . '/' . json_encode($r['warnings'] ?? null) . ')'
+);
+
+// Exact-case match on the same bus still passes clean, proving the mismatch
+// case above is genuinely about casing and not some other fixture defect.
+$dir4d = make_tmp_dir('restore_test');
+$logCfg4d = write_log_config($dir4d, [['type' => 'NOX', 'bus' => 'can0']]);
+$xmlPath4d = write_xml($dir4d, '');
+$r = classify_one($xmlPath4d, $logCfg4d, legacy_entry('_Nox_ExactCase', 'NOX', 'can0.addr_0.NOx', ['UNIT' => 'ppm']));
+check($r['result'] === 'Ready to restore' && ($r['warnings'] ?? []) === [], 'P2 regression: an exact-case NOX bus match still produces no warning (got ' . $r['result'] . '/' . json_encode($r['warnings'] ?? null) . ')');
+
+// Combined boundary: a case-mismatched handler that is ALSO Disable="true"
+// must still surface both facts. Fixing the casing alone would not be
+// enough to make this channel work while the handler stays disabled, so
+// silently reporting only the casing problem would leave a second real
+// defect invisible until the operator fixes the first one and reruns.
+$dir4e = make_tmp_dir('restore_test');
+$logCfg4e = write_log_config($dir4e, [['type' => 'NOX', 'bus' => 'CAN0', 'disable' => true]]);
+$xmlPath4e = write_xml($dir4e, '');
+$r = classify_one($xmlPath4e, $logCfg4e, legacy_entry('_Nox_CaseDisabled', 'NOX', 'can0.addr_0.NOx', ['UNIT' => 'ppm']));
+check(
+    $r['result'] === 'Ready to restore' && (($r['warnings'][0]['code'] ?? null) === 'device_handler_bus_case_mismatch'),
+    'P2: a case-mismatched AND disabled handler still reports as a single device_handler_bus_case_mismatch warning (got ' . $r['result'] . '/' . json_encode($r['warnings'] ?? null) . ')'
+);
+check(
+    strpos($r['warnings'][0]['message'] ?? '', 'also disabled') !== false,
+    'P2: the case-mismatch warning also mentions the handler is disabled, not just the casing problem (got ' . ($r['warnings'][0]['message'] ?? 'null') . ')'
+);
+
+// IOBOX channel bound to a handler that exists but is Disable="true": before
+// P2 this was indistinguishable from a fully-working handler (only presence
+// was checked) and produced no warning at all -- Core loads the config, but
+// the channel will not come online until the handler is re-enabled, which
+// the operator had no way to learn from Restore's report.
+$r = classify_one($xmlPath4b, $logCfg4b, legacy_entry('_Iobox_Disabled', 'IOBOX', '2380966080.RX1.CH1', ['UNIT' => 'C']));
+check(
+    $r['result'] === 'Ready to restore' && (($r['warnings'][0]['code'] ?? null) === 'device_handler_disabled'),
+    'P2: IOBOX channel bound to a Disable="true" handler warns device_handler_disabled (got ' . json_encode($r['warnings'] ?? null) . ')'
+);
+
+// SDAQ is unaffected: its anchor carries no bus, so no per-channel check is
+// possible or attempted, exactly as before P2.
+$r = classify_one($xmlPath4b, $logCfg4b, legacy_entry('_Sdaq_Unaffected', 'SDAQ', '700000001.CH1'));
+check($r['result'] === 'Ready to restore' && ($r['warnings'] ?? []) === [], 'P2 regression: SDAQ channels remain unchecked (no bus in the anchor to match against) (got ' . $r['result'] . '/' . json_encode($r['warnings'] ?? null) . ')');
 
 // ============================================================
 // 5) Six-way duplicate/conflict matrix against the existing config

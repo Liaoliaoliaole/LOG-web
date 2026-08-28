@@ -577,37 +577,54 @@ function ftp_backup_restore_digest(string $filename, string $rawBytes): string
 }
 
 /*
- * Warn when an IOBOX/MTI channel lacks a same-type handler in this bundle.
- * It remains restorable because Core accepts offline orphan definitions.
+ * Warn when an IOBOX/MTI/NOX channel lacks a same-type ENABLED handler in
+ * this bundle. It remains restorable because Core loads all of these
+ * configs unmodified (offline orphan definitions and disabled handlers
+ * alike). Shares restore_check_device_handler() with Local JSON Restore
+ * (P2): building the identifier maps is the only bundle-vs-local-file
+ * difference between the two paths; the match/warn logic itself must not
+ * drift between them.
  */
 function ftp_backup_check_bundle_handler_matching(SimpleXMLElement $xml, DOMDocument $morfeasDom): array
 {
-    $identifiers = ['IOBOX' => [], 'MTI' => []];
+    $identifiers = ['IOBOX' => [], 'MTI' => [], 'NOX' => []];
     $xpath = new DOMXPath($morfeasDom);
     foreach (['IOBOX' => '//IOBOX_HANDLER', 'MTI' => '//MTI_HANDLER'] as $type => $query) {
         foreach ($xpath->query($query) as $handler) {
             /** @var DOMElement $handler */
+            $enabled = strtolower($handler->getAttribute('Disable')) !== 'true';
             $ipNode = $handler->getElementsByTagName('IPv4_ADDR')->item(0);
             $ip = $ipNode ? trim($ipNode->textContent) : '';
             $identifier = restore_ipv4_to_core_identifier($ip);
             if ($identifier !== null) {
-                $identifiers[$type][$identifier] = true;
+                $identifiers[$type][$identifier] = $enabled;
             }
+        }
+    }
+    foreach ($xpath->query('//NOX_HANDLER') as $handler) {
+        /** @var DOMElement $handler */
+        $enabled = strtolower($handler->getAttribute('Disable')) !== 'true';
+        $busNode = $handler->getElementsByTagName('CANBUS_IF')->item(0);
+        // RAW case preserved -- see restore_load_device_identifiers()'s
+        // docblock for why NOX bus casing must not be normalized here.
+        $bus = $busNode ? trim($busNode->textContent) : '';
+        if ($bus !== '') {
+            $identifiers['NOX'][$bus] = $enabled;
         }
     }
 
     $errors = [];
     foreach ($xml->CHANNEL as $ch) {
         $type = strtoupper(trim((string)$ch->INTERFACE_TYPE));
-        if ($type !== 'IOBOX' && $type !== 'MTI') {
-            continue; // SDAQ/NOX identity is bus-based, not handler-IP-based
+        if ($type !== 'IOBOX' && $type !== 'MTI' && $type !== 'NOX') {
+            continue; // SDAQ identity is bus-based with no bus in the anchor -- no precise per-channel check possible
         }
         $iso = trim((string)$ch->ISO_CHANNEL);
         $identity = iso_parse_source_identity($type, trim((string)$ch->ANCHOR));
         if ($identity === null) {
             continue; // already reported by iso_validate_document()
         }
-        $handlerIssue = restore_check_device_handler($type, $identity, $identifiers);
+        $handlerIssue = restore_check_device_handler($type, $identity, $identifiers, "this backup's Morfeas_Config.xml");
         if ($handlerIssue !== null) {
             $errors[] = [
                 'code' => $handlerIssue['code'],

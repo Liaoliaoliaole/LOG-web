@@ -39,13 +39,46 @@ function restore_ipv4_to_core_identifier(string $ip): ?int
     return $unpacked[1] ?? null;
 }
 
-/* Load the configured IOBOX/MTI handler identities for Restore classification. */
+/*
+ * Load the configured IOBOX/MTI/NOX handler identities for Restore
+ * classification, keyed the way restore_check_device_handler() below needs
+ * to look them up: IPv4-derived identifier for IOBOX/MTI, the handler's
+ * RAW (not case-normalized) CANBUS_IF text for NOX. The value is whether
+ * that handler is currently enabled -- a channel bound to a handler that
+ * exists but is Disable="true" is a different, still-reportable problem
+ * from one bound to no handler at all.
+ *
+ * NOX bus casing must be preserved, not normalized: Core's own NOX runtime
+ * path is case-sensitive end to end but not uniformly cased --
+ * Morfeas_daemon.c passes CANBUS_IF to Morfeas_NOX_if verbatim, and that
+ * raw-case string becomes the registered OPC-UA node prefix
+ * (NOX_handler_reg()'s Dev_or_Bus_name). A channel's ANCHOR, by contrast,
+ * always has its CAN_IF portion lower-cased at write time (Core's own
+ * decode_nox_anchor() in Morfeas_XML.c does the same before the runtime
+ * NodeId lookup in Morfeas_opc_ua.c). So a handler written as "CAN1" and a
+ * channel anchored to "can1...." are NOT the same OPC-UA node at runtime --
+ * silently treating that as a match would hide a real "channel never
+ * resolves" failure.
+ *
+ * SDAQ is intentionally absent: its anchor carries no bus (only
+ * serial.CHn), so no per-channel handler match is possible here.
+ */
 function restore_load_device_identifiers(string $logConfigPath): array
 {
-    $out = ['IOBOX' => [], 'MTI' => []];
+    $out = ['IOBOX' => [], 'MTI' => [], 'NOX' => []];
     $devices = log_config_load_manual_devices($logConfigPath);
     foreach ($devices as $dev) {
         $type = strtoupper((string)($dev['type'] ?? ''));
+        $enabled = (string)($dev['status'] ?? '') !== 'Disabled';
+
+        if ($type === 'NOX') {
+            $bus = trim((string)($dev['bus'] ?? ''));
+            if ($bus !== '') {
+                $out['NOX'][$bus] = $enabled;
+            }
+            continue;
+        }
+
         if ($type !== 'IOBOX' && $type !== 'MTI') {
             continue;
         }
@@ -53,47 +86,117 @@ function restore_load_device_identifiers(string $logConfigPath): array
         if ($identifier === null) {
             continue;
         }
-        $out[$type][$identifier] = true;
+        $out[$type][$identifier] = $enabled;
     }
     return $out;
 }
 
-function restore_check_device_handler(string $interfaceType, array $identity, array $deviceIdentifiers): ?array
+/*
+ * Core-valid but potentially non-functional bindings are reported as
+ * warnings, never as errors: Core loads all of these configs unmodified
+ * (Device Delete does not cascade into OPC_UA_Config.xml, and Core neither
+ * validates nor cares whether a channel's handler is enabled at load time),
+ * so hard-rejecting any of them would reject configs Core itself accepts.
+ *
+ * $sourceLabel names WHICH Morfeas_Config.xml $deviceIdentifiers was built
+ * from -- Local JSON Restore and Add both check it against the machine's
+ * own current file (the default), but FTP Restore checks a downloaded
+ * backup's own candidate file instead, which is a different document the
+ * operator must not confuse for "what is on this machine right now".
+ */
+function restore_check_device_handler(string $interfaceType, array $identity, array $deviceIdentifiers, string $sourceLabel = 'the current local Morfeas_Config.xml'): ?array
 {
-    if ($interfaceType !== 'IOBOX' && $interfaceType !== 'MTI') {
-        return null;
-    }
+    if ($interfaceType === 'IOBOX' || $interfaceType === 'MTI') {
+        $identifierStr = (string)($identity['components']['identifier'] ?? '');
+        if ($identifierStr === '' || !ctype_digit($identifierStr)) {
+            return ['code' => 'orphan_device_source', 'detail' => 'Could not resolve a numeric identifier from this anchor'];
+        }
+        $identifier = (int)$identifierStr;
 
-    $identifierStr = (string)($identity['components']['identifier'] ?? '');
-    if ($identifierStr === '' || !ctype_digit($identifierStr)) {
-        return ['code' => 'orphan_device_source', 'detail' => 'Could not resolve a numeric identifier from this anchor'];
-    }
-    $identifier = (int)$identifierStr;
+        if (array_key_exists($identifier, $deviceIdentifiers[$interfaceType] ?? [])) {
+            if ($deviceIdentifiers[$interfaceType][$identifier] === false) {
+                return [
+                    'code' => 'device_handler_disabled',
+                    'detail' => "The $interfaceType handler with this IP is currently disabled in $sourceLabel",
+                ];
+            }
+            return null;
+        }
 
-    if (isset($deviceIdentifiers[$interfaceType][$identifier])) {
-        return null;
-    }
+        $otherType = $interfaceType === 'IOBOX' ? 'MTI' : 'IOBOX';
+        if (array_key_exists($identifier, $deviceIdentifiers[$otherType] ?? [])) {
+            return [
+                'code' => 'device_source_type_mismatch',
+                'detail' => "Identifier matches a configured $otherType handler, not $interfaceType",
+            ];
+        }
 
-    $otherType = $interfaceType === 'IOBOX' ? 'MTI' : 'IOBOX';
-    if (isset($deviceIdentifiers[$otherType][$identifier])) {
         return [
-            'code' => 'device_source_type_mismatch',
-            'detail' => "Identifier matches a configured $otherType handler, not $interfaceType",
+            'code' => 'orphan_device_source',
+            'detail' => "No $interfaceType handler with this IP is currently configured in $sourceLabel",
         ];
     }
 
-    return [
-        'code' => 'orphan_device_source',
-        'detail' => "No $interfaceType handler with this IP is currently configured in Morfeas_Config.xml",
-    ];
+    if ($interfaceType === 'NOX') {
+        // iso_parse_nox_identity() lower-cases can_if into the anchor, and
+        // that lower-cased form is what Core's own runtime NodeId lookup
+        // uses (Morfeas_opc_ua.c). deviceIdentifiers['NOX'] is keyed by the
+        // handler's RAW CANBUS_IF text, because that raw casing is what
+        // actually gets registered as the OPC-UA node prefix
+        // (NOX_handler_reg()). So the match here must be exact-case first;
+        // a same-bus-different-case handler cannot resolve at runtime and
+        // must not be silently treated as a match.
+        $bus = (string)($identity['components']['can_if'] ?? '');
+        if ($bus === '') {
+            return ['code' => 'orphan_device_source', 'detail' => 'Could not resolve a CAN bus from this anchor'];
+        }
+
+        $noxHandlers = $deviceIdentifiers['NOX'] ?? [];
+        if (array_key_exists($bus, $noxHandlers)) {
+            if ($noxHandlers[$bus] === false) {
+                return [
+                    'code' => 'device_handler_disabled',
+                    'detail' => "The NOX handler on CAN bus \"$bus\" is currently disabled in $sourceLabel",
+                ];
+            }
+            return null;
+        }
+
+        foreach ($noxHandlers as $rawBus => $enabled) {
+            if (strtolower($rawBus) === $bus) {
+                // A case-mismatched handler cannot resolve regardless of its
+                // enabled state, but if it also happens to be disabled that
+                // is a second, independent fact the operator needs -- fixing
+                // the casing alone would not be enough to make this channel
+                // work while the handler stays disabled.
+                $alsoDisabled = $enabled === false ? ' This handler is also disabled.' : '';
+                return [
+                    'code' => 'device_handler_bus_case_mismatch',
+                    'detail' => "A NOX handler is configured on CAN bus \"$rawBus\" in $sourceLabel, but its CANBUS_IF casing does not exactly match this channel's bus \"$bus\" -- Core's OPC-UA node lookup is case-sensitive, so this channel will not resolve to it as configured.$alsoDisabled",
+                ];
+            }
+        }
+
+        return [
+            'code' => 'orphan_device_source',
+            'detail' => "No NOX handler on CAN bus \"$bus\" is currently configured in $sourceLabel",
+        ];
+    }
+
+    // SDAQ: no bus in the anchor, so no precise per-channel check is possible here.
+    return null;
 }
 
 /*
- * Orphan IOBOX/MTI channels are Core-valid: Device Delete intentionally does
- * not cascade into OPC_UA_Config.xml, so a historical Restore may legitimately
- * contain one.  Keep the per-row warning separate from its Ready/No-change/
- * Update classification; warnings require acknowledgement at Commit but do
- * not turn an otherwise valid batch into an invalid one.
+ * Orphan/disabled/case-mismatched IOBOX, MTI, and NOX channels are all
+ * Core-valid: Device Delete intentionally does not cascade into
+ * OPC_UA_Config.xml, and Core loads a config with a disabled or
+ * case-mismatched handler without complaint, so a historical Restore may
+ * legitimately contain any of these (see restore_check_device_handler()
+ * for the full set of codes this can produce). Keep the per-row warning
+ * separate from its Ready/No-change/Update classification; warnings
+ * require acknowledgement at Commit but do not turn an otherwise valid
+ * batch into an invalid one.
  */
 function restore_collect_warnings(array $rows): array
 {

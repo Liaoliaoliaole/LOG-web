@@ -306,6 +306,63 @@ channel_add_channel_from_pool(
 );
 check(written_anchor($xmlPath, '_IOBOX_Restored') === '555555555.RX1.Status', 'F-16: the same IOBOX Add succeeds once the handler is back in Morfeas_Config.xml');
 
+// a handler that is CONFIGURED but Disable="true" is a different,
+// still-rejectable problem from a missing one -- restore_check_device_handler()
+// (shared with Local JSON Restore) reports device_handler_disabled, and Add
+// treats that as a hard 409 the same way it already treats orphan_device_source,
+// because a disabled handler cannot make a new channel work either.
+$logConfigIoboxDisabled = str_replace(
+    '<IOBOX_HANDLER Disable="false">',
+    '<IOBOX_HANDLER Disable="true">',
+    $logConfigWithBothHandlers
+);
+file_put_contents($logConfigPath, $logConfigIoboxDisabled);
+$isoBeforeIoboxDisabled = file_get_contents($xmlPath);
+try {
+    channel_add_channel_from_pool(
+        $xmlPath,
+        $logConfigPath,
+        add_payload('IOBOX', '_IOBOX_Disabled', '555555555.RX1.Success'),
+        [], [$ioboxJson], [], [], []
+    );
+    check(false, 'P2: an IOBOX Add whose handler is Disable="true" must throw');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'device_handler_disabled', 'P2: IOBOX Add against a disabled handler is refused with device_handler_disabled (got ' . $e->apiCode() . ')');
+    check($e->status() === 409, 'P2: IOBOX Add against a disabled handler uses HTTP 409 (got ' . $e->status() . ')');
+}
+check(file_get_contents($xmlPath) === $isoBeforeIoboxDisabled, 'P2: nothing is written to OPC_UA_Config.xml when the handler is disabled');
+
+$logConfigMtiDisabled = str_replace(
+    '<MTI_HANDLER Disable="false">',
+    '<MTI_HANDLER Disable="true">',
+    $logConfigWithBothHandlers
+);
+file_put_contents($logConfigPath, $logConfigMtiDisabled);
+$isoBeforeMtiDisabled = file_get_contents($xmlPath);
+try {
+    channel_add_channel_from_pool(
+        $xmlPath,
+        $logConfigPath,
+        add_payload('MTI', '_MTI_Disabled', '222222.TC16.CH2'),
+        [], [], [$mtiJson], [], []
+    );
+    check(false, 'P2: an MTI Add whose handler is Disable="true" must throw (guards the MTI branch, not just IOBOX, against type-check drift)');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'device_handler_disabled', 'P2: MTI Add against a disabled handler is refused with device_handler_disabled (got ' . $e->apiCode() . ')');
+    check($e->status() === 409, 'P2: MTI Add against a disabled handler uses HTTP 409 (got ' . $e->status() . ')');
+}
+check(file_get_contents($xmlPath) === $isoBeforeMtiDisabled, 'P2: nothing is written to OPC_UA_Config.xml when the MTI handler is disabled');
+
+// MUST STILL PASS: with the handler re-enabled, the same Add succeeds.
+file_put_contents($logConfigPath, $logConfigWithBothHandlers);
+channel_add_channel_from_pool(
+    $xmlPath,
+    $logConfigPath,
+    add_payload('IOBOX', '_IOBOX_ReEnabled', '555555555.RX1.Success'),
+    [], [$ioboxJson], [], [], []
+);
+check(written_anchor($xmlPath, '_IOBOX_ReEnabled') === '555555555.RX1.Success', 'P2 regression: the same IOBOX Add succeeds once the handler is re-enabled');
+
 // SDAQ and NOX identity is bus-based, not handler-IP-based, so they must
 // not be gated by Morfeas_Config.xml contents at all -- and must not even
 // need the file to exist. A NOX Add against a deleted log config proves

@@ -844,12 +844,14 @@ function channel_add_channel_from_pool(
         //
         // The static side is therefore re-read here, under the log_config
         // lock held around this whole closure, with the same rule Local
-        // JSON Restore applies. That rule asks only whether a handler is
-        // CONFIGURED, not whether it is enabled or online; the liveness
-        // half is already covered, because the candidate had to appear in
-        // the freshly rebuilt runtime pool to get this far. The two
-        // conditions compose into "configured AND currently detected",
-        // which is what Add has always meant.
+        // JSON Restore applies (restore_check_device_handler(), shared by
+        // both). That rule asks whether a handler is CONFIGURED and
+        // ENABLED (P2: a Disable="true" handler cannot make a new channel
+        // work, so it is not treated as satisfying this gate either); the
+        // liveness half is already covered, because the candidate had to
+        // appear in the freshly rebuilt runtime pool to get this far. The
+        // conditions compose into "configured, enabled, AND currently
+        // detected", which is what Add has always meant.
         if ($needsLogConfig) {
             $identity = iso_parse_source_identity($requestedFamily, $canonicalAnchor);
             if ($identity === null) {
@@ -865,9 +867,14 @@ function channel_add_channel_from_pool(
                 restore_load_device_identifiers($logConfigPath)
             );
             if ($problem !== null) {
+                // "no matching handler" would be a wrong (self-contradicting)
+                // prefix for device_handler_disabled: a handler DOES match,
+                // it just cannot make the channel work while disabled.
+                $prefix = $problem['code'] === 'device_handler_disabled'
+                    ? "$requestedFamily candidate's handler is not usable"
+                    : "$requestedFamily candidate has no matching handler in Morfeas_Config.xml";
                 throw new ChannelConfigException(
-                    "$requestedFamily candidate has no matching handler in Morfeas_Config.xml: "
-                        . $problem['detail'],
+                    "$prefix: " . $problem['detail'],
                     409,
                     $problem['code']
                 );

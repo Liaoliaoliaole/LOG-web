@@ -417,8 +417,9 @@ XML;
     $r = ftp_backup_validate_bundle_candidates($opcIobox, $morfeasWithMtiOnly, $dtdDir);
     check(count($r['warnings']) === 1, 'F-13: an MTI handler at the same IP does NOT satisfy an IOBOX channel');
 
-    // SDAQ/NOX identity is bus-based, not handler-IP-based, so they must
-    // never be flagged as orphans by this check.
+    // SDAQ identity is bus-based with no bus in the anchor, so it can never
+    // be flagged by this check (see P2 below for NOX, whose anchor DOES
+    // carry a bus and so IS checked).
     $r = ftp_backup_validate_bundle_candidates($validOpcUa, $validMorfeas, $dtdDir);
     check($r['warnings'] === [], 'F-13: a SDAQ-only bundle is never flagged orphan (SDAQ identity is not handler-IP based)');
 
@@ -428,6 +429,96 @@ XML;
     $r = ftp_backup_validate_bundle_candidates($opcOrphanAndEmptyDesc, $validMorfeas, $dtdDir);
     check($r['can_commit'] === false, 'F-13: a hard error still blocks commit even when warnings are also present');
     check($r['warnings'] === [], 'F-13: warnings are not computed for a document that already has hard errors (no noise on top of a rejection)');
+}
+
+// =====================================================================
+// NOX orphan/disabled handler warnings, and a Disable="true" handler
+// (of any of IOBOX/MTI/NOX) warns device_handler_disabled rather than being
+// silently indistinguishable from a fully-working one. Both restore paths
+// share restore_check_device_handler(), so these exercise that shared
+// function through the FTP entry point specifically -- the equivalent
+// Local JSON Restore cases live in restoreLocalJsonTest.php.
+// =====================================================================
+if ($dtdAvailable) {
+    $opcNox = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE NODESet SYSTEM "Morfeas.dtd">
+<NODESet>
+  <CHANNEL>
+    <ISO_CHANNEL>_NOX1</ISO_CHANNEL>
+    <INTERFACE_TYPE>NOX</INTERFACE_TYPE>
+    <ANCHOR>can1.addr_0.NOx</ANCHOR>
+    <DESCRIPTION>d</DESCRIPTION>
+    <MIN>0</MIN>
+    <MAX>100</MAX>
+    <UNIT>ppm</UNIT>
+  </CHANNEL>
+</NODESet>
+XML;
+
+    // NOX channel with a matching, ENABLED handler on the same bus -> no warning.
+    $morfeasWithEnabledNox = str_replace(
+        '</COMPONENTS>',
+        '<NOX_HANDLER Disable="false"><CANBUS_IF>can1</CANBUS_IF></NOX_HANDLER></COMPONENTS>',
+        $validMorfeas
+    );
+    $r = ftp_backup_validate_bundle_candidates($opcNox, $morfeasWithEnabledNox, $dtdDir);
+    check($r['warnings'] === [], 'P2: NOX channel with a matching ENABLED handler produces no warning (got ' . json_encode($r['warnings']) . ')');
+    check($r['can_commit'] === true, 'P2: an internally consistent NOX bundle still commits');
+
+    // NOX channel on a bus with no handler at all -> orphan, same treatment as IOBOX/MTI.
+    $r = ftp_backup_validate_bundle_candidates($opcNox, $validMorfeas, $dtdDir);
+    check(count($r['warnings']) === 1, 'P2: NOX channel with no matching handler produces exactly one warning (got ' . count($r['warnings']) . ')');
+    check(($r['warnings'][0]['code'] ?? '') === 'orphan_device_source', 'P2: NOX orphan reported as orphan_device_source (got ' . ($r['warnings'][0]['code'] ?? 'null') . ')');
+    check($r['can_commit'] === true, 'P2: a NOX orphan does NOT block commit -- Core would accept this config (warn, not reject)');
+    check(
+        strpos($r['warnings'][0]['message'] ?? '', "this backup's Morfeas_Config.xml") !== false,
+        'P2: FTP Restore\'s orphan warning names the BUNDLE\'s config file, not the current local one (got ' . ($r['warnings'][0]['message'] ?? 'null') . ')'
+    );
+
+    // NOX channel bound to a handler that exists but is Disable="true" -> a
+    // different, still-reportable problem: device_handler_disabled.
+    $morfeasWithDisabledNox = str_replace(
+        '</COMPONENTS>',
+        '<NOX_HANDLER Disable="true"><CANBUS_IF>can1</CANBUS_IF></NOX_HANDLER></COMPONENTS>',
+        $validMorfeas
+    );
+    $r = ftp_backup_validate_bundle_candidates($opcNox, $morfeasWithDisabledNox, $dtdDir);
+    check(count($r['warnings']) === 1, 'P2: NOX channel bound to a Disable="true" handler produces exactly one warning (got ' . count($r['warnings']) . ')');
+    check(($r['warnings'][0]['code'] ?? '') === 'device_handler_disabled', 'P2: disabled NOX handler reported as device_handler_disabled, not orphan_device_source (got ' . ($r['warnings'][0]['code'] ?? 'null') . ')');
+    check($r['can_commit'] === true, 'P2: a disabled-handler warning does NOT block commit');
+
+    // Case-sensitivity: iso_parse_nox_identity() lower-cases can_if into the
+    // anchor (matching Core's own decode_nox_anchor()), but a handler's
+    // OPC-UA node prefix is registered from its RAW CANBUS_IF text
+    // (NOX_handler_reg()). "CAN1" registers as "CAN1.sensors...." while the
+    // channel looks up "can1.sensors....": different NodeIds at runtime, so
+    // this must warn device_handler_bus_case_mismatch, not pass silently.
+    $morfeasWithUppercaseNoxBus = str_replace(
+        '</COMPONENTS>',
+        '<NOX_HANDLER Disable="false"><CANBUS_IF>CAN1</CANBUS_IF></NOX_HANDLER></COMPONENTS>',
+        $validMorfeas
+    );
+    $r = ftp_backup_validate_bundle_candidates($opcNox, $morfeasWithUppercaseNoxBus, $dtdDir);
+    check(count($r['warnings']) === 1, 'P2: a handler CANBUS_IF in a different case produces exactly one warning (got ' . count($r['warnings']) . ')');
+    check(($r['warnings'][0]['code'] ?? '') === 'device_handler_bus_case_mismatch', 'P2: case-mismatched NOX bus reported as device_handler_bus_case_mismatch (got ' . ($r['warnings'][0]['code'] ?? 'null') . ')');
+    check($r['can_commit'] === true, 'P2: a bus-case-mismatch warning does NOT block commit');
+
+    // Exact-case match on the same bus still passes clean.
+    $r = ftp_backup_validate_bundle_candidates($opcNox, $morfeasWithEnabledNox, $dtdDir);
+    check($r['warnings'] === [], 'P2 regression: an exact-case NOX bus match still produces no warning (got ' . json_encode($r['warnings']) . ')');
+
+    // IOBOX channel bound to a handler that exists but is Disable="true":
+    // before P2 this was indistinguishable from a fully-working handler
+    // (only presence was checked) and produced no warning at all.
+    $morfeasWithDisabledIobox = str_replace(
+        '</COMPONENTS>',
+        '<IOBOX_HANDLER Disable="true"><DEV_NAME>Box1</DEV_NAME><IPv4_ADDR>192.168.234.141</IPv4_ADDR></IOBOX_HANDLER></COMPONENTS>',
+        $validMorfeas
+    );
+    $r = ftp_backup_validate_bundle_candidates($opcIobox, $morfeasWithDisabledIobox, $dtdDir);
+    check(count($r['warnings']) === 1, 'P2: IOBOX channel bound to a Disable="true" handler produces exactly one warning (got ' . count($r['warnings']) . ')');
+    check(($r['warnings'][0]['code'] ?? '') === 'device_handler_disabled', 'P2: disabled IOBOX handler reported as device_handler_disabled (got ' . ($r['warnings'][0]['code'] ?? 'null') . ')');
 }
 
 // =====================================================================
@@ -697,9 +788,12 @@ if ($dtdAvailable) {
 </CONFIG>
 XML;
 
-    // --- Bundle being restored. Self-consistent: the IOBOX channel's
-    //     handler is present in this same bundle (renamed), so no orphan
-    //     warning is produced and acknowledge_warnings=false is enough. ---
+    // --- Bundle being restored. The IOBOX channel's handler is present in
+    //     this same bundle (renamed), so no orphan_device_source warning --
+    //     but P2 deliberately makes that handler Disable="true" here too
+    //     (to also exercise the enabled->disabled impact-report case below),
+    //     so this bundle produces exactly one device_handler_disabled
+    //     warning and every commit against it needs acknowledge_warnings=true. ---
     $bundleChannelsXml = p1_channel_xml('_SDAQ_Same', 'SDAQ', '111111111.CH1', 'd', 'bundle-ignored')
         . p1_channel_xml('_IOBOX_X', 'IOBOX', '2380966080.RX1.CH1', 'new-desc', 'C')
         . p1_channel_xml('_New_SDAQ', 'SDAQ', '333333333.CH1', 'd');
@@ -725,7 +819,12 @@ XML;
 XML;
 
     $p1Report = ftp_backup_validate_bundle_candidates($p1BundleOpcUa, $p1BundleMorfeas, $dtdDir);
-    check($p1Report['can_commit'] === true && $p1Report['warnings'] === [], 'P1 fixture: self-consistent bundle validates cleanly with no warnings (got ' . json_encode($p1Report['warnings']) . ')');
+    check(
+        $p1Report['can_commit'] === true
+            && count($p1Report['warnings']) === 1
+            && $p1Report['warnings'][0]['code'] === 'device_handler_disabled',
+        'P1 fixture: bundle validates and commits, with exactly one device_handler_disabled warning for the disabled IOBOX handler (got ' . json_encode($p1Report['warnings']) . ')'
+    );
 
     // --- 23) ftp_backup_build_impact_report() classifies every row correctly. ---
     // (iso_load_channels()/log_config_load_manual_devices() both take a file
@@ -895,7 +994,7 @@ XML;
         $xmlPathP1,
         $logCfgP1,
         $dtdDir,
-        false,
+        true, // this bundle's IOBOX handler is Disable="true" (P2), which is a warning, not an error
         static fn(string $filename): string => $bundleP1
     );
     check(
