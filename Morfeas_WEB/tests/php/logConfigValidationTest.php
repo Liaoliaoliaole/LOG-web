@@ -21,9 +21,13 @@ function check(bool $cond, string $msg): void
 // The real DTD, shared by Morfeas_Config.xml and OPC_UA_Config.xml -- not a
 // test-local copy, so this test is exercising the same contract Core's own
 // Morfeas_XML_parsing() (XML_PARSE_DTDVALID) checks against.
-$dtdDir = realpath(__DIR__ . '/../../../../LOG-core/configuration');
+$coreDir = getenv('MORFEAS_CORE_SRC_DIR');
+if ($coreDir === false || trim($coreDir) === '') {
+    $coreDir = realpath(__DIR__ . '/../../../../LOG-core');
+}
+$dtdDir = $coreDir === false ? false : realpath($coreDir . '/configuration');
 if ($dtdDir === false || !is_file($dtdDir . '/Morfeas.dtd')) {
-    echo "SKIPPED: LOG-core/configuration/Morfeas.dtd not found (set up LOG-core as a sibling of LOG-web) -- this test validates against the real shared DTD, not a copy\n";
+    echo "SKIPPED: LOG-core/configuration/Morfeas.dtd not found (set MORFEAS_CORE_SRC_DIR or check out LOG-core as a sibling of LOG-web) -- this test validates against the real shared DTD, not a copy\n";
     exit(0);
 }
 
@@ -36,7 +40,8 @@ function load_dom(string $xml): DOMDocument
 
 function shared_daemon_validation_cases(): array
 {
-    $path = realpath(__DIR__ . '/../../../../LOG-core/tests/fixtures/daemon_config_validation_cases.json');
+    global $coreDir;
+    $path = realpath($coreDir . '/tests/fixtures/daemon_config_validation_cases.json');
     if ($path === false) {
         throw new RuntimeException('Shared Core/Web daemon validation fixture corpus is missing');
     }

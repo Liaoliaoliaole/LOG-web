@@ -418,9 +418,12 @@ function iso_validate_final_xml_bytes(
 
 function iso_resolve_dtd_dir(string $xmlPath): ?string
 {
+    $coreSrcDir = getenv('MORFEAS_CORE_SRC_DIR');
     $candidates = [
         dirname($xmlPath),
-        __DIR__ . '/../../../../LOG-core/configuration',
+        ($coreSrcDir === false || trim($coreSrcDir) === '')
+            ? __DIR__ . '/../../../../LOG-core/configuration'
+            : $coreSrcDir . '/configuration',
     ];
     foreach ($candidates as $candidate) {
         $resolved = realpath($candidate);

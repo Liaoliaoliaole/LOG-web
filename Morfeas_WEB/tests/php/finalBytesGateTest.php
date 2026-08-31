@@ -37,8 +37,12 @@ function final_bytes_temp_file(string $suffix): string
     return $path;
 }
 
-$dtdDir = realpath(__DIR__ . '/../../../../LOG-core/configuration');
-check($dtdDir !== false && is_file($dtdDir . '/Morfeas.dtd'), 'Core Morfeas.dtd is available to validate final bytes');
+$coreDir = getenv('MORFEAS_CORE_SRC_DIR');
+if ($coreDir === false || trim($coreDir) === '') {
+    $coreDir = realpath(__DIR__ . '/../../../../LOG-core');
+}
+$dtdDir = $coreDir === false ? false : realpath($coreDir . '/configuration');
+check($dtdDir !== false && is_file($dtdDir . '/Morfeas.dtd'), 'Core Morfeas.dtd is available to validate final bytes (set MORFEAS_CORE_SRC_DIR or check out LOG-core as a sibling of LOG-web)');
 
 // F-24 escaped these values after object validation. Every assertion below
 // is made against the bytes actually written and the value parsed back.

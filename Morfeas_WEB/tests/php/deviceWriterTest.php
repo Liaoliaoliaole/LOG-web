@@ -18,9 +18,13 @@ function check(bool $cond, string $msg): void
     }
 }
 
-$dtdSource = realpath(__DIR__ . '/../../../../LOG-core/configuration/Morfeas.dtd');
+$coreDir = getenv('MORFEAS_CORE_SRC_DIR');
+if ($coreDir === false || trim($coreDir) === '') {
+    $coreDir = realpath(__DIR__ . '/../../../../LOG-core');
+}
+$dtdSource = $coreDir === false ? false : realpath($coreDir . '/configuration/Morfeas.dtd');
 if ($dtdSource === false) {
-    echo "SKIPPED: LOG-core/configuration/Morfeas.dtd not found (set up LOG-core as a sibling of LOG-web) -- these writers validate against the real shared DTD, not a copy\n";
+    echo "SKIPPED: LOG-core/configuration/Morfeas.dtd not found (set MORFEAS_CORE_SRC_DIR or check out LOG-core as a sibling of LOG-web) -- these writers validate against the real shared DTD, not a copy\n";
     exit(0);
 }
 
