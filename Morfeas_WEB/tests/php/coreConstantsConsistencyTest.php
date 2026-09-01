@@ -56,13 +56,10 @@ function extract_struct_array_size(string $contents, string $structName, string 
     return (int)$fm[1];
 }
 
-// --- Locate LOG-core ---
-$coreDir = getenv('MORFEAS_CORE_SRC_DIR');
-if ($coreDir === false || trim($coreDir) === '') {
-    $coreDir = realpath(__DIR__ . '/../../../../LOG-core');
-}
+// --- Locate the Core checkout ---
+$coreDir = backend_core_src_dir() ?? false;
 if ($coreDir === false || !is_dir($coreDir)) {
-    echo "SKIPPED: LOG-core checkout not found (set MORFEAS_CORE_SRC_DIR or check out LOG-core as a sibling of LOG-web) -- F-8 drift protection needs both repos present\n";
+    echo "SKIPPED: Core checkout not found (set MORFEAS_CORE_SRC_DIR, or keep the Core checkout beside this one under any name) -- F-8 drift protection needs both repos present\n";
     exit(0);
 }
 
@@ -71,7 +68,7 @@ $sdaqDrvH = read_core_file($coreDir, 'src/sdaq-worker/src/SDAQ_drv.h');
 $ipcH = read_core_file($coreDir, 'src/IPC/Morfeas_IPC.h');
 
 if ($typesH === null || $sdaqDrvH === null || $ipcH === null) {
-    echo "SKIPPED: LOG-core found at $coreDir but expected source files are missing -- Core source layout may have changed, update this test's paths\n";
+    echo "SKIPPED: Core checkout found at $coreDir but expected source files are missing -- Core source layout may have changed, update this test's paths\n";
     exit(0);
 }
 

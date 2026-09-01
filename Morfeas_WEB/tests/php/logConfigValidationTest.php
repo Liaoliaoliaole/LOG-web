@@ -21,13 +21,10 @@ function check(bool $cond, string $msg): void
 // The real DTD, shared by Morfeas_Config.xml and OPC_UA_Config.xml -- not a
 // test-local copy, so this test is exercising the same contract Core's own
 // Morfeas_XML_parsing() (XML_PARSE_DTDVALID) checks against.
-$coreDir = getenv('MORFEAS_CORE_SRC_DIR');
-if ($coreDir === false || trim($coreDir) === '') {
-    $coreDir = realpath(__DIR__ . '/../../../../LOG-core');
-}
-$dtdDir = $coreDir === false ? false : realpath($coreDir . '/configuration');
-if ($dtdDir === false || !is_file($dtdDir . '/Morfeas.dtd')) {
-    echo "SKIPPED: LOG-core/configuration/Morfeas.dtd not found (set MORFEAS_CORE_SRC_DIR or check out LOG-core as a sibling of LOG-web) -- this test validates against the real shared DTD, not a copy\n";
+$coreDir = backend_core_src_dir() ?? false;
+$dtdDir = backend_core_dtd_dir() ?? false;
+if ($dtdDir === false) {
+    echo "SKIPPED: Core configuration/Morfeas.dtd not found (set MORFEAS_CORE_SRC_DIR, or keep the Core checkout beside this one under any name) -- this test validates against the real shared DTD, not a copy\n";
     exit(0);
 }
 

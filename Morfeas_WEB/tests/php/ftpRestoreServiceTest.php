@@ -25,14 +25,10 @@ function make_tmp_dir(string $prefix): string
     return $dir;
 }
 
-$coreDir = getenv('MORFEAS_CORE_SRC_DIR');
-if ($coreDir === false || trim($coreDir) === '') {
-    $coreDir = realpath(__DIR__ . '/../../../../LOG-core');
-}
-$dtdDir = $coreDir === false ? false : realpath($coreDir . '/configuration');
-$dtdAvailable = $dtdDir !== false && is_file($dtdDir . '/Morfeas.dtd');
+$dtdDir = backend_core_dtd_dir() ?? false;
+$dtdAvailable = $dtdDir !== false;
 if (!$dtdAvailable) {
-    echo "NOTE: LOG-core/configuration/Morfeas.dtd not found (set MORFEAS_CORE_SRC_DIR or check out LOG-core as a sibling of LOG-web) -- Morfeas_Config validation checks will be skipped, everything else still runs\n";
+    echo "NOTE: Core configuration/Morfeas.dtd not found (set MORFEAS_CORE_SRC_DIR, or keep the Core checkout beside this one under any name) -- Morfeas_Config validation checks will be skipped, everything else still runs\n";
 }
 
 function make_bundle(string $opcUa, string $morfeas): string

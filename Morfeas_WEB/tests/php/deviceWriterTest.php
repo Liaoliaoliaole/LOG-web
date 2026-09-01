@@ -18,13 +18,10 @@ function check(bool $cond, string $msg): void
     }
 }
 
-$coreDir = getenv('MORFEAS_CORE_SRC_DIR');
-if ($coreDir === false || trim($coreDir) === '') {
-    $coreDir = realpath(__DIR__ . '/../../../../LOG-core');
-}
-$dtdSource = $coreDir === false ? false : realpath($coreDir . '/configuration/Morfeas.dtd');
+$dtdDir = backend_core_dtd_dir();
+$dtdSource = $dtdDir === null ? false : realpath($dtdDir . '/Morfeas.dtd');
 if ($dtdSource === false) {
-    echo "SKIPPED: LOG-core/configuration/Morfeas.dtd not found (set MORFEAS_CORE_SRC_DIR or check out LOG-core as a sibling of LOG-web) -- these writers validate against the real shared DTD, not a copy\n";
+    echo "SKIPPED: Core configuration/Morfeas.dtd not found (set MORFEAS_CORE_SRC_DIR, or keep the Core checkout beside this one under any name) -- these writers validate against the real shared DTD, not a copy\n";
     exit(0);
 }
 

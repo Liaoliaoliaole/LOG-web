@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/concurrency.php';
+require_once __DIR__ . '/paths.php'; // backend_core_dtd_dir()
 
 class ChannelConfigException extends RuntimeException
 {
@@ -416,22 +417,20 @@ function iso_validate_final_xml_bytes(
     return $xml;
 }
 
+/*
+ * The deployed system keeps Morfeas.dtd beside the XML it validates
+ * (/home/morfeas/configuration holds both), so that is checked first and is
+ * the only production path. The sibling-Core fallback is only for development
+ * and tests; it is not a recovery mechanism for a device missing its deployed
+ * Core-owned DTD.
+ */
 function iso_resolve_dtd_dir(string $xmlPath): ?string
 {
-    $coreSrcDir = getenv('MORFEAS_CORE_SRC_DIR');
-    $candidates = [
-        dirname($xmlPath),
-        ($coreSrcDir === false || trim($coreSrcDir) === '')
-            ? __DIR__ . '/../../../../LOG-core/configuration'
-            : $coreSrcDir . '/configuration',
-    ];
-    foreach ($candidates as $candidate) {
-        $resolved = realpath($candidate);
-        if ($resolved !== false && is_file($resolved . '/Morfeas.dtd')) {
-            return $resolved;
-        }
+    $own = realpath(dirname($xmlPath));
+    if ($own !== false && is_file($own . '/Morfeas.dtd')) {
+        return $own;
     }
-    return null;
+    return backend_core_dtd_dir();
 }
 
 function iso_save_xml(SimpleXMLElement $xml, string $xmlPath): void

@@ -581,7 +581,7 @@ function ftp_backup_restore_digest(string $filename, string $rawBytes): string
  * this bundle. It remains restorable because Core loads all of these
  * configs unmodified (offline orphan definitions and disabled handlers
  * alike). Shares restore_check_device_handler() with Local JSON Restore
- * (P2): building the identifier maps is the only bundle-vs-local-file
+ * : building the identifier maps is the only bundle-vs-local-file
  * difference between the two paths; the match/warn logic itself must not
  * drift between them.
  */
@@ -642,8 +642,7 @@ function ftp_backup_validate_bundle_candidates(string $opcUa, string $morfeas, s
     // same as log_config_validate_dtd_structure() on the Morfeas side below --
     // there is nothing to enumerate CHANNEL-level violations across until the
     // document is at least that well-formed. Once past it, every semantic
-    // violation is collected instead of stopping at the first one (P3 / plan
-    // §6.1, matching the Morfeas side's existing F-20 treatment).
+    // violation is collected instead of stopping at the first one.
     $opcUaErrors = [];
     $xml = false;
     try {
