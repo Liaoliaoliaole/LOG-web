@@ -53,6 +53,18 @@ function system_status_build_sdaq_entry(array $data, string $path): array
     $entry['connections'][] = ['name' => 'BUS_Error_Rate', 'value' => $data['BUS_Error_rate'] ?? null, 'unit' => '%'];
     $entry['connections'][] = ['name' => 'Detected_SDAQs', 'value' => $data['Detected_SDAQs'] ?? null, 'unit' => ''];
     $entry['connections'][] = ['name' => 'Incomplete_SDAQs', 'value' => $data['Incomplete_SDAQs'] ?? null, 'unit' => ''];
+    if (!empty($data['Last_clock_step_UNIX'])) {
+        $entry['connections'][] = [
+            'name' => sprintf('SDAQnet_(%s)_last_clock_step_UNIX', strtolower($bus)),
+            'value' => $data['Last_clock_step_UNIX'],
+            'unit' => '',
+        ];
+        $entry['connections'][] = [
+            'name' => sprintf('SDAQnet_(%s)_last_clock_step_delta_sec', strtolower($bus)),
+            'value' => $data['Last_clock_step_delta_sec'] ?? null,
+            'unit' => 's',
+        ];
+    }
 
     if (!empty($data['Electrics']) && is_array($data['Electrics'])) {
         $elec = $data['Electrics'];

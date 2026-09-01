@@ -75,6 +75,69 @@ function read_timesyncd_ntp_server(): ?string
     return $server !== '' ? $server : null;
 }
 
+function parse_timesync_status_text(string $text): array
+{
+    $values = [
+        'server' => null,
+        'poll_interval' => null,
+        'packet_count' => null,
+    ];
+
+    foreach (preg_split('/\R/', $text) ?: [] as $line) {
+        if (!preg_match('/^\s*([^:]+):\s*(.*?)\s*$/', $line, $match)) {
+            continue;
+        }
+        $key = strtolower(trim($match[1]));
+        $value = trim($match[2]);
+        if ($key === 'server') {
+            $values['server'] = $value !== '' ? $value : null;
+        } elseif ($key === 'poll interval') {
+            $values['poll_interval'] = $value !== '' ? $value : null;
+        } elseif ($key === 'packet count') {
+            $values['packet_count'] = ctype_digit($value) ? (int)$value : null;
+        }
+    }
+
+    return $values;
+}
+
+function read_timesync_status(): array
+{
+    $status = parse_timesync_status_text((string)@shell_exec('LC_ALL=C timedatectl timesync-status 2>/dev/null'));
+    $show = static function (string $property): ?string {
+        $value = trim((string)@shell_exec(
+            'timedatectl show --property=' . escapeshellarg($property) . ' --value 2>/dev/null'
+        ));
+        return $value !== '' ? $value : null;
+    };
+    $showTimesync = static function (string $property): ?string {
+        $value = trim((string)@shell_exec(
+            'timedatectl show-timesync --property=' . escapeshellarg($property) . ' --value 2>/dev/null'
+        ));
+        return $value !== '' ? $value : null;
+    };
+
+    $rtcName = trim((string)@file_get_contents('/sys/class/rtc/rtc0/name'));
+    $rtcEpoch = trim((string)@file_get_contents('/sys/class/rtc/rtc0/since_epoch'));
+    $systemEpoch = time();
+
+    return [
+        'configured_server' => read_timesyncd_ntp_server(),
+        'selected_server' => $showTimesync('ServerName') ?? $status['server'],
+        'selected_address' => $showTimesync('ServerAddress'),
+        'ntp_enabled' => $show('NTP'),
+        'ntp_synchronized' => $show('NTPSynchronized'),
+        'poll_interval' => $status['poll_interval'],
+        'packet_count' => $status['packet_count'],
+        'timezone' => $show('Timezone'),
+        'system_time' => date('c', $systemEpoch),
+        'system_epoch' => $systemEpoch,
+        'rtc_name' => $rtcName !== '' ? $rtcName : null,
+        'rtc_hctosys' => ($rtcHctosys = trim((string)@file_get_contents('/sys/class/rtc/rtc0/hctosys'))) !== '' ? $rtcHctosys : null,
+        'rtc_delta_sec' => ctype_digit($rtcEpoch) ? ($systemEpoch - (int)$rtcEpoch) : null,
+    ];
+}
+
 function primary_mac_address(): ?string
 {
     $preferred = ['eth0', 'en0', 'wlan0'];

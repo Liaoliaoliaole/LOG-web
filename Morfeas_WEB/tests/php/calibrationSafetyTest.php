@@ -193,24 +193,24 @@ cal_test_throws(
 );
 
 cal_test_throws(
-    static fn() => cal_build_scale_xml_payload($multiPrevious, 1, 0, 100, 0, 10, 'C'),
+    static fn() => cal_build_scale_xml_payload($multiPrevious, 1, 0, 100, 0, 10, 'C', '2026/09/01'),
     'Explicit confirmation is required',
     'F-1: direct Scale requests cannot replace an active calibration without acknowledgement',
     409
 );
 
-$recalibratedScale = cal_build_scale_xml_payload($multiPrevious, 1, 0, 100, 0, 10, 'C', true);
+$recalibratedScale = cal_build_scale_xml_payload($multiPrevious, 1, 0, 100, 0, 10, 'C', '2026/09/01', true);
 $recalibratedScaleDoc = new DOMDocument();
 $recalibratedScaleDoc->loadXML($recalibratedScale);
 $recalibratedScaleXpath = new DOMXPath($recalibratedScaleDoc);
 cal_test_check(
     trim((string)$recalibratedScaleXpath->evaluate('string(/SDAQ/Calibration_Data/CH1/Used_Points)')) === '2'
-        && trim((string)$recalibratedScaleXpath->evaluate('string(/SDAQ/Calibration_Data/CH1/Calibration_date)')) === date('Y/m/d')
+        && trim((string)$recalibratedScaleXpath->evaluate('string(/SDAQ/Calibration_Data/CH1/Calibration_date)')) === '2026/09/01'
         && trim((string)$recalibratedScaleXpath->evaluate('string(/SDAQ/Calibration_Data/CH1/Calibration_Period)')) === '0',
     'F-1: acknowledged Scale replaces an active table as a new two-point calibration with new provenance'
 );
 
-$secondScale = cal_build_scale_xml_payload($recalibratedScale, 1, 4, 20, 0, 100, 'C', true);
+$secondScale = cal_build_scale_xml_payload($recalibratedScale, 1, 4, 20, 0, 100, 'C', '2026/09/02', true);
 $secondScaleDoc = new DOMDocument();
 $secondScaleDoc->loadXML($secondScale);
 $secondScaleXpath = new DOMXPath($secondScaleDoc);
@@ -220,7 +220,7 @@ cal_test_check(
     'F-1: an acknowledged second Scale is a second calibration and replaces the previous Scale table'
 );
 
-$uncalibratedScale = cal_build_scale_xml_payload($zeroPrevious, 1, 0, 100, 0, 10, 'C');
+$uncalibratedScale = cal_build_scale_xml_payload($zeroPrevious, 1, 0, 100, 0, 10, 'C', '2026/09/01');
 $scaleDoc = new DOMDocument();
 $scaleDoc->loadXML($uncalibratedScale);
 $scaleXpath = new DOMXPath($scaleDoc);
@@ -234,19 +234,19 @@ cal_test_check(
     'F-1: a permitted Scale write starts new table metadata instead of copying stale date/period'
 );
 cal_test_throws(
-    static fn() => cal_build_scale_xml_payload($zeroPrevious, 1, 0, 100, 10, 10, 'C'),
+    static fn() => cal_build_scale_xml_payload($zeroPrevious, 1, 0, 100, 10, 10, 'C', '2026/09/01'),
     'EngHigh must differ from EngLow',
     'F-7: Scale rejects a zero engineering output range',
     400
 );
 cal_test_throws(
-    static fn() => cal_build_scale_xml_payload($zeroPrevious, 1, 0, 100, 1, 1.00000001, 'C'),
+    static fn() => cal_build_scale_xml_payload($zeroPrevious, 1, 0, 100, 1, 1.00000001, 'C', '2026/09/01'),
     'after float32 conversion',
     'F-7 edge: engineering endpoints that collapse to the same float32 are rejected',
     400
 );
 cal_test_throws(
-    static fn() => cal_build_scale_xml_payload($zeroPrevious, 1, 1, 1.00000001, 0, 100, 'C'),
+    static fn() => cal_build_scale_xml_payload($zeroPrevious, 1, 1, 1.00000001, 0, 100, 'C', '2026/09/01'),
     'strictly increasing after float32 conversion',
     'F-8 edge: Scale raw endpoints that collapse to one float32 are rejected',
     400
@@ -315,7 +315,14 @@ cal_test_check(true, 'W-7: validation uses the live device limit rather than pos
 $currentScaleWithResidue = cal_test_xml(0, [
     2 => cal_test_point(['Measure' => '20', 'Reference' => '20']),
 ]);
-$scaleWithResidue = cal_build_scale_xml_payload($currentScaleWithResidue, 1, 4, 20, 0, 100, 'C');
+$scaleWithResidue = cal_build_scale_xml_payload($currentScaleWithResidue, 1, 4, 20, 0, 100, 'C', '2026/09/01');
+
+cal_test_throws(
+    static fn() => cal_build_scale_xml_payload($zeroPrevious, 1, 0, 100, 0, 10, 'C', '2026/02/30'),
+    'calDate must be YYYY/MM/DD',
+    'Scale rejects an invalid browser calibration date',
+    400
+);
 cal_validate_calibration_xml($scaleWithResidue, ['C']);
 $scaleWithResidueDoc = new DOMDocument();
 $scaleWithResidueDoc->loadXML($scaleWithResidue);

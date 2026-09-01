@@ -844,6 +844,14 @@ function cal_validate_calibration_metadata_xml(string $xmlContent): void
     }
 }
 
+function cal_validate_date_string(string $date): void
+{
+    if (preg_match('/^(\d{4})\/(\d{2})\/(\d{2})$/', $date, $match) !== 1
+        || !checkdate((int)$match[2], (int)$match[3], (int)$match[1])) {
+        throw new RuntimeException('calDate must be YYYY/MM/DD', 400);
+    }
+}
+
 function cal_build_scale_xml_payload(
     string $sourceXml,
     int $ch,
@@ -852,6 +860,7 @@ function cal_build_scale_xml_payload(
     float $engLow,
     float $engHigh,
     string $engUnit,
+    string $calDate,
     bool $acknowledgeExistingCalibration = false
 ): string {
     $sourceDoc = new DOMDocument('1.0', 'utf-8');
@@ -882,9 +891,7 @@ function cal_build_scale_xml_payload(
         ), 409);
     }
 
-    // A Scale write is a new two-point table, not a continuation of stale
-    // calibration provenance from an inactive table.
-    $calDate = date('Y/m/d');
+    cal_validate_date_string($calDate);
     $calPeriod = '0';
 
     $doc = new DOMDocument('1.0', 'utf-8');
@@ -1167,6 +1174,7 @@ try {
             $addr = cal_normalize_addr($body['addr'] ?? null);
             $ch = cal_normalize_ch($body['ch'] ?? null);
             $engUnit = trim((string)($body['engUnit'] ?? ''));
+            $calDate = trim((string)($body['calDate'] ?? ''));
             $acknowledgeExistingCalibration = ($body['acknowledgeExistingCalibration'] ?? false) === true;
 
             $rawLow = filter_var($body['rawLow'] ?? null, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE);
@@ -1191,6 +1199,11 @@ try {
             if ($engUnit === '') {
                 cal_fail('engUnit is required for action=scale', 400);
             }
+            try {
+                cal_validate_date_string($calDate);
+            } catch (RuntimeException $e) {
+                cal_fail($e->getMessage(), $e->getCode() ?: 400);
+            }
 
             cal_require_owned_lock($bus, $addr, $sessionId);
 
@@ -1209,6 +1222,7 @@ try {
                 (float)$engLow,
                 (float)$engHigh,
                 $engUnit,
+                $calDate,
                 $acknowledgeExistingCalibration
             );
             $xml = cal_rebuild_linear_coeffs_for_auto_mode($xml);

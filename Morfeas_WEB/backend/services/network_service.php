@@ -15,6 +15,30 @@ function network_now(): int
     return time();
 }
 
+function network_boottime_now(): int
+{
+    $uptime = @file_get_contents('/proc/uptime');
+    if (is_string($uptime) && preg_match('/^([0-9]+(?:\.[0-9]+)?)/', $uptime, $m) === 1) {
+        return (int) floor((float) $m[1]);
+    }
+    return 0;
+}
+
+function network_boot_id(): string
+{
+    return trim((string) @file_get_contents('/proc/sys/kernel/random/boot_id'));
+}
+
+function network_pending_expired(array $pending): bool
+{
+    $deadline = (int) ($pending['expires_boottime'] ?? 0);
+    $bootId = trim((string) ($pending['boot_id'] ?? ''));
+    if ($deadline > 0 && $bootId !== '') {
+        return $bootId !== network_boot_id() || network_boottime_now() >= $deadline;
+    }
+    return network_now() >= (int) ($pending['expires_at'] ?? 0);
+}
+
 function network_uuid(): string
 {
     return bin2hex(random_bytes(8));
@@ -103,7 +127,9 @@ function network_pending_summary(?array $pending): ?array
 
     $now = network_now();
     $expiresAt = (int) ($pending['expires_at'] ?? 0);
-    $remaining = max(0, $expiresAt - $now);
+    $deadline = (int) ($pending['expires_boottime'] ?? 0);
+    $remaining = network_pending_expired($pending) ? 0
+        : ($deadline > 0 ? max(0, $deadline - network_boottime_now()) : max(0, $expiresAt - $now));
 
     return [
         'pending_id' => (string) ($pending['pending_id'] ?? ''),
@@ -935,7 +961,7 @@ function network_start_rollback_watcher(string $pendingId, int $timeoutSec): voi
 
 function network_pending_is_active(array $pending): bool
 {
-    return ($pending['state'] ?? '') === 'pending' && network_now() < (int) ($pending['expires_at'] ?? 0);
+    return ($pending['state'] ?? '') === 'pending' && !network_pending_expired($pending);
 }
 
 function network_rollback_locked(array $pending, string $reason): array
@@ -965,7 +991,7 @@ function network_apply_staged(array $payload, int $timeoutSec = NETWORK_DEFAULT_
 
     return network_with_lock(function () use ($payload, $timeoutSec, $autoConfirm) {
         $existing = network_read_pending();
-        if ($existing && ($existing['state'] ?? '') === 'pending' && network_now() >= (int) ($existing['expires_at'] ?? 0)) {
+        if ($existing && ($existing['state'] ?? '') === 'pending' && network_pending_expired($existing)) {
             $existing = network_rollback_locked($existing, 'expired_before_new_apply');
         }
         if ($existing && network_pending_is_active($existing)) {
@@ -1000,11 +1026,14 @@ function network_apply_staged(array $payload, int $timeoutSec = NETWORK_DEFAULT_
         }
 
         $now = network_now();
+        $bootNow = network_boottime_now();
         $pending = [
             'pending_id' => $pendingId,
             'state' => $autoConfirm ? 'confirmed' : 'pending',
             'created_at' => $now,
             'expires_at' => $autoConfirm ? $now : ($now + $timeoutSec),
+            'boot_id' => network_boot_id(),
+            'expires_boottime' => $autoConfirm ? $bootNow : ($bootNow + $timeoutSec),
             'timeout_sec' => $timeoutSec,
             'before_payload' => $beforePayload,
             'after_payload' => $normalized,
@@ -1050,7 +1079,7 @@ function network_confirm_pending(string $pendingId): array
             throw new RuntimeException('Pending state is already finalized');
         }
 
-        if (network_now() >= (int) ($pending['expires_at'] ?? 0)) {
+        if (network_pending_expired($pending)) {
             $pending = network_rollback_locked($pending, 'expired_before_confirm');
             return [
                 'pending' => network_pending_summary($pending),
@@ -1110,7 +1139,7 @@ function network_auto_rollback_if_expired(string $pendingId): array
             return ['handled' => false, 'reason' => 'already_finalized'];
         }
 
-        if (network_now() < (int) ($pending['expires_at'] ?? 0)) {
+        if (!network_pending_expired($pending)) {
             return ['handled' => false, 'reason' => 'not_expired_yet'];
         }
 

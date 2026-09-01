@@ -380,5 +380,20 @@ channel_add_channel_from_pool(
 check(written_anchor($freshXmlPath, '_NOX_NoLogConfig') === 'can2.addr_1.NOx', 'F-16: a NOX Add is not gated on Morfeas_Config.xml (bus-based identity), so it succeeds even with no log config present');
 file_put_contents($logConfigPath, $logConfigWithBothHandlers);
 
+$auditPayload = add_payload('IOBOX', '_IOBOX_Audit', '555555555.RX1.CH2');
+$auditPayload['build_date'] = '1';
+$auditPayload['mod_date'] = '1';
+$beforeAudit = sha1_file($xmlPath);
+try {
+    channel_add_channel_from_pool(
+        $xmlPath, $logConfigPath, $auditPayload,
+        [], [$ioboxJson], [], [], []
+    );
+    check(false, 'Add with client audit fields must throw');
+} catch (ChannelConfigException $e) {
+    check($e->apiCode() === 'add_field_not_allowed' && $e->status() === 400, 'Add rejects client audit fields before resolving candidates');
+}
+check(sha1_file($xmlPath) === $beforeAudit, 'Add with client audit fields leaves XML unchanged');
+
 echo "\n{$g_checks} checks, " . ($g_checks - $g_failures) . " passed, {$g_failures} failed\n";
 exit($g_failures === 0 ? 0 : 1);

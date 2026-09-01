@@ -3,14 +3,10 @@
 function nox_runtime_online_window(array $logstat): ?int
 {
     $value = $logstat['NOx_sensor_lifetime_sec'] ?? null;
-    if (!is_numeric($value) || (int) $value <= 0) {
-        return null;
-    }
-
-    return (int) $value;
+    return is_numeric($value) && (int) $value > 0 ? (int) $value : null;
 }
 
-function nox_runtime_sensor_detected(array $sensor, ?int $now = null, ?int $onlineWindowSec = null): bool
+function nox_runtime_sensor_detected(array $sensor): bool
 {
     $lastSeen = $sensor['last_seen'] ?? null;
     if (!is_numeric($lastSeen)) {
@@ -22,27 +18,18 @@ function nox_runtime_sensor_detected(array $sensor, ?int $now = null, ?int $onli
         return false;
     }
 
-    $now = $now ?? time();
-    if ($onlineWindowSec === null) {
-        // Older core builds did not export the lifetime. In that case, trust
-        // core's logstat filtering instead of inventing a web-side timeout.
-        return true;
-    }
-
-    return $lastSeen <= ($now + 2) && ($now - $lastSeen) <= $onlineWindowSec;
+    return true;
 }
 
-function nox_runtime_bus_detected(array $logstat, ?int $now = null): bool
+function nox_runtime_bus_detected(array $logstat): bool
 {
     $sensors = $logstat['NOx_sensors'] ?? $logstat['sensors'] ?? [];
     if (!is_array($sensors)) {
         return false;
     }
 
-    $now = $now ?? time();
-    $onlineWindowSec = nox_runtime_online_window($logstat);
     foreach ($sensors as $sensor) {
-        if (is_array($sensor) && nox_runtime_sensor_detected($sensor, $now, $onlineWindowSec)) {
+        if (is_array($sensor) && nox_runtime_sensor_detected($sensor)) {
             return true;
         }
     }

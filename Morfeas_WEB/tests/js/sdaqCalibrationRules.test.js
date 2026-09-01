@@ -43,10 +43,11 @@ test('F-2 rejects NaN or missing polynomial coefficients in the source model', (
 });
 
 test('F-1 treats every Scale as a calibration and warns before replacing an active table', () => {
-  assert.match(rules.scaleCalibrationConfirmation('0', '1'), /new 2-point Scale table/);
-  assert.match(rules.scaleCalibrationConfirmation('1', '1'), /active 1-point calibration/);
-  assert.match(rules.scaleCalibrationConfirmation('8', '3'), /replace it with a new 2-point table/);
-  assert.match(rules.scaleCalibrationConfirmation('8', '3'), /today's calibration date, and period 0/);
+  assert.match(rules.scaleCalibrationConfirmation('0', '1', '2026/09/01'), /new 2-point nominal range table/);
+  assert.match(rules.scaleCalibrationConfirmation('1', '1', '2026/09/01'), /active 1-point calibration/);
+  assert.match(rules.scaleCalibrationConfirmation('8', '3', '2026/09/01'), /replace it with a new 2-point nominal range table/);
+  assert.match(rules.scaleCalibrationConfirmation('8', '3', '2026/09/01'), /dated 2026\/09\/01/);
+  assert.match(rules.scaleCalibrationConfirmation('8', '3', '2026/09/01'), /will not show a next calibration due date/);
 });
 
 test('F-3 validates Point order after float32 conversion without sorting rows', () => {

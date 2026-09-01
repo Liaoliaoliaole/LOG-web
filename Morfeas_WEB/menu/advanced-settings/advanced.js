@@ -13,6 +13,11 @@
   const ntpServerInput = byId('ntpServerInput');
   const ntpApplyBtn = byId('ntpApplyBtn');
   const ntpStatusEl = byId('ntpStatus');
+  const timesyncStatusBtn = byId('timesyncStatusBtn');
+  const timesyncDialog = byId('timesyncDialog');
+  const timesyncState = byId('timesyncState');
+  const timesyncDetails = byId('timesyncDetails');
+  const timesyncCloseBtn = byId('timesyncCloseBtn');
   macText.textContent = '—';
   can0El.textContent = '—';
   can1El.textContent = '—';
@@ -96,6 +101,59 @@
   }
 
   ntpApplyBtn?.addEventListener('click', applyNtpServer);
+
+  function timesyncStateFor(data, browserEpoch) {
+    const systemEpoch = Number(data?.system_epoch);
+    const delta = Number.isFinite(systemEpoch) ? Math.abs(systemEpoch - browserEpoch) : null;
+    if (delta === null || delta > 60) return { name: 'Suspect', delta };
+    return String(data?.ntp_synchronized || '').toLowerCase() === 'yes'
+      ? { name: 'Confirmed', delta }
+      : { name: 'Unconfirmed', delta };
+  }
+
+  function addTimesyncRow(label, value) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const key = document.createElement('label');
+    key.textContent = label;
+    const text = document.createElement('div');
+    text.textContent = value == null || value === '' ? '—' : String(value);
+    row.append(key, text);
+    timesyncDetails.appendChild(row);
+  }
+
+  async function showTimesyncStatus() {
+    if (!networkConfigApi?.fetchTimesyncStatus || !timesyncDialog) return;
+    timesyncDetails.replaceChildren();
+    timesyncState.textContent = 'Loading…';
+    timesyncDialog.showModal();
+    try {
+      const payload = await networkConfigApi.fetchTimesyncStatus();
+      const data = payload?.data || {};
+      const state = timesyncStateFor(data, Math.floor(Date.now() / 1000));
+      timesyncState.textContent = state.name === 'Suspect'
+        ? `Suspect: this browser and the LOG system disagree by ${state.delta ?? 'unknown'} seconds.`
+        : state.name;
+      addTimesyncRow('Configured server', data.configured_server);
+      addTimesyncRow('Selected server', data.selected_server);
+      addTimesyncRow('Selected address', data.selected_address);
+      addTimesyncRow('NTP enabled', data.ntp_enabled);
+      addTimesyncRow('NTP synchronized', data.ntp_synchronized);
+      addTimesyncRow('Poll interval', data.poll_interval);
+      addTimesyncRow('Packet count', data.packet_count);
+      addTimesyncRow('Timezone', data.timezone);
+      addTimesyncRow('Pi time', data.system_time);
+      addTimesyncRow('Browser time', new Date().toString());
+      addTimesyncRow('RTC model', data.rtc_name);
+      addTimesyncRow('RTC hctosys', data.rtc_hctosys);
+      addTimesyncRow('RTC delta', data.rtc_delta_sec == null ? null : `${data.rtc_delta_sec} s`);
+    } catch (err) {
+      timesyncState.textContent = `Unable to read time status: ${err?.message || err}`;
+    }
+  }
+
+  timesyncStatusBtn?.addEventListener('click', showTimesyncStatus);
+  timesyncCloseBtn?.addEventListener('click', () => timesyncDialog?.close());
 
   /* ----------------------------------------------------
    *  B) ISO XML loader

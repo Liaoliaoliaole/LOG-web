@@ -526,8 +526,10 @@
     }
     const validated = validateBeforeSave();
 
+    const now = new Date();
+    const calDate = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
     const confirmed = window.confirm(
-      calibrationRules.scaleCalibrationConfirmation(state.activeCalibrationPoints, ch)
+      calibrationRules.scaleCalibrationConfirmation(state.activeCalibrationPoints, ch, calDate)
     );
     if (!confirmed) {
       setStatus('Save canceled by user', 'info');
@@ -544,6 +546,7 @@
       engLow: validated.engLow,
       engHigh: validated.engHigh,
       engUnit: validated.engUnit,
+      calDate,
       acknowledgeExistingCalibration: state.activeCalibrationPoints > 0,
     };
 

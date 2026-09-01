@@ -62,6 +62,15 @@ $a = backend_session_registry_acquire_lock('t1', 'r1', 'session-AAAAAAAAAAAAAAAA
 check($a['acquired'] === true, '1: a plain acquire on a free resource still succeeds');
 backend_session_registry_release_lock('t1', 'r1', 'session-AAAAAAAAAAAAAAAA');
 
+$futureRecord = [
+    'expires_at' => 1,
+    'boot_id' => backend_session_registry_boot_id(),
+    'expires_boottime' => backend_session_registry_boottime_now() + 60,
+];
+check(!backend_session_registry_is_expired($futureRecord), '1 regression: a current-boot future lock is not expired by a wall-clock change');
+$futureRecord['boot_id'] = 'different-boot';
+check(backend_session_registry_is_expired($futureRecord), '1 regression: a lock from another boot is expired conservatively');
+
 // ============================================================
 // 2) blockedByTypes: a matching active lock of a listed type blocks
 //    acquisition, and nothing is written for the resource being acquired.

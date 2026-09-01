@@ -13,6 +13,7 @@
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
   const systemStatusApi = window.LOG_WEB?.api?.systemStatus;
+  const networkConfigApi = window.LOG_WEB?.api?.networkConfig;
   const statusFormatter = window.LOG_WEB?.ui?.systemStatusFormatter;
 
   /* ------------------------------------------
@@ -43,6 +44,24 @@
   const journalTerminal = $('#journalTerminal');
   const reloadJournalBtn = $('#reloadJournal');
   const exportJournalBtn = $('#exportJournal');
+  const timesyncAlert = $('#timesyncAlert');
+
+  async function refreshTimesyncAlert() {
+    if (!networkConfigApi?.fetchTimesyncStatus || !timesyncAlert) return;
+    try {
+      const payload = await networkConfigApi.fetchTimesyncStatus();
+      const systemEpoch = Number(payload?.data?.system_epoch);
+      const delta = Number.isFinite(systemEpoch) ? Math.abs(systemEpoch - Math.floor(Date.now() / 1000)) : null;
+      if (delta !== null && delta > 60) {
+        timesyncAlert.textContent = `Clock suspect: browser and LOG differ by ${delta} seconds`;
+        timesyncAlert.style.display = '';
+      } else {
+        timesyncAlert.style.display = 'none';
+      }
+    } catch (_) {
+      timesyncAlert.style.display = 'none';
+    }
+  }
 
   let detailsCache = null;
   let detailsError = null;
@@ -144,11 +163,24 @@
       if (/^SDAQnet_\(.+\)_outAmperage$/i.test(row.name)) return 'Bus Amperage';
       if (/^SDAQnet_\(.+\)_ShuntTemp$/i.test(row.name)) return 'Shunt Temperature';
       if (/^SDAQnet_\(.+\)_last_calibration_UNIX$/i.test(row.name)) return 'Last SDAQ Net Power Calibration';
+      if (/^SDAQnet_\(.+\)_last_clock_step_UNIX$/i.test(row.name)) return 'Last Clock Correction';
+      if (/^SDAQnet_\(.+\)_last_clock_step_delta_sec$/i.test(row.name)) return 'Clock Correction Delta';
       return row.name.replace('_UNIX', '');
     })();
 
     if (row.name.includes('last_calibration_UNIX')) {
       const value = row.value ? new Date(row.value * 1000).toLocaleDateString() : 'UnCalibrated';
+      return { label, value };
+    }
+
+    if (row.name.includes('last_clock_step_UNIX')) {
+      const value = row.value ? new Date(row.value * 1000).toLocaleString() : '—';
+      return { label, value };
+    }
+
+    if (row.name.includes('last_clock_step_delta_sec')) {
+      const seconds = Number(row.value);
+      const value = Number.isFinite(seconds) ? `${seconds >= 0 ? '+' : ''}${seconds}s` : '—';
       return { label, value };
     }
 
@@ -629,5 +661,6 @@
 
   normalizeJournalScopeSelection();
   fetchDetails();
+  refreshTimesyncAlert();
   renderDetails();
 })();

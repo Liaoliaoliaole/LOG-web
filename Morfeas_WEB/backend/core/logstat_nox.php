@@ -35,7 +35,7 @@ function nox_status_from_error_code(int $code): string
     return 'Unclassified';
 }
 
-function nox_sensor_is_offline_only(array $sensor, ?int $sensorLifetime, ?int $noxErrorCode, ?int $o2ErrorCode, string $heaterMode): bool
+function nox_sensor_is_offline_only(?int $noxErrorCode, ?int $o2ErrorCode, string $heaterMode): bool
 {
     if ($noxErrorCode !== -901 || $o2ErrorCode !== -901) {
         return false;
@@ -45,8 +45,7 @@ function nox_sensor_is_offline_only(array $sensor, ?int $sensorLifetime, ?int $n
         return true;
     }
 
-    $lastSeen = isset($sensor['last_seen']) && is_numeric($sensor['last_seen']) ? (int)$sensor['last_seen'] : null;
-    return $sensorLifetime !== null && $lastSeen !== null && $lastSeen > 0 && (time() - $lastSeen) > $sensorLifetime;
+    return false;
 }
 
 function nox_canonical_anchor_base(?string $iface, ?int $addr, ?string $fallbackAnchor): ?string
@@ -148,7 +147,7 @@ function nox_load_anchor_map(string $jsonPath): array
         // Offline-only NOX sensors remain selectable so operators can create
         // the link before physically reconnecting the sensor; the search UI
         // marks them as OFF-Line to avoid presenting them as live sources.
-        $isOfflineOnly = nox_sensor_is_offline_only($s, $sensorLifetime, $noxErrorCode, $o2ErrorCode, $heaterMode);
+        $isOfflineOnly = nox_sensor_is_offline_only($noxErrorCode, $o2ErrorCode, $heaterMode);
 
         $noxStatus = $noxErrorCode !== null ? nox_status_from_error_code($noxErrorCode) : ($noxValid ? 'Okay' : ($errText ?: 'Unclassified'));
 

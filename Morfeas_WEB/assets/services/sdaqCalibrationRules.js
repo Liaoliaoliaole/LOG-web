@@ -65,15 +65,16 @@
     return { ok: true, gain };
   }
 
-  function scaleCalibrationConfirmation(usedPoints, channelNumber = '') {
+  function scaleCalibrationConfirmation(usedPoints, channelNumber = '', calDate = '') {
     const raw = String(usedPoints ?? '').trim();
     const used = /^\d+$/.test(raw) ? Number(raw) : -1;
     const channel = String(channelNumber ?? '').trim();
+    const date = String(calDate ?? '').trim() || 'the browser date';
     const prefix = channel === '' ? 'This channel' : `CH${channel}`;
     if (used > 0) {
-      return `${prefix} already has an active ${used}-point calibration. This Scale is a new calibration and will replace it with a new 2-point table, today's calibration date, and period 0. Continue calibration?`;
+      return `${prefix} already has an active ${used}-point calibration. This Scale will replace it with a new 2-point nominal range table dated ${date}; period remains 0, so this channel will not show a next calibration due date. Continue calibration?`;
     }
-    return `${prefix} will be calibrated with a new 2-point Scale table, today's calibration date, and period 0. Continue calibration?`;
+    return `${prefix} will receive a new 2-point nominal range table dated ${date}; period remains 0, so this channel will not show a next calibration due date. Continue calibration?`;
   }
 
   function validateMeasureOrder(values) {

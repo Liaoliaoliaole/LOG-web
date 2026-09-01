@@ -40,6 +40,15 @@
       return row.value ? new Date(row.value * 1000).toLocaleDateString() : 'UnCalibrated';
     }
 
+    if (row.name?.includes('last_clock_step_UNIX')) {
+      return row.value ? new Date(row.value * 1000).toLocaleString() : '—';
+    }
+
+    if (row.name?.includes('last_clock_step_delta_sec')) {
+      const seconds = Number(row.value);
+      return Number.isFinite(seconds) ? `${seconds >= 0 ? '+' : ''}${seconds}s` : '—';
+    }
+
     if (row.name === 'BUS_Utilization') {
       return formatPercent(row.value, 1);
     }
@@ -119,6 +128,8 @@
     if (/^SDAQnet_\(.+\)_outAmperage$/i.test(row.name)) return 'Bus Amperage';
     if (/^SDAQnet_\(.+\)_ShuntTemp$/i.test(row.name)) return 'Shunt Temperature';
     if (/^SDAQnet_\(.+\)_last_calibration_UNIX$/i.test(row.name)) return 'Last SDAQ Net Power Calibration';
+    if (/^SDAQnet_\(.+\)_last_clock_step_UNIX$/i.test(row.name)) return 'Last Clock Correction';
+    if (/^SDAQnet_\(.+\)_last_clock_step_delta_sec$/i.test(row.name)) return 'Clock Correction Delta';
     return row.name.replace('_UNIX', '');
   };
 

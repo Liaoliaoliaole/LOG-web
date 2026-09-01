@@ -508,7 +508,7 @@
       return;
     }
     const d = new Date();
-    const filename = `NOx_${bus}_${selectedAddr()}_${d.getMonth()}_${d.getDate()}_${d.getFullYear()}_${d.getHours()}_${d.getMinutes()}_${d.getSeconds()}.csv`;
+    const filename = `NOx_${bus}_${selectedAddr()}_${d.getMonth() + 1}_${d.getDate()}_${d.getFullYear()}_${d.getHours()}_${d.getMinutes()}_${d.getSeconds()}.csv`;
     const blob = new Blob([statsCsv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -525,7 +525,7 @@
     }
     const target = $('.row-2');
     const d = new Date();
-    const stamp = `${d.getMonth()}_${d.getDate()}_${d.getFullYear()}_${d.getHours()}_${d.getMinutes()}_${d.getSeconds()}`;
+    const stamp = `${d.getMonth() + 1}_${d.getDate()}_${d.getFullYear()}_${d.getHours()}_${d.getMinutes()}_${d.getSeconds()}`;
     const filename = `NOx_${bus}_${selectedAddr()}_${stamp}`;
 
     const previousStats = statsGrid.style.display;

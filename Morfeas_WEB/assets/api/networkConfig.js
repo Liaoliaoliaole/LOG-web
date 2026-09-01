@@ -64,6 +64,9 @@
     fetchState: () => fetchJson(undefined, {
       headers: { Accept: 'application/json' },
     }),
+    fetchTimesyncStatus: () => fetchJson({ action: 'timesync_status' }, {
+      headers: { Accept: 'application/json' },
+    }),
     apply: (payload, options = {}) => {
       let timeoutSec = 90;
       let autoConfirm = true;

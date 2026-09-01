@@ -107,9 +107,9 @@ function update_exec(string $mode): array
 
     $out = [];
     $exitCode = 0;
-    $startAt = microtime(true);
+    $startAt = hrtime(true);
     exec($command . ' 2>&1', $out, $exitCode);
-    $durationMs = (int) round((microtime(true) - $startAt) * 1000);
+    $durationMs = (int) round((hrtime(true) - $startAt) / 1000000);
 
     $output = trim(implode("\n", $out));
     $status = update_read_status();

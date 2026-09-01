@@ -194,6 +194,7 @@
                 <div style="display:flex; align-items:center; gap:8px;">
                   <input id="ntpServerInput" class="input" style="min-width:180px" placeholder="e.g. 192.168.1.10" />
                   <button id="ntpApplyBtn" class="btn" type="button">Apply</button>
+                  <button id="timesyncStatusBtn" class="btn" type="button">Status</button>
                 </div>
               </div>
               <div class="row">
@@ -202,6 +203,14 @@
               </div>
             </div>
           </div>
+
+          <dialog id="timesyncDialog">
+            <div class="section-title">Time Synchronization Status</div>
+            <div id="timesyncState" class="value">Loading…</div>
+            <div id="timesyncDetails" class="rows" style="margin-top:10px;"></div>
+            <p class="muted">The Morfeas Web interface cannot set the system clock. Linux may still synchronize it automatically from the RTC or from NTP.</p>
+            <button id="timesyncCloseBtn" class="btn" type="button">Close</button>
+          </dialog>
 
           <!-- ISOstandard -->
           <div class="section">

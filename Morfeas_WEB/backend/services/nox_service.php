@@ -64,7 +64,7 @@ function nox_normalize_sensor(array $sensor, int $addr, ?int $onlineWindowSec = 
 {
     $base = nox_sensor_defaults($addr);
     $lastSeen = $sensor['last_seen'] ?? null;
-    $detected = nox_runtime_sensor_detected($sensor, null, $onlineWindowSec);
+    $detected = nox_runtime_sensor_detected($sensor);
 
     return [
         'addr' => $addr,

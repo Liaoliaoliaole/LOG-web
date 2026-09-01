@@ -87,12 +87,32 @@ function backend_session_registry_write_json_file(string $path, array $record): 
     backend_atomic_write_file($path, $json);
 }
 
+function backend_session_registry_boottime_now(): int
+{
+    $uptime = @file_get_contents('/proc/uptime');
+    if (is_string($uptime) && preg_match('/^([0-9]+(?:\.[0-9]+)?)/', $uptime, $m) === 1) {
+        return (int) floor((float) $m[1]);
+    }
+    return 0;
+}
+
+function backend_session_registry_boot_id(): string
+{
+    return trim((string) @file_get_contents('/proc/sys/kernel/random/boot_id'));
+}
+
 function backend_session_registry_is_expired(?array $record, ?int $now = null): bool
 {
     if (!is_array($record)) {
         return true;
     }
 
+    $deadline = (int)($record['expires_boottime'] ?? 0);
+    $bootId = trim((string)($record['boot_id'] ?? ''));
+    if ($deadline > 0 && $bootId !== '') {
+        return $bootId !== backend_session_registry_boot_id()
+            || backend_session_registry_boottime_now() >= $deadline;
+    }
     $expiresAt = (int)($record['expires_at'] ?? 0);
     $now ??= time();
     return $expiresAt > 0 && $expiresAt < $now;
@@ -182,6 +202,7 @@ function backend_session_registry_acquire_lock(
         $path = backend_session_registry_record_path($resourceType, $resourceId);
         $existing = backend_session_registry_read_json_file($path);
         $now = time();
+        $bootNow = backend_session_registry_boottime_now();
 
         if (!backend_session_registry_is_expired($existing, $now)) {
             $existingSession = trim((string)($existing['session_id'] ?? ''));
@@ -201,6 +222,8 @@ function backend_session_registry_acquire_lock(
             'mode' => $mode,
             'created_at' => isset($existing['created_at']) ? (int)$existing['created_at'] : $now,
             'expires_at' => $now + $ttlSec,
+            'boot_id' => backend_session_registry_boot_id(),
+            'expires_boottime' => $bootNow + $ttlSec,
             'meta' => $meta,
         ];
         backend_session_registry_write_json_file($path, $record);
@@ -224,6 +247,7 @@ function backend_session_registry_renew_lock(
         $path = backend_session_registry_record_path($resourceType, $resourceId);
         $existing = backend_session_registry_read_json_file($path);
         $now = time();
+        $bootNow = backend_session_registry_boottime_now();
 
         if (backend_session_registry_is_expired($existing, $now)) {
             @unlink($path);
@@ -245,6 +269,8 @@ function backend_session_registry_renew_lock(
 
         $record = $existing;
         $record['expires_at'] = $now + $ttlSec;
+        $record['boot_id'] = backend_session_registry_boot_id();
+        $record['expires_boottime'] = $bootNow + $ttlSec;
         if (!empty($meta)) {
             $record['meta'] = array_merge(is_array($record['meta'] ?? null) ? $record['meta'] : [], $meta);
         }

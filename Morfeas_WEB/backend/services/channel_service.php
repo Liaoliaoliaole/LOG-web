@@ -765,6 +765,7 @@ function channel_add_channel_from_pool(
     array $noxLogFiles,
     array $sdaqDeviceTypes
 ): void {
+    iso_require_server_owned_audit_fields_absent($data);
     // Resolved before any lock is taken: a malformed request should not
     // queue behind a write, and the requested family decides which locks
     // this call needs. The family is only a *request* here -- it is checked
@@ -941,6 +942,7 @@ function channel_add_sdaq_range_from_pool(
             if (!is_array($item)) {
                 throw new ChannelConfigException("Invalid batch item at index $idx", 400, 'missing_field');
             }
+            iso_require_server_owned_audit_fields_absent($item);
             if (array_key_exists('unit', $item)) {
                 throw new ChannelConfigException(
                     "SDAQ Unit is runtime-owned and is not accepted for batch item #$idx",

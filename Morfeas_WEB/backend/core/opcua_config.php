@@ -913,6 +913,32 @@ const ISO_EDIT_FORBIDDEN_FIELDS = [
     'Build_date_UNIX',
 ];
 
+const ISO_SERVER_OWNED_AUDIT_FIELDS = [
+    'build_date',
+    'build_date_unix',
+    'Build_date_UNIX',
+    'mod_date',
+    'mod_date_unix',
+    'Mod_date_UNIX',
+];
+
+function iso_require_server_owned_audit_fields_absent(array $data): void
+{
+    $offenders = [];
+    foreach (ISO_SERVER_OWNED_AUDIT_FIELDS as $field) {
+        if (array_key_exists($field, $data)) {
+            $offenders[] = $field;
+        }
+    }
+    if ($offenders !== []) {
+        throw new ChannelConfigException(
+            'Server-owned audit fields are not accepted when adding channels: ' . implode(', ', $offenders),
+            400,
+            'add_field_not_allowed'
+        );
+    }
+}
+
 /* Enforce Edit ownership server-side; browser-disabled fields are not authority. */
 function iso_require_edit_field_allowlist(string $xmlPath, string $isoChannel, array $data): void
 {

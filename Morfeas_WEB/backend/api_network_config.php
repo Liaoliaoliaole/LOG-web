@@ -9,6 +9,14 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 try {
     if ($method === 'GET') {
+        $action = strtolower(trim((string)($_GET['action'] ?? '')));
+        if ($action === 'timesync_status') {
+            echo json_encode([
+                'ok' => true,
+                'data' => read_timesync_status(),
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            exit;
+        }
         echo json_encode([
             'ok' => true,
             'data' => network_get_state(),
