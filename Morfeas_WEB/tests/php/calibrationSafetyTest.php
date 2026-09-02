@@ -220,7 +220,8 @@ cal_test_check(
     'F-1: an acknowledged second Scale is a second calibration and replaces the previous Scale table'
 );
 
-$uncalibratedScale = cal_build_scale_xml_payload($zeroPrevious, 1, 0, 100, 0, 10, 'C', '2026/09/01');
+$scaleDate = '2026/09/01';
+$uncalibratedScale = cal_build_scale_xml_payload($zeroPrevious, 1, 0, 100, 0, 10, 'C', $scaleDate);
 $scaleDoc = new DOMDocument();
 $scaleDoc->loadXML($uncalibratedScale);
 $scaleXpath = new DOMXPath($scaleDoc);
@@ -229,7 +230,7 @@ cal_test_check(
     'F-1: Scale remains available for a channel with no active calibration'
 );
 cal_test_check(
-    trim((string)$scaleXpath->evaluate('string(/SDAQ/Calibration_Data/CH1/Calibration_date)')) === date('Y/m/d')
+    trim((string)$scaleXpath->evaluate('string(/SDAQ/Calibration_Data/CH1/Calibration_date)')) === $scaleDate
         && trim((string)$scaleXpath->evaluate('string(/SDAQ/Calibration_Data/CH1/Calibration_Period)')) === '0',
     'F-1: a permitted Scale write starts new table metadata instead of copying stale date/period'
 );

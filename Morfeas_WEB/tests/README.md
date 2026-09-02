@@ -21,6 +21,8 @@ configuration contracts:
 - shared Web/Core daemon-configuration corpus, including 15/16/17-byte device
   names and invalid IPv4 values;
 - root helper privilege-boundary checks and shell syntax for deployment scripts.
+- fixture parsing for normal, offline, incomplete, and malformed SDAQ, IOBOX,
+  and MTI logstat snapshots.
 
 Run this suite before a Web deployment. Hardware-only paths that cannot be
 created safely on the target are covered here by production-function tests;

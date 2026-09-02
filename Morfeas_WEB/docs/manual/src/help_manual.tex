@@ -481,20 +481,23 @@ The page contains:
 \begin{itemize}
 \item \textbf{Host IP}: FTP server IPv4 address. The default expected server is \texttt{10.193.135.70}.
 \item \textbf{Engine Number}: remote directory name for this engine/device group. It may contain letters, numbers, dot, underscore, and hyphen.
-\item \textbf{Connect \& Fetch}: save the FTP configuration, test the FTP login, and load available backup files.
+\item \textbf{Connect \& Fetch}: save the entered Host IP and Engine Number, test the FTP login, and then load available backup files.
 \item \textbf{Disconnect}: remove the saved FTP configuration and disable automatic backups.
 \end{itemize}
 
-FTP credentials are read from the device-side credential file and are not typed in the UI. When the connection is saved, the main page FTP chip shows the active backup directory.
+Before the first connection, an installer must provision \path{/home/morfeas/configuration/LOG_ftp_credential.conf} with non-empty \texttt{FTP\_USER} and \texttt{FTP\_PASS} values. Credentials are read only from this device-side file and are never typed in the UI. Current LOG WEB takes the Host IP from this page; an optional legacy \texttt{FTP\_HOST} line in the credential file is not used.
+
+The page creates \texttt{ftp\_config.json} automatically from the entered Host IP, Engine Number, and this LOG's hostname. No template or pre-created \texttt{ftp\_config.json} is required. The configuration is saved before the connection test. Therefore, if the test fails, use \textbf{Disconnect} to remove the saved configuration when you do not want nightly retries.
 
 \subsection{What Is Backed Up}
 Each backup bundle contains the current OPC UA channel configuration XML and the LOG device configuration XML. The bundle is compressed, uploaded to the selected FTP engine directory, and stored as an \texttt{.mbl} file.
 
 \subsection{Automatic Nightly Backup}
 \begin{itemize}
-\item The deployment installs a root cron job that runs the FTP backup script every night at \texttt{00:10}.
-\item Automatic backup only runs when a valid FTP configuration exists.
-\item If no FTP configuration exists, the backup script logs that no valid engine number is configured and does not change system state.
+\item A successful root deployment installs a root cron job that runs the FTP backup script every night at \texttt{00:10}. Check \texttt{sudo crontab -l} if this is uncertain.
+\item A nightly backup attempt runs when \texttt{ftp\_config.json} exists and contains an Engine Number. This does not prove that the FTP server is currently reachable or that its credentials are valid.
+\item If \texttt{ftp\_config.json} does not exist, the script does not contact FTP or create a backup. It exits successfully after logging \texttt{FTP backup config not found. Automatic backup is not configured; skipping.}
+\item A failed Connect test leaves \texttt{ftp\_config.json} in place. The nightly job will continue to attempt FTP and log its failure until the server recovers or the operator selects \textbf{Disconnect}.
 \item After a backup, the script uploads the backup logs to the same FTP engine directory when possible.
 \end{itemize}
 
@@ -532,7 +535,7 @@ Each backup bundle contains the current OPC UA channel configuration XML and the
 \subsection{Operator Notes}
 \begin{itemize}
 \item Backup and restore both require a reachable FTP server.
-\item If the server is unavailable, the page shows an error and no configuration is changed.
+\item If the server is unavailable, the page shows an error and no backup or Restore configuration XML is changed. A Connect attempt may already have saved its Host IP and Engine Number; select \textbf{Disconnect} to remove them.
 \item If two browser sessions edit the FTP configuration, the page detects the updated configuration and refreshes the backup list.
 \end{itemize}
 
@@ -902,7 +905,10 @@ This section gives quick operator guidance for common problems.
 \begin{itemize}
 \item Check that the FTP server IP is reachable from the device.
 \item Confirm that the engine number is correct.
-\item If the page says configuration was removed, reconnect first.
+\item Confirm that \texttt{LOG\_ftp\_credential.conf} exists in the device configuration directory.
+\item Confirm that its \texttt{FTP\_USER} and \texttt{FTP\_PASS} values are non-empty.
+\item Check \texttt{/tmp/ftp\_debug.log} or \texttt{LOG\_FTP\_backup.log} in System Logs for the most recent connection or nightly-backup error.
+\item A failed Connect test leaves the configuration saved. Select \textbf{Disconnect} if automatic retries are not wanted, then reconnect after correcting the server or credentials.
 \item If the internal FTP server is currently unavailable, backup and restore cannot be tested end-to-end.
 \end{itemize}
 
