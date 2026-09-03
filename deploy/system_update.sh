@@ -20,6 +20,7 @@ FLAG_DIR="/var/lib/morfeas"
 FLAG_FILE="$FLAG_DIR/update_needed"
 POST_DEPLOY_SCRIPT="$MORFEAS_WEB_DIR/deploy/post_deploy.sh"
 CORE_UPDATE_SCRIPT="$MORFEAS_WEB_DIR/deploy/core_update.sh"
+MIN_VALID_YEAR=2020
 RESTART_STATE_DIR="/run/morfeas_update"
 APACHE_RESTART_MARKER="$RESTART_STATE_DIR/apache2.restart"
 JOURNALD_RESTART_MARKER="$RESTART_STATE_DIR/systemd-journald.restart"
@@ -163,6 +164,15 @@ apply_deferred_restarts() {
     if [ "$apache_restart_needed" -eq 1 ] || [ -f "$APACHE_RESTART_MARKER" ]; then
         rm -f "$APACHE_RESTART_MARKER"
         schedule_apache_restart
+    fi
+}
+
+check_clock_sane() {
+    local current_year
+    current_year="$(date +%Y)"
+    if [ "$current_year" -lt "$MIN_VALID_YEAR" ]; then
+        log_line "ERROR" "System clock appears invalid (year=$current_year, expected >= $MIN_VALID_YEAR). Skipping update check. This usually means the RTC battery is dead/removed and no NTP source is reachable. Check 'timedatectl status' and 'hwclock -r'."
+        exit 4
     fi
 }
 
@@ -376,6 +386,7 @@ main() {
     trap 'mark_update_failed $?' EXIT
     print_status "Morfeas Update Script STARTED"
     log_line "INFO" "mode=${1:---update(default)} log_file=$log_file"
+    check_clock_sane
 
     case "$1" in
         --check-only)
